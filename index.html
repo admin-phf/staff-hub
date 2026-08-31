@@ -57,6 +57,13 @@
   input[type=text],select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;color:var(--ink);background:#fff}
   input:focus,select:focus{outline:none;border-color:var(--grey)}
 
+  .grid-inputs{display:grid;gap:12px}
+  .card-input{border:1px solid var(--line);border-radius:11px;padding:12px;background:#fcfcfc;position:relative}
+  .card-input h3{font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+  .card-input .del{position:absolute;top:10px;right:10px;border:none;background:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:2px 5px;border-radius:5px}
+  .card-input .del:hover{background:#f3dede;color:var(--red)}
+  .mini{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .discwrap{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
   .status{font-size:13px;padding:10px 14px;border-radius:9px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
   .status.ok{background:#eef7ee;color:#256428;border:1px solid #cfe6cf}
   .status.warn{background:#fff6e6;color:#8a6100;border:1px solid #f0e0b8}
@@ -194,6 +201,18 @@
       </div>
     </div>
 
+    <div class="panel">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <h2 style="margin:0">Products on this page <span id="editFlag" style="display:none;color:var(--red);font-weight:700;text-transform:none;letter-spacing:0;font-size:11px">● Edited — not saved to sheet</span></h2>
+        <div class="seg">
+          <button class="btn ghost" id="addProd">＋ Add product</button>
+          <button class="btn ghost" id="revertBtn" style="display:none">↺ Revert to sheet</button>
+        </div>
+      </div>
+      <div class="grid-inputs" id="prodInputs"></div>
+      <div class="exportnote" style="text-align:left">Edits here change the slide right now but don't write back to the sheet — refresh or revert to pull sheet data again. Keep permanent changes in the sheet.</div>
+    </div>
+
     <div class="stage"><div class="frame"><div class="slide l-four" id="slide"></div></div></div>
 
     <div class="pager">
@@ -243,7 +262,9 @@ const LAYOUTS={
 const S={layout:'four', page:0, title:'Current Specials',
   kick:'Real Foods. Real Health.',
   foot:'On sale while stocks last  ·  prahranhealthfoods.com.au',
-  rows:[]};
+  rows:[],      // clean data from sheet (or sample)
+  work:[],      // live editable copy — what the slide shows
+  edited:false};
 
 const SAMPLE=[
   {brand:'MELROSE',name:'Essential Greens 200g',now:'24.95',disc:'was',dv:'29.95',img:''},
@@ -300,9 +321,67 @@ function titleInline(){return S.title.replace(/\n/g,'<br>').replace(/\*(.+?)\*/g
 function brandbar(right){return `<div class="brandbar"><img class="blogo" src="${LOGO_LONG}"><span class="tag">${right||''}</span></div>`;}
 function footHTML(){return `<div class="foot"><span class="real">REAL FOODS. REAL HEALTH.</span><span>${S.foot}</span></div>`;}
 
-function activeRows(){return S.rows.length?S.rows:SAMPLE;}
+function baseRows(){return S.rows.length?S.rows:SAMPLE;}
+function syncWork(){S.work=baseRows().map(r=>({...r}));S.edited=false;}
+function activeRows(){return S.work.length?S.work:baseRows();}
 function pageCount(){const per=LAYOUTS[S.layout].per;return Math.max(1,Math.ceil(activeRows().length/per));}
-function pageRows(){const per=LAYOUTS[S.layout].per,st=S.page*per;return activeRows().slice(st,st+per);}
+function pageStart(){return S.page*LAYOUTS[S.layout].per;}
+function pageRows(){const per=LAYOUTS[S.layout].per,st=pageStart();return activeRows().slice(st,st+per);}
+
+function markEdited(){S.edited=true;
+  document.getElementById('editFlag').style.display='inline';
+  document.getElementById('revertBtn').style.display='inline-block';}
+function clearEdited(){S.edited=false;
+  document.getElementById('editFlag').style.display='none';
+  document.getElementById('revertBtn').style.display='none';}
+
+/* build the inline editor cards for the current page */
+function buildInputs(){
+  const box=document.getElementById('prodInputs');
+  const per=LAYOUTS[S.layout].per, st=pageStart();
+  const rows=activeRows();
+  const idxs=[];for(let i=0;i<per;i++){if(st+i<rows.length)idxs.push(st+i);}
+  box.style.gridTemplateColumns = per<=1?'1fr':(per<=2?'1fr 1fr':(per<=4?'1fr 1fr':'1fr 1fr 1fr'));
+  box.innerHTML='';
+  const discOpts=[['was','WAS price'],['save$','SAVE $'],['save%','SAVE %'],['deal','Deal line'],['none','No discount']];
+  idxs.forEach(gi=>{
+    const p=rows[gi];
+    const d=document.createElement('div');d.className='card-input';
+    d.innerHTML=`<button class="del" data-gi="${gi}" title="Remove from slide">✕</button>
+      <h3>Product ${gi+1}</h3>
+      <label>Brand</label><input type="text" data-gi="${gi}" data-k="brand" value="${esc(p.brand)}">
+      <label>Product name</label><input type="text" data-gi="${gi}" data-k="name" value="${esc(p.name)}">
+      <div class="mini"><div><label>NOW price</label>
+        <input type="text" data-gi="${gi}" data-k="now" value="${esc(p.now)}"></div>
+      <div><label>Photo file</label><input type="file" accept="image/*" data-gi="${gi}" data-k="imgfile"></div></div>
+      <div class="discwrap"><div class="mini">
+        <div><label>Discount style</label><select data-gi="${gi}" data-k="disc">
+          ${discOpts.map(o=>`<option value="${o[0]}" ${p.disc===o[0]?'selected':''}>${o[1]}</option>`).join('')}
+        </select></div>
+        <div><label>Discount value</label><input type="text" data-gi="${gi}" data-k="dv" value="${esc(p.dv)}"></div>
+      </div></div>
+      <label style="margin-top:8px">Image URL (optional)</label>
+      <input type="text" data-gi="${gi}" data-k="img" value="${esc(p.img)}" placeholder="paste web link, or use Photo file above">`;
+    box.appendChild(d);
+  });
+  box.querySelectorAll('input[type=text],select').forEach(inp=>{
+    const ev=inp.tagName==='SELECT'?'change':'input';
+    inp.addEventListener(ev,e=>{
+      const gi=+e.target.dataset.gi,k=e.target.dataset.k;
+      rows[gi][k]=e.target.value;markEdited();
+      if(k==='disc')buildInputs();
+      render();});
+  });
+  box.querySelectorAll('input[type=file]').forEach(inp=>inp.addEventListener('change',e=>{
+    const gi=+e.target.dataset.gi,f=e.target.files[0];if(!f)return;
+    const r=new FileReader();r.onload=ev=>{rows[gi].img=ev.target.result;markEdited();buildInputs();render();};
+    r.readAsDataURL(f);}));
+  box.querySelectorAll('.del').forEach(btn=>btn.onclick=e=>{
+    const gi=+e.target.dataset.gi;rows.splice(gi,1);markEdited();
+    if(S.page>=pageCount())S.page=Math.max(0,pageCount()-1);
+    buildInputs();render();});
+}
+function esc(s){return String(s==null?'':s).replace(/"/g,'&quot;');}
 
 function render(){
   const L=LAYOUTS[S.layout],s=document.getElementById('slide');
@@ -331,6 +410,7 @@ function render(){
   }
   s.innerHTML=html;
   document.getElementById('pageInfo').textContent=`Page ${S.page+1} of ${pageCount()}`;
+  buildInputs();
   fit();
 }
 function fit(){const s=document.getElementById('slide'),L=LAYOUTS[S.layout];
@@ -358,7 +438,7 @@ async function loadSheet(url,quiet){
     const txt=await res.text();
     const rows=rowsFromCSV(txt);
     if(!rows.length){setStatus('warn','Sheet loaded but no active rows found. Check the column headers and the "active" column.');return;}
-    S.rows=rows;S.page=0;localStorage.setItem('phf_sheet_url',url);render();
+    S.rows=rows;S.page=0;localStorage.setItem('phf_sheet_url',url);syncWork();clearEdited();render();
     setStatus('ok',`Loaded ${rows.length} active product${rows.length>1?'s':''} from the sheet.`);
   }catch(e){
     setStatus('err','Couldn\'t load that sheet. Make sure it\'s <b>Published to web as CSV</b> and the link is correct. (Sample data still shown.)');
@@ -366,7 +446,14 @@ async function loadSheet(url,quiet){
 }
 document.getElementById('loadBtn').onclick=()=>loadSheet(document.getElementById('sheetUrl').value.trim());
 document.getElementById('reloadBtn').onclick=()=>{const u=document.getElementById('sheetUrl').value.trim()||localStorage.getItem('phf_sheet_url');if(u)loadSheet(u);};
-document.getElementById('sampleBtn').onclick=()=>{S.rows=[];S.page=0;render();setStatus('warn','Showing sample data.');};
+document.getElementById('sampleBtn').onclick=()=>{S.rows=[];S.page=0;syncWork();clearEdited();render();setStatus('warn','Showing sample data.');};
+
+/* inline editing controls */
+document.getElementById('addProd').onclick=()=>{
+  const rows=activeRows();
+  rows.push({brand:'NEW BRAND',name:'Product name',now:'0.00',disc:'was',dv:'',img:''});
+  markEdited();S.page=pageCount()-1;buildInputs();render();};
+document.getElementById('revertBtn').onclick=()=>{syncWork();clearEdited();S.page=0;render();};
 
 /* export */
 async function exportPage(){
@@ -382,6 +469,7 @@ document.getElementById('downloadAll').onclick=async()=>{
 
 /* boot: restore saved sheet link */
 (function(){const saved=localStorage.getItem('phf_sheet_url');
+  syncWork();
   if(saved){document.getElementById('sheetUrl').value=saved;loadSheet(saved,true);}
   render();})();
 </script>
