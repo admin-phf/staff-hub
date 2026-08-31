@@ -95,6 +95,10 @@
   .was{color:var(--muted);font-size:14px;margin-top:5px}
   .was s{color:var(--red);text-decoration:line-through;text-decoration-thickness:1.5px}
   .deal{color:var(--green);font-weight:800;font-size:14px;margin-top:4px;text-transform:uppercase}
+  .dealhero{color:var(--green);font-weight:800;text-transform:uppercase;letter-spacing:-.01em;line-height:1.02}
+  .l-four .dealhero{font-size:26px;margin-top:2px}
+  .l-single .dealhero{font-size:56px;margin:6px 0 14px}
+  .l-six .dealhero{font-size:18px;margin-top:2px}
   .pbrand{font-weight:800;text-transform:uppercase}
   .pname{color:var(--muted);font-weight:500}
   .imgslot{display:flex;align-items:center;justify-content:center}
@@ -316,7 +320,16 @@ function subPrice(p){
 function img(p){return p.img&&p.img.trim()
   ?`<div class="imgslot"><img src="${p.img}" crossorigin="anonymous" onerror="this.parentNode.classList.add('empty');this.remove();"></div>`
   :`<div class="imgslot empty">Product<br>image</div>`;}
-function pblock(p){return `${tagHTML(p)}<div class="price">${priceHTML(p.now)}</div>${subPrice(p)}`;}
+function hasPrice(now){const n=parseFloat(String(now||'').replace(/[^0-9.]/g,''));return n>0;}
+function pblock(p){
+  if(!hasPrice(p.now)){
+    // deal-only or price-less item: show the deal line as the hero, no $0.00
+    if(p.disc==='deal'&&p.dv&&p.dv.trim())
+      return `<div class="nowtag">SPECIAL</div><div class="dealhero">${p.dv}</div>`;
+    return `<div class="nowtag">SPECIAL</div>`;
+  }
+  return `${tagHTML(p)}<div class="price">${priceHTML(p.now)}</div>${subPrice(p)}`;
+}
 function titleInline(){return S.title.replace(/\n/g,'<br>').replace(/\*(.+?)\*/g,'<span class="accent">$1</span>');}
 function brandbar(right){return `<div class="brandbar"><img class="blogo" src="${LOGO_LONG}"><span class="tag">${right||''}</span></div>`;}
 function footHTML(){return `<div class="foot"><span class="real">REAL FOODS. REAL HEALTH.</span><span>${S.foot}</span></div>`;}
