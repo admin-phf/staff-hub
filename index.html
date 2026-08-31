@@ -76,7 +76,7 @@
   .stage{display:flex;justify-content:center;margin:18px 0}
   .frame{position:relative}
   .slide{width:1000px;height:625px;background:#fff;position:relative;overflow:hidden;transform-origin:top center}
-  .slide .pad{position:absolute;inset:0;padding:44px 52px;display:flex;flex-direction:column}
+  .slide .pad{position:absolute;inset:0;padding:44px 52px;display:flex;flex-direction:column;overflow:hidden}
 
   .brandbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
   .brandbar img.blogo{height:46px;width:auto}
@@ -96,39 +96,58 @@
   .was s{color:var(--red);text-decoration:line-through;text-decoration-thickness:1.5px}
   .deal{color:var(--green);font-weight:800;font-size:14px;margin-top:4px;text-transform:uppercase}
   .dealhero{color:var(--green);font-weight:800;text-transform:uppercase;letter-spacing:-.01em;line-height:1.02}
+
+  /* Option A: brand/name on top, stamped image, price row below */
+  .pbrand{font-weight:800;letter-spacing:.01em;text-transform:uppercase;color:var(--ink)}
+  .pname{color:var(--muted);font-weight:500}
+  .imgwrap{position:relative}
+  .stamp{position:absolute;top:-4px;right:0;background:var(--red);color:#fff;border-radius:50%;
+    font-weight:800;line-height:1;text-transform:uppercase;text-align:center;
+    display:flex;align-items:center;justify-content:center;z-index:2;
+    box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .pricerow{display:flex;align-items:baseline;gap:8px;justify-content:center}
+  .nowlbl{font-weight:800;color:var(--green);letter-spacing:.05em}
   .l-four .dealhero{font-size:26px;margin-top:2px}
   .l-single .dealhero{font-size:56px;margin:6px 0 14px}
   .l-six .dealhero{font-size:18px;margin-top:2px}
   .pbrand{font-weight:800;text-transform:uppercase}
   .pname{color:var(--muted);font-weight:500}
-  .imgslot{display:flex;align-items:center;justify-content:center}
+  .imgslot{display:flex;align-items:center;justify-content:center;overflow:hidden;min-height:0;min-width:0}
   .imgslot img{max-width:100%;max-height:100%;object-fit:contain}
   .imgslot.empty{border:1.5px dashed var(--hair);border-radius:10px;color:#bdbbb7;font-size:12px;text-align:center;line-height:1.4}
 
   .l-four .body{flex:1;display:grid;grid-template-columns:repeat(4,1fr);padding-top:10px}
-  .l-four .cell{padding:6px 20px;display:flex;flex-direction:column;align-items:center;text-align:center}
+  .l-four .cell{padding:6px 18px;display:flex;flex-direction:column;align-items:center;text-align:center}
   .l-four .cell + .cell{border-left:1px solid var(--hair)}
-  .l-four .imgslot{height:150px;margin-bottom:12px}
   .l-four .pbrand{font-size:15px;margin-bottom:2px}
-  .l-four .pname{font-size:12px;line-height:1.25;margin-bottom:auto;min-height:32px}
-  .l-four .nowtag,.l-four .savebadge{margin-top:10px}
-  .l-four .price{font-size:48px}.l-four .was{font-size:12px}.l-four .deal{font-size:12px}
+  .l-four .pname{font-size:12px;line-height:1.25;min-height:30px;margin-bottom:6px}
+  .l-four .imgwrap{width:100%;height:150px;margin-bottom:10px}
+  .l-four .imgslot{height:150px;width:100%}
+  .l-four .stamp{width:60px;height:60px;font-size:15px}
+  .l-four .pricerow{margin-top:auto}
+  .l-four .nowlbl{font-size:13px}
+  .l-four .price{font-size:46px}.l-four .was{font-size:12px}.l-four .deal{font-size:12px}
 
-  .l-single .body{flex:1;display:flex;align-items:center;gap:44px;padding:6px 0}
-  .l-single .imgslot{flex:0 0 40%;height:100%}
+  .l-single .body{flex:1;min-height:0;overflow:hidden;display:flex;align-items:center;gap:44px;padding:6px 0}
+  .l-single .imgwrap{flex:0 0 40%;height:100%;align-self:stretch}
+  .l-single .imgslot{height:100%;max-height:100%;overflow:hidden}
+  .l-single .stamp{width:96px;height:96px;font-size:24px;top:6px;right:6px}
   .l-single .info{flex:1}
-  .l-single .nowtag,.l-single .savebadge{font-size:14px;padding:4px 12px}
-  .l-single .price{font-size:116px;margin:2px 0}
+  .l-single .pricerow{justify-content:flex-start;gap:12px;margin:2px 0}
+  .l-single .nowlbl{font-size:18px}
+  .l-single .price{font-size:104px}
   .l-single .was{font-size:19px;margin-bottom:6px}.l-single .deal{font-size:18px;margin-bottom:14px}
-  .l-single .pbrand{font-size:24px}.l-single .pname{font-size:19px;line-height:1.3;color:var(--muted)}
+  .l-single .pbrand{font-size:24px}.l-single .pname{font-size:19px;line-height:1.3;color:var(--muted);margin-bottom:8px}
 
   .l-six .body{flex:1;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:14px;padding-top:10px}
-  .l-six .cell{display:flex;gap:12px;align-items:center;border:1px solid var(--hair);border-radius:10px;padding:10px 12px}
-  .l-six .imgslot{flex:0 0 66px;height:76px}
-  .l-six .info{flex:1;min-width:0}
-  .l-six .pbrand{font-size:13px;line-height:1.1}.l-six .pname{font-size:11px;line-height:1.2;margin-bottom:4px}
-  .l-six .nowtag,.l-six .savebadge{font-size:10px;padding:2px 6px;margin-bottom:3px}
-  .l-six .price{font-size:33px}.l-six .was{font-size:11px;margin-top:2px}.l-six .deal{font-size:10px;margin-top:2px}
+  .l-six .cell{display:flex;flex-direction:column;align-items:center;text-align:center;border:1px solid var(--hair);border-radius:10px;padding:10px 10px}
+  .l-six .pbrand{font-size:12px;line-height:1.1}.l-six .pname{font-size:10px;line-height:1.15;min-height:24px;color:var(--muted)}
+  .l-six .imgwrap{width:100%;height:78px;margin:4px 0}
+  .l-six .imgslot{height:78px}
+  .l-six .stamp{width:42px;height:42px;font-size:10px;top:-2px;right:-2px}
+  .l-six .pricerow{margin-top:auto;gap:5px}
+  .l-six .nowlbl{font-size:10px}
+  .l-six .price{font-size:30px}.l-six .was{font-size:10px;margin-top:1px}.l-six .deal{font-size:10px;margin-top:2px}
 
   /* Specials On Now banner — short landscape */
   .l-promo .body{flex:1;display:flex;align-items:center;gap:30px;padding-top:6px}
@@ -139,39 +158,52 @@
   .l-promo .promo-row{flex:1;display:grid;grid-template-columns:repeat(4,1fr)}
   .l-promo .promo-cell{padding:0 14px;display:flex;flex-direction:column;align-items:center;text-align:center}
   .l-promo .promo-cell + .promo-cell{border-left:1px solid var(--hair)}
-  .l-promo .imgslot{height:120px;margin-bottom:8px}
   .l-promo .pbrand{font-size:12px;margin-bottom:4px}
-  .l-promo .nowtag,.l-promo .savebadge{font-size:10px;padding:2px 7px;margin-bottom:3px}
+  .l-promo .imgwrap{width:100%;height:120px;margin-bottom:6px}
+  .l-promo .imgslot{height:120px}
+  .l-promo .stamp{width:48px;height:48px;font-size:11px;top:-2px;right:0}
+  .l-promo .pricerow{gap:6px}
+  .l-promo .nowlbl{font-size:11px}
   .l-promo .price{font-size:30px}.l-promo .was{font-size:11px}.l-promo .deal{font-size:11px}
   .l-promo .dealhero{font-size:16px}
 
   /* 2-Product pair */
   .l-two .body{flex:1;display:flex;align-items:center;gap:24px;padding:6px 0}
   .l-two .col{flex:1;display:flex;flex-direction:column;align-items:center;text-align:center}
-  .l-two .imgslot{height:200px;margin-bottom:14px}
   .l-two .pbrand{font-size:19px;margin-bottom:2px}
-  .l-two .pname{font-size:13px;line-height:1.25;margin-bottom:6px;color:var(--muted)}
+  .l-two .pname{font-size:13px;line-height:1.25;min-height:34px;margin-bottom:6px;color:var(--muted)}
+  .l-two .imgwrap{width:100%;height:200px;margin-bottom:12px}
+  .l-two .imgslot{height:200px}
+  .l-two .stamp{width:74px;height:74px;font-size:18px;top:0;right:10px}
+  .l-two .pricerow{gap:10px}.l-two .nowlbl{font-size:16px}
   .l-two .price{font-size:58px}.l-two .was{font-size:14px}.l-two .deal{font-size:13px}
   .l-two .dealhero{font-size:30px}
   .l-two .vs{flex:0 0 auto;width:52px;height:52px;border-radius:50%;background:var(--green);color:#fff;font-weight:800;font-size:13px;letter-spacing:.03em;display:flex;align-items:center;justify-content:center}
 
   /* Hero + cross-sell (65/35) */
-  .l-herosplit .body{flex:1;display:flex;gap:0;padding:6px 0}
+  .l-herosplit .body{flex:1;min-height:0;display:flex;gap:0;padding:6px 0}
   .l-herosplit .hero-main{flex:0 0 63%;display:flex;align-items:center;gap:28px;padding-right:28px}
-  .l-herosplit .hero-main .imgslot{flex:0 0 46%;height:100%}
+  .l-herosplit .hero-main .imgwrap{flex:0 0 46%;height:100%}
+  .l-herosplit .hero-main .imgslot{height:100%}
+  .l-herosplit .hero-main .stamp{width:80px;height:80px;font-size:19px;top:4px;right:4px}
   .l-herosplit .hero-main .info{flex:1}
   .l-herosplit .hero-main .pbrand{font-size:22px}
-  .l-herosplit .hero-main .pname{font-size:16px;line-height:1.3;color:var(--muted)}
-  .l-herosplit .hero-main .price{font-size:84px}
+  .l-herosplit .hero-main .pname{font-size:16px;line-height:1.3;color:var(--muted);margin-bottom:6px}
+  .l-herosplit .hero-main .pricerow{justify-content:flex-start;gap:10px}
+  .l-herosplit .hero-main .nowlbl{font-size:15px}
+  .l-herosplit .hero-main .price{font-size:80px}
   .l-herosplit .hero-main .was{font-size:17px}.l-herosplit .hero-main .dealhero{font-size:44px}
   .l-herosplit .hero-side{flex:1;border-left:1px solid var(--hair);padding-left:24px;display:flex;flex-direction:column;gap:14px}
   .l-herosplit .side-head{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--green);margin-bottom:2px}
   .l-herosplit .side-cell{flex:1;display:flex;gap:14px;align-items:center;border-bottom:1px solid var(--hair);padding-bottom:12px}
   .l-herosplit .side-cell:last-child{border-bottom:none;padding-bottom:0}
-  .l-herosplit .side-cell .imgslot{flex:0 0 78px;height:92px}
+  .l-herosplit .side-cell .imgwrap{flex:0 0 78px;height:92px}
+  .l-herosplit .side-cell .imgslot{height:92px}
+  .l-herosplit .side-cell .stamp{width:40px;height:40px;font-size:9px;top:-2px;right:-4px}
   .l-herosplit .side-cell .info{flex:1;min-width:0}
   .l-herosplit .side-cell .pbrand{font-size:13px}
   .l-herosplit .side-cell .pname{font-size:11px;line-height:1.2;color:var(--muted)}
+  .l-herosplit .side-cell .pricerow{gap:6px}.l-herosplit .side-cell .nowlbl{font-size:10px}
   .l-herosplit .side-cell .price{font-size:34px}
   .l-herosplit .side-cell .was{font-size:11px}.l-herosplit .side-cell .dealhero{font-size:15px}
 
@@ -359,25 +391,50 @@ function rowsFromCSV(text){
 
 function priceHTML(now){const s=String(now||'').trim().replace(/^\$/,'');const[d,cR]=s.split('.');
   const c=cR?cR.padEnd(2,'0').slice(0,2):'00';return `<span class="d">$</span>${d||'0'}<span class="c">.${c}</span>`;}
-function tagHTML(p){
-  if(p.disc==='save$')return `<div class="savebadge">SAVE $${String(p.dv).replace(/^\$/,'')}</div>`;
-  if(p.disc==='save%')return `<div class="savebadge">SAVE ${String(p.dv).replace(/%$/,'')}%</div>`;
-  return `<div class="nowtag">NOW</div>`;}
-function subPrice(p){
-  if(p.disc==='was'&&p.dv&&p.dv.trim())return `<div class="was">WAS <s>$${String(p.dv).replace(/^\$/,'')}</s></div>`;
-  if(p.disc==='deal'&&p.dv&&p.dv.trim())return `<div class="deal">${p.dv}</div>`;return '';}
+
+/* The red circle SAVINGS stamp shown on the product image corner.
+   Returns '' when there's nothing to stamp. */
+function stampText(p){
+  const now=parseFloat(String(p.now||'').replace(/[^0-9.]/g,''));
+  if(p.disc==='save$'&&p.dv) return 'SAVE<br>$'+String(p.dv).replace(/^\$/,'');
+  if(p.disc==='save%'&&p.dv) return 'SAVE<br>'+String(p.dv).replace(/%$/,'')+'%';
+  if(p.disc==='was'&&p.dv){
+    const was=parseFloat(String(p.dv).replace(/[^0-9.]/g,''));
+    if(was>now && now>0){
+      const save=was-now;
+      // round to whole dollars for a clean stamp
+      return 'SAVE<br>$'+Math.round(save);
+    }
+  }
+  if(p.disc==='deal'&&p.dv){
+    // short deal on stamp if it's brief, else no stamp (deal shown under price)
+    const d=String(p.dv).trim();
+    if(d.length<=12) return d.replace(/\s+/g,'<br>');
+  }
+  return '';
+}
+function stampHTML(p){const t=stampText(p);return t?`<div class="stamp">${t}</div>`:'';}
+
 function img(p){return p.img&&p.img.trim()
   ?`<div class="imgslot"><img src="${p.img}" crossorigin="anonymous" onerror="this.parentNode.classList.add('empty');this.remove();"></div>`
   :`<div class="imgslot empty">Product<br>image</div>`;}
+/* image wrapped with its savings stamp overlaid */
+function imgStamped(p){return `<div class="imgwrap">${img(p)}${stampHTML(p)}</div>`;}
+
+function subPrice(p){
+  // WAS line still shown small under price (stamp shows the saving amount)
+  if(p.disc==='was'&&p.dv&&p.dv.trim())return `<div class="was">WAS <s>$${String(p.dv).replace(/^\$/,'')}</s></div>`;
+  return '';}
 function hasPrice(now){const n=parseFloat(String(now||'').replace(/[^0-9.]/g,''));return n>0;}
+
+/* price row: green NOW label beside the big price. Deal-only items show deal as hero. */
 function pblock(p){
   if(!hasPrice(p.now)){
-    // deal-only or price-less item: show the deal line as the hero, no $0.00
     if(p.disc==='deal'&&p.dv&&p.dv.trim())
-      return `<div class="nowtag">SPECIAL</div><div class="dealhero">${p.dv}</div>`;
-    return `<div class="nowtag">SPECIAL</div>`;
+      return `<div class="pricerow"><span class="nowlbl">SPECIAL</span></div><div class="dealhero">${p.dv}</div>`;
+    return `<div class="pricerow"><span class="nowlbl">SPECIAL</span></div>`;
   }
-  return `${tagHTML(p)}<div class="price">${priceHTML(p.now)}</div>${subPrice(p)}`;
+  return `<div class="pricerow"><span class="nowlbl">NOW</span><span class="price">${priceHTML(p.now)}</span></div>${subPrice(p)}`;
 }
 function titleInline(){return S.title.replace(/\n/g,'<br>').replace(/\*(.+?)\*/g,'<span class="accent">$1</span>');}
 function brandbar(right){return `<div class="brandbar"><img class="blogo" src="${LOGO_LONG}"><span class="tag">${right||''}</span></div>`;}
@@ -455,29 +512,31 @@ function render(){
   if(S.layout==='single'){
     const p=P[0]||SAMPLE[0];
     html=`<div class="pad">${brandbar(S.kick)}<div class="titlebar"><span class="big">${titleInline()}</span></div>
-      <div class="body">${img(p)}<div class="info">${pblock(p)}
-        <div class="pbrand">${p.brand}</div><div class="pname">${p.name}</div></div></div>${footHTML()}</div>`;
+      <div class="body">${imgStamped(p)}<div class="info">
+        <div class="pbrand">${p.brand}</div><div class="pname">${p.name}</div>${pblock(p)}</div></div>${footHTML()}</div>`;
   } else if(S.layout==='four'){
     const cells=[...P]; while(cells.length<4)cells.push(null);
     html=`<div class="pad">${brandbar()}<div class="titlebar"><span class="big">${titleInline()}</span><span class="kick">${S.kick}</span></div>
-      <div class="body">${cells.map(p=>p?`<div class="cell">${img(p)}
-        <div class="pbrand">${p.brand}</div><div class="pname">${p.name}</div>${pblock(p)}</div>`
+      <div class="body">${cells.map(p=>p?`<div class="cell">
+        <div class="pbrand">${p.brand}</div><div class="pname">${p.name}</div>
+        ${imgStamped(p)}${pblock(p)}</div>`
         :`<div class="cell"></div>`).join('')}</div>${footHTML()}</div>`;
   } else if(S.layout==='two'){
     const a=P[0]||SAMPLE[0], b=P[1]||SAMPLE[1];
-    const col=p=>`<div class="col">${img(p)}<div class="info">
-      <div class="pbrand">${p.brand}</div><div class="pname">${p.name}</div>${pblock(p)}</div></div>`;
+    const col=p=>`<div class="col">
+      <div class="pbrand">${p.brand}</div><div class="pname">${p.name}</div>
+      ${imgStamped(p)}${pblock(p)}</div>`;
     html=`<div class="pad">${brandbar(S.kick)}<div class="titlebar"><span class="big">${titleInline()}</span></div>
       <div class="body">${col(a)}<div class="vs">PAIR</div>${col(b)}</div>${footHTML()}</div>`;
   } else if(S.layout==='herosplit'){
     const hero=P[0]||SAMPLE[0], adds=[P[1],P[2]].filter(Boolean);
     html=`<div class="pad">${brandbar(S.kick)}<div class="titlebar"><span class="big">${titleInline()}</span></div>
       <div class="body">
-        <div class="hero-main">${img(hero)}<div class="info">
+        <div class="hero-main">${imgStamped(hero)}<div class="info">
           <div class="pbrand">${hero.brand}</div><div class="pname">${hero.name}</div>${pblock(hero)}</div></div>
         <div class="hero-side">
           <div class="side-head">Perfect Pairing</div>
-          ${adds.map(p=>`<div class="side-cell">${img(p)}<div class="info">
+          ${adds.map(p=>`<div class="side-cell">${imgStamped(p)}<div class="info">
             <div class="pbrand">${p.brand}</div><div class="pname">${p.name}</div>${pblock(p)}</div></div>`).join('')}
         </div>
       </div>${footHTML()}</div>`;
@@ -489,14 +548,15 @@ function render(){
           <div class="promo-head">${titleInline()}</div>
           <div class="promo-sub">${S.kick}</div>
         </div>
-        <div class="promo-row">${cells.map(p=>p?`<div class="promo-cell">${img(p)}
-          <div class="pbrand">${p.brand}</div>${pblock(p)}</div>`:'').join('')}</div>
+        <div class="promo-row">${cells.map(p=>p?`<div class="promo-cell">
+          <div class="pbrand">${p.brand}</div>${imgStamped(p)}${pblock(p)}</div>`:'').join('')}</div>
       </div>${footHTML()}</div>`;
   } else {
     const cells=[...P];while(cells.length<6)cells.push(null);
     html=`<div class="pad">${brandbar()}<div class="titlebar"><span class="big">${titleInline()}</span><span class="kick">${S.kick}</span></div>
-      <div class="body">${cells.map(p=>p?`<div class="cell">${img(p)}<div class="info">
-        <div class="pbrand">${p.brand}</div><div class="pname">${p.name}</div>${pblock(p)}</div></div>`
+      <div class="body">${cells.map(p=>p?`<div class="cell">
+        <div class="pbrand">${p.brand}</div><div class="pname">${p.name}</div>
+        ${imgStamped(p)}${pblock(p)}</div>`
         :`<div class="cell" style="border-style:dashed"></div>`).join('')}</div>${footHTML()}</div>`;
   }
   s.innerHTML=html;
