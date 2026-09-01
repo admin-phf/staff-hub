@@ -80,7 +80,7 @@
 
   .brandbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
   .brandbar img.blogo{height:40px;width:auto}
-  .brandbar .tag{font-size:13px;color:var(--muted);font-weight:600}
+  .brandbar .tag{font-size:12.5px;color:var(--muted);font-weight:400}
   .titlebar{display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--ink);padding-bottom:8px;margin-bottom:4px}
   .titlebar .big{font-size:26px;font-weight:800;letter-spacing:-.015em}
   .titlebar .big .accent{color:var(--red)}
@@ -151,10 +151,10 @@
 
   /* 6-Grid Split — six per page, image left / price right */
   .l-sixsplit .body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:14px;padding-top:6px}
-  .l-sixsplit .scell{display:flex;align-items:center;gap:12px;border:1px solid var(--hair);border-radius:12px;padding:12px 14px;min-height:0;overflow:hidden}
+  .l-sixsplit .scell{display:flex;align-items:center;gap:10px;border:1px solid var(--hair);border-radius:12px;padding:8px 12px;min-height:0;overflow:hidden}
   .l-sixsplit .scell.empty-cell{border-style:dashed}
-  .l-sixsplit .imgwrap{flex:0 0 90px;height:110px;align-self:center}
-  .l-sixsplit .imgslot{height:110px}
+  .l-sixsplit .imgwrap{flex:0 0 96px;height:120px;align-self:center}
+  .l-sixsplit .imgslot{height:120px}
   .l-sixsplit .stamp{width:46px;height:46px;font-size:11px;top:-2px;right:-4px}
   .l-sixsplit .sinfo{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
   .l-sixsplit .pbrand{font-size:14px;line-height:1.1}
@@ -646,7 +646,7 @@ function render(){
       </div>${footHTML()}</div>`;
   } else if(S.layout==='sixsplit'){
     const cells=[...P];while(cells.length<6)cells.push(null);
-    html=`<div class="pad">${brandbar()}<div class="titlebar"><span class="big">${titleInline()}</span></div>
+    html=`<div class="pad">${brandbar(S.kick)}<div class="titlebar"><span class="big">${titleInline()}</span></div>
       <div class="body">${cells.map(p=>p?`<div class="scell">
         ${imgStamped(p)}
         <div class="sinfo">
@@ -656,7 +656,7 @@ function render(){
         :`<div class="scell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
   } else {
     const cells=[...P];while(cells.length<6)cells.push(null);
-    html=`<div class="pad">${brandbar()}<div class="titlebar"><span class="big">${titleInline()}</span></div>
+    html=`<div class="pad">${brandbar(S.kick)}<div class="titlebar"><span class="big">${titleInline()}</span></div>
       <div class="body">${cells.map(p=>p?`<div class="cell">
         <div class="pbrand">${p.brand}</div><div class="pname">${p.name}</div>
         ${imgStamped(p)}${pblock(p)}</div>`
