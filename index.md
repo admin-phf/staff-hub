@@ -60,3 +60,45 @@ the formula in the first image_url cell and drag down.
    If not → the folder sharing didn't take; re-check Step 1.
 
 Test one before you do twenty. That's the fastest way to catch a sharing problem.
+
+---
+
+## Layout issues in the templates
+
+Separate from the image pipeline — these are problems in how the slides render.
+
+### Fixed in the new 6.5 grid layout
+The 6.5 grid (`phf_grid_6_5.html`) reworks each card to image-left / price-right, and
+that change resolves four of the five issues below:
+
+1. **Price clipping — fixed.** In the old six-up and grid layouts the big price number
+   was cut off at the card's bottom edge (`$59.95` → `$5⬛.95`) because the font was
+   taller than the space. Moving the price beside the image gives it room; it no longer
+   overflows.
+2. **`$0.00` — fixed.** Advance Co-Q10 and both Bio-Practica products showed `NOW $0.00`
+   in the old grids even though the deal data existed. The 6.5 card shows the offer text
+   (`BUY 2, GET 1 FREE`, etc.) in place of a numeric price, so a zero never reaches the
+   slide.
+3. **Empty card slots — fixed.** Partial-fill pages used to print one product plus five
+   empty placeholder boxes. Empty slots now collapse to nothing visible.
+4. **SAVE badge overlap — fixed.** The red `SAVE $X` badge now sits in its own corner of
+   the image, clear of the price zone.
+
+### Still to do
+5. **Consistency clean-ups** (data-side, not layout):
+   - Product name is spelled `PlusE` in one place and `PluSe` in another — pick one.
+   - `WAS` prices show inconsistent decimals: `$115.6`, `$45.9`, `$133.8` should be
+     `$115.60`, `$45.90`, `$133.80`. Always two decimal places on money.
+
+One note beyond layout: the same few products (Fiber Boost, Eagle, Designs for Health)
+repeat across several sheets. If these print together, the duplication dilutes each
+sheet — worth deduping if that's the case.
+
+### What's already working — leave alone
+- The single-product hero layout (clean hierarchy, unambiguous price).
+- The hero + sidebar layout with the `PERFECT PAIRING` framing.
+
+### Branding changes applied to 6.5
+- Removed the `Current Specials` heading from below the masthead.
+- Replaced `Real Foods. Real Health.` (top-right tagline and footer) with
+  `Your local Vitamin, Supplement and Health Food store`.
