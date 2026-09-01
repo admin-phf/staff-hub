@@ -149,6 +149,22 @@
   .l-six .nowlbl{font-size:11px}
   .l-six .price{font-size:40px}.l-six .was{font-size:11px;margin-top:1px}.l-six .deal{font-size:11px;margin-top:2px}
 
+  /* 6-Grid Split — six per page, image left / price right */
+  .l-sixsplit .body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:14px;padding-top:6px}
+  .l-sixsplit .scell{display:flex;align-items:center;gap:12px;border:1px solid var(--hair);border-radius:12px;padding:12px 14px;min-height:0;overflow:hidden}
+  .l-sixsplit .scell.empty-cell{border-style:dashed}
+  .l-sixsplit .imgwrap{flex:0 0 90px;height:110px;align-self:center}
+  .l-sixsplit .imgslot{height:110px}
+  .l-sixsplit .stamp{width:46px;height:46px;font-size:11px;top:-2px;right:-4px}
+  .l-sixsplit .sinfo{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
+  .l-sixsplit .pbrand{font-size:14px;line-height:1.1}
+  .l-sixsplit .pname{font-size:11px;line-height:1.15;min-height:22px;color:var(--muted);overflow:hidden}
+  .l-sixsplit .pricerow{align-items:flex-start;margin-top:6px;gap:2px}
+  .l-sixsplit .nowlbl{font-size:11px}
+  .l-sixsplit .price{font-size:38px}
+  .l-sixsplit .was{font-size:11px;margin-top:1px}.l-sixsplit .deal{font-size:12px;margin-top:2px}
+  .l-sixsplit .dealhero{font-size:16px;margin-top:2px}
+
   /* Specials On Now banner — short landscape */
   .l-promo .body{flex:1;display:flex;align-items:center;gap:30px;padding-top:6px}
   .l-promo .promo-left{flex:0 0 26%}
@@ -311,11 +327,12 @@
         <button class="btn" data-layout="gridcards">Grid Cards</button>
         <span class="lblgrp">Email</span>
         <button class="btn" data-layout="six">6-Grid</button>
+        <button class="btn" data-layout="sixsplit">6-Grid Split</button>
         <button class="btn" data-layout="promo">Specials banner</button>
       </div></div>
       <div class="row">
-        <div class="field"><label>Title</label><input type="text" id="f_title" value="Current Specials"></div>
-        <div class="field"><label>Kicker</label><input type="text" id="f_kick" value="Real Foods. Real Health."></div>
+        <div class="field"><label>Title</label><input type="text" id="f_title" value=""></div>
+        <div class="field"><label>Kicker</label><input type="text" id="f_kick" value="Your local Vitamin, Supplement and Health Food store"></div>
         <div class="field"><label>Footer note</label><input type="text" id="f_foot" value="On sale while stocks last  ·  prahranhealthfoods.com.au"></div>
       </div>
     </div>
@@ -378,10 +395,11 @@ document.querySelectorAll('.tile[data-open]').forEach(t=>t.onclick=()=>openModul
 const LAYOUTS={
   four:{per:4,w:1000,h:625}, single:{per:1,w:1000,h:625}, six:{per:6,w:1000,h:625},
   promo:{per:4,w:1000,h:400}, two:{per:2,w:1000,h:625}, herosplit:{per:3,w:1000,h:625},
-  feature:{per:4,w:1000,h:625}, gridcards:{per:4,w:1000,h:625}
+  feature:{per:4,w:1000,h:625}, gridcards:{per:4,w:1000,h:625},
+  sixsplit:{per:6,w:1000,h:625}
 };
-const S={layout:'four', page:0, title:'Current Specials',
-  kick:'Real Foods. Real Health.',
+const S={layout:'four', page:0, title:'',
+  kick:'Your local Vitamin, Supplement and Health Food store',
   foot:'On sale while stocks last  ·  prahranhealthfoods.com.au',
   rows:[],      // clean data from sheet (or sample)
   work:[],      // live editable copy — what the slide shows
@@ -486,7 +504,7 @@ function pblock(p){
 }
 function titleInline(){return S.title.replace(/\n/g,'<br>').replace(/\*(.+?)\*/g,'<span class="accent">$1</span>');}
 function brandbar(right){return `<div class="brandbar"><img class="blogo" src="${LOGO_LONG}"><span class="tag">${right||''}</span></div>`;}
-function footHTML(){return `<div class="foot"><span class="real">REAL FOODS. REAL HEALTH.</span><span>${S.foot}</span></div>`;}
+function footHTML(){return `<div class="foot"><span class="real">No further discounts on sale items.</span><span>${S.foot}</span></div>`;}
 
 function baseRows(){return S.rows.length?S.rows:SAMPLE;}
 function syncWork(){S.work=baseRows().map(r=>({...r}));S.edited=false;}
@@ -626,6 +644,16 @@ function render(){
         <div class="promo-row">${cells.map(p=>p?`<div class="promo-cell">
           <div class="pbrand">${p.brand}</div>${imgStamped(p)}${pblock(p)}</div>`:'').join('')}</div>
       </div>${footHTML()}</div>`;
+  } else if(S.layout==='sixsplit'){
+    const cells=[...P];while(cells.length<6)cells.push(null);
+    html=`<div class="pad">${brandbar()}<div class="titlebar"><span class="big">${titleInline()}</span></div>
+      <div class="body">${cells.map(p=>p?`<div class="scell">
+        ${imgStamped(p)}
+        <div class="sinfo">
+          <div class="pbrand">${p.brand}</div><div class="pname">${p.name}</div>
+          ${pblock(p)}
+        </div></div>`
+        :`<div class="scell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
   } else {
     const cells=[...P];while(cells.length<6)cells.push(null);
     html=`<div class="pad">${brandbar()}<div class="titlebar"><span class="big">${titleInline()}</span></div>
