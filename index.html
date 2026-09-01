@@ -207,6 +207,39 @@
   .l-herosplit .side-cell .price{font-size:34px}
   .l-herosplit .side-cell .was{font-size:11px}.l-herosplit .side-cell .dealhero{font-size:15px}
 
+  /* 2×2 Feature — image left, text right, big price */
+  .l-feature .body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:16px;padding-top:8px}
+  .l-feature .fcell{display:flex;align-items:center;gap:18px;border:1px solid var(--hair);border-radius:12px;padding:14px 18px;min-height:0;overflow:hidden}
+  .l-feature .fcell.empty-cell{border-style:dashed}
+  .l-feature .imgwrap{flex:0 0 120px;height:170px;align-self:center}
+  .l-feature .imgslot{height:170px}
+  .l-feature .stamp{width:50px;height:50px;font-size:11px;top:0;right:-6px}
+  .l-feature .finfo{flex:1;min-width:0;height:170px;display:flex;flex-direction:column;justify-content:center}
+  .l-feature .fname{font-size:18px;font-weight:800;text-transform:uppercase;color:var(--ink);line-height:1.2;letter-spacing:.01em;height:46px;overflow:hidden}
+  .l-feature .frule{height:1px;background:var(--hair);width:70%;margin:8px 0 10px}
+  .l-feature .ftag{display:inline-block;background:var(--green);color:#fff;font-size:12px;font-weight:800;letter-spacing:.06em;padding:3px 12px;border-radius:5px;margin-bottom:4px;align-self:flex-start}
+  .l-feature .fprice{font-weight:800;letter-spacing:-.03em;line-height:.9;font-size:50px;color:var(--ink)}
+  .l-feature .fprice .d,.l-feature .fprice .c{font-size:.44em;vertical-align:top;position:relative;top:.18em;font-weight:800}
+  .l-feature .refline{font-size:13px;color:var(--muted);font-weight:600;margin-top:8px;height:16px}
+  .l-feature .refline s{color:var(--red);text-decoration:line-through;text-decoration-thickness:1.5px}
+  .l-feature .refline .sep{margin:0 8px;color:var(--hair)}
+
+  /* Grid Cards — sample 2: image top, name, price, RRP; strict shared baseline */
+  .l-gridcards .body{flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding-top:8px}
+  .l-gridcards .gcard{display:flex;flex-direction:column;align-items:center;text-align:center;border:1px solid var(--hair);border-radius:12px;padding:14px 12px;min-height:0;overflow:hidden}
+  .l-gridcards .gcard.empty-cell{border-style:dashed}
+  .l-gridcards .imgwrap{width:100%;height:180px;margin-bottom:12px;flex:0 0 auto}
+  .l-gridcards .imgslot{height:180px}
+  .l-gridcards .stamp{width:52px;height:52px;font-size:11px;top:-2px;right:-2px}
+  .l-gridcards .gname{font-size:14px;font-weight:700;line-height:1.3;color:var(--ink);height:56px;overflow:hidden;margin-bottom:10px}
+  .l-gridcards .gprice-row{display:flex;align-items:baseline;gap:6px;justify-content:center;margin-top:auto}
+  .l-gridcards .gnow{font-size:11px;font-weight:800;color:var(--green);letter-spacing:.05em}
+  .l-gridcards .gprice{font-weight:800;letter-spacing:-.02em;font-size:30px;color:var(--ink)}
+  .l-gridcards .gprice .d,.l-gridcards .gprice .c{font-size:.5em;vertical-align:top;position:relative;top:.14em}
+  .l-gridcards .refline{font-size:11px;color:var(--muted);font-weight:600;margin-top:6px;height:14px}
+  .l-gridcards .refline s{color:var(--red);text-decoration:line-through;text-decoration-thickness:1.5px}
+  .l-gridcards .refline .sep{margin:0 6px;color:var(--hair)}
+
   .pager{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:6px}
   .pager .btn{padding:7px 13px}
   .pageinfo{font-size:13px;color:var(--muted);font-weight:600;min-width:120px;text-align:center}
@@ -274,6 +307,8 @@
         <button class="btn" data-layout="single">Single hero</button>
         <button class="btn" data-layout="two">2-Product</button>
         <button class="btn" data-layout="herosplit">Hero + pick</button>
+        <button class="btn" data-layout="feature">2×2 Feature</button>
+        <button class="btn" data-layout="gridcards">Grid Cards</button>
         <span class="lblgrp">Email</span>
         <button class="btn" data-layout="six">6-Grid</button>
         <button class="btn" data-layout="promo">Specials banner</button>
@@ -342,7 +377,8 @@ document.querySelectorAll('.tile[data-open]').forEach(t=>t.onclick=()=>openModul
 /* ---------- specials module ---------- */
 const LAYOUTS={
   four:{per:4,w:1000,h:625}, single:{per:1,w:1000,h:625}, six:{per:6,w:1000,h:625},
-  promo:{per:4,w:1000,h:400}, two:{per:2,w:1000,h:625}, herosplit:{per:3,w:1000,h:625}
+  promo:{per:4,w:1000,h:400}, two:{per:2,w:1000,h:625}, herosplit:{per:3,w:1000,h:625},
+  feature:{per:4,w:1000,h:625}, gridcards:{per:4,w:1000,h:625}
 };
 const S={layout:'four', page:0, title:'Current Specials',
   kick:'Real Foods. Real Health.',
@@ -384,7 +420,8 @@ function rowsFromCSV(text){
     if(active==='no'||active==='false'||active==='0')continue;
     if(!g('brand')&&!g('name'))continue;
     out.push({brand:g('brand'),name:g('name'),now:g('now_price')||g('now'),
-      disc:(g('discount_style')||'none').toLowerCase(),dv:g('discount_value'),img:g('image_url')});
+      disc:(g('discount_style')||'none').toLowerCase(),dv:g('discount_value'),img:g('image_url'),
+      rrp:g('rrp')});
   }
   return out;
 }
@@ -425,6 +462,17 @@ function subPrice(p){
   // WAS line still shown small under price (stamp shows the saving amount)
   if(p.disc==='was'&&p.dv&&p.dv.trim())return `<div class="was">WAS <s>$${String(p.dv).replace(/^\$/,'')}</s></div>`;
   return '';}
+
+/* flexible reference line for the Feature layout: WAS and/or RRP, or nothing */
+function refLine(p){
+  const parts=[];
+  const was=(p.disc==='was'&&p.dv&&p.dv.trim())?String(p.dv).replace(/^\$/,''):'';
+  const rrp=(p.rrp&&String(p.rrp).trim())?String(p.rrp).replace(/^\$/,''):'';
+  if(was) parts.push(`WAS <s>$${was}</s>`);
+  if(rrp) parts.push(`RRP $${rrp}`);
+  if(!parts.length) return '';
+  return `<div class="refline">${parts.join('<span class="sep">|</span>')}</div>`;
+}
 function hasPrice(now){const n=parseFloat(String(now||'').replace(/[^0-9.]/g,''));return n>0;}
 
 /* price block: NOW label above, big price, WAS below — one centred aligned stack */
@@ -540,6 +588,33 @@ function render(){
             <div class="pbrand">${p.brand}</div><div class="pname">${p.name}</div>${pblock(p)}</div></div>`).join('')}
         </div>
       </div>${footHTML()}</div>`;
+  } else if(S.layout==='gridcards'){
+    const cells=[...P]; while(cells.length<4)cells.push(null);
+    html=`<div class="pad">${brandbar(S.kick)}<div class="titlebar"><span class="big">${titleInline()}</span></div>
+      <div class="body">${cells.map(p=>p?`
+        <div class="gcard">
+          ${imgStamped(p)}
+          <div class="gname">${p.brand}${p.name?', ':' '}${p.name}</div>
+          <div class="gprice-row">
+            <span class="gnow">NOW</span>
+            <span class="gprice">${priceHTML(p.now)}</span>
+          </div>
+          ${refLine(p)}
+        </div>`:`<div class="gcard empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
+  } else if(S.layout==='feature'){
+    const cells=[...P]; while(cells.length<4)cells.push(null);
+    html=`<div class="pad">${brandbar(S.kick)}<div class="titlebar"><span class="big">${titleInline()}</span></div>
+      <div class="body">${cells.map(p=>p?`
+        <div class="fcell">
+          ${imgStamped(p)}
+          <div class="finfo">
+            <div class="fname">${p.brand}${p.name?',':''}<br>${p.name}</div>
+            <div class="frule"></div>
+            <div class="ftag">NOW</div>
+            <div class="fprice">${priceHTML(p.now)}</div>
+            ${refLine(p)}
+          </div>
+        </div>`:`<div class="fcell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
   } else if(S.layout==='promo'){
     const cells=[...P].slice(0,4);
     html=`<div class="pad">${brandbar()}
