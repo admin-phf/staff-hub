@@ -1,10 +1,12 @@
 <!DOCTYPE html>
+<!-- Prahran Health Foods Staff Hub — refined V2 build -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Prahran Health Foods — Staff Hub</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root{
     --grey:#6D6E71; --red:#C03C4C; --olive:#A29959; --ink:#1E191B;
@@ -86,7 +88,7 @@
   .titlebar .big .accent{color:var(--red)}
   .titlebar .kick{font-size:13px;color:var(--muted);font-weight:600;margin-left:auto}
   .foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--hair);padding-top:12px;font-size:12.5px;color:var(--muted)}
-  .foot .real{font-weight:700;color:var(--ink)}
+  .foot .real{font-weight:400;color:var(--muted)}
 
   .nowtag{display:inline-block;background:var(--green);color:#fff;font-size:12px;font-weight:800;letter-spacing:.06em;padding:3px 10px;border-radius:5px;margin-bottom:6px}
   .savebadge{display:inline-block;background:var(--red);color:#fff;font-size:12px;font-weight:800;letter-spacing:.04em;padding:3px 9px;border-radius:5px;margin-bottom:6px}
@@ -140,7 +142,7 @@
   .l-single .pbrand{font-size:24px}.l-single .pname{font-size:19px;line-height:1.3;color:var(--muted);margin-bottom:8px}
 
   .l-six .body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:14px;padding-top:6px}
-  .l-six .cell{display:flex;flex-direction:column;align-items:center;text-align:center;border:1px solid var(--hair);border-radius:12px;padding:10px 12px;min-height:0;overflow:hidden}
+  .l-six .cell{display:flex;flex-direction:column;align-items:center;text-align:center;border:1px solid var(--hair);border-radius:12px;padding:6px 10px;min-height:0;overflow:hidden}
   .l-six .pbrand{font-size:14px;line-height:1.1}.l-six .pname{font-size:11px;line-height:1.15;min-height:22px;color:var(--muted)}
   .l-six .imgwrap{width:100%;height:96px;margin:4px 0}
   .l-six .imgslot{height:96px}
@@ -151,7 +153,7 @@
 
   /* 6-Grid Split — six per page, image left / price right */
   .l-sixsplit .body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr;gap:14px;padding-top:6px}
-  .l-sixsplit .scell{display:flex;align-items:center;gap:10px;border:1px solid var(--hair);border-radius:12px;padding:8px 12px;min-height:0;overflow:hidden}
+  .l-sixsplit .scell{display:flex;align-items:center;gap:10px;border:1px solid var(--hair);border-radius:12px;padding:6px 10px;min-height:0;overflow:hidden}
   .l-sixsplit .scell.empty-cell{border-style:dashed}
   .l-sixsplit .imgwrap{flex:0 0 96px;height:120px;align-self:center}
   .l-sixsplit .imgslot{height:120px}
@@ -225,7 +227,7 @@
 
   /* 2×2 Feature — image left, text right, big price */
   .l-feature .body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:16px;padding-top:8px}
-  .l-feature .fcell{display:flex;align-items:center;gap:18px;border:1px solid var(--hair);border-radius:12px;padding:14px 18px;min-height:0;overflow:hidden}
+  .l-feature .fcell{display:flex;align-items:center;gap:18px;border:1px solid var(--hair);border-radius:12px;padding:8px 14px;min-height:0;overflow:hidden}
   .l-feature .fcell.empty-cell{border-style:dashed}
   .l-feature .imgwrap{flex:0 0 120px;height:170px;align-self:center}
   .l-feature .imgslot{height:170px}
@@ -242,13 +244,13 @@
 
   /* Grid Cards — sample 2: image top, name, price, RRP; strict shared baseline */
   .l-gridcards .body{flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding-top:8px}
-  .l-gridcards .gcard{display:flex;flex-direction:column;align-items:center;text-align:center;border:1px solid var(--hair);border-radius:12px;padding:14px 12px;min-height:0;overflow:hidden}
+  .l-gridcards .gcard{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:1px solid var(--hair);border-radius:12px;padding:8px 12px;min-height:0;overflow:hidden}
   .l-gridcards .gcard.empty-cell{border-style:dashed}
-  .l-gridcards .imgwrap{width:100%;height:180px;margin-bottom:12px;flex:0 0 auto}
+  .l-gridcards .imgwrap{width:100%;height:180px;margin-bottom:8px;flex:0 0 auto}
   .l-gridcards .imgslot{height:180px}
   .l-gridcards .stamp{width:52px;height:52px;font-size:11px;top:-2px;right:-2px}
-  .l-gridcards .gname{font-size:14px;font-weight:700;line-height:1.3;color:var(--ink);height:56px;overflow:hidden;margin-bottom:10px}
-  .l-gridcards .gprice-row{display:flex;align-items:baseline;gap:6px;justify-content:center;margin-top:auto}
+  .l-gridcards .gname{font-size:14px;font-weight:700;line-height:1.3;color:var(--ink);height:56px;overflow:hidden;margin-bottom:6px}
+  .l-gridcards .gprice-row{display:flex;align-items:baseline;gap:6px;justify-content:center;margin-top:4px}
   .l-gridcards .gnow{font-size:11px;font-weight:800;color:var(--green);letter-spacing:.05em}
   .l-gridcards .gprice{font-weight:800;letter-spacing:-.02em;font-size:30px;color:var(--ink)}
   .l-gridcards .gprice .d,.l-gridcards .gprice .c{font-size:.5em;vertical-align:top;position:relative;top:.14em}
@@ -261,8 +263,22 @@
   .pageinfo{font-size:13px;color:var(--muted);font-weight:600;min-width:120px;text-align:center}
   .dims{font-size:12px;color:var(--muted);text-align:center;margin-top:2px}
   .exportnote{font-size:12px;color:var(--muted);text-align:center;margin-top:6px;line-height:1.5}
+  .security-note{margin-top:10px;padding:9px 11px;border:1px solid #eadfba;border-radius:8px;background:#fffaf0;color:#6f5d23;font-size:11.5px;line-height:1.45}
+  .validationbar{display:flex;align-items:flex-start;gap:9px;margin:14px 0 4px;padding:10px 13px;border:1px solid var(--line);border-radius:10px;font-size:12.5px;line-height:1.45;background:#fff;color:var(--ink)}
+  .validationbar::before{content:'●';font-size:10px;line-height:1.7;flex:0 0 auto}
+  .validationbar.ok{background:#f3faf3;border-color:#cfe6cf;color:#256428}
+  .validationbar.warn{background:#fffaf0;border-color:#eadfba;color:#765f18}
+  .validationbar.err{background:#fff2f2;border-color:#efcaca;color:#922b2b}
+  .validationbar .vmain{font-weight:700}
+  .validationbar .vdetail{font-weight:400;opacity:.9}
+  .gdeal{font-size:14px;font-weight:800;line-height:1.1;color:var(--green);text-transform:uppercase;margin-top:3px;max-height:32px;overflow:hidden}
+  .fdeal{font-size:18px;font-weight:800;line-height:1.1;color:var(--green);text-transform:uppercase;margin-top:4px;max-height:42px;overflow:hidden}
+  .btn:focus-visible,.tile[data-open]:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid rgba(46,125,50,.22);outline-offset:2px}
+  .tile[data-open]{user-select:none}
+  .btn:disabled{opacity:.55;cursor:wait}
 
-  @media (max-width:760px){.tiles{grid-template-columns:1fr}}
+  @media (max-width:900px){.grid-inputs{grid-template-columns:1fr!important}.sheetbox .field{min-width:100%}}
+  @media (max-width:760px){.tiles{grid-template-columns:1fr}.wrap{padding-left:16px;padding-right:16px}}
 </style>
 </head>
 <body>
@@ -278,7 +294,7 @@
     <h1>Staff Hub</h1>
     <div class="sub">Pick a tool. More modules will be added here over time.</div>
     <div class="tiles">
-      <div class="tile" data-open="specials">
+      <div class="tile" data-open="specials" role="button" tabindex="0" aria-label="Open Update Specials">
         <span class="badge live">Live</span>
         <div class="ico">🏷️</div>
         <h3>Update Specials</h3>
@@ -313,6 +329,7 @@
       <div class="exportnote" style="text-align:left;margin-top:10px">
         In Google Sheets: <b>File → Share → Publish to web → (this tab) → Comma-separated values (.csv) → Publish</b>, then paste that link here. The link is remembered on this device.
       </div>
+      <div class="security-note"><b>Important:</b> use a dedicated Specials export tab only. “Publish to web” makes that published tab accessible by its public link, so do not publish wholesale costs, margins, supplier account details or other internal-only information.</div>
     </div>
 
     <div class="panel">
@@ -349,6 +366,10 @@
       <div class="exportnote" style="text-align:left">Edits here change the slide right now but don't write back to the sheet — refresh or revert to pull sheet data again. Keep permanent changes in the sheet.</div>
     </div>
 
+    <div id="validationBar" class="validationbar warn" aria-live="polite">
+      <div><span class="vmain">Checking products…</span></div>
+    </div>
+
     <div class="stage"><div class="frame"><div class="slide l-four" id="slide"></div></div></div>
 
     <div class="pager">
@@ -359,9 +380,9 @@
 
     <div class="row" style="justify-content:center;margin-top:10px">
       <button class="btn primary" id="downloadBtn">Download this slide</button>
-      <button class="btn ghost" id="downloadAll">Download all pages</button>
+      <button class="btn ghost" id="downloadAll">Download all (.zip)</button>
     </div>
-    <div class="dims" id="dimsNote">Exports at 1000 × 625 px</div>
+    <div class="dims" id="dimsNote">Canvas 1000 × 625 · PNG export 2000 × 1250 px</div>
     <div class="exportnote">Active products from the sheet are split across pages automatically (4 per page for checkout, 6 for grid).</div>
   </div>
 
@@ -389,7 +410,10 @@ function goHome(){
   home.classList.remove('off');
   crumbs.innerHTML='<span class="hubname">Staff Hub</span>';
 }
-document.querySelectorAll('.tile[data-open]').forEach(t=>t.onclick=()=>openModule(t.dataset.open));
+document.querySelectorAll('.tile[data-open]').forEach(t=>{
+  t.onclick=()=>openModule(t.dataset.open);
+  t.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openModule(t.dataset.open);}};
+});
 
 /* ---------- specials module ---------- */
 const LAYOUTS={
@@ -398,21 +422,47 @@ const LAYOUTS={
   feature:{per:4,w:1000,h:625}, gridcards:{per:4,w:1000,h:625},
   sixsplit:{per:6,w:1000,h:625}
 };
+const ALLOWED_DISC=new Set(['was','save$','save%','deal','none']);
+const EXPORT_SCALE=2;
 const S={layout:'four', page:0, title:'',
   kick:'Your local Vitamin, Supplement and Health Food store',
   foot:'On sale while stocks last  ·  prahranhealthfoods.com.au',
-  rows:[],      // clean data from sheet (or sample)
+  rows:[],      // clean data from sheet
   work:[],      // live editable copy — what the slide shows
-  edited:false};
+  edited:false,
+  source:'sample',
+  lastLoaded:null};
 
 const SAMPLE=[
-  {brand:'MELROSE',name:'Essential Greens 200g',now:'24.95',disc:'was',dv:'29.95',img:''},
-  {brand:'COMVITA',name:'Manuka Honey UMF 10+ 250g',now:'19.95',disc:'save$',dv:'5',img:''},
-  {brand:'WELLECO',name:'The Protein Blend Vanilla 500g',now:'34.95',disc:'save%',dv:'12',img:''},
-  {brand:'BIO ISLAND',name:'Vitamin D3 1000IU 60 Caps',now:'12.95',disc:'was',dv:'16.95',img:''},
-  {brand:'HERBS OF GOLD',name:'Bio Curcumin 5400 60t',now:'44.95',disc:'deal',dv:'BUY 2 FOR $85',img:''},
-  {brand:'BRAGG',name:'Apple Cider Vinegar 946ml',now:'11.95',disc:'was',dv:'16.95',img:''}
+  {brand:'MELROSE',name:'Essential Greens 200g',now:'24.95',disc:'was',dv:'29.95',rrp:'29.95',img:''},
+  {brand:'COMVITA',name:'Manuka Honey UMF 10+ 250g',now:'19.95',disc:'save$',dv:'5',rrp:'',img:''},
+  {brand:'WELLECO',name:'The Protein Blend Vanilla 500g',now:'34.95',disc:'save%',dv:'12',rrp:'',img:''},
+  {brand:'BIO ISLAND',name:'Vitamin D3 1000IU 60 Caps',now:'12.95',disc:'was',dv:'16.95',rrp:'16.95',img:''},
+  {brand:'HERBS OF GOLD',name:'Bio Curcumin 5400 60t',now:'44.95',disc:'deal',dv:'BUY 2 FOR $85',rrp:'',img:''},
+  {brand:'BRAGG',name:'Apple Cider Vinegar 946ml',now:'11.95',disc:'was',dv:'16.95',rrp:'16.95',img:''}
 ];
+
+/* ---------- safe text / numeric helpers ---------- */
+function h(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function ha(v){return h(v);}
+function numberFrom(v){
+  const n=parseFloat(String(v==null?'':v).replace(/,/g,'').replace(/[^0-9.-]/g,''));
+  return Number.isFinite(n)?n:NaN;
+}
+function hasPrice(v){const n=numberFrom(v);return Number.isFinite(n)&&n>0;}
+function moneyText(v){
+  const n=numberFrom(v);if(!Number.isFinite(n))return '';
+  return n.toFixed(2);
+}
+function savingText(v){
+  const n=numberFrom(v);if(!Number.isFinite(n))return '';
+  return Math.abs(n-Math.round(n))<0.005?String(Math.round(n)):n.toFixed(2);
+}
+function safeImageURL(raw){
+  const v=String(raw||'').trim();if(!v)return '';
+  if(/^data:image\//i.test(v)||/^blob:/i.test(v)||/^https?:\/\//i.test(v))return v;
+  return '';
+}
 
 /* CSV parse (handles quoted fields/commas) */
 function parseCSV(text){
@@ -428,7 +478,7 @@ function parseCSV(text){
 function rowsFromCSV(text){
   const raw=parseCSV(text).filter(r=>r.some(c=>c&&c.trim()));
   if(!raw.length)return [];
-  const head=raw[0].map(h=>h.trim().toLowerCase());
+  const head=raw[0].map(hd=>hd.trim().toLowerCase());
   const idx=n=>head.indexOf(n);
   const out=[];
   for(let i=1;i<raw.length;i++){
@@ -437,116 +487,179 @@ function rowsFromCSV(text){
     const active=(g('active')||'yes').toLowerCase();
     if(active==='no'||active==='false'||active==='0')continue;
     if(!g('brand')&&!g('name'))continue;
+    let disc=(g('discount_style')||'none').toLowerCase().trim();
+    if(!ALLOWED_DISC.has(disc))disc='none';
     out.push({brand:g('brand'),name:g('name'),now:g('now_price')||g('now'),
-      disc:(g('discount_style')||'none').toLowerCase(),dv:g('discount_value'),img:g('image_url'),
-      rrp:g('rrp')});
+      disc,dv:g('discount_value'),img:g('image_url'),rrp:g('rrp')});
   }
   return out;
 }
 
-function priceHTML(now){const s=String(now||'').trim().replace(/^\$/,'');const[d,cR]=s.split('.');
-  const c=cR?cR.padEnd(2,'0').slice(0,2):'00';return `<span class="d">$</span>${d||'0'}<span class="c">.${c}</span>`;}
+/* ---------- price / discount rendering ---------- */
+function priceHTML(now){
+  const n=numberFrom(now);const value=Number.isFinite(n)?n:0;
+  const fixed=value.toFixed(2),[d,c]=fixed.split('.');
+  return `<span class="d">$</span>${h(Number(d).toLocaleString('en-AU'))}<span class="c">.${h(c)}</span>`;
+}
+function priceData(p){
+  const deal=p.disc==='deal'?String(p.dv||'').trim():'';
+  const was=p.disc==='was'?moneyText(p.dv):'';
+  const rrp=moneyText(p.rrp);
+  return {has:hasPrice(p.now),deal,was,rrp};
+}
 
-/* The red circle SAVINGS stamp shown on the product image corner.
-   Returns '' when there's nothing to stamp. */
+/* Red savings stamp shown on the product image corner. */
 function stampText(p){
-  const now=parseFloat(String(p.now||'').replace(/[^0-9.]/g,''));
-  if(p.disc==='save$'&&p.dv) return 'SAVE<br>$'+String(p.dv).replace(/^\$/,'');
-  if(p.disc==='save%'&&p.dv) return 'SAVE<br>'+String(p.dv).replace(/%$/,'')+'%';
-  if(p.disc==='was'&&p.dv){
-    const was=parseFloat(String(p.dv).replace(/[^0-9.]/g,''));
-    if(was>now && now>0){
-      const save=was-now;
-      // round to whole dollars for a clean stamp
-      return 'SAVE<br>$'+Math.round(save);
+  const now=numberFrom(p.now);
+  if(p.disc==='save$'&&String(p.dv||'').trim()){
+    const val=savingText(p.dv);return val?`SAVE<br>$${h(val)}`:'';
+  }
+  if(p.disc==='save%'&&String(p.dv||'').trim()){
+    const val=numberFrom(p.dv);return Number.isFinite(val)?`SAVE<br>${h(savingText(val))}%`:'';
+  }
+  if(p.disc==='was'&&String(p.dv||'').trim()){
+    const was=numberFrom(p.dv);
+    if(Number.isFinite(was)&&Number.isFinite(now)&&was>now&&now>0){
+      return `SAVE<br>$${h(savingText(was-now))}`;
     }
   }
-  if(p.disc==='deal'&&p.dv){
-    // short deal on stamp if it's brief, else no stamp (deal shown under price)
+  if(p.disc==='deal'&&String(p.dv||'').trim()){
     const d=String(p.dv).trim();
-    if(d.length<=12) return d.replace(/\s+/g,'<br>');
+    if(d.length<=12)return h(d).replace(/\s+/g,'<br>');
   }
   return '';
 }
 function stampHTML(p){const t=stampText(p);return t?`<div class="stamp">${t}</div>`:'';}
 
-function img(p){return p.img&&p.img.trim()
-  ?`<div class="imgslot"><img src="${p.img}" crossorigin="anonymous" onerror="this.parentNode.classList.add('empty');this.remove();"></div>`
-  :`<div class="imgslot empty">Product<br>image</div>`;}
-/* image wrapped with its savings stamp overlaid */
+function handleImageError(el){
+  const slot=el.parentNode;
+  slot.classList.add('empty');slot.textContent='Image failed';
+  updateValidation();
+}
+function img(p){
+  const url=safeImageURL(p.img);
+  return url
+    ?`<div class="imgslot"><img src="${ha(url)}" crossorigin="anonymous" onerror="handleImageError(this)"></div>`
+    :`<div class="imgslot empty">Product<br>image</div>`;
+}
 function imgStamped(p){return `<div class="imgwrap">${img(p)}${stampHTML(p)}</div>`;}
 
-function subPrice(p){
-  // WAS line still shown small under price (stamp shows the saving amount)
-  if(p.disc==='was'&&p.dv&&p.dv.trim())return `<div class="was">WAS <s>$${String(p.dv).replace(/^\$/,'')}</s></div>`;
-  return '';}
-
-/* flexible reference line for the Feature layout: WAS and/or RRP, or nothing */
 function refLine(p){
-  const parts=[];
-  const was=(p.disc==='was'&&p.dv&&p.dv.trim())?String(p.dv).replace(/^\$/,''):'';
-  const rrp=(p.rrp&&String(p.rrp).trim())?String(p.rrp).replace(/^\$/,''):'';
-  if(was) parts.push(`WAS <s>$${was}</s>`);
-  if(rrp) parts.push(`RRP $${rrp}`);
-  if(!parts.length) return '';
+  const d=priceData(p),parts=[];
+  if(d.was)parts.push(`WAS <s>$${h(d.was)}</s>`);
+  if(d.rrp)parts.push(`RRP $${h(d.rrp)}`);
+  if(!parts.length)return '';
   return `<div class="refline">${parts.join('<span class="sep">|</span>')}</div>`;
 }
-function hasPrice(now){const n=parseFloat(String(now||'').replace(/[^0-9.]/g,''));return n>0;}
-
-/* price block: NOW label above, big price, WAS below — one centred aligned stack */
 function pblock(p){
-  if(!hasPrice(p.now)){
-    if(p.disc==='deal'&&p.dv&&p.dv.trim())
-      return `<div class="pricerow"><span class="nowlbl">SPECIAL</span><span class="dealhero">${p.dv}</span></div>`;
-    return `<div class="pricerow"><span class="nowlbl">SPECIAL</span></div>`;
+  const d=priceData(p);
+  if(!d.has){
+    return `<div class="pricerow"><span class="nowlbl">SPECIAL</span>${d.deal?`<span class="dealhero">${h(d.deal)}</span>`:''}</div>`;
   }
-  return `<div class="pricerow"><span class="nowlbl">NOW</span><span class="price">${priceHTML(p.now)}</span>${subPrice(p)}</div>`;
+  let extra='';
+  if(d.was)extra+=`<div class="was">WAS <s>$${h(d.was)}</s></div>`;
+  if(d.deal)extra+=`<div class="deal">${h(d.deal)}</div>`;
+  return `<div class="pricerow"><span class="nowlbl">NOW</span><span class="price">${priceHTML(p.now)}</span>${extra}</div>`;
 }
-function titleInline(){return S.title.replace(/\n/g,'<br>').replace(/\*(.+?)\*/g,'<span class="accent">$1</span>');}
-function brandbar(right){return `<div class="brandbar"><img class="blogo" src="${LOGO_LONG}"><span class="tag">${right||''}</span></div>`;}
-function footHTML(){return `<div class="foot"><span class="real">No further discounts on sale items.</span><span>${S.foot}</span></div>`;}
+function gridPriceBlock(p){
+  const d=priceData(p);
+  if(!d.has)return `<div class="gprice-row"><span class="gnow">SPECIAL</span></div>${d.deal?`<div class="gdeal">${h(d.deal)}</div>`:''}${refLine(p)}`;
+  return `<div class="gprice-row"><span class="gnow">NOW</span><span class="gprice">${priceHTML(p.now)}</span></div>${d.deal?`<div class="gdeal">${h(d.deal)}</div>`:''}${refLine(p)}`;
+}
+function featurePriceBlock(p){
+  const d=priceData(p);
+  if(!d.has)return `<div class="ftag">SPECIAL</div>${d.deal?`<div class="fdeal">${h(d.deal)}</div>`:''}${refLine(p)}`;
+  return `<div class="ftag">NOW</div><div class="fprice">${priceHTML(p.now)}</div>${d.deal?`<div class="fdeal">${h(d.deal)}</div>`:''}${refLine(p)}`;
+}
+function titleInline(){
+  const safe=h(S.title);
+  return safe.replace(/\n/g,'<br>').replace(/\*(.+?)\*/g,'<span class="accent">$1</span>');
+}
+function brandbar(right){return `<div class="brandbar"><img class="blogo" src="${LOGO_LONG}"><span class="tag">${h(right||'')}</span></div>`;}
+function footHTML(){return `<div class="foot"><span class="real">No further discounts on sale items.</span><span>${h(S.foot)}</span></div>`;}
+function productName(p){return `<div class="pbrand">${h(p.brand)}</div><div class="pname">${h(p.name)}</div>`;}
 
-function baseRows(){return S.rows.length?S.rows:SAMPLE;}
+/* ---------- data state ---------- */
+function baseRows(){return S.source==='sheet'?S.rows:SAMPLE;}
 function syncWork(){S.work=baseRows().map(r=>({...r}));S.edited=false;}
-function activeRows(){return S.work.length?S.work:baseRows();}
+function activeRows(){return S.work;}
 function pageCount(){const per=LAYOUTS[S.layout].per;return Math.max(1,Math.ceil(activeRows().length/per));}
 function pageStart(){return S.page*LAYOUTS[S.layout].per;}
 function pageRows(){const per=LAYOUTS[S.layout].per,st=pageStart();return activeRows().slice(st,st+per);}
+function markEdited(){S.edited=true;document.getElementById('editFlag').style.display='inline';document.getElementById('revertBtn').style.display='inline-block';updateValidation();}
+function clearEdited(){S.edited=false;document.getElementById('editFlag').style.display='none';document.getElementById('revertBtn').style.display='none';updateValidation();}
 
-function markEdited(){S.edited=true;
-  document.getElementById('editFlag').style.display='inline';
-  document.getElementById('revertBtn').style.display='inline-block';}
-function clearEdited(){S.edited=false;
-  document.getElementById('editFlag').style.display='none';
-  document.getElementById('revertBtn').style.display='none';}
+/* ---------- product validation ---------- */
+function validateProducts(){
+  const rows=activeRows(),errors=[],warnings=[];
+  if(!rows.length)errors.push('No products are loaded');
+  rows.forEach((p,i)=>{
+    const n=i+1,now=numberFrom(p.now),dv=numberFrom(p.dv),rrp=numberFrom(p.rrp);
+    if(!String(p.brand||'').trim())warnings.push(`Product ${n}: missing brand`);
+    if(!String(p.name||'').trim())errors.push(`Product ${n}: missing product name`);
+    const isDeal=p.disc==='deal'&&String(p.dv||'').trim();
+    if(!(Number.isFinite(now)&&now>0)&&!isDeal)errors.push(`Product ${n}: missing/invalid NOW price`);
+    if(p.disc!=='none'&&!String(p.dv||'').trim())errors.push(`Product ${n}: discount value is blank`);
+    if(p.disc==='was'&&Number.isFinite(now)&&Number.isFinite(dv)&&dv<=now)errors.push(`Product ${n}: WAS must be higher than NOW`);
+    if(p.disc==='save%'&&Number.isFinite(dv)&&(dv<=0||dv>=100))warnings.push(`Product ${n}: SAVE % looks unusual`);
+    if(p.disc==='save$'&&Number.isFinite(dv)&&dv<=0)errors.push(`Product ${n}: SAVE $ must be above $0`);
+    if(String(p.rrp||'').trim()&&!Number.isFinite(rrp))warnings.push(`Product ${n}: RRP is not a number`);
+    if(Number.isFinite(rrp)&&Number.isFinite(now)&&now>0&&rrp<now)warnings.push(`Product ${n}: RRP is below NOW price`);
+    if(!safeImageURL(p.img))warnings.push(`Product ${n}: image missing`);
+  });
+  document.querySelectorAll('#slide .imgslot.empty').forEach((slot,i)=>{
+    if(slot.textContent.trim()==='Image failed')warnings.push(`Page ${S.page+1}: an image failed to load`);
+  });
+  return {errors:[...new Set(errors)],warnings:[...new Set(warnings)],count:rows.length};
+}
+function sourceLabel(){
+  let label=S.source==='sheet'?'LIVE SHEET':'SAMPLE DATA';
+  if(S.edited)label+=' + LOCAL EDITS';
+  return label;
+}
+function updateValidation(){
+  const el=document.getElementById('validationBar');if(!el)return;
+  const v=validateProducts();
+  const issues=[...v.errors,...v.warnings];
+  if(v.errors.length){
+    el.className='validationbar err';
+    el.innerHTML=`<div><span class="vmain">Fix before export · ${v.errors.length} error${v.errors.length===1?'':'s'}</span><span class="vdetail"> · ${h(issues.slice(0,3).join(' · '))}${issues.length>3?' · …':''} · ${h(sourceLabel())}</span></div>`;
+  }else if(v.warnings.length){
+    el.className='validationbar warn';
+    el.innerHTML=`<div><span class="vmain">Ready with ${v.warnings.length} warning${v.warnings.length===1?'':'s'}</span><span class="vdetail"> · ${h(v.warnings.slice(0,3).join(' · '))}${v.warnings.length>3?' · …':''} · ${h(sourceLabel())}</span></div>`;
+  }else{
+    el.className='validationbar ok';
+    el.innerHTML=`<div><span class="vmain">Ready to export</span><span class="vdetail"> · ${v.count} product${v.count===1?'':'s'} · images, prices and discounts look valid · ${h(sourceLabel())}</span></div>`;
+  }
+}
 
-/* build the inline editor cards for the current page */
+/* ---------- inline editor ---------- */
 function buildInputs(){
   const box=document.getElementById('prodInputs');
-  const per=LAYOUTS[S.layout].per, st=pageStart();
-  const rows=activeRows();
+  const per=LAYOUTS[S.layout].per,st=pageStart(),rows=activeRows();
   const idxs=[];for(let i=0;i<per;i++){if(st+i<rows.length)idxs.push(st+i);}
-  box.style.gridTemplateColumns = per<=1?'1fr':(per<=2?'1fr 1fr':(per<=4?'1fr 1fr':'1fr 1fr 1fr'));
+  box.style.gridTemplateColumns=per<=1?'1fr':(per<=2?'1fr 1fr':(per<=4?'1fr 1fr':'1fr 1fr 1fr'));
   box.innerHTML='';
   const discOpts=[['was','WAS price'],['save$','SAVE $'],['save%','SAVE %'],['deal','Deal line'],['none','No discount']];
   idxs.forEach(gi=>{
-    const p=rows[gi];
-    const d=document.createElement('div');d.className='card-input';
-    d.innerHTML=`<button class="del" data-gi="${gi}" title="Remove from slide">✕</button>
+    const p=rows[gi],d=document.createElement('div');d.className='card-input';
+    d.innerHTML=`<button class="del" data-gi="${gi}" title="Remove from slide" aria-label="Remove product ${gi+1}">✕</button>
       <h3>Product ${gi+1}</h3>
-      <label>Brand</label><input type="text" data-gi="${gi}" data-k="brand" value="${esc(p.brand)}">
-      <label>Product name</label><input type="text" data-gi="${gi}" data-k="name" value="${esc(p.name)}">
+      <label>Brand</label><input type="text" data-gi="${gi}" data-k="brand" value="${ha(p.brand)}">
+      <label>Product name</label><input type="text" data-gi="${gi}" data-k="name" value="${ha(p.name)}">
       <div class="mini"><div><label>NOW price</label>
-        <input type="text" data-gi="${gi}" data-k="now" value="${esc(p.now)}"></div>
-      <div><label>Photo file</label><input type="file" accept="image/*" data-gi="${gi}" data-k="imgfile"></div></div>
+        <input type="text" inputmode="decimal" data-gi="${gi}" data-k="now" value="${ha(p.now)}"></div>
+      <div><label>RRP (optional)</label>
+        <input type="text" inputmode="decimal" data-gi="${gi}" data-k="rrp" value="${ha(p.rrp||'')}"></div></div>
       <div class="discwrap"><div class="mini">
         <div><label>Discount style</label><select data-gi="${gi}" data-k="disc">
           ${discOpts.map(o=>`<option value="${o[0]}" ${p.disc===o[0]?'selected':''}>${o[1]}</option>`).join('')}
         </select></div>
-        <div><label>Discount value</label><input type="text" data-gi="${gi}" data-k="dv" value="${esc(p.dv)}"></div>
+        <div><label>Discount value</label><input type="text" data-gi="${gi}" data-k="dv" value="${ha(p.dv)}"></div>
       </div></div>
+      <div class="mini" style="margin-top:8px"><div><label>Photo file</label><input type="file" accept="image/*" data-gi="${gi}" data-k="imgfile"></div><div></div></div>
       <label style="margin-top:8px">Image URL (optional)</label>
-      <input type="text" data-gi="${gi}" data-k="img" value="${esc(p.img)}" placeholder="paste web link, or use Photo file above">`;
+      <input type="text" data-gi="${gi}" data-k="img" value="${ha(p.img)}" placeholder="paste web link, or use Photo file above">`;
     box.appendChild(d);
   });
   box.querySelectorAll('input[type=text],select').forEach(inp=>{
@@ -554,178 +667,184 @@ function buildInputs(){
     inp.addEventListener(ev,e=>{
       const gi=+e.target.dataset.gi,k=e.target.dataset.k;
       rows[gi][k]=e.target.value;markEdited();
-      if(k==='disc')buildInputs();
-      render();});
+      render(false); // preview only: keeps typing focus/cursor intact
+    });
   });
   box.querySelectorAll('input[type=file]').forEach(inp=>inp.addEventListener('change',e=>{
     const gi=+e.target.dataset.gi,f=e.target.files[0];if(!f)return;
-    const r=new FileReader();r.onload=ev=>{rows[gi].img=ev.target.result;markEdited();buildInputs();render();};
-    r.readAsDataURL(f);}));
+    const r=new FileReader();r.onload=ev=>{rows[gi].img=ev.target.result;markEdited();render(false);};
+    r.readAsDataURL(f);
+  }));
   box.querySelectorAll('.del').forEach(btn=>btn.onclick=e=>{
-    const gi=+e.target.dataset.gi;rows.splice(gi,1);markEdited();
+    const gi=+e.currentTarget.dataset.gi;rows.splice(gi,1);markEdited();
     if(S.page>=pageCount())S.page=Math.max(0,pageCount()-1);
-    buildInputs();render();});
+    render(true);
+  });
 }
-function esc(s){return String(s==null?'':s).replace(/"/g,'&quot;');}
 
-function render(){
+/* ---------- slide rendering ---------- */
+function emptyCell(cls='cell'){return `<div class="${cls} empty-cell"></div>`;}
+function render(rebuildInputs=true){
   const L=LAYOUTS[S.layout],s=document.getElementById('slide');
   s.className='slide l-'+S.layout;
-  document.getElementById('dimsNote').textContent=`Exports at ${L.w} × ${L.h} px`;
+  document.getElementById('dimsNote').textContent=`Canvas ${L.w} × ${L.h} · PNG export ${L.w*EXPORT_SCALE} × ${L.h*EXPORT_SCALE} px`;
   if(S.page>=pageCount())S.page=0;
-  const P=pageRows();
-  let html='';
+  const P=pageRows();let html='';
   if(S.layout==='single'){
-    const p=P[0]||SAMPLE[0];
+    const p=P[0];
     html=`<div class="pad">${brandbar(S.kick)}<div class="titlebar"><span class="big">${titleInline()}</span></div>
-      <div class="body">${imgStamped(p)}<div class="info">
-        <div class="pbrand">${p.brand}</div><div class="pname">${p.name}</div>${pblock(p)}</div></div>${footHTML()}</div>`;
-  } else if(S.layout==='four'){
-    const cells=[...P]; while(cells.length<4)cells.push(null);
-    html=`<div class="pad">${brandbar()}<div class="titlebar"><span class="big">${titleInline()}</span></div>
-      <div class="body">${cells.map(p=>p?`<div class="cell">
-        <div class="pbrand">${p.brand}</div><div class="pname">${p.name}</div>
-        ${imgStamped(p)}${pblock(p)}</div>`
-        :`<div class="cell"></div>`).join('')}</div>${footHTML()}</div>`;
-  } else if(S.layout==='two'){
-    const a=P[0]||SAMPLE[0], b=P[1]||SAMPLE[1];
-    const col=p=>`<div class="col">
-      <div class="pbrand">${p.brand}</div><div class="pname">${p.name}</div>
-      ${imgStamped(p)}${pblock(p)}</div>`;
+      <div class="body">${p?`${imgStamped(p)}<div class="info">${productName(p)}${pblock(p)}</div>`:''}</div>${footHTML()}</div>`;
+  }else if(S.layout==='four'){
+    const cells=[...P];while(cells.length<4)cells.push(null);
     html=`<div class="pad">${brandbar(S.kick)}<div class="titlebar"><span class="big">${titleInline()}</span></div>
-      <div class="body">${col(a)}<div class="vs">PAIR</div>${col(b)}</div>${footHTML()}</div>`;
-  } else if(S.layout==='herosplit'){
-    const hero=P[0]||SAMPLE[0], adds=[P[1],P[2]].filter(Boolean);
+      <div class="body">${cells.map(p=>p?`<div class="cell">${productName(p)}${imgStamped(p)}${pblock(p)}</div>`:`<div class="cell"></div>`).join('')}</div>${footHTML()}</div>`;
+  }else if(S.layout==='two'){
+    const a=P[0]||null,b=P[1]||null;
+    const col=p=>p?`<div class="col">${productName(p)}${imgStamped(p)}${pblock(p)}</div>`:`<div class="col empty-cell"></div>`;
+    html=`<div class="pad">${brandbar(S.kick)}<div class="titlebar"><span class="big">${titleInline()}</span></div>
+      <div class="body">${col(a)}${a&&b?'<div class="vs">PAIR</div>':''}${col(b)}</div>${footHTML()}</div>`;
+  }else if(S.layout==='herosplit'){
+    const hero=P[0]||null,adds=[P[1],P[2]].filter(Boolean);
     html=`<div class="pad">${brandbar(S.kick)}<div class="titlebar"><span class="big">${titleInline()}</span></div>
       <div class="body">
-        <div class="hero-main">${imgStamped(hero)}<div class="info">
-          <div class="pbrand">${hero.brand}</div><div class="pname">${hero.name}</div>${pblock(hero)}</div></div>
-        <div class="hero-side">
-          <div class="side-head">Perfect Pairing</div>
-          ${adds.map(p=>`<div class="side-cell">${imgStamped(p)}<div class="info">
-            <div class="pbrand">${p.brand}</div><div class="pname">${p.name}</div>${pblock(p)}</div></div>`).join('')}
+        <div class="hero-main">${hero?`${imgStamped(hero)}<div class="info">${productName(hero)}${pblock(hero)}</div>`:''}</div>
+        <div class="hero-side"><div class="side-head">Perfect Pairing</div>
+          ${adds.map(p=>`<div class="side-cell">${imgStamped(p)}<div class="info">${productName(p)}${pblock(p)}</div></div>`).join('')}
         </div>
       </div>${footHTML()}</div>`;
-  } else if(S.layout==='gridcards'){
-    const cells=[...P]; while(cells.length<4)cells.push(null);
+  }else if(S.layout==='gridcards'){
+    const cells=[...P];while(cells.length<4)cells.push(null);
     html=`<div class="pad">${brandbar(S.kick)}<div class="titlebar"><span class="big">${titleInline()}</span></div>
-      <div class="body">${cells.map(p=>p?`
-        <div class="gcard">
-          ${imgStamped(p)}
-          <div class="gname">${p.brand}${p.name?', ':' '}${p.name}</div>
-          <div class="gprice-row">
-            <span class="gnow">NOW</span>
-            <span class="gprice">${priceHTML(p.now)}</span>
-          </div>
-          ${refLine(p)}
-        </div>`:`<div class="gcard empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
-  } else if(S.layout==='feature'){
-    const cells=[...P]; while(cells.length<4)cells.push(null);
+      <div class="body">${cells.map(p=>p?`<div class="gcard">${imgStamped(p)}
+        <div class="gname">${h(p.brand)}${p.name?', ':' '}${h(p.name)}</div>${gridPriceBlock(p)}</div>`:`<div class="gcard empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
+  }else if(S.layout==='feature'){
+    const cells=[...P];while(cells.length<4)cells.push(null);
     html=`<div class="pad">${brandbar(S.kick)}<div class="titlebar"><span class="big">${titleInline()}</span></div>
-      <div class="body">${cells.map(p=>p?`
-        <div class="fcell">
-          ${imgStamped(p)}
-          <div class="finfo">
-            <div class="fname">${p.brand}${p.name?',':''}<br>${p.name}</div>
-            <div class="frule"></div>
-            <div class="ftag">NOW</div>
-            <div class="fprice">${priceHTML(p.now)}</div>
-            ${refLine(p)}
-          </div>
-        </div>`:`<div class="fcell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
-  } else if(S.layout==='promo'){
+      <div class="body">${cells.map(p=>p?`<div class="fcell">${imgStamped(p)}<div class="finfo">
+        <div class="fname">${h(p.brand)}${p.name?',':''}<br>${h(p.name)}</div><div class="frule"></div>${featurePriceBlock(p)}</div></div>`:`<div class="fcell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
+  }else if(S.layout==='promo'){
     const cells=[...P].slice(0,4);
-    html=`<div class="pad">${brandbar()}
-      <div class="body">
-        <div class="promo-left">
-          <div class="promo-head">${titleInline()}</div>
-          <div class="promo-sub">${S.kick}</div>
-        </div>
-        <div class="promo-row">${cells.map(p=>p?`<div class="promo-cell">
-          <div class="pbrand">${p.brand}</div>${imgStamped(p)}${pblock(p)}</div>`:'').join('')}</div>
+    html=`<div class="pad">${brandbar()}<div class="body"><div class="promo-left">
+      <div class="promo-head">${titleInline()}</div><div class="promo-sub">${h(S.kick)}</div></div>
+      <div class="promo-row">${cells.map(p=>p?`<div class="promo-cell"><div class="pbrand">${h(p.brand)}</div>${imgStamped(p)}${pblock(p)}</div>`:'').join('')}</div>
       </div>${footHTML()}</div>`;
-  } else if(S.layout==='sixsplit'){
+  }else if(S.layout==='sixsplit'){
     const cells=[...P];while(cells.length<6)cells.push(null);
     html=`<div class="pad">${brandbar(S.kick)}<div class="titlebar"><span class="big">${titleInline()}</span></div>
-      <div class="body">${cells.map(p=>p?`<div class="scell">
-        ${imgStamped(p)}
-        <div class="sinfo">
-          <div class="pbrand">${p.brand}</div><div class="pname">${p.name}</div>
-          ${pblock(p)}
-        </div></div>`
-        :`<div class="scell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
-  } else {
+      <div class="body">${cells.map(p=>p?`<div class="scell">${imgStamped(p)}<div class="sinfo">${productName(p)}${pblock(p)}</div></div>`:`<div class="scell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
+  }else{
     const cells=[...P];while(cells.length<6)cells.push(null);
     html=`<div class="pad">${brandbar(S.kick)}<div class="titlebar"><span class="big">${titleInline()}</span></div>
-      <div class="body">${cells.map(p=>p?`<div class="cell">
-        <div class="pbrand">${p.brand}</div><div class="pname">${p.name}</div>
-        ${imgStamped(p)}${pblock(p)}</div>`
-        :`<div class="cell" style="border-style:dashed"></div>`).join('')}</div>${footHTML()}</div>`;
+      <div class="body">${cells.map(p=>p?`<div class="cell">${productName(p)}${imgStamped(p)}${pblock(p)}</div>`:`<div class="cell" style="border-style:dashed"></div>`).join('')}</div>${footHTML()}</div>`;
   }
   s.innerHTML=html;
   document.getElementById('pageInfo').textContent=`Page ${S.page+1} of ${pageCount()}`;
-  buildInputs();
-  fit();
+  if(rebuildInputs)buildInputs();
+  fit();updateValidation();
 }
-function fit(){const s=document.getElementById('slide'),L=LAYOUTS[S.layout];
-  const avail=Math.min(L.w,document.querySelector('.wrap').clientWidth);const sc=avail/L.w;
+function fit(){
+  const s=document.getElementById('slide'),L=LAYOUTS[S.layout];
+  const avail=Math.min(L.w,document.querySelector('.wrap').clientWidth),sc=avail/L.w;
   s.style.transform=sc<1?`scale(${sc})`:'none';
-  document.querySelector('.stage').style.height=(L.h*Math.min(sc,1))+'px';}
+  document.querySelector('.stage').style.height=(L.h*Math.min(sc,1))+'px';
+}
 window.addEventListener('resize',fit);
 
-/* controls */
+/* ---------- controls ---------- */
 document.querySelectorAll('#layoutBtns .btn').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#layoutBtns .btn').forEach(x=>x.classList.remove('active'));
-  b.classList.add('active');S.layout=b.dataset.layout;S.page=0;render();});
-['title','kick','foot'].forEach(k=>document.getElementById('f_'+k).addEventListener('input',e=>{S[k]=e.target.value;render();}));
-document.getElementById('prevPage').onclick=()=>{S.page=(S.page-1+pageCount())%pageCount();render();};
-document.getElementById('nextPage').onclick=()=>{S.page=(S.page+1)%pageCount();render();};
+  b.classList.add('active');S.layout=b.dataset.layout;S.page=0;render(true);
+});
+['title','kick','foot'].forEach(k=>document.getElementById('f_'+k).addEventListener('input',e=>{S[k]=e.target.value;render(false);}));
+document.getElementById('prevPage').onclick=()=>{S.page=(S.page-1+pageCount())%pageCount();render(true);};
+document.getElementById('nextPage').onclick=()=>{S.page=(S.page+1)%pageCount();render(true);};
 
-/* sheet loading */
+/* ---------- sheet loading ---------- */
 function setStatus(cls,msg){const el=document.getElementById('loadStatus');el.className='status '+cls;el.innerHTML=msg;}
 async function loadSheet(url,quiet){
-  if(!url||!/^https?:\/\//.test(url)){setStatus('err','That doesn\'t look like a link. Paste the published CSV URL.');return;}
+  if(!url||!/^https?:\/\//i.test(url)){setStatus('err','That doesn\'t look like a link. Paste the published CSV URL.');return;}
+  const hadLive=S.source==='sheet'&&S.rows.length>0;
   try{
     setStatus('warn','Loading…');
-    const res=await fetch(url,{cache:'no-store'});
-    if(!res.ok)throw new Error(res.status);
-    const txt=await res.text();
-    const rows=rowsFromCSV(txt);
-    if(!rows.length){setStatus('warn','Sheet loaded but no active rows found. Check the column headers and the "active" column.');return;}
-    S.rows=rows;S.page=0;localStorage.setItem('phf_sheet_url',url);syncWork();clearEdited();render();
-    setStatus('ok',`Loaded ${rows.length} active product${rows.length>1?'s':''} from the sheet.`);
+    const res=await fetch(url,{cache:'no-store'});if(!res.ok)throw new Error(res.status);
+    const txt=await res.text(),rows=rowsFromCSV(txt);
+    if(!rows.length){setStatus('warn','Sheet loaded but no active rows were found. Check the column headers and the “active” column. Existing preview has been left unchanged.');return;}
+    S.rows=rows;S.source='sheet';S.page=0;S.lastLoaded=new Date();
+    localStorage.setItem('phf_sheet_url',url);syncWork();clearEdited();render(true);
+    setStatus('ok',`LIVE SHEET · Loaded ${rows.length} active product${rows.length===1?'':'s'}${S.lastLoaded?' · '+S.lastLoaded.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}):''}.`);
   }catch(e){
-    setStatus('err','Couldn\'t load that sheet. Make sure it\'s <b>Published to web as CSV</b> and the link is correct. (Sample data still shown.)');
+    setStatus('err',hadLive?'Couldn\'t refresh the sheet. Your previously loaded data is still on screen — nothing was replaced.':'Couldn\'t load that sheet. Sample data is still on screen. Make sure the tab is published as CSV and the link is correct.');
   }
 }
 document.getElementById('loadBtn').onclick=()=>loadSheet(document.getElementById('sheetUrl').value.trim());
-document.getElementById('reloadBtn').onclick=()=>{const u=document.getElementById('sheetUrl').value.trim()||localStorage.getItem('phf_sheet_url');if(u)loadSheet(u);};
-document.getElementById('sampleBtn').onclick=()=>{S.rows=[];S.page=0;syncWork();clearEdited();render();setStatus('warn','Showing sample data.');};
+document.getElementById('reloadBtn').onclick=()=>{const u=document.getElementById('sheetUrl').value.trim()||localStorage.getItem('phf_sheet_url');if(u)loadSheet(u);else setStatus('warn','No saved sheet link yet. Paste the published CSV URL first.');};
+document.getElementById('sampleBtn').onclick=()=>{S.rows=[];S.source='sample';S.page=0;syncWork();clearEdited();render(true);setStatus('warn','SAMPLE DATA · Nothing here is from the live pricing sheet.');};
 
-/* inline editing controls */
+/* ---------- inline editing controls ---------- */
 document.getElementById('addProd').onclick=()=>{
   const rows=activeRows();
-  rows.push({brand:'NEW BRAND',name:'Product name',now:'0.00',disc:'was',dv:'',img:''});
-  markEdited();S.page=pageCount()-1;buildInputs();render();};
-document.getElementById('revertBtn').onclick=()=>{syncWork();clearEdited();S.page=0;render();};
+  rows.push({brand:'NEW BRAND',name:'Product name',now:'0.00',disc:'was',dv:'',rrp:'',img:''});
+  markEdited();S.page=pageCount()-1;render(true);
+};
+document.getElementById('revertBtn').onclick=()=>{syncWork();clearEdited();S.page=0;render(true);};
 
-/* export */
+/* ---------- export ---------- */
+function waitForImages(root){
+  const imgs=[...root.querySelectorAll('img')];
+  return Promise.all(imgs.map(im=>im.complete?Promise.resolve():new Promise(resolve=>{im.addEventListener('load',resolve,{once:true});im.addEventListener('error',resolve,{once:true});setTimeout(resolve,3000);})));}
+async function captureCurrentPage(){
+  const s=document.getElementById('slide'),L=LAYOUTS[S.layout],t=s.style.transform;
+  s.style.transform='none';
+  await waitForImages(s);
+  const canvas=await html2canvas(s,{width:L.w,height:L.h,scale:EXPORT_SCALE,backgroundColor:'#ffffff',useCORS:true,logging:false});
+  s.style.transform=t;
+  return canvas;
+}
+function canvasBlob(canvas){return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('PNG creation failed')),'image/png'));}
+function downloadBlob(blob,name){const a=document.createElement('a');a.download=name;a.href=URL.createObjectURL(blob);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);}
+function fileStem(){
+  const title=String(S.title||'specials').trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'').slice(0,40)||'specials';
+  return `phf_${title}_${S.layout}`;
+}
 async function exportPage(){
-  const s=document.getElementById('slide'),L=LAYOUTS[S.layout],t=s.style.transform;s.style.transform='none';
-  const canvas=await html2canvas(s,{width:L.w,height:L.h,scale:2,backgroundColor:'#ffffff',useCORS:true});
-  s.style.transform=t;const a=document.createElement('a');
-  a.download=`phf_${S.layout}_p${S.page+1}.png`;a.href=canvas.toDataURL('image/png');a.click();}
+  try{
+    const btn=document.getElementById('downloadBtn');btn.disabled=true;btn.textContent='Creating PNG…';
+    const canvas=await captureCurrentPage(),blob=await canvasBlob(canvas);
+    downloadBlob(blob,`${fileStem()}_p${S.page+1}.png`);
+  }catch(e){alert('The PNG could not be created. If a web image is being used, try uploading the product photo file instead.');}
+  finally{const btn=document.getElementById('downloadBtn');btn.disabled=false;btn.textContent='Download this slide';fit();}
+}
 document.getElementById('downloadBtn').onclick=exportPage;
 document.getElementById('downloadAll').onclick=async()=>{
-  const total=pageCount();
-  for(let i=0;i<total;i++){S.page=i;render();await new Promise(r=>setTimeout(r,400));await exportPage();await new Promise(r=>setTimeout(r,250));}
+  const btn=document.getElementById('downloadAll'),originalPage=S.page,total=pageCount();
+  btn.disabled=true;
+  try{
+    if(typeof JSZip==='undefined')throw new Error('ZIP library unavailable');
+    const zip=new JSZip();
+    for(let i=0;i<total;i++){
+      btn.textContent=`Creating ZIP ${i+1}/${total}…`;S.page=i;render(false);
+      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+      const canvas=await captureCurrentPage(),blob=await canvasBlob(canvas);
+      zip.file(`${fileStem()}_p${i+1}.png`,blob);
+    }
+    btn.textContent='Compressing ZIP…';
+    const zipBlob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:6}});
+    downloadBlob(zipBlob,`${fileStem()}_all_pages.zip`);
+  }catch(e){
+    alert('The ZIP could not be created. You can still use “Download this slide” one page at a time.');
+  }finally{
+    S.page=Math.min(originalPage,pageCount()-1);render(true);btn.disabled=false;btn.textContent='Download all (.zip)';
+  }
 };
 
 /* boot: restore saved sheet link */
-(function(){const saved=localStorage.getItem('phf_sheet_url');
-  syncWork();
+(function(){
+  const saved=localStorage.getItem('phf_sheet_url');
+  S.source='sample';syncWork();
   if(saved){document.getElementById('sheetUrl').value=saved;loadSheet(saved,true);}
-  render();})();
+  else{setStatus('warn','SAMPLE DATA · Paste your dedicated published Specials CSV link to load live products.');}
+  render(true);
+})();
 </script>
 </body>
 </html>
