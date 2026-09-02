@@ -419,6 +419,331 @@
   /* Missing product positions should be truly empty — no decorative box. */
   .empty-cell{visibility:hidden}
 
+
+
+  /* ============================================================
+     V5 — CLEAN / CENTRED RETAIL ARTWORK
+     Final consistency pass:
+     - no header/footer rules
+     - no product boxes or grid divider rules
+     - product/image/text groups centred within their allotted area
+     - WAS prices are muted plain text, never red/struck-through
+     ============================================================ */
+
+  /* Header/footer should float cleanly on the white canvas. */
+  .titlebar{
+    border-bottom:none!important;
+    padding-bottom:0!important;
+    margin-bottom:0!important;
+  }
+  .foot{
+    border-top:none!important;
+    padding-top:7px!important;
+  }
+
+  /* WAS / RRP reference information is secondary, not another red cue. */
+  .was,
+  .refline{color:var(--muted)!important}
+  .was s,
+  .refline s{
+    color:inherit!important;
+    text-decoration:none!important;
+    text-decoration-thickness:0!important;
+  }
+
+  /* Remove every remaining product-level box/divider. */
+  .l-four .cell,
+  .l-four .cell + .cell,
+  .l-two .col,
+  .l-six .cell,
+  .l-six .cell:nth-child(3n+2),
+  .l-six .cell:nth-child(3n),
+  .l-six .cell:nth-child(n+4),
+  .l-sixsplit .scell,
+  .l-sixsplit .scell:nth-child(3n+2),
+  .l-sixsplit .scell:nth-child(3n),
+  .l-sixsplit .scell:nth-child(n+4),
+  .l-promo .promo-cell,
+  .l-promo .promo-cell + .promo-cell,
+  .l-herosplit .hero-main,
+  .l-herosplit .hero-side,
+  .l-herosplit .side-cell,
+  .l-herosplit .side-cell + .side-cell,
+  .l-feature .fcell,
+  .l-feature .fcell:nth-child(even),
+  .l-feature .fcell:nth-child(n+3),
+  .l-gridcards .gcard,
+  .l-gridcards .gcard + .gcard,
+  .l-single .body{
+    border:none!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    background:transparent!important;
+  }
+
+  /* Keep each product GROUP centred inside its share of the canvas. */
+  .l-four .cell,
+  .l-six .cell,
+  .l-promo .promo-cell,
+  .l-gridcards .gcard{
+    align-items:center!important;
+    justify-content:center!important;
+    text-align:center!important;
+  }
+
+  /* 4 product: use more of each quarter without feeling cramped. */
+  .l-four .cell{padding:8px 16px 5px!important}
+  .l-four .imgwrap{height:248px!important;margin:3px 0 4px!important}
+  .l-four .imgslot{height:248px!important}
+
+  /* 6 grid: slightly larger products, still centred. */
+  .l-six .cell{padding:7px 14px 5px!important}
+  .l-six .imgwrap{height:130px!important;margin:3px 0 4px!important}
+  .l-six .imgslot{height:130px!important}
+
+  /* 6 split: centre the combined image + information unit, not the text
+     block against the left edge of a large cell. */
+  .l-sixsplit .scell{
+    justify-content:center!important;
+    gap:13px!important;
+    padding:8px 12px!important;
+  }
+  .l-sixsplit .imgwrap{flex:0 0 122px!important;height:164px!important}
+  .l-sixsplit .imgslot{height:164px!important}
+  .l-sixsplit .sinfo{
+    flex:0 1 168px!important;
+    max-width:168px!important;
+    min-width:0!important;
+    align-items:flex-start!important;
+    justify-content:center!important;
+    text-align:left!important;
+  }
+  .l-sixsplit .pbrand{font-size:15.5px!important}
+  .l-sixsplit .pname{font-size:12.5px!important}
+  .l-sixsplit .price{font-size:45px!important}
+  .l-sixsplit .dealhero{font-size:20px!important}
+
+  /* 2 product: each half gets a centred image + information composition. */
+  .l-two .col{
+    grid-template-columns:minmax(0,44%) minmax(0,44%)!important;
+    justify-content:center!important;
+    gap:18px!important;
+    padding:10px 14px!important;
+    text-align:left!important;
+  }
+  .l-two .col.solo{
+    width:100%!important;
+    max-width:820px!important;
+    margin:0 auto!important;
+  }
+  .l-two .pair-info{align-items:flex-start!important}
+  .l-two .col .imgwrap{height:312px!important}
+  .l-two .col .imgslot{height:312px!important}
+
+  /* Single hero: centre the complete hero composition on the canvas. */
+  .l-single .body{justify-content:center!important;gap:34px!important}
+  .l-single .imgwrap{flex:0 1 46%!important}
+  .l-single .info{flex:0 1 42%!important;padding-right:0!important}
+
+  /* Hero + pick: centre each image/text unit within its editorial area. */
+  .l-herosplit .hero-main{justify-content:center!important;padding:8px 22px 5px 6px!important}
+  .l-herosplit .hero-main .imgwrap{flex:0 1 48%!important}
+  .l-herosplit .hero-main .info{flex:0 1 320px!important}
+  .l-herosplit .hero-side{padding-left:18px!important}
+  .l-herosplit .side-cell{justify-content:center!important;padding:10px 2px!important}
+  .l-herosplit .side-cell .info{flex:0 1 165px!important}
+
+  /* 2x2 feature: centre the combined image + info block in each quadrant. */
+  .l-feature .fcell{justify-content:center!important;gap:17px!important;padding:10px 14px!important}
+  .l-feature .imgwrap{flex:0 0 140px!important;height:194px!important}
+  .l-feature .imgslot{height:194px!important}
+  .l-feature .finfo{flex:0 1 235px!important;max-width:235px!important;height:194px!important}
+
+  /* Grid cards / banner: centred open artwork, no boxed-card feeling. */
+  .l-gridcards .gcard{padding:7px 14px 4px!important}
+  .l-gridcards .imgwrap{height:232px!important;margin-bottom:6px!important}
+  .l-gridcards .imgslot{height:232px!important}
+  .l-promo .promo-cell{padding:8px 10px 4px!important}
+  .l-promo .imgwrap{height:188px!important;margin:4px 0 5px!important}
+  .l-promo .imgslot{height:188px!important}
+
+
+
+  /* ============================================================
+     V6 — RETAIL CATALOGUE REFINEMENT
+     Inspired by the information hierarchy used by major Australian
+     retailers: generous product imagery, a repeatable product anatomy,
+     restrained secondary copy and one clear promotional cue.
+     Prahran Health Foods branding/colours remain unchanged.
+     ============================================================ */
+
+  /* Give the merchandise more of the actual canvas. */
+  .slide .pad{padding:28px 38px 20px!important}
+  .brandbar{margin-bottom:2px!important}
+  .brandbar img.blogo{height:38px!important}
+  .brandbar .tag{font-size:11.5px!important;letter-spacing:.005em!important}
+  .foot{padding-top:4px!important;font-size:11.5px!important;line-height:1.2!important}
+
+  /* One promotional language everywhere: small green ticket + strong price. */
+  .nowlbl,
+  .gnow,
+  .l-feature .ftag{
+    display:inline-flex!important;
+    width:max-content!important;
+    align-items:center!important;
+    justify-content:center!important;
+    background:var(--green)!important;
+    color:#fff!important;
+    border-radius:4px!important;
+    padding:3px 8px!important;
+    font-weight:800!important;
+    letter-spacing:.055em!important;
+    line-height:1!important;
+    margin-bottom:5px!important;
+    text-transform:uppercase!important;
+  }
+  .pricerow{gap:2px!important}
+  .was,.refline{font-weight:500!important;line-height:1.2!important}
+
+  /* Keep red reserved for the actual saving callout, not reference pricing. */
+  .stamp{
+    box-shadow:none!important;
+    border:3px solid #fff!important;
+    letter-spacing:-.01em!important;
+  }
+
+  /* Product images should feel deliberately large, not like thumbnails. */
+  .imgslot img{max-width:94%!important;max-height:94%!important}
+
+  /* 4 PRODUCT — catalogue columns: image dominates, text/price sit on a common rhythm. */
+  .l-four .body{gap:12px!important;padding-top:8px!important}
+  .l-four .cell{padding:4px 8px 2px!important;justify-content:center!important}
+  .l-four .pbrand{font-size:18px!important;line-height:1.08!important;margin-bottom:2px!important}
+  .l-four .pname{font-size:13px!important;line-height:1.2!important;min-height:31px!important;margin-bottom:2px!important}
+  .l-four .imgwrap{height:266px!important;margin:2px 0 3px!important}
+  .l-four .imgslot{height:266px!important}
+  .l-four .stamp{width:56px!important;height:56px!important;font-size:13px!important;top:2px!important;right:3px!important}
+  .l-four .nowlbl{font-size:11px!important}
+  .l-four .price{font-size:56px!important}
+  .l-four .dealhero{font-size:25px!important;line-height:1.06!important;max-width:210px!important}
+  .l-four .was{font-size:12px!important;margin-top:3px!important}
+
+  /* 6 GRID — same anatomy at a denser catalogue scale. */
+  .l-six .body{gap:12px 14px!important;padding-top:7px!important}
+  .l-six .cell{padding:2px 8px!important;justify-content:center!important}
+  .l-six .pbrand{font-size:14.5px!important;line-height:1.08!important}
+  .l-six .pname{font-size:11.5px!important;line-height:1.16!important;min-height:23px!important;margin-bottom:1px!important}
+  .l-six .imgwrap{height:142px!important;margin:2px 0 3px!important}
+  .l-six .imgslot{height:142px!important}
+  .l-six .stamp{width:48px!important;height:48px!important;font-size:10.5px!important;top:1px!important;right:2px!important}
+  .l-six .nowlbl{font-size:9.5px!important;padding:3px 7px!important}
+  .l-six .price{font-size:42px!important}
+  .l-six .dealhero{font-size:18px!important;line-height:1.05!important;max-width:220px!important}
+  .l-six .was{font-size:10.5px!important}
+
+  /* 6 SPLIT — use the horizontal space efficiently while keeping each unit visually centred. */
+  .l-sixsplit .body{gap:12px 14px!important;padding-top:7px!important}
+  .l-sixsplit .scell{gap:12px!important;padding:4px 6px!important;justify-content:center!important}
+  .l-sixsplit .imgwrap{flex:0 0 132px!important;height:174px!important}
+  .l-sixsplit .imgslot{height:174px!important}
+  .l-sixsplit .sinfo{flex:0 1 178px!important;max-width:178px!important}
+  .l-sixsplit .pbrand{font-size:15px!important;line-height:1.08!important}
+  .l-sixsplit .pname{font-size:12px!important;line-height:1.16!important;margin-top:2px!important}
+  .l-sixsplit .pricerow{margin-top:7px!important}
+  .l-sixsplit .nowlbl{font-size:9.5px!important;padding:3px 7px!important}
+  .l-sixsplit .price{font-size:44px!important}
+  .l-sixsplit .dealhero{font-size:19px!important;line-height:1.05!important}
+  .l-sixsplit .was{font-size:11px!important}
+  .l-sixsplit .stamp{width:48px!important;height:48px!important;font-size:10.5px!important;top:1px!important;right:2px!important}
+
+  /* 2 PRODUCT — editorial feature scale, but still the same retail anatomy. */
+  .l-two .body{gap:18px!important;padding-top:8px!important;grid-template-columns:minmax(0,1fr) 48px minmax(0,1fr)!important}
+  .l-two .body.one{grid-template-columns:minmax(0,1fr)!important}
+  .l-two .col{grid-template-columns:minmax(0,46%) minmax(0,46%)!important;gap:14px!important;padding:6px 8px!important}
+  .l-two .col .imgwrap{height:330px!important}
+  .l-two .col .imgslot{height:330px!important}
+  .l-two .pbrand{font-size:22px!important;line-height:1.06!important}
+  .l-two .pname{font-size:14px!important;line-height:1.2!important;margin:3px 0 10px!important}
+  .l-two .nowlbl{font-size:12px!important}
+  .l-two .price{font-size:70px!important}
+  .l-two .dealhero{font-size:31px!important;line-height:1.04!important}
+  .l-two .was{font-size:13px!important}
+  .l-two .stamp{width:68px!important;height:68px!important;font-size:15px!important;top:3px!important;right:4px!important}
+  .l-two .vs{width:48px!important;height:48px!important;font-size:11px!important}
+  .l-two .vs::before{display:none!important}
+
+  /* SINGLE HERO — product first, then price; maximise hero pack shot. */
+  .l-single .body{gap:30px!important;padding:6px 4px 0!important}
+  .l-single .imgwrap{flex:0 1 49%!important}
+  .l-single .info{flex:0 1 43%!important}
+  .l-single .pbrand{font-size:25px!important;line-height:1.06!important}
+  .l-single .pname{font-size:18px!important;line-height:1.22!important;margin:4px 0 9px!important}
+  .l-single .nowlbl{font-size:13px!important}
+  .l-single .price{font-size:112px!important}
+  .l-single .dealhero{font-size:54px!important;line-height:1.02!important}
+  .l-single .stamp{width:88px!important;height:88px!important;font-size:21px!important}
+
+  /* HERO + PICK — hero remains editorial, picks use compact retail tiles. */
+  .l-herosplit .body{padding-top:7px!important;gap:18px!important}
+  .l-herosplit .hero-main{padding:4px 10px 2px!important;gap:22px!important}
+  .l-herosplit .hero-main .imgwrap{flex:0 1 50%!important}
+  .l-herosplit .hero-main .pbrand{font-size:22px!important}
+  .l-herosplit .hero-main .pname{font-size:15px!important;line-height:1.22!important}
+  .l-herosplit .hero-main .nowlbl{font-size:11px!important}
+  .l-herosplit .hero-main .price{font-size:84px!important}
+  .l-herosplit .hero-main .dealhero{font-size:40px!important}
+  .l-herosplit .hero-side{padding-left:8px!important;gap:10px!important}
+  .l-herosplit .side-head{font-size:10.5px!important;margin-bottom:0!important}
+  .l-herosplit .side-cell{padding:4px 0!important;gap:10px!important}
+  .l-herosplit .side-cell .imgwrap{flex:0 0 92px!important;height:122px!important}
+  .l-herosplit .side-cell .imgslot{height:122px!important}
+  .l-herosplit .side-cell .info{flex:0 1 175px!important}
+  .l-herosplit .side-cell .pbrand{font-size:13px!important}
+  .l-herosplit .side-cell .pname{font-size:10.5px!important}
+  .l-herosplit .side-cell .nowlbl{font-size:8.5px!important;padding:3px 6px!important}
+  .l-herosplit .side-cell .price{font-size:36px!important}
+
+  /* 2x2 FEATURE — remove the decorative rule: the product hierarchy is enough. */
+  .l-feature .body{gap:14px!important;padding-top:7px!important}
+  .l-feature .fcell{gap:14px!important;padding:4px 8px!important}
+  .l-feature .imgwrap{flex:0 0 150px!important;height:208px!important}
+  .l-feature .imgslot{height:208px!important}
+  .l-feature .finfo{height:208px!important;max-width:238px!important}
+  .l-feature .fname{font-size:17px!important;height:43px!important;line-height:1.16!important}
+  .l-feature .frule{display:none!important}
+  .l-feature .ftag{font-size:10px!important;margin-top:7px!important}
+  .l-feature .fprice{font-size:58px!important}
+  .l-feature .refline{font-size:11.5px!important;margin-top:5px!important}
+  .l-feature .stamp{width:48px!important;height:48px!important;font-size:10px!important}
+
+  /* GRID CARDS — retain its disciplined baseline, but make it visually match the catalogue system. */
+  .l-gridcards .body{gap:12px!important;padding-top:7px!important}
+  .l-gridcards .gcard{padding:3px 7px!important;justify-content:center!important}
+  .l-gridcards .imgwrap{height:248px!important;margin-bottom:4px!important}
+  .l-gridcards .imgslot{height:248px!important}
+  .l-gridcards .gname{font-size:14px!important;line-height:1.22!important;height:46px!important;margin-bottom:4px!important}
+  .l-gridcards .gprice-row{margin-top:1px!important;gap:5px!important}
+  .l-gridcards .gnow{font-size:9px!important;padding:3px 6px!important;margin-bottom:0!important}
+  .l-gridcards .gprice{font-size:36px!important}
+  .l-gridcards .refline{font-size:10.5px!important;margin-top:4px!important}
+  .l-gridcards .gdeal{font-size:13px!important;line-height:1.05!important}
+  .l-gridcards .stamp{width:50px!important;height:50px!important;font-size:10.5px!important}
+
+  /* SPECIALS BANNER — keep the editorial intro, make every product look like the same family. */
+  .l-promo .body{grid-template-columns:20% minmax(0,1fr)!important;gap:12px!important;padding-top:7px!important}
+  .l-promo .promo-head{font-size:36px!important;line-height:.98!important}
+  .l-promo .promo-sub{font-size:13px!important;line-height:1.25!important;margin-top:8px!important}
+  .l-promo .promo-row{gap:10px!important}
+  .l-promo .promo-cell{padding:3px 6px!important}
+  .l-promo .pbrand{font-size:12.5px!important}
+  .l-promo .imgwrap{height:204px!important;margin:3px 0 4px!important}
+  .l-promo .imgslot{height:204px!important}
+  .l-promo .nowlbl{font-size:9px!important;padding:3px 6px!important}
+  .l-promo .price{font-size:35px!important}
+  .l-promo .dealhero{font-size:17px!important;line-height:1.05!important}
+  .l-promo .was{font-size:10px!important}
+  .l-promo .stamp{width:46px!important;height:46px!important;font-size:9.5px!important}
+
   .pager{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:6px}
   .pager .btn{padding:7px 13px}
   .pageinfo{font-size:13px;color:var(--muted);font-weight:600;min-width:120px;text-align:center}
@@ -707,7 +1032,7 @@ function imgStamped(p){return `<div class="imgwrap">${img(p)}${stampHTML(p)}</di
 
 function refLine(p){
   const d=priceData(p),parts=[];
-  if(d.was)parts.push(`WAS <s>$${h(d.was)}</s>`);
+  if(d.was)parts.push(`WAS $${h(d.was)}`);
   if(d.rrp)parts.push(`RRP $${h(d.rrp)}`);
   if(!parts.length)return '';
   return `<div class="refline">${parts.join('<span class="sep">|</span>')}</div>`;
@@ -718,7 +1043,7 @@ function pblock(p){
     return `<div class="pricerow"><span class="nowlbl">SPECIAL</span>${d.deal?`<span class="dealhero">${h(d.deal)}</span>`:''}</div>`;
   }
   let extra='';
-  if(d.was)extra+=`<div class="was">WAS <s>$${h(d.was)}</s></div>`;
+  if(d.was)extra+=`<div class="was">WAS $${h(d.was)}</div>`;
   if(d.deal)extra+=`<div class="deal">${h(d.deal)}</div>`;
   return `<div class="pricerow"><span class="nowlbl">NOW</span><span class="price">${priceHTML(p.now)}</span>${extra}</div>`;
 }
