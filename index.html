@@ -251,10 +251,10 @@
   .l-feature .fcell{display:flex;align-items:center;gap:15px;padding:9px 13px;min-height:0;overflow:hidden}
   .l-feature .imgwrap{flex:0 0 120px;height:170px;align-self:center}
   .l-feature .imgslot{height:170px}
-  .l-feature .stamp{width:50px;height:50px;font-size:11px;top:0;right:-6px}
-  .l-feature .finfo{flex:1;min-width:0;height:170px;display:flex;flex-direction:column;justify-content:center}
-  .l-feature .fname{font-size:18px;font-weight:800;text-transform:uppercase;color:var(--ink);line-height:1.2;letter-spacing:.01em;height:46px;overflow:hidden}
-  .l-feature .frule{height:1px;background:var(--hair);width:70%;margin:7px 0 8px}
+  .l-feature .stamp{width:46px;height:46px;font-size:10px;top:-4px;right:-4px}
+  .l-feature .finfo{flex:1;min-width:0;height:170px;display:flex;flex-direction:column;justify-content:center;padding-right:6px;min-height:0}
+  .l-feature .fname{flex:none;font-size:13px;font-weight:800;text-transform:uppercase;color:var(--ink);line-height:16px;letter-spacing:.01em;height:48px;margin-bottom:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;word-break:break-word}
+  .l-feature .frule{height:1px;background:var(--hair);width:70%;margin:4px 0 6px}
   .l-feature .ftag{display:inline-block;background:var(--green);color:#fff;font-size:12px;font-weight:800;letter-spacing:.06em;padding:3px 12px;border-radius:5px;margin-bottom:4px;align-self:flex-start}
   .l-feature .fprice{font-weight:800;letter-spacing:-.03em;line-height:.9;font-size:50px;color:var(--ink)}
   .l-feature .fprice .d,.l-feature .fprice .c{font-size:.44em;vertical-align:top;position:relative;top:.18em;font-weight:800}
@@ -709,7 +709,7 @@
   .l-feature .imgwrap{flex:0 0 150px!important;height:208px!important}
   .l-feature .imgslot{height:208px!important}
   .l-feature .finfo{height:208px!important;max-width:238px!important}
-  .l-feature .fname{font-size:17px!important;height:43px!important;line-height:1.16!important}
+  .l-feature .fname{font-size:15px!important;height:57px!important;line-height:19px!important;display:-webkit-box!important;-webkit-line-clamp:3!important;-webkit-box-orient:vertical!important;overflow:hidden!important}
   .l-feature .frule{display:none!important}
   .l-feature .ftag{font-size:10px!important;margin-top:7px!important}
   .l-feature .fprice{font-size:58px!important}
@@ -970,7 +970,7 @@
   .l-feature .imgwrap{flex:0 0 160px!important;height:220px!important}
   .l-feature .imgslot{height:220px!important}
   .l-feature .finfo{flex:0 1 245px!important;max-width:245px!important;height:220px!important}
-  .l-feature .fname{font-size:16.5px!important;line-height:1.14!important;height:42px!important}
+  .l-feature .fname{font-size:15px!important;line-height:19px!important;height:57px!important;display:-webkit-box!important;-webkit-line-clamp:3!important;-webkit-box-orient:vertical!important;overflow:hidden!important}
   .l-feature .ftag{margin-top:5px!important}
   .l-feature .fprice{font-size:60px!important}
   .l-feature .fdeal{font-size:17.5px!important;max-height:38px!important}
@@ -1437,7 +1437,6 @@ function imgStamped(p){return `<div class="imgwrap">${img(p)}${stampHTML(p)}</di
 function refLine(p){
   const d=priceData(p),parts=[];
   if(d.was)parts.push(`WAS $${h(d.was)}`);
-  if(d.rrp)parts.push(`RRP $${h(d.rrp)}`);
   if(!parts.length)return '';
   return `<div class="refline">${parts.join('<span class="sep">|</span>')}</div>`;
 }
