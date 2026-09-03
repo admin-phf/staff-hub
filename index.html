@@ -9,8 +9,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root{
-    --grey:#6D6E71; --red:#C03C4C; --olive:#A29959; --ink:#1E191B;
-    --green:#2E7D32; --muted:#8a8a8d; --line:#e4e2df; --line2:#e4e2df; --hair:#dedbd6; --bg:#eef0f1;
+    --grey:#6D6E71; --red:#C03C4C; --olive:#A29959; --ink:#232323;
+    --green:#2E7D32; --brandink:#3a3a3d; --muted:#6a6a6d; --line:#e4e2df; --line2:#e4e2df; --hair:#dedbd6; --bg:#eef0f1;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
@@ -104,7 +104,7 @@
      Every product layout uses the same subtle border, radius and
      spacing language. The layout can change; the visual system does not.
      ============================================================ */
-  .pbrand{font-weight:800;letter-spacing:.01em;text-transform:uppercase;color:var(--ink)}
+  .pbrand{font-weight:800;letter-spacing:.01em;text-transform:uppercase;color:var(--brandink)}
   .pname{color:var(--muted);font-weight:500}
   .imgwrap{position:relative;min-width:0;min-height:0}
   .stamp{position:absolute;top:-4px;right:0;background:var(--red);color:#fff;border-radius:50%;
@@ -137,8 +137,8 @@
   /* ---------- 4 product cards ---------- */
   .l-four .body{flex:1;min-height:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:center;padding-top:8px}
   .l-four .cell{height:410px;padding:10px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-width:0;min-height:0;overflow:hidden}
-  .l-four .pbrand{font-size:18px;margin-bottom:2px;letter-spacing:.02em}
-  .l-four .pname{font-size:13px;line-height:1.22;min-height:32px;margin-bottom:5px;font-weight:600}
+  .l-four .pbrand{font-size:20.7px;margin-bottom:2px;letter-spacing:.02em}
+  .l-four .pname{font-size:14.9px;line-height:1.22;min-height:32px;margin-bottom:5px;font-weight:600}
   .l-four .imgwrap{width:100%;height:210px;margin:3px 0 6px}
   .l-four .imgslot{height:210px;width:100%}
   .l-four .stamp{width:58px;height:58px;font-size:14px}
@@ -157,13 +157,13 @@
   .l-single .nowlbl{font-size:18px}
   .l-single .price{font-size:100px}
   .l-single .was{font-size:18px;margin-bottom:5px}.l-single .deal{font-size:18px;margin-bottom:10px}
-  .l-single .pbrand{font-size:24px}.l-single .pname{font-size:18px;line-height:1.28;color:var(--muted);margin-bottom:6px}
+  .l-single .pbrand{font-size:27.6px}.l-single .pname{font-size:20.7px;line-height:1.28;color:var(--muted);margin-bottom:6px}
   .l-single .dealhero{font-size:52px;margin:5px 0 8px}
 
   /* ---------- 6-grid ---------- */
   .l-six .body{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:14px;padding-top:8px}
   .l-six .cell{display:flex;flex-direction:column;align-items:center;text-align:center;padding:7px 10px;min-height:0;overflow:hidden}
-  .l-six .pbrand{font-size:14px;line-height:1.1}.l-six .pname{font-size:11px;line-height:1.15;min-height:22px;color:var(--muted)}
+  .l-six .pbrand{font-size:16.1px;line-height:1.1}.l-six .pname{font-size:12.6px;line-height:1.15;min-height:22px;color:var(--muted)}
   .l-six .imgwrap{width:100%;height:96px;margin:3px 0 4px}
   .l-six .imgslot{height:96px}
   .l-six .stamp{width:52px;height:52px;font-size:12px;top:-2px;right:-2px}
@@ -179,8 +179,8 @@
   .l-sixsplit .imgslot{height:126px}
   .l-sixsplit .stamp{width:46px;height:46px;font-size:11px;top:-2px;right:-4px}
   .l-sixsplit .sinfo{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
-  .l-sixsplit .pbrand{font-size:14px;line-height:1.1}
-  .l-sixsplit .pname{font-size:11px;line-height:1.15;min-height:22px;color:var(--muted);overflow:hidden}
+  .l-sixsplit .pbrand{font-size:16.1px;line-height:1.1}
+  .l-sixsplit .pname{font-size:12.6px;line-height:1.15;min-height:22px;color:var(--muted);overflow:hidden}
   .l-sixsplit .pricerow{align-items:flex-start;margin-top:5px;gap:2px}
   .l-sixsplit .nowlbl{font-size:11px}
   .l-sixsplit .price{font-size:38px}
@@ -195,7 +195,7 @@
   .l-promo .promo-sub{font-size:14px;color:var(--muted);margin-top:9px;line-height:1.35;font-weight:600}
   .l-promo .promo-row{min-width:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:center}
   .l-promo .promo-cell{height:360px;padding:9px 8px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-width:0;overflow:hidden}
-  .l-promo .pbrand{font-size:12px;margin-bottom:3px}
+  .l-promo .pbrand{font-size:13.8px;margin-bottom:3px}
   .l-promo .imgwrap{width:100%;height:150px;margin:4px 0 7px}
   .l-promo .imgslot{height:150px}
   .l-promo .stamp{width:48px;height:48px;font-size:11px;top:-2px;right:0}
@@ -209,8 +209,8 @@
   .l-two .body.one{grid-template-columns:minmax(0,1fr)}
   .l-two .col{display:flex;flex-direction:column;align-items:center;text-align:center;padding:13px 18px 11px;min-width:0;min-height:0;overflow:hidden}
   .l-two .col.solo{max-width:640px;width:100%;justify-self:center}
-  .l-two .pbrand{font-size:20px;margin-bottom:2px}
-  .l-two .pname{font-size:14px;line-height:1.22;min-height:34px;margin-bottom:4px;color:var(--muted)}
+  .l-two .pbrand{font-size:23px;margin-bottom:2px}
+  .l-two .pname{font-size:16.1px;line-height:1.22;min-height:34px;margin-bottom:4px;color:var(--muted)}
   .l-two .imgwrap{width:100%;flex:1;min-height:150px;max-height:235px;margin:3px 0 7px}
   .l-two .imgslot{height:100%;min-height:150px}
   .l-two .stamp{width:72px;height:72px;font-size:17px;top:0;right:8px}
@@ -227,8 +227,8 @@
   .l-herosplit .hero-main .imgslot{height:100%}
   .l-herosplit .hero-main .stamp{width:78px;height:78px;font-size:18px;top:4px;right:4px}
   .l-herosplit .hero-main .info{flex:1;min-width:0}
-  .l-herosplit .hero-main .pbrand{font-size:22px}
-  .l-herosplit .hero-main .pname{font-size:16px;line-height:1.3;color:var(--muted);margin-bottom:6px}
+  .l-herosplit .hero-main .pbrand{font-size:25.3px}
+  .l-herosplit .hero-main .pname{font-size:18.4px;line-height:1.3;color:var(--muted);margin-bottom:6px}
   .l-herosplit .hero-main .pricerow{align-items:flex-start}
   .l-herosplit .hero-main .nowlbl{font-size:15px}
   .l-herosplit .hero-main .price{font-size:76px}
@@ -240,8 +240,8 @@
   .l-herosplit .side-cell .imgslot{height:96px}
   .l-herosplit .side-cell .stamp{width:40px;height:40px;font-size:9px;top:-2px;right:-4px}
   .l-herosplit .side-cell .info{flex:1;min-width:0}
-  .l-herosplit .side-cell .pbrand{font-size:13px}
-  .l-herosplit .side-cell .pname{font-size:11px;line-height:1.2;color:var(--muted)}
+  .l-herosplit .side-cell .pbrand{font-size:14.9px}
+  .l-herosplit .side-cell .pname{font-size:12.6px;line-height:1.2;color:var(--muted)}
   .l-herosplit .side-cell .pricerow{gap:4px;align-items:flex-start}.l-herosplit .side-cell .nowlbl{font-size:10px}
   .l-herosplit .side-cell .price{font-size:33px}
   .l-herosplit .side-cell .was{font-size:11px}.l-herosplit .side-cell .dealhero{font-size:15px}
@@ -253,7 +253,7 @@
   .l-feature .imgslot{height:170px}
   .l-feature .stamp{width:46px;height:46px;font-size:10px;top:-4px;right:-4px}
   .l-feature .finfo{flex:1;min-width:0;height:170px;display:flex;flex-direction:column;justify-content:center;padding-right:6px;min-height:0}
-  .l-feature .fname{flex:none;font-size:13px;font-weight:800;text-transform:uppercase;color:var(--ink);line-height:16px;letter-spacing:.01em;height:48px;margin-bottom:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;word-break:break-word}
+  .l-feature .fname{flex:none;font-size:14.9px;font-weight:800;text-transform:uppercase;color:var(--brandink);line-height:18px;letter-spacing:.01em;height:54px;margin-bottom:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;word-break:break-word}
   .l-feature .frule{height:1px;background:var(--hair);width:70%;margin:4px 0 6px}
   .l-feature .ftag{display:inline-block;background:var(--green);color:#fff;font-size:12px;font-weight:800;letter-spacing:.06em;padding:3px 12px;border-radius:5px;margin-bottom:4px;align-self:flex-start}
   .l-feature .fprice{font-weight:800;letter-spacing:-.03em;line-height:.9;font-size:50px;color:var(--ink)}
@@ -268,7 +268,7 @@
   .l-gridcards .imgwrap{width:100%;height:184px;margin-bottom:7px;flex:0 0 auto}
   .l-gridcards .imgslot{height:184px}
   .l-gridcards .stamp{width:52px;height:52px;font-size:11px;top:-2px;right:-2px}
-  .l-gridcards .gname{font-size:14px;font-weight:700;line-height:1.28;color:var(--ink);height:54px;overflow:hidden;margin-bottom:5px}
+  .l-gridcards .gname{font-size:16.1px;font-weight:700;line-height:1.28;color:var(--brandink);height:54px;overflow:hidden;margin-bottom:5px}
   .l-gridcards .gprice-row{display:flex;align-items:baseline;gap:6px;justify-content:center;margin-top:3px}
   .l-gridcards .gnow{font-size:11px;font-weight:800;color:var(--green);letter-spacing:.05em}
   .l-gridcards .gprice{font-weight:800;letter-spacing:-.02em;font-size:30px;color:var(--ink)}
@@ -309,8 +309,8 @@
   .l-four .body{gap:0;padding-top:10px;align-items:stretch}
   .l-four .cell{height:auto;padding:12px 18px 8px;justify-content:center}
   .l-four .cell + .cell{border-left:1px solid var(--hair)!important}
-  .l-four .pbrand{font-size:19px}
-  .l-four .pname{font-size:14px;min-height:34px;margin-bottom:4px}
+  .l-four .pbrand{font-size:21.8px}
+  .l-four .pname{font-size:16.1px;min-height:34px;margin-bottom:4px}
   .l-four .imgwrap{height:235px;margin:4px 0 5px}
   .l-four .imgslot{height:235px}
   .l-four .pricerow{min-height:0;margin-top:4px}
@@ -332,8 +332,8 @@
   .l-two .col .imgwrap{width:100%;height:300px;min-height:0;max-height:none;margin:0}
   .l-two .col .imgslot{height:300px;min-height:0}
   .l-two .pair-info{min-width:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
-  .l-two .pbrand{font-size:22px;line-height:1.08}
-  .l-two .pname{font-size:15px;line-height:1.25;min-height:0;margin:3px 0 14px}
+  .l-two .pbrand{font-size:25.3px;line-height:1.08}
+  .l-two .pname{font-size:17.2px;line-height:1.25;min-height:0;margin:3px 0 14px}
   .l-two .pricerow{align-items:flex-start;min-height:0;margin-top:0;gap:6px}
   .l-two .nowlbl{font-size:16px}
   .l-two .price{font-size:66px}
@@ -347,8 +347,8 @@
   .l-six .cell{padding:10px 18px 8px;justify-content:center}
   .l-six .cell:nth-child(3n+2),.l-six .cell:nth-child(3n){border-left:1px solid var(--hair)!important}
   .l-six .cell:nth-child(n+4){border-top:1px solid var(--hair)!important}
-  .l-six .pbrand{font-size:15px}
-  .l-six .pname{font-size:12px;min-height:24px}
+  .l-six .pbrand{font-size:17.2px}
+  .l-six .pname{font-size:13.8px;min-height:24px}
   .l-six .imgwrap{height:118px;margin:4px 0 5px}
   .l-six .imgslot{height:118px}
   .l-six .pricerow{margin-top:3px;gap:3px}
@@ -364,8 +364,8 @@
   .l-sixsplit .imgwrap{flex:0 0 120px;height:158px}
   .l-sixsplit .imgslot{height:158px}
   .l-sixsplit .sinfo{justify-content:center}
-  .l-sixsplit .pbrand{font-size:15px;line-height:1.08}
-  .l-sixsplit .pname{font-size:12px;line-height:1.18;min-height:0;margin-top:2px}
+  .l-sixsplit .pbrand{font-size:17.2px;line-height:1.08}
+  .l-sixsplit .pname{font-size:13.8px;line-height:1.18;min-height:0;margin-top:2px}
   .l-sixsplit .pricerow{margin-top:10px;gap:3px}
   .l-sixsplit .nowlbl{font-size:12px}
   .l-sixsplit .price{font-size:43px}
@@ -380,7 +380,7 @@
   .l-promo .promo-cell + .promo-cell{border-left:1px solid var(--hair)!important}
   .l-promo .imgwrap{height:178px;margin:5px 0 6px}
   .l-promo .imgslot{height:178px}
-  .l-promo .pbrand{font-size:13px}
+  .l-promo .pbrand{font-size:14.9px}
   .l-promo .price{font-size:33px}
   .l-promo .dealhero{font-size:18px}
 
@@ -413,7 +413,7 @@
   .l-gridcards .gcard + .gcard{border-left:1px solid var(--hair)!important}
   .l-gridcards .imgwrap{height:220px;margin-bottom:8px}
   .l-gridcards .imgslot{height:220px}
-  .l-gridcards .gname{font-size:15px;height:50px;margin-bottom:5px}
+  .l-gridcards .gname{font-size:17.2px;height:50px;margin-bottom:5px}
   .l-gridcards .gprice{font-size:34px}
 
   /* Missing product positions should be truly empty — no decorative box. */
@@ -518,8 +518,8 @@
     justify-content:center!important;
     text-align:left!important;
   }
-  .l-sixsplit .pbrand{font-size:15.5px!important}
-  .l-sixsplit .pname{font-size:12.5px!important}
+  .l-sixsplit .pbrand{font-size:17.8px!important}
+  .l-sixsplit .pname{font-size:14.4px!important}
   .l-sixsplit .price{font-size:45px!important}
   .l-sixsplit .dealhero{font-size:20px!important}
 
@@ -618,8 +618,8 @@
   /* 4 PRODUCT — catalogue columns: image dominates, text/price sit on a common rhythm. */
   .l-four .body{gap:12px!important;padding-top:8px!important}
   .l-four .cell{padding:4px 8px 2px!important;justify-content:center!important}
-  .l-four .pbrand{font-size:18px!important;line-height:1.08!important;margin-bottom:2px!important}
-  .l-four .pname{font-size:13px!important;line-height:1.2!important;min-height:31px!important;margin-bottom:2px!important}
+  .l-four .pbrand{font-size:20.7px!important;line-height:1.08!important;margin-bottom:2px!important}
+  .l-four .pname{font-size:14.9px!important;line-height:1.2!important;min-height:31px!important;margin-bottom:2px!important}
   .l-four .imgwrap{height:266px!important;margin:2px 0 3px!important}
   .l-four .imgslot{height:266px!important}
   .l-four .stamp{width:56px!important;height:56px!important;font-size:13px!important;top:2px!important;right:3px!important}
@@ -631,8 +631,8 @@
   /* 6 GRID — same anatomy at a denser catalogue scale. */
   .l-six .body{gap:12px 14px!important;padding-top:7px!important}
   .l-six .cell{padding:2px 8px!important;justify-content:center!important}
-  .l-six .pbrand{font-size:14.5px!important;line-height:1.08!important}
-  .l-six .pname{font-size:11.5px!important;line-height:1.16!important;min-height:23px!important;margin-bottom:1px!important}
+  .l-six .pbrand{font-size:16.7px!important;line-height:1.08!important}
+  .l-six .pname{font-size:13.2px!important;line-height:1.16!important;min-height:23px!important;margin-bottom:1px!important}
   .l-six .imgwrap{height:142px!important;margin:2px 0 3px!important}
   .l-six .imgslot{height:142px!important}
   .l-six .stamp{width:48px!important;height:48px!important;font-size:10.5px!important;top:1px!important;right:2px!important}
@@ -647,8 +647,8 @@
   .l-sixsplit .imgwrap{flex:0 0 132px!important;height:174px!important}
   .l-sixsplit .imgslot{height:174px!important}
   .l-sixsplit .sinfo{flex:0 1 178px!important;max-width:178px!important}
-  .l-sixsplit .pbrand{font-size:15px!important;line-height:1.08!important}
-  .l-sixsplit .pname{font-size:12px!important;line-height:1.16!important;margin-top:2px!important}
+  .l-sixsplit .pbrand{font-size:17.2px!important;line-height:1.08!important}
+  .l-sixsplit .pname{font-size:13.8px!important;line-height:1.16!important;margin-top:2px!important}
   .l-sixsplit .pricerow{margin-top:7px!important}
   .l-sixsplit .nowlbl{font-size:9.5px!important;padding:3px 7px!important}
   .l-sixsplit .price{font-size:44px!important}
@@ -662,8 +662,8 @@
   .l-two .col{grid-template-columns:minmax(0,46%) minmax(0,46%)!important;gap:14px!important;padding:6px 8px!important}
   .l-two .col .imgwrap{height:330px!important}
   .l-two .col .imgslot{height:330px!important}
-  .l-two .pbrand{font-size:22px!important;line-height:1.06!important}
-  .l-two .pname{font-size:14px!important;line-height:1.2!important;margin:3px 0 10px!important}
+  .l-two .pbrand{font-size:25.3px!important;line-height:1.06!important}
+  .l-two .pname{font-size:16.1px!important;line-height:1.2!important;margin:3px 0 10px!important}
   .l-two .nowlbl{font-size:12px!important}
   .l-two .price{font-size:70px!important}
   .l-two .dealhero{font-size:31px!important;line-height:1.04!important}
@@ -676,8 +676,8 @@
   .l-single .body{gap:30px!important;padding:6px 4px 0!important}
   .l-single .imgwrap{flex:0 1 49%!important}
   .l-single .info{flex:0 1 43%!important}
-  .l-single .pbrand{font-size:25px!important;line-height:1.06!important}
-  .l-single .pname{font-size:18px!important;line-height:1.22!important;margin:4px 0 9px!important}
+  .l-single .pbrand{font-size:28.7px!important;line-height:1.06!important}
+  .l-single .pname{font-size:20.7px!important;line-height:1.22!important;margin:4px 0 9px!important}
   .l-single .nowlbl{font-size:13px!important}
   .l-single .price{font-size:112px!important}
   .l-single .dealhero{font-size:54px!important;line-height:1.02!important}
@@ -687,8 +687,8 @@
   .l-herosplit .body{padding-top:7px!important;gap:18px!important}
   .l-herosplit .hero-main{padding:4px 10px 2px!important;gap:22px!important}
   .l-herosplit .hero-main .imgwrap{flex:0 1 50%!important}
-  .l-herosplit .hero-main .pbrand{font-size:22px!important}
-  .l-herosplit .hero-main .pname{font-size:15px!important;line-height:1.22!important}
+  .l-herosplit .hero-main .pbrand{font-size:25.3px!important}
+  .l-herosplit .hero-main .pname{font-size:17.2px!important;line-height:1.22!important}
   .l-herosplit .hero-main .nowlbl{font-size:11px!important}
   .l-herosplit .hero-main .price{font-size:84px!important}
   .l-herosplit .hero-main .dealhero{font-size:40px!important}
@@ -698,8 +698,8 @@
   .l-herosplit .side-cell .imgwrap{flex:0 0 92px!important;height:122px!important}
   .l-herosplit .side-cell .imgslot{height:122px!important}
   .l-herosplit .side-cell .info{flex:0 1 175px!important}
-  .l-herosplit .side-cell .pbrand{font-size:13px!important}
-  .l-herosplit .side-cell .pname{font-size:10.5px!important}
+  .l-herosplit .side-cell .pbrand{font-size:14.9px!important}
+  .l-herosplit .side-cell .pname{font-size:12.1px!important}
   .l-herosplit .side-cell .nowlbl{font-size:8.5px!important;padding:3px 6px!important}
   .l-herosplit .side-cell .price{font-size:36px!important}
 
@@ -709,7 +709,7 @@
   .l-feature .imgwrap{flex:0 0 150px!important;height:208px!important}
   .l-feature .imgslot{height:208px!important}
   .l-feature .finfo{height:208px!important;max-width:238px!important}
-  .l-feature .fname{font-size:15px!important;height:57px!important;line-height:19px!important;display:-webkit-box!important;-webkit-line-clamp:3!important;-webkit-box-orient:vertical!important;overflow:hidden!important}
+  .l-feature .fname{font-size:17.2px!important;height:63px!important;line-height:21px!important;display:-webkit-box!important;-webkit-line-clamp:3!important;-webkit-box-orient:vertical!important;overflow:hidden!important}
   .l-feature .frule{display:none!important}
   .l-feature .ftag{font-size:10px!important;margin-top:7px!important}
   .l-feature .fprice{font-size:58px!important}
@@ -721,7 +721,7 @@
   .l-gridcards .gcard{padding:3px 7px!important;justify-content:center!important}
   .l-gridcards .imgwrap{height:248px!important;margin-bottom:4px!important}
   .l-gridcards .imgslot{height:248px!important}
-  .l-gridcards .gname{font-size:14px!important;line-height:1.22!important;height:46px!important;margin-bottom:4px!important}
+  .l-gridcards .gname{font-size:16.1px!important;line-height:1.22!important;height:46px!important;margin-bottom:4px!important}
   .l-gridcards .gprice-row{margin-top:1px!important;gap:5px!important}
   .l-gridcards .gnow{font-size:9px!important;padding:3px 6px!important;margin-bottom:0!important}
   .l-gridcards .gprice{font-size:36px!important}
@@ -735,7 +735,7 @@
   .l-promo .promo-sub{font-size:13px!important;line-height:1.25!important;margin-top:8px!important}
   .l-promo .promo-row{gap:10px!important}
   .l-promo .promo-cell{padding:3px 6px!important}
-  .l-promo .pbrand{font-size:12.5px!important}
+  .l-promo .pbrand{font-size:14.4px!important}
   .l-promo .imgwrap{height:204px!important;margin:3px 0 4px!important}
   .l-promo .imgslot{height:204px!important}
   .l-promo .nowlbl{font-size:9px!important;padding:3px 6px!important}
@@ -778,8 +778,8 @@
     min-width:0!important;
     justify-self:start!important;
   }
-  .l-herosplit .hero-main .pbrand{font-size:23px!important;line-height:1.06!important}
-  .l-herosplit .hero-main .pname{font-size:16px!important;line-height:1.2!important;margin:4px 0 9px!important}
+  .l-herosplit .hero-main .pbrand{font-size:26.4px!important;line-height:1.06!important}
+  .l-herosplit .hero-main .pname{font-size:18.4px!important;line-height:1.2!important;margin:4px 0 9px!important}
   .l-herosplit .hero-main .nowlbl{font-size:11px!important}
   .l-herosplit .hero-main .price{font-size:86px!important}
   .l-herosplit .hero-main .dealhero{font-size:40px!important;line-height:1.03!important}
@@ -816,8 +816,8 @@
     min-width:0!important;
     flex:none!important;
   }
-  .l-herosplit .side-cell .pbrand{font-size:14px!important;line-height:1.08!important}
-  .l-herosplit .side-cell .pname{font-size:11.5px!important;line-height:1.18!important;margin-top:2px!important}
+  .l-herosplit .side-cell .pbrand{font-size:16.1px!important;line-height:1.08!important}
+  .l-herosplit .side-cell .pname{font-size:13.2px!important;line-height:1.18!important;margin-top:2px!important}
   .l-herosplit .side-cell .pricerow{margin-top:7px!important;gap:2px!important}
   .l-herosplit .side-cell .nowlbl{font-size:9px!important;padding:3px 6px!important}
   .l-herosplit .side-cell .price{font-size:40px!important}
@@ -884,8 +884,8 @@
   .l-single .imgwrap{width:100%!important;height:390px!important;flex:none!important}
   .l-single .imgslot{height:390px!important}
   .l-single .info{width:100%!important;max-width:390px!important;justify-self:start!important;flex:none!important}
-  .l-single .pbrand{font-size:25px!important;line-height:1.05!important}
-  .l-single .pname{font-size:18px!important;line-height:1.22!important;margin:4px 0 10px!important}
+  .l-single .pbrand{font-size:28.7px!important;line-height:1.05!important}
+  .l-single .pname{font-size:20.7px!important;line-height:1.22!important;margin:4px 0 10px!important}
   .l-single .price{font-size:110px!important}
   .l-single .dealhero{font-size:52px!important;max-width:390px!important}
 
@@ -909,8 +909,8 @@
   .l-two .col .imgwrap{height:338px!important}
   .l-two .col .imgslot{height:338px!important}
   .l-two .pair-info{width:100%!important;max-width:230px!important}
-  .l-two .pbrand{font-size:21px!important}
-  .l-two .pname{font-size:14px!important;margin:3px 0 10px!important}
+  .l-two .pbrand{font-size:24.1px!important}
+  .l-two .pname{font-size:16.1px!important;margin:3px 0 10px!important}
   .l-two .price{font-size:68px!important}
   .l-two .dealhero{font-size:29px!important}
 
@@ -920,8 +920,8 @@
   .l-four .cell{padding:2px 5px!important;justify-content:center!important}
   .l-four .imgwrap{height:250px!important;margin:0 0 5px!important}
   .l-four .imgslot{height:250px!important}
-  .l-four .pbrand{font-size:17px!important;line-height:1.06!important;margin-bottom:2px!important}
-  .l-four .pname{font-size:12.5px!important;line-height:1.18!important;min-height:30px!important;max-height:30px!important;margin:0 0 6px!important}
+  .l-four .pbrand{font-size:19.5px!important;line-height:1.06!important;margin-bottom:2px!important}
+  .l-four .pname{font-size:14.4px!important;line-height:1.18!important;min-height:30px!important;max-height:30px!important;margin:0 0 6px!important}
   .l-four .pricerow{margin-top:0!important;min-height:0!important}
   .l-four .price{font-size:54px!important}
   .l-four .dealhero{font-size:23px!important;line-height:1.04!important;max-width:205px!important}
@@ -944,8 +944,8 @@
   .l-herosplit .hero-main .imgwrap{height:342px!important}
   .l-herosplit .hero-main .imgslot{height:342px!important}
   .l-herosplit .hero-main .info{max-width:285px!important}
-  .l-herosplit .hero-main .pbrand{font-size:22px!important}
-  .l-herosplit .hero-main .pname{font-size:15px!important;margin:4px 0 8px!important}
+  .l-herosplit .hero-main .pbrand{font-size:25.3px!important}
+  .l-herosplit .hero-main .pname{font-size:17.2px!important;margin:4px 0 8px!important}
   .l-herosplit .hero-main .price{font-size:80px!important}
   .l-herosplit .hero-main .dealhero{font-size:37px!important}
   .l-herosplit .hero-side{gap:5px!important}
@@ -956,8 +956,8 @@
   }
   .l-herosplit .side-cell .imgwrap{width:156px!important;height:196px!important}
   .l-herosplit .side-cell .imgslot{height:196px!important}
-  .l-herosplit .side-cell .pbrand{font-size:14.5px!important}
-  .l-herosplit .side-cell .pname{font-size:12px!important}
+  .l-herosplit .side-cell .pbrand{font-size:16.7px!important}
+  .l-herosplit .side-cell .pname{font-size:13.8px!important}
   .l-herosplit .side-cell .price{font-size:44px!important}
   .l-herosplit .side-cell .dealhero{font-size:20px!important}
   .l-herosplit .side-cell .was{font-size:11px!important}
@@ -970,7 +970,7 @@
   .l-feature .imgwrap{flex:0 0 160px!important;height:220px!important}
   .l-feature .imgslot{height:220px!important}
   .l-feature .finfo{flex:0 1 245px!important;max-width:245px!important;height:220px!important}
-  .l-feature .fname{font-size:15px!important;line-height:19px!important;height:57px!important;display:-webkit-box!important;-webkit-line-clamp:3!important;-webkit-box-orient:vertical!important;overflow:hidden!important}
+  .l-feature .fname{font-size:17.2px!important;line-height:21px!important;height:63px!important;display:-webkit-box!important;-webkit-line-clamp:3!important;-webkit-box-orient:vertical!important;overflow:hidden!important}
   .l-feature .ftag{margin-top:5px!important}
   .l-feature .fprice{font-size:60px!important}
   .l-feature .fdeal{font-size:17.5px!important;max-height:38px!important}
@@ -983,7 +983,7 @@
   .l-gridcards .gcard{padding:2px 5px!important;justify-content:center!important}
   .l-gridcards .imgwrap{height:258px!important;margin:0 0 5px!important}
   .l-gridcards .imgslot{height:258px!important}
-  .l-gridcards .gname{font-size:13.5px!important;line-height:1.2!important;height:42px!important;margin-bottom:5px!important}
+  .l-gridcards .gname{font-size:15.5px!important;line-height:1.2!important;height:42px!important;margin-bottom:5px!important}
   .l-gridcards .gprice{font-size:38px!important}
   .l-gridcards .gdeal{font-size:12.5px!important;max-height:30px!important}
 
@@ -994,8 +994,8 @@
   .l-six .cell{padding:1px 5px!important;justify-content:center!important}
   .l-six .imgwrap{height:126px!important;margin:0 0 3px!important}
   .l-six .imgslot{height:126px!important}
-  .l-six .pbrand{font-size:13.5px!important;line-height:1.06!important}
-  .l-six .pname{font-size:10.8px!important;line-height:1.14!important;min-height:25px!important;max-height:25px!important;margin:1px 0 4px!important}
+  .l-six .pbrand{font-size:15.5px!important;line-height:1.06!important}
+  .l-six .pname{font-size:12.4px!important;line-height:1.14!important;min-height:25px!important;max-height:25px!important;margin:1px 0 4px!important}
   .l-six .pricerow{margin-top:0!important;gap:2px!important}
   .l-six .price{font-size:39px!important}
   .l-six .dealhero{font-size:16.5px!important;line-height:1.04!important}
@@ -1010,8 +1010,8 @@
   .l-sixsplit .imgwrap{flex:0 0 104px!important;width:104px!important;height:146px!important}
   .l-sixsplit .imgslot{height:146px!important}
   .l-sixsplit .sinfo{flex:0 1 158px!important;max-width:158px!important}
-  .l-sixsplit .pbrand{font-size:13.5px!important;line-height:1.06!important}
-  .l-sixsplit .pname{font-size:10.8px!important;line-height:1.14!important;margin-top:2px!important}
+  .l-sixsplit .pbrand{font-size:15.5px!important;line-height:1.06!important}
+  .l-sixsplit .pname{font-size:12.4px!important;line-height:1.14!important;margin-top:2px!important}
   .l-sixsplit .pricerow{margin-top:6px!important}
   .l-sixsplit .price{font-size:39px!important}
   .l-sixsplit .dealhero{font-size:16.5px!important}
@@ -1028,8 +1028,8 @@
   .l-promo .promo-cell{padding:1px 3px!important;justify-content:center!important}
   .l-promo .imgwrap{height:142px!important;margin:0 0 3px!important}
   .l-promo .imgslot{height:142px!important}
-  .l-promo .pbrand{font-size:11.5px!important;line-height:1.05!important;margin-bottom:1px!important}
-  .l-promo .pname{font-size:9.5px!important;line-height:1.12!important;min-height:22px!important;max-height:22px!important;margin:0 0 3px!important}
+  .l-promo .pbrand{font-size:13.2px!important;line-height:1.05!important;margin-bottom:1px!important}
+  .l-promo .pname{font-size:10.9px!important;line-height:1.12!important;min-height:22px!important;max-height:22px!important;margin:0 0 3px!important}
   .l-promo .pricerow{margin-top:0!important;gap:1px!important}
   .l-promo .price{font-size:32px!important}
   .l-promo .dealhero{font-size:14.5px!important;line-height:1.03!important}
