@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Prahran Health Foods Staff Hub — V12 channel-guided retail refinement -->
+<!-- Prahran Health Foods Staff Hub — V13 Hi-Res Ready -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -13,7 +13,7 @@
     --green:#2E7D32; --brandink:#3a3a3d; --muted:#6a6a6d; --line:#e4e2df; --line2:#e4e2df; --hair:#dedbd6; --bg:#eef0f1;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  body{font-family:Arial,"Helvetica Neue",Helvetica,system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
   .wrap{max-width:1180px;margin:0 auto;padding:24px 28px 48px}
 
   /* ---- top bar ---- */
@@ -1286,6 +1286,14 @@
 
 
   /* ============================================================
+     V13 — HI-RES IMAGE DELIVERY
+     - Global Arial/Helvetica stack to keep unit glyphs unambiguous
+     - Google Drive sources request up to 2400px instead of 1000px
+     - Known product CDNs request larger available renditions
+     - Aspect ratio remains protected by object-fit:contain
+     ============================================================ */
+
+  /* ============================================================
      V12 — CHANNEL GUIDANCE + PACK-SHOT CONTROL / FINAL AUTHORITY
      Keeps the V11 artwork language, but makes the tool easier for staff:
      - POS / Email layout recommendations are explicit
@@ -1583,11 +1591,24 @@ function safeImageURL(raw){
   const v=String(raw||'').trim();if(!v)return '';
   if(/^data:image\//i.test(v)||/^blob:/i.test(v)||/^https?:\/\//i.test(v)){
     const m=v.match(/\/file\/d\/([A-Za-z0-9_-]{20,})/)||v.match(/[?&]id=([A-Za-z0-9_-]{20,})/);
-    if(m&&/drive\.google\.com/i.test(v))return 'https://lh3.googleusercontent.com/d/'+m[1]+'=w1000';
-    return v;
+    /* Drive thumbnails were previously hard-capped at 1000px. Request up to
+       2400px so a genuinely high-resolution source is not unnecessarily reduced. */
+    if(m&&/drive\.google\.com/i.test(v))return 'https://lh3.googleusercontent.com/d/'+m[1]+'=w2400';
+
+    /* Ask common product-image CDNs for a larger rendition when the URL already
+       contains a width parameter. This never stretches the artwork in CSS; the
+       browser still uses object-fit:contain and the original aspect ratio. */
+    let u=v;
+    if(/images\.contentstack\.io/i.test(u)){
+      u=u.replace(/([?&]width=)\d+/i,'$12400').replace(/([?&]quality=)\d+/i,'$190');
+    }
+    if(/\/cdn\/shop\//i.test(u)||/cdn\.shopify\.com/i.test(u)){
+      if(/[?&]width=\d+/i.test(u))u=u.replace(/([?&]width=)\d+/i,'$12000');
+    }
+    return u;
   }
   if(/\.(png|jpe?g|webp|gif)$/i.test(v)&&!/\s/.test(v))return 'images/'+v.replace(/^\.?\/*/,'');
-  if(/^[A-Za-z0-9_-]{20,}$/.test(v))return 'https://lh3.googleusercontent.com/d/'+v+'=w1000';
+  if(/^[A-Za-z0-9_-]{20,}$/.test(v))return 'https://lh3.googleusercontent.com/d/'+v+'=w2400';
   return '';
 }
 
