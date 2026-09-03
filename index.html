@@ -1342,11 +1342,11 @@ function safeImageURL(raw){
   const v=String(raw||'').trim();if(!v)return '';
   if(/^data:image\//i.test(v)||/^blob:/i.test(v)||/^https?:\/\//i.test(v)){
     const m=v.match(/\/file\/d\/([A-Za-z0-9_-]{20,})/)||v.match(/[?&]id=([A-Za-z0-9_-]{20,})/);
-    if(m&&/drive\.google\.com/i.test(v))return 'https://drive.google.com/thumbnail?id='+m[1]+'&sz=w1000';
+    if(m&&/drive\.google\.com/i.test(v))return 'https://lh3.googleusercontent.com/d/'+m[1]+'=w1000';
     return v;
   }
   if(/\.(png|jpe?g|webp|gif)$/i.test(v)&&!/\s/.test(v))return 'images/'+v.replace(/^\.?\/*/,'');
-  if(/^[A-Za-z0-9_-]{20,}$/.test(v))return 'https://drive.google.com/thumbnail?id='+v+'&sz=w1000';
+  if(/^[A-Za-z0-9_-]{20,}$/.test(v))return 'https://lh3.googleusercontent.com/d/'+v+'=w1000';
   return '';
 }
 
@@ -1424,9 +1424,13 @@ function handleImageError(el){
 }
 function img(p){
   const url=safeImageURL(p.img);
-  return url
-    ?`<div class="imgslot"><img src="${ha(url)}" crossorigin="anonymous" onerror="handleImageError(this)"></div>`
-    :`<div class="imgslot empty">Product<br>image</div>`;
+  if(!url) return `<div class="imgslot empty">Product<br>image</div>`;
+  // crossorigin is required for PNG export, but Google image hosts don't always send
+  // CORS headers; forcing it there makes the browser refuse to DISPLAY the image.
+  // So only set crossorigin for same-origin (repo) images.
+  const external=/^https?:\/\//i.test(url)&&!url.startsWith(location.origin);
+  const co=external?'':' crossorigin="anonymous"';
+  return `<div class="imgslot"><img src="${ha(url)}"${co} onerror="handleImageError(this)"></div>`;
 }
 function imgStamped(p){return `<div class="imgwrap">${img(p)}${stampHTML(p)}</div>`;}
 
