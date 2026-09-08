@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- Prahran Health Foods Staff Hub — V18 · PM1000 CONTENT-ONLY 1000x625 · Specials Feed Loader V4 -->
+<!-- Prahran Health Foods Staff Hub — V19 · PM1000 CONTENT-ONLY 1000x625 · SPACE FILL -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prahran Health Foods — Staff Hub V18 · CONTENT ONLY 1000×625 · Loader V4</title>
+<title>Prahran Health Foods — Staff Hub V19 · CONTENT ONLY 1000×625 · SPACE FILL</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
@@ -1508,6 +1508,121 @@
      ============================================================ */
   .slide .brandbar{display:none!important}
 
+  /* ============================================================
+     V19 — PM1000 CONTENT FILL / SPACE UTILISATION
+     With the permanent POS header removed from the artwork itself, use more
+     of the 1000×625 customer image window for merchandise and offer detail.
+     Keep a clean retail margin, but avoid the previous large dead zones.
+     This block is intentionally last so it is the final layout authority.
+     ============================================================ */
+
+  /* Customer-facing POS artwork: tighter outer frame and footer breathing room. */
+  .slide:not(.l-promo) .pad{padding:14px 28px 12px!important}
+  .slide:not(.l-promo) .foot{padding-top:2px!important;min-height:16px!important}
+
+  /* SINGLE HERO — make the hero genuinely fill the available window. */
+  .l-single .body{
+    grid-template-columns:minmax(0,49%) minmax(0,43%)!important;
+    gap:28px!important;padding:2px 0 2px!important;align-content:center!important
+  }
+  .l-single .imgwrap,.l-single .imgslot{height:448px!important}
+  .l-single .pbrand{font-size:31px!important}
+  .l-single .pname{font-size:22px!important}
+  .l-single .price{font-size:120px!important}
+  .l-single .dealhero{font-size:58px!important}
+
+  /* 2 PRODUCT — substantially larger image/text pair in each half. */
+  .l-two .body{gap:14px!important;padding:1px 0 2px!important}
+  .l-two .col{
+    grid-template-columns:minmax(0,48%) minmax(0,48%)!important;
+    gap:12px!important;padding:2px 1px!important
+  }
+  .l-two .col .imgwrap,.l-two .col .imgslot{height:418px!important}
+  .l-two .pair-info{max-width:270px!important}
+  .l-two .pbrand{font-size:27px!important}
+  .l-two .pname{font-size:18px!important;margin:4px 0 10px!important}
+  .l-two .price{font-size:78px!important}
+  .l-two .dealhero{font-size:34px!important}
+  .l-two .was{font-size:15px!important}
+  .l-two .stamp{width:72px!important;height:72px!important;font-size:16px!important}
+
+  /* HERO + PICKS — enlarge both the hero and the two supporting offers. */
+  .l-herosplit .body{
+    grid-template-columns:minmax(0,1.28fr) minmax(0,1fr)!important;
+    gap:14px!important;padding:2px 0 2px!important
+  }
+  .l-herosplit .hero-main{gap:16px!important;padding:2px 4px!important}
+  .l-herosplit .hero-main .imgwrap,.l-herosplit .hero-main .imgslot{height:405px!important}
+  .l-herosplit .hero-main .pbrand{font-size:27px!important}
+  .l-herosplit .hero-main .pname{font-size:18px!important}
+  .l-herosplit .hero-main .price{font-size:88px!important}
+  .l-herosplit .hero-side:not(.one-pick):not(.no-picks){
+    grid-template-rows:repeat(2,226px)!important;row-gap:8px!important;align-content:center!important
+  }
+  .l-herosplit .side-cell{grid-template-columns:168px minmax(0,1fr)!important;gap:10px!important}
+  .l-herosplit .side-cell .imgwrap,.l-herosplit .side-cell .imgslot{width:168px!important;height:214px!important}
+  .l-herosplit .side-cell .pbrand{font-size:17.5px!important}
+  .l-herosplit .side-cell .pname{font-size:14.2px!important}
+  .l-herosplit .side-cell .price{font-size:48px!important}
+
+  /* 2×2 FEATURE — fill each quadrant rather than leaving a large centre halo. */
+  .l-feature .body{
+    grid-template-rows:repeat(2,250px)!important;
+    row-gap:6px!important;column-gap:10px!important;align-content:center!important;padding:1px 0 2px!important
+  }
+  .l-feature .fcell{gap:12px!important;padding:1px 3px!important}
+  .l-feature .imgwrap{flex:0 0 182px!important;height:238px!important}
+  .l-feature .imgslot{height:238px!important}
+  .l-feature .finfo{height:238px!important;max-width:270px!important}
+  .l-feature .finfo .pbrand{font-size:19.5px!important}
+  .l-feature .finfo .pname{font-size:15px!important;min-height:36px!important}
+  .l-feature .fprice{font-size:63px!important}
+  .l-feature .fdeal{font-size:19px!important}
+  .l-feature .refline{font-size:12.5px!important}
+
+  /* FOUR PRODUCT — larger pack shots and stronger offer blocks. */
+  .l-four .body{gap:12px!important;padding:2px 0 2px!important}
+  .l-four .cell{padding:2px 5px!important}
+  .l-four .imgwrap,.l-four .imgslot{height:304px!important}
+  .l-four .pbrand{font-size:20.5px!important}
+  .l-four .pname{font-size:15px!important;min-height:36px!important;max-height:36px!important}
+  .l-four .price{font-size:58px!important}
+  .l-four .dealhero{font-size:25px!important}
+
+  /* GRID CARDS — same denser use of each quarter. */
+  .l-gridcards .body{gap:12px!important;padding:2px 0 2px!important}
+  .l-gridcards .gcard{padding:2px 5px!important}
+  .l-gridcards .imgwrap,.l-gridcards .imgslot{height:300px!important}
+  .l-gridcards .gcard>.pbrand{font-size:18.5px!important}
+  .l-gridcards .gcard>.pname{font-size:14px!important;min-height:34px!important;max-height:34px!important}
+  .l-gridcards .gprice{font-size:42px!important}
+  .l-gridcards .gdeal{font-size:14px!important}
+
+  /* SIX GRID — larger products while retaining clear 3×2 scanning. */
+  .l-six .body{gap:6px 12px!important;padding:1px 0 2px!important}
+  .l-six .cell{padding:1px 5px!important}
+  .l-six .imgwrap,.l-six .imgslot{height:166px!important}
+  .l-six .pbrand{font-size:16.5px!important}
+  .l-six .pname{font-size:12.8px!important}
+  .l-six .price{font-size:42px!important}
+  .l-six .dealhero{font-size:19px!important}
+
+  /* SIX SPLIT — use taller rows and visibly larger image/text groups. */
+  .l-sixsplit .body{
+    grid-template-rows:repeat(2,218px)!important;
+    row-gap:8px!important;column-gap:12px!important;align-content:center!important;padding:1px 0 2px!important
+  }
+  .l-sixsplit .scell{gap:9px!important;padding:1px 2px!important}
+  .l-sixsplit .imgwrap{flex:0 0 128px!important;width:128px!important;height:184px!important}
+  .l-sixsplit .imgslot{height:184px!important}
+  .l-sixsplit .sinfo{flex:0 1 178px!important;max-width:178px!important}
+  .l-sixsplit .pbrand{font-size:17px!important}
+  .l-sixsplit .pname{font-size:13.2px!important}
+  .l-sixsplit .price{font-size:43px!important}
+  .l-sixsplit .dealhero{font-size:18.5px!important}
+  .l-sixsplit .was{font-size:10.5px!important}
+  .l-sixsplit .stamp{width:48px!important;height:48px!important;font-size:10.5px!important}
+
 </style>
 </head>
 <body>
@@ -1546,7 +1661,7 @@
   <div class="module" id="mod-specials">
 
     <div class="panel">
-      <h2>Pricing sheet <span style="font-size:10px;font-weight:800;color:#2E7D32;letter-spacing:.04em;margin-left:8px">CONTENT ONLY · 1000×625 · V4</span></h2>
+      <h2>Pricing sheet <span style="font-size:10px;font-weight:800;color:#2E7D32;letter-spacing:.04em;margin-left:8px">CONTENT ONLY · 1000×625 · V19 SPACE FILL</span></h2>
       <div id="loadStatus" class="status warn">Loader V3 active — connecting to the Specials feed…</div>
       <div class="sheetbox">
         <div class="field"><label>Specials data source (Apps Script feed, Google Sheet or CSV)</label>
