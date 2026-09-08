@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<!-- Prahran Health Foods Staff Hub — V19 · PM1000 CONTENT-ONLY 1000x625 · SPACE FILL -->
+<!-- Prahran Health Foods Staff Hub — V20 · PM1000 CONTENT-ONLY 1000x625 · SPACE FILL + CREATIVE LAYOUTS -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prahran Health Foods — Staff Hub V19 · CONTENT ONLY 1000×625 · SPACE FILL</title>
+<title>Prahran Health Foods — Staff Hub V20 · CONTENT ONLY 1000×625 · SPACE FILL + CREATIVE LAYOUTS</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
@@ -415,6 +415,124 @@
   .l-gridcards .imgslot{height:220px}
   .l-gridcards .gname{font-size:17.2px;height:50px;margin-bottom:5px}
   .l-gridcards .gprice{font-size:34px}
+
+  /* ---------- Creative / botanical layouts ---------- */
+  .l-botanicalsingle,
+  .l-botanicaltwo,
+  .l-botanicalfour,
+  .l-botanicalsquare{
+    background:linear-gradient(180deg,#fcfbf5 0%,#f6f3e8 100%);
+    color:#234422;
+  }
+  .l-botanicalsingle .pad,
+  .l-botanicaltwo .pad,
+  .l-botanicalfour .pad,
+  .l-botanicalsquare .pad{padding:30px 38px 24px;position:relative}
+  .botanical-decor{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  .bot-sprig{position:absolute;width:112px;height:112px;opacity:.62}
+  .bot-sprig::before{content:"";position:absolute;width:2px;height:92px;background:rgba(135,146,98,.6);left:14px;top:10px;border-radius:2px;transform-origin:top center}
+  .bot-sprig i{position:absolute;display:block;width:34px;height:19px;background:rgba(169,183,136,.18);border:1px solid rgba(135,146,98,.42);border-radius:100% 0 100% 0 / 100% 0 100% 0}
+  .bot-sprig.tl{top:18px;left:18px}.bot-sprig.tl::before{transform:rotate(-28deg)}
+  .bot-sprig.tl i:nth-child(1){left:10px;top:12px;transform:rotate(-16deg)}
+  .bot-sprig.tl i:nth-child(2){left:28px;top:28px;transform:rotate(18deg)}
+  .bot-sprig.tl i:nth-child(3){left:8px;top:44px;transform:rotate(-10deg)}
+  .bot-sprig.tl i:nth-child(4){left:28px;top:60px;transform:rotate(24deg)}
+  .bot-sprig.tr{top:18px;right:18px}.bot-sprig.tr::before{left:auto;right:14px;transform:rotate(28deg)}
+  .bot-sprig.tr i:nth-child(1){right:10px;top:12px;transform:scaleX(-1) rotate(-16deg)}
+  .bot-sprig.tr i:nth-child(2){right:28px;top:28px;transform:scaleX(-1) rotate(18deg)}
+  .bot-sprig.tr i:nth-child(3){right:8px;top:44px;transform:scaleX(-1) rotate(-10deg)}
+  .bot-sprig.tr i:nth-child(4){right:28px;top:60px;transform:scaleX(-1) rotate(24deg)}
+  .bot-sprig.bl{bottom:18px;left:18px}.bot-sprig.bl::before{transform:rotate(208deg)}
+  .bot-sprig.bl i:nth-child(1){left:10px;bottom:12px;transform:rotate(196deg)}
+  .bot-sprig.bl i:nth-child(2){left:28px;bottom:28px;transform:rotate(162deg)}
+  .bot-sprig.bl i:nth-child(3){left:8px;bottom:44px;transform:rotate(190deg)}
+  .bot-sprig.bl i:nth-child(4){left:28px;bottom:60px;transform:rotate(156deg)}
+  .bot-sprig.br{bottom:18px;right:18px}.bot-sprig.br::before{left:auto;right:14px;transform:rotate(-208deg)}
+  .bot-sprig.br i:nth-child(1){right:10px;bottom:12px;transform:scaleX(-1) rotate(196deg)}
+  .bot-sprig.br i:nth-child(2){right:28px;bottom:28px;transform:scaleX(-1) rotate(162deg)}
+  .bot-sprig.br i:nth-child(3){right:8px;bottom:44px;transform:scaleX(-1) rotate(190deg)}
+  .bot-sprig.br i:nth-child(4){right:28px;bottom:60px;transform:scaleX(-1) rotate(156deg)}
+  .bot-head{position:relative;z-index:1;text-align:center;padding:4px 60px 10px}
+  .bot-title{font-size:56px;line-height:.95;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#234b22}
+  .bot-sub{font-size:22px;line-height:1.1;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#6f8041;margin-top:10px}
+  .bot-centerleaf{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:16px}
+  .bot-centerleaf::before,.bot-centerleaf::after{content:"";display:block;width:120px;height:1px;background:rgba(135,146,98,.55)}
+  .bot-centerleaf span,.bot-midleaf{display:inline-block;position:relative;width:18px;height:18px}
+  .bot-centerleaf span::before,.bot-centerleaf span::after,.bot-midleaf::before,.bot-midleaf::after{content:"";position:absolute;width:10px;height:16px;top:1px;background:rgba(135,146,98,.8)}
+  .bot-centerleaf span::before,.bot-midleaf::before{left:1px;border-radius:100% 0 100% 0 / 100% 0 100% 0;transform:rotate(-18deg)}
+  .bot-centerleaf span::after,.bot-midleaf::after{right:1px;border-radius:0 100% 0 100% / 0 100% 0 100%;transform:rotate(18deg)}
+  .bot-foot{margin-top:auto;padding-top:12px;position:relative;z-index:1}
+  .bot-footline{height:1px;background:rgba(135,146,98,.55);opacity:.95}
+  .bot-foottext{display:flex;align-items:center;justify-content:center;gap:18px;padding-top:12px;color:#52603d;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;text-align:center}
+  .bot-foottext span{display:block}
+  .bot-brand{font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#224222;line-height:1.06}
+  .bot-name{font-size:15px;line-height:1.16;font-weight:600;color:#2b4626;margin-top:4px}
+  .bot-offer{margin-top:12px}
+  .bot-chip{display:inline-block;padding:8px 16px;background:#6f8041;color:#fff;font-size:13px;font-weight:800;letter-spacing:.08em;border-radius:2px;text-transform:uppercase;margin-bottom:10px}
+  .bot-price{font-size:84px;line-height:.88;font-weight:800;letter-spacing:-.04em;color:#103a12;white-space:nowrap}
+  .bot-price .d,.bot-price .c{font-size:.48em;vertical-align:top;position:relative;top:.16em}
+  .bot-deal{font-size:28px;line-height:1.02;font-weight:800;letter-spacing:.01em;text-transform:uppercase;color:#7a8d43;margin-top:10px}
+  .bot-dealonly{font-size:58px;line-height:.95;font-weight:800;letter-spacing:-.03em;text-transform:uppercase;color:#103a12}
+  .bot-ref{font-size:21px;line-height:1.08;font-weight:600;color:#6b7d3a;margin-top:12px}
+  .bot-offer.compact .bot-chip{padding:6px 12px;font-size:11.5px;margin-bottom:8px}
+  .bot-offer.compact .bot-price{font-size:66px}
+  .bot-offer.compact .bot-ref{font-size:18px;margin-top:10px}
+  .bot-offer.compact .bot-deal{font-size:22px;margin-top:8px}
+  .bot-offer.compact.deal-only .bot-dealonly{font-size:42px}
+  .bot-offer.hero .bot-price{font-size:114px}
+  .bot-offer.hero .bot-ref{font-size:26px}
+  .bot-offer.hero-percent .bot-chip{margin-bottom:12px}
+  .bot-percent{font-size:178px;line-height:.8;font-weight:800;letter-spacing:-.06em;color:#103a12}
+  .bot-percent span{font-size:1em}
+  .bot-percent-copy{font-size:62px;line-height:.9;font-weight:800;letter-spacing:.01em;text-transform:uppercase;color:#234b22}
+  .bot-cardbg{position:absolute;border-radius:38px;background:rgba(151,165,113,.1);filter:blur(.2px)}
+  .l-botanicalsingle .hero-wrap{flex:1;display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);gap:34px;align-items:center;position:relative;z-index:1;padding:14px 8px 4px}
+  .l-botanicalsingle .hero-media,.l-botanicalsingle .hero-copy{position:relative;z-index:1}
+  .l-botanicalsingle .hero-cardbg{left:14px;right:26px;top:50%;height:58%;transform:translateY(-50%)}
+  .l-botanicalsingle .hero-media{padding:34px 22px 22px}
+  .l-botanicalsingle .imgwrap{height:520px;position:relative}
+  .l-botanicalsingle .imgslot{height:520px}
+  .l-botanicalsingle .stamp{width:90px;height:90px;font-size:20px;top:8px;right:0}
+  .l-botanicalsingle .hero-copy{padding-right:16px}
+  .l-botanicalsingle .bot-brand{font-size:34px}
+  .l-botanicalsingle .bot-name{font-size:28px;line-height:1.12;margin-top:10px}
+  .l-botanicalsingle .hero-subcopy{font-size:22px;line-height:1.18;color:#58683d;margin-top:18px}
+  .l-botanicaltwo .bot-grid{flex:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:34px;position:relative;z-index:1;padding:10px 8px 4px}
+  .l-botanicaltwo .bot-col{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:20px;align-items:center;position:relative;min-height:0;padding:16px 6px}
+  .l-botanicaltwo .bot-col + .bot-col{border-left:1px solid rgba(135,146,98,.45);padding-left:28px}
+  .l-botanicaltwo .bot-media{position:relative;padding:24px 8px 16px}
+  .l-botanicaltwo .bot-blob{position:absolute;inset:16px 0 10px;border-radius:38px;background:rgba(151,165,113,.1)}
+  .l-botanicaltwo .imgwrap{height:310px;position:relative;z-index:1}
+  .l-botanicaltwo .imgslot{height:310px}
+  .l-botanicaltwo .stamp{width:68px;height:68px;font-size:15px;top:4px;right:2px}
+  .l-botanicaltwo .bot-copy{position:relative;z-index:1;padding-right:10px}
+  .l-botanicaltwo .bot-brand{font-size:24px}
+  .l-botanicaltwo .bot-name{font-size:21px}
+  .l-botanicalfour .bot-grid{flex:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:0;position:relative;z-index:1;padding:8px 4px 4px}
+  .l-botanicalfour .bot-grid::before,.l-botanicalfour .bot-grid::after{content:"";position:absolute;background:rgba(135,146,98,.45)}
+  .l-botanicalfour .bot-grid::before{left:50%;top:10px;bottom:8px;width:1px;transform:translateX(-.5px)}
+  .l-botanicalfour .bot-grid::after{top:50%;left:12px;right:12px;height:1px;transform:translateY(-.5px)}
+  .l-botanicalfour .bot-cell{display:grid;grid-template-columns:230px minmax(0,1fr);gap:18px;align-items:center;padding:22px 22px 18px;min-height:0;position:relative}
+  .l-botanicalfour .bot-media{position:relative;padding:16px 0}
+  .l-botanicalfour .bot-blob{position:absolute;inset:10px 12px;border-radius:50%;background:rgba(151,165,113,.1)}
+  .l-botanicalfour .imgwrap{height:208px;position:relative;z-index:1}
+  .l-botanicalfour .imgslot{height:208px}
+  .l-botanicalfour .stamp{width:60px;height:60px;font-size:13px;top:2px;right:0}
+  .l-botanicalfour .bot-copy{position:relative;z-index:1;padding-right:8px}
+  .l-botanicalfour .bot-brand{font-size:18px}
+  .l-botanicalfour .bot-name{font-size:15px}
+  .l-botanicalsquare .pad{padding:28px 32px 22px}
+  .l-botanicalsquare .bot-title{font-size:54px}
+  .l-botanicalsquare .bot-grid{flex:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:18px;position:relative;z-index:1;padding:8px 2px 4px}
+  .l-botanicalsquare .bot-tile{background:rgba(248,247,240,.88);border:1px solid rgba(135,146,98,.18);border-radius:26px;padding:20px 22px 16px;display:grid;grid-template-columns:160px minmax(0,1fr);gap:16px;align-items:center;min-height:0;box-shadow:0 1px 0 rgba(255,255,255,.7) inset}
+  .l-botanicalsquare .bot-media{position:relative;padding:10px 0}
+  .l-botanicalsquare .bot-blob{position:absolute;inset:4px 0;border-radius:26px;background:rgba(151,165,113,.11)}
+  .l-botanicalsquare .imgwrap{height:170px;position:relative;z-index:1}
+  .l-botanicalsquare .imgslot{height:170px}
+  .l-botanicalsquare .stamp{width:54px;height:54px;font-size:12px;top:0;right:0}
+  .l-botanicalsquare .bot-brand{font-size:17px}
+  .l-botanicalsquare .bot-name{font-size:14px}
+  .l-botanicalsquare .bot-offer.compact .bot-price{font-size:58px}
 
   /* Missing product positions should be truly empty — no decorative box. */
   .empty-cell{visibility:hidden}
@@ -1661,7 +1779,7 @@
   <div class="module" id="mod-specials">
 
     <div class="panel">
-      <h2>Pricing sheet <span style="font-size:10px;font-weight:800;color:#2E7D32;letter-spacing:.04em;margin-left:8px">CONTENT ONLY · 1000×625 · V19 SPACE FILL</span></h2>
+      <h2>Pricing sheet <span style="font-size:10px;font-weight:800;color:#2E7D32;letter-spacing:.04em;margin-left:8px">CONTENT ONLY · 1000×625 · V20 SPACE FILL + CREATIVE</span></h2>
       <div id="loadStatus" class="status warn">Loader V3 active — connecting to the Specials feed…</div>
       <div class="sheetbox">
         <div class="field"><label>Specials data source (Apps Script feed, Google Sheet or CSV)</label>
@@ -1692,6 +1810,11 @@
         <button class="btn" data-layout="promo">Specials banner</button>
         <button class="btn" data-layout="six">6-Grid</button>
         <button class="btn" data-layout="sixsplit">6-Grid Split</button>
+        <span class="lblgrp">Creative / botanical</span>
+        <button class="btn" data-layout="botanicalsingle">Botanical Hero 4:5</button>
+        <button class="btn" data-layout="botanicaltwo">Botanical 2-Up 7:5</button>
+        <button class="btn" data-layout="botanicalfour">Botanical 4-Up 7:5</button>
+        <button class="btn" data-layout="botanicalsquare">Botanical Square 1:1</button>
       </div></div>
       <div id="layoutAdvice" class="layout-advice" aria-live="polite"></div>
       <div class="row">
@@ -1788,7 +1911,9 @@ const LAYOUTS={
   four:{per:4,w:1000,h:625}, single:{per:1,w:1000,h:625}, six:{per:6,w:1000,h:625},
   promo:{per:4,w:1000,h:400}, two:{per:2,w:1000,h:625}, herosplit:{per:3,w:1000,h:625},
   feature:{per:4,w:1000,h:625}, gridcards:{per:4,w:1000,h:625},
-  sixsplit:{per:6,w:1000,h:625}
+  sixsplit:{per:6,w:1000,h:625},
+  botanicalsingle:{per:1,w:1080,h:1350}, botanicaltwo:{per:2,w:1400,h:1000},
+  botanicalfour:{per:4,w:1400,h:1000}, botanicalsquare:{per:4,w:1080,h:1080}
 };
 const LAYOUT_META={
   single:{kind:'best',channel:'POS recommended',note:'Highest impact and easiest to read at a glance. Best for one major offer or blockbuster product.'},
@@ -1799,7 +1924,11 @@ const LAYOUT_META={
   gridcards:{kind:'secondary',channel:'Secondary / catalogue',note:'Useful where pack shots are strong and copy is short. Avoid for dense product names or fast POS rotations.'},
   promo:{kind:'secondary',channel:'Email / campaign banner',note:'Useful as an editorial specials banner. Keep the supporting product copy short.'},
   six:{kind:'warn',channel:'Catalogue / email only',note:'Dense six-product overview. Not recommended for the checkout monitor because text and pack shots become too small at a glance.'},
-  sixsplit:{kind:'warn',channel:'Catalogue / email only',note:'Dense range overview. Keep for email/catalogue use rather than the main customer-facing POS rotation.'}
+  sixsplit:{kind:'warn',channel:'Catalogue / email only',note:'Dense range overview. Keep for email/catalogue use rather than the main customer-facing POS rotation.'},
+  botanicalsingle:{kind:'secondary',channel:'Creative / social portrait',note:'A soft wellness-style hero poster with a 4:5 portrait ratio. Best for one feature product, one strong message or social posting.'},
+  botanicaltwo:{kind:'secondary',channel:'Creative / campaign landscape',note:'Two-product botanical campaign layout with a softer premium background and more editorial presentation.'},
+  botanicalfour:{kind:'secondary',channel:'Creative / campaign landscape',note:'Four-product botanical showcase with an open 2×2 grid, soft wellness styling and more decorative presentation.'},
+  botanicalsquare:{kind:'secondary',channel:'Creative / social square',note:'Square four-product special designed for social posts, email tiles or softer campaign artwork.'}
 };
 const ALLOWED_DISC=new Set(['was','save$','save%','deal','none']);
 const EXPORT_SCALE=2;
@@ -2735,6 +2864,25 @@ function render(rebuildInputs=true){
     if(count>=4)while(cells.length<6)cells.push(null);
     html=`<div class="pad"><div class="titlebar"><span class="big">${titleInline()}</span></div>
       <div class="body partial-${count}">${cells.map(p=>p?`<div class="scell">${imgStamped(p)}<div class="sinfo">${productName(p)}${pblock(p)}</div></div>`:`<div class="scell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
+  }else if(S.layout==='botanicalsingle'){
+    const p=P[0]||null;
+    html=`<div class="pad">${botanicalDecor()}${botanicalHead('botanicalsingle')}
+      <div class="hero-wrap">
+        <div class="hero-media">${p?`<div class="bot-cardbg hero-cardbg"></div>${imgStamped(p)}`:''}</div>
+        <div class="hero-copy">${p?`${botanicalProductText(p)}<div class="hero-subcopy">Selected wellness favourites at special in-store pricing.</div>${botanicalPriceBlock(p,'hero')}`:''}</div>
+      </div>${botanicalFoot('Ask our team in-store')}</div>`;
+  }else if(S.layout==='botanicaltwo'){
+    const cells=[...P];while(cells.length<2)cells.push(null);
+    html=`<div class="pad">${botanicalDecor()}${botanicalHead('botanicaltwo')}
+      <div class="bot-grid">${cells.map(p=>p?`<div class="bot-col"><div class="bot-media"><div class="bot-blob"></div>${imgStamped(p)}</div><div class="bot-copy">${botanicalProductText(p)}${botanicalPriceBlock(p,'compact')}</div></div>`:`<div class="bot-col empty-cell"></div>`).join('')}</div>${botanicalFoot('Ask our team in-store')}</div>`;
+  }else if(S.layout==='botanicalfour'){
+    const cells=[...P];while(cells.length<4)cells.push(null);
+    html=`<div class="pad">${botanicalDecor()}${botanicalHead('botanicalfour')}
+      <div class="bot-grid">${cells.map(p=>p?`<div class="bot-cell"><div class="bot-media"><div class="bot-blob"></div>${imgStamped(p)}</div><div class="bot-copy">${botanicalProductText(p)}${botanicalPriceBlock(p,'compact')}</div></div>`:`<div class="bot-cell empty-cell"></div>`).join('')}</div>${botanicalFoot('Ask our team in-store')}</div>`;
+  }else if(S.layout==='botanicalsquare'){
+    const cells=[...P];while(cells.length<4)cells.push(null);
+    html=`<div class="pad">${botanicalDecor()}${botanicalHead('botanicalsquare')}
+      <div class="bot-grid">${cells.map(p=>p?`<div class="bot-tile"><div class="bot-media"><div class="bot-blob"></div>${imgStamped(p)}</div><div class="bot-copy">${botanicalProductText(p)}${botanicalPriceBlock(p,'compact')}</div></div>`:`<div class="bot-tile empty-cell"></div>`).join('')}</div>${botanicalFoot('Ask our team in-store')}</div>`;
   }else{
     const cells=[...P];while(cells.length<6)cells.push(null);
     html=`<div class="pad"><div class="titlebar"><span class="big">${titleInline()}</span></div>
