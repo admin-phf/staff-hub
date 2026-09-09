@@ -1854,6 +1854,128 @@
   .l-retailsquarehero .retail-brand{font-size:26px}.l-retailsquarehero .retail-name{font-size:21px}.l-retailsquarehero .retail-now{font-size:16px;padding:7px 18px}.l-retailsquarehero .retail-price{font-size:86px}.l-retailsquarehero .retail-deal{font-size:38px}.l-retailsquarehero .retail-ref{font-size:16px}.l-retailsquarehero .retail-save{font-size:16px;padding:8px 10px}
   .l-retailsquarehero .retail-foot{height:42px;flex:0 0 42px;font-size:11.5px;padding-top:8px}
 
+
+
+  /* ============================================================
+     V23 — RETAIL CONCEPT POP / WARM BOTANICAL DEPTH
+     Visual-only refinement for the V21 multi-channel retail family.
+     Keeps all data loading, dimensions, existing layouts and export logic.
+     Brings the HTML artwork closer to the original concept renders:
+     warmer layered canvas, richer corner foliage, lifted cards, stronger
+     pack-shot depth and more dimensional promotional cues.
+     ============================================================ */
+
+  /* Warm, luminous base rather than flat white. */
+  .l-retailfour,.l-retailhero2,.l-retailbanner2,.l-retailportrait,.l-retailsquare4,.l-retailsquarehero{
+    background:
+      radial-gradient(circle at 14% 10%,rgba(220,232,194,.34) 0,rgba(220,232,194,0) 25%),
+      radial-gradient(circle at 88% 88%,rgba(217,229,190,.30) 0,rgba(217,229,190,0) 28%),
+      radial-gradient(circle at 50% 44%,rgba(255,255,255,.98) 0,rgba(255,254,248,.98) 55%,rgba(247,245,232,.98) 100%)!important;
+    box-shadow:inset 0 0 95px rgba(83,105,53,.07)!important;
+  }
+
+  /* Background atmosphere behind the artwork. */
+  .retail-decor{
+    background:
+      radial-gradient(ellipse at 7% 48%,rgba(152,177,113,.09) 0,rgba(152,177,113,0) 28%),
+      radial-gradient(ellipse at 94% 45%,rgba(152,177,113,.08) 0,rgba(152,177,113,0) 26%),
+      linear-gradient(180deg,rgba(255,255,255,.20),rgba(245,242,224,.12));
+  }
+  .retail-decor::before,.retail-decor::after{
+    width:300px!important;height:300px!important;
+    background:radial-gradient(circle,rgba(163,185,122,.15) 0,rgba(163,185,122,.055) 48%,rgba(163,185,122,0) 72%)!important;
+    filter:blur(1px);
+  }
+  .retail-decor::before{left:-125px!important;top:-145px!important}
+  .retail-decor::after{right:-135px!important;bottom:-150px!important}
+
+  /* Make the botanical corners read like foliage, not faint line-art. */
+  .retail-decor .bot-sprig{opacity:.72!important;transform:scale(1.12)!important}
+  .retail-decor .bot-sprig::before{background:rgba(86,117,52,.68)!important;width:2.5px!important}
+  .retail-decor .bot-sprig i{
+    background:linear-gradient(135deg,rgba(121,159,75,.44),rgba(72,111,47,.16))!important;
+    border-color:rgba(77,111,48,.55)!important;
+    box-shadow:inset 0 0 8px rgba(255,255,255,.22);
+  }
+
+  /* Header has the richer contrast and slight lift from the concept images. */
+  .retail-title{
+    color:#0e4322!important;
+    text-shadow:0 1px 0 #fff,0 3px 10px rgba(24,74,39,.10)!important;
+    letter-spacing:.018em!important;
+  }
+  .retail-sub{
+    background:linear-gradient(180deg,#f1f8dc 0%,#dfeebc 100%)!important;
+    color:#214d27!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.85),0 3px 9px rgba(73,105,43,.10)!important;
+    border:1px solid rgba(114,143,69,.10)!important;
+  }
+  .retail-tagline{
+    color:#175d32!important;
+    text-shadow:0 1px 0 rgba(255,255,255,.9)!important;
+  }
+
+  /* Elevated cards: brighter face, defined edge, soft retail depth. */
+  .retail-card{
+    position:relative!important;
+    background:
+      radial-gradient(circle at 24% 26%,rgba(250,252,244,.94) 0,rgba(255,255,255,0) 42%),
+      linear-gradient(145deg,#ffffff 0%,#ffffff 70%,#f8faf3 100%)!important;
+    border:1.5px solid rgba(188,201,184,.72)!important;
+    box-shadow:
+      0 12px 28px rgba(30,63,38,.12),
+      0 3px 7px rgba(30,63,38,.07),
+      inset 0 1px 0 rgba(255,255,255,.95)!important;
+  }
+  .retail-card::after{
+    content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;
+    background:linear-gradient(120deg,rgba(255,255,255,.34),rgba(255,255,255,0) 34%);
+    z-index:0;
+  }
+  .retail-card > *{position:relative;z-index:1}
+
+  /* Pack shots should feel physically present on the card. */
+  .retail-card .imgslot img{
+    filter:drop-shadow(0 11px 8px rgba(25,44,28,.17)) saturate(1.035) contrast(1.018)!important;
+  }
+
+  /* Promotional hierarchy with more tonal depth. */
+  .retail-now{
+    background:linear-gradient(180deg,#6aa128 0%,#4f8217 100%)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.26),0 3px 7px rgba(61,103,24,.16)!important;
+    text-shadow:0 1px 1px rgba(0,0,0,.10)!important;
+  }
+  .retail-price{
+    color:#07151d!important;
+    text-shadow:0 2px 0 rgba(255,255,255,.9),0 4px 9px rgba(13,31,23,.08)!important;
+  }
+  .retail-save{
+    background:linear-gradient(180deg,#e52d37 0%,#c9121f 100%)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 4px 9px rgba(175,20,31,.17)!important;
+    text-shadow:0 1px 1px rgba(0,0,0,.08)!important;
+  }
+  .retail-ref{color:#64686a!important}
+
+  /* Slightly stronger frame on the larger social / signage canvases. */
+  .l-retailportrait .retail-card,
+  .l-retailsquare4 .retail-card,
+  .l-retailsquarehero .retail-card{
+    box-shadow:
+      0 16px 34px rgba(30,63,38,.13),
+      0 4px 9px rgba(30,63,38,.07),
+      inset 0 1px 0 rgba(255,255,255,.96)!important;
+  }
+
+  /* Keep the footer crisp against the warmer background. */
+  .retail-foot{
+    color:#536057!important;
+    text-shadow:0 1px 0 rgba(255,255,255,.92);
+  }
+  .retail-foot::before{
+    content:"";position:absolute;left:0;right:0;top:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(72,107,57,.34) 10%,rgba(72,107,57,.34) 90%,transparent);
+  }
+
 </style>
 </head>
 <body>
@@ -1892,7 +2014,7 @@
   <div class="module" id="mod-specials">
 
     <div class="panel">
-      <h2>Pricing sheet <span style="font-size:10px;font-weight:800;color:#2E7D32;letter-spacing:.04em;margin-left:8px">CONTENT ONLY · V21 MULTI-CHANNEL + ALL V20 LAYOUTS</span></h2>
+      <h2>Pricing sheet <span style="font-size:10px;font-weight:800;color:#2E7D32;letter-spacing:.04em;margin-left:8px">CONTENT ONLY · V23 MULTI-CHANNEL + ALL V20 LAYOUTS</span></h2>
       <div id="loadStatus" class="status warn">Loader V3 active — connecting to the Specials feed…</div>
       <div class="sheetbox">
         <div class="field"><label>Specials data source (Apps Script feed, Google Sheet or CSV)</label>
