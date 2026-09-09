@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prahran Health Foods — Staff Hub V20 · CONTENT ONLY 1000×625 · SPACE FILL + CREATIVE LAYOUTS</title>
+<title>Prahran Health Foods — Staff Hub V21 · MULTI-CHANNEL RETAIL + V20 LAYOUTS</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
@@ -1741,6 +1741,111 @@
   .l-sixsplit .was{font-size:10.5px!important}
   .l-sixsplit .stamp{width:48px!important;height:48px!important;font-size:10.5px!important}
 
+
+  /* ============================================================
+     V21 — PHF RETAIL / MULTI-CHANNEL LAYOUT FAMILY
+     Added alongside every existing layout. These templates translate the
+     checkout-first retail hierarchy into POS, portrait TV, banner, square
+     social and exact 800×800 promotional artwork.
+     ============================================================ */
+  .l-retailfour,.l-retailhero2,.l-retailbanner2,.l-retailportrait,.l-retailsquare4,.l-retailsquarehero{
+    background:linear-gradient(180deg,#fff 0%,#fcfdf9 100%)!important;color:#101820!important;
+  }
+  .retail-pad{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden}
+  .retail-decor{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
+  .retail-decor::before,.retail-decor::after{content:"";position:absolute;width:180px;height:180px;border-radius:56% 44% 62% 38%;background:rgba(102,139,54,.055);transform:rotate(28deg)}
+  .retail-decor::before{left:-82px;top:-92px}.retail-decor::after{right:-92px;bottom:-96px;transform:rotate(-24deg)}
+  .retail-head,.retail-grid,.retail-hero-grid,.retail-foot{position:relative;z-index:1}
+  .retail-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:18px}
+  .retail-head.pos{grid-template-columns:minmax(0,1fr);text-align:center}
+  .retail-logo img{display:block;width:auto;object-fit:contain}
+  .retail-heading{text-align:center;min-width:0}
+  .retail-title{font-weight:900;line-height:.93;letter-spacing:.025em;text-transform:uppercase;color:#123f20;white-space:nowrap}
+  .retail-sub{display:inline-block;background:linear-gradient(90deg,#eef7d9,#e7f2cf);color:#274f23;font-weight:800;line-height:1;text-transform:uppercase;letter-spacing:.16em;border-radius:999px}
+  .retail-tagline{font-family:Georgia,"Times New Roman",serif;font-style:italic;color:#245a2e;line-height:1.05;text-align:right}
+  .retail-grid{display:grid;min-height:0;flex:1}
+  .retail-card{background:rgba(255,255,255,.97);border:1px solid #dfe5df;border-radius:22px;box-shadow:0 4px 16px rgba(20,55,31,.07);min-width:0;min-height:0;overflow:hidden}
+  .retail-card .imgwrap{margin:0;min-width:0;min-height:0;align-self:stretch}
+  .retail-card .imgslot{width:100%;height:100%}
+  .retail-card .stamp{display:none!important}
+  .retail-info{min-width:0;display:flex;flex-direction:column;justify-content:center;align-items:flex-start}
+  .retail-brand{font-weight:900;color:#111a23;line-height:1.02}
+  .retail-name{font-weight:750;color:#27313a;line-height:1.08;margin-top:3px}
+  .retail-now{display:inline-flex;align-items:center;justify-content:center;background:#5a8d1a;color:#fff;font-weight:900;letter-spacing:.05em;line-height:1;border-radius:8px;margin-top:8px}
+  .retail-price{font-weight:950;color:#07121c;letter-spacing:-.055em;line-height:.88;white-space:nowrap;margin-top:5px}
+  .retail-price .d,.retail-price .c{font-size:.45em;vertical-align:top;position:relative;top:.16em;font-weight:950}
+  .retail-deal{font-weight:950;color:#173b1e;line-height:.98;text-transform:uppercase;letter-spacing:-.025em;margin-top:6px}
+  .retail-bottom{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:7px}
+  .retail-ref{font-weight:650;color:#6a6d70;line-height:1;white-space:nowrap}
+  .retail-save{display:inline-flex;align-items:center;justify-content:center;background:#d5232d;color:#fff;border-radius:7px;font-weight:900;line-height:1;white-space:nowrap;letter-spacing:.01em}
+  .retail-foot{display:flex;align-items:center;justify-content:space-between;color:#5d655f;line-height:1.15}
+  .retail-foot strong{color:#184d28}.retail-foot .rf-site{font-weight:850;color:#174e27;white-space:nowrap}
+
+  /* POS landscape 2×2 — intentionally no PHF logo because PM1000 supplies it above. */
+  .l-retailfour .retail-pad{padding:12px 20px 10px!important}
+  .l-retailfour .retail-head{height:78px;flex:0 0 78px}
+  .l-retailfour .retail-title{font-size:52px}.l-retailfour .retail-sub{font-size:15px;padding:7px 22px;margin-top:7px}
+  .l-retailfour .retail-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:9px;margin-top:4px}
+  .l-retailfour .retail-card{display:grid;grid-template-columns:40% minmax(0,60%);gap:8px;padding:7px 10px}
+  .l-retailfour .retail-card .imgwrap,.l-retailfour .retail-card .imgslot{height:220px!important}
+  .l-retailfour .retail-brand{font-size:18px}.l-retailfour .retail-name{font-size:15px}
+  .l-retailfour .retail-now{font-size:13px;padding:5px 15px}.l-retailfour .retail-price{font-size:59px}
+  .l-retailfour .retail-deal{font-size:28px}.l-retailfour .retail-ref{font-size:13px}.l-retailfour .retail-save{font-size:13px;padding:6px 9px}
+  .l-retailfour .retail-foot{height:22px;flex:0 0 22px;font-size:9.8px;padding-top:4px}
+
+  /* POS hero + two support cards. */
+  .l-retailhero2 .retail-pad{padding:12px 20px 10px!important}
+  .l-retailhero2 .retail-head{height:78px;flex:0 0 78px}.l-retailhero2 .retail-title{font-size:52px}.l-retailhero2 .retail-sub{font-size:15px;padding:7px 22px;margin-top:7px}
+  .l-retailhero2 .retail-hero-grid{display:grid;grid-template-columns:minmax(0,1.42fr) minmax(0,1fr);gap:10px;flex:1;min-height:0;margin-top:4px}
+  .l-retailhero2 .retail-hero{display:grid;grid-template-columns:48% minmax(0,52%);gap:10px;padding:10px 12px}
+  .l-retailhero2 .retail-hero .imgwrap,.l-retailhero2 .retail-hero .imgslot{height:440px!important}
+  .l-retailhero2 .retail-hero .retail-brand{font-size:26px}.l-retailhero2 .retail-hero .retail-name{font-size:20px}
+  .l-retailhero2 .retail-hero .retail-now{font-size:15px;padding:6px 18px}.l-retailhero2 .retail-hero .retail-price{font-size:86px}
+  .l-retailhero2 .retail-hero .retail-deal{font-size:40px}.l-retailhero2 .retail-hero .retail-ref{font-size:15px}.l-retailhero2 .retail-hero .retail-save{font-size:15px;padding:7px 11px}
+  .l-retailhero2 .retail-side{display:grid;grid-template-rows:repeat(2,minmax(0,1fr));gap:9px;min-height:0}
+  .l-retailhero2 .retail-side .retail-card{display:grid;grid-template-columns:42% minmax(0,58%);gap:7px;padding:7px 9px}
+  .l-retailhero2 .retail-side .imgwrap,.l-retailhero2 .retail-side .imgslot{height:211px!important}
+  .l-retailhero2 .retail-side .retail-brand{font-size:17px}.l-retailhero2 .retail-side .retail-name{font-size:13.5px}
+  .l-retailhero2 .retail-side .retail-now{font-size:11px;padding:4px 11px}.l-retailhero2 .retail-side .retail-price{font-size:47px}
+  .l-retailhero2 .retail-side .retail-deal{font-size:23px}.l-retailhero2 .retail-side .retail-ref{font-size:11px}.l-retailhero2 .retail-side .retail-save{font-size:11px;padding:5px 7px}
+  .l-retailhero2 .retail-foot{height:22px;flex:0 0 22px;font-size:9.8px;padding-top:4px}
+
+  /* Wide email / web banner. */
+  .l-retailbanner2 .retail-pad{padding:20px 34px 16px!important}
+  .l-retailbanner2 .retail-head{height:112px;flex:0 0 112px}.l-retailbanner2 .retail-logo img{height:60px}.l-retailbanner2 .retail-title{font-size:66px}.l-retailbanner2 .retail-sub{font-size:18px;padding:8px 26px;margin-top:8px}.l-retailbanner2 .retail-tagline{font-size:25px}
+  .l-retailbanner2 .retail-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:2px}
+  .l-retailbanner2 .retail-card{display:grid;grid-template-columns:43% minmax(0,57%);gap:12px;padding:10px 16px;border-radius:24px}
+  .l-retailbanner2 .retail-card .imgwrap,.l-retailbanner2 .retail-card .imgslot{height:306px!important}
+  .l-retailbanner2 .retail-brand{font-size:26px}.l-retailbanner2 .retail-name{font-size:20px}.l-retailbanner2 .retail-now{font-size:15px;padding:6px 18px}.l-retailbanner2 .retail-price{font-size:82px}.l-retailbanner2 .retail-deal{font-size:38px}.l-retailbanner2 .retail-ref{font-size:16px}.l-retailbanner2 .retail-save{font-size:16px;padding:7px 11px}
+  .l-retailbanner2 .retail-foot{height:30px;flex:0 0 30px;font-size:12px;padding-top:7px}
+
+  /* Portrait digital signage — 1080×1920. */
+  .l-retailportrait .retail-pad{padding:34px 38px 24px!important}
+  .l-retailportrait .retail-head{height:235px;flex:0 0 235px;grid-template-columns:minmax(0,1fr);text-align:center}.l-retailportrait .retail-logo{justify-self:center}.l-retailportrait .retail-logo img{height:72px}.l-retailportrait .retail-tagline{display:none}.l-retailportrait .retail-title{font-size:88px;margin-top:10px}.l-retailportrait .retail-sub{font-size:25px;padding:11px 32px;margin-top:11px}
+  .l-retailportrait .retail-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:18px;margin-top:8px}
+  .l-retailportrait .retail-card{display:flex;flex-direction:column;align-items:stretch;padding:15px 18px 17px;border-radius:30px}
+  .l-retailportrait .retail-card .imgwrap,.l-retailportrait .retail-card .imgslot{height:480px!important}
+  .l-retailportrait .retail-info{padding:8px 6px 0}.l-retailportrait .retail-brand{font-size:30px}.l-retailportrait .retail-name{font-size:25px;min-height:56px}.l-retailportrait .retail-now{font-size:20px;padding:8px 20px;margin-top:12px}.l-retailportrait .retail-price{font-size:94px}.l-retailportrait .retail-deal{font-size:43px}.l-retailportrait .retail-ref{font-size:20px}.l-retailportrait .retail-save{font-size:20px;padding:9px 12px}
+  .l-retailportrait .retail-foot{height:62px;flex:0 0 62px;font-size:15px;padding-top:12px}
+
+  /* Social square 4-up — 1080×1080. */
+  .l-retailsquare4 .retail-pad{padding:24px 28px 18px!important}
+  .l-retailsquare4 .retail-head{height:166px;flex:0 0 166px}.l-retailsquare4 .retail-logo img{height:55px}.l-retailsquare4 .retail-title{font-size:63px}.l-retailsquare4 .retail-sub{font-size:18px;padding:8px 22px;margin-top:9px}.l-retailsquare4 .retail-tagline{font-size:23px}
+  .l-retailsquare4 .retail-grid{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:14px}
+  .l-retailsquare4 .retail-card{display:grid;grid-template-columns:44% minmax(0,56%);gap:10px;padding:10px 12px;border-radius:24px}
+  .l-retailsquare4 .retail-card .imgwrap,.l-retailsquare4 .retail-card .imgslot{height:382px!important}
+  .l-retailsquare4 .retail-brand{font-size:22px}.l-retailsquare4 .retail-name{font-size:17px}.l-retailsquare4 .retail-now{font-size:14px;padding:6px 15px}.l-retailsquare4 .retail-price{font-size:66px}.l-retailsquare4 .retail-deal{font-size:30px}.l-retailsquare4 .retail-ref{font-size:14px}.l-retailsquare4 .retail-save{font-size:14px;padding:6px 9px}
+  .l-retailsquare4 .retail-foot{height:43px;flex:0 0 43px;font-size:12px;padding-top:8px}
+
+  /* Exact 800×800 single-product promo tile. */
+  .l-retailsquarehero .retail-pad{padding:20px 24px 16px!important}
+  .l-retailsquarehero .retail-head{height:154px;flex:0 0 154px}.l-retailsquarehero .retail-logo img{height:48px}.l-retailsquarehero .retail-title{font-size:48px}.l-retailsquarehero .retail-sub{font-size:15px;padding:7px 18px;margin-top:8px}.l-retailsquarehero .retail-tagline{display:none}
+  .l-retailsquarehero .retail-grid{grid-template-columns:minmax(0,1fr);margin-top:4px}
+  .l-retailsquarehero .retail-card{display:grid;grid-template-columns:48% minmax(0,52%);gap:12px;padding:14px 14px;border-radius:28px}
+  .l-retailsquarehero .retail-card .imgwrap,.l-retailsquarehero .retail-card .imgslot{height:540px!important}
+  .l-retailsquarehero .retail-brand{font-size:26px}.l-retailsquarehero .retail-name{font-size:21px}.l-retailsquarehero .retail-now{font-size:16px;padding:7px 18px}.l-retailsquarehero .retail-price{font-size:86px}.l-retailsquarehero .retail-deal{font-size:38px}.l-retailsquarehero .retail-ref{font-size:16px}.l-retailsquarehero .retail-save{font-size:16px;padding:8px 10px}
+  .l-retailsquarehero .retail-foot{height:42px;flex:0 0 42px;font-size:11.5px;padding-top:8px}
+
 </style>
 </head>
 <body>
@@ -1779,7 +1884,7 @@
   <div class="module" id="mod-specials">
 
     <div class="panel">
-      <h2>Pricing sheet <span style="font-size:10px;font-weight:800;color:#2E7D32;letter-spacing:.04em;margin-left:8px">CONTENT ONLY · 1000×625 · V20 SPACE FILL + CREATIVE</span></h2>
+      <h2>Pricing sheet <span style="font-size:10px;font-weight:800;color:#2E7D32;letter-spacing:.04em;margin-left:8px">CONTENT ONLY · V21 MULTI-CHANNEL + ALL V20 LAYOUTS</span></h2>
       <div id="loadStatus" class="status warn">Loader V3 active — connecting to the Specials feed…</div>
       <div class="sheetbox">
         <div class="field"><label>Specials data source (Apps Script feed, Google Sheet or CSV)</label>
@@ -1815,6 +1920,13 @@
         <button class="btn" data-layout="botanicaltwo">Botanical 2-Up 7:5</button>
         <button class="btn" data-layout="botanicalfour">Botanical 4-Up 7:5</button>
         <button class="btn" data-layout="botanicalsquare">Botanical Square 1:1</button>
+        <span class="lblgrp">NEW — PHF Retail / multi-channel</span>
+        <button class="btn" data-layout="retailfour">Retail Cards 4-Up · POS</button>
+        <button class="btn" data-layout="retailhero2">Retail Hero + 2 · POS</button>
+        <button class="btn" data-layout="retailbanner2">Retail 2-Up Banner</button>
+        <button class="btn" data-layout="retailportrait">Retail 4-Up Portrait TV</button>
+        <button class="btn" data-layout="retailsquare4">Retail 4-Up Square</button>
+        <button class="btn" data-layout="retailsquarehero">Retail Hero Square 800</button>
       </div></div>
       <div id="layoutAdvice" class="layout-advice" aria-live="polite"></div>
       <div class="row">
@@ -1913,7 +2025,10 @@ const LAYOUTS={
   feature:{per:4,w:1000,h:625}, gridcards:{per:4,w:1000,h:625},
   sixsplit:{per:6,w:1000,h:625},
   botanicalsingle:{per:1,w:1080,h:1350}, botanicaltwo:{per:2,w:1400,h:1000},
-  botanicalfour:{per:4,w:1400,h:1000}, botanicalsquare:{per:4,w:1080,h:1080}
+  botanicalfour:{per:4,w:1400,h:1000}, botanicalsquare:{per:4,w:1080,h:1080},
+  retailfour:{per:4,w:1000,h:625}, retailhero2:{per:3,w:1000,h:625},
+  retailbanner2:{per:2,w:1600,h:500}, retailportrait:{per:4,w:1080,h:1920},
+  retailsquare4:{per:4,w:1080,h:1080}, retailsquarehero:{per:1,w:800,h:800}
 };
 const LAYOUT_META={
   single:{kind:'best',channel:'POS recommended',note:'Highest impact and easiest to read at a glance. Best for one major offer or blockbuster product.'},
@@ -1928,7 +2043,13 @@ const LAYOUT_META={
   botanicalsingle:{kind:'secondary',channel:'Creative / social portrait',note:'A soft wellness-style hero poster with a 4:5 portrait ratio. Best for one feature product, one strong message or social posting.'},
   botanicaltwo:{kind:'secondary',channel:'Creative / campaign landscape',note:'Two-product botanical campaign layout with a softer premium background and more editorial presentation.'},
   botanicalfour:{kind:'secondary',channel:'Creative / campaign landscape',note:'Four-product botanical showcase with an open 2×2 grid, soft wellness styling and more decorative presentation.'},
-  botanicalsquare:{kind:'secondary',channel:'Creative / social square',note:'Square four-product special designed for social posts, email tiles or softer campaign artwork.'}
+  botanicalsquare:{kind:'secondary',channel:'Creative / social square',note:'Square four-product special designed for social posts, email tiles or softer campaign artwork.'},
+  retailfour:{kind:'best',channel:'POS / landscape TV',note:'New PHF retail-card treatment for the PM1000 content window: four strong 2×2 offers with large products, clear NOW prices, WAS references and automatic SAVE callouts.'},
+  retailhero2:{kind:'best',channel:'POS / landscape TV',note:'One dominant featured offer plus two supporting specials. Best when you want a hero product without wasting the rest of the checkout screen.'},
+  retailbanner2:{kind:'best',channel:'Email / web banner',note:'Wide two-product campaign banner with PHF branding, strong pack shots and immediate saving visibility.'},
+  retailportrait:{kind:'best',channel:'Portrait TV / digital signage',note:'Dedicated 1080×1920 portrait-TV layout using four vertically generous retail cards for distance readability.'},
+  retailsquare4:{kind:'best',channel:'Instagram / Facebook / Mailchimp',note:'1080×1080 four-product social tile. Keeps the same product → price → saving hierarchy as the checkout artwork.'},
+  retailsquarehero:{kind:'best',channel:'800×800 product promotion',note:'Exact 800×800 single-product promo tile for Mailchimp, Facebook, Instagram and reusable product-special images.'}
 };
 const ALLOWED_DISC=new Set(['was','save$','save%','deal','none']);
 const EXPORT_SCALE=2;
@@ -2810,6 +2931,56 @@ function buildInputs(){
   });
 }
 
+/* ---------- creative / retail layout helpers ---------- */
+function botanicalDecor(){
+  const leaves='<i></i><i></i><i></i><i></i>';
+  return `<div class="botanical-decor"><span class="bot-sprig tl">${leaves}</span><span class="bot-sprig tr">${leaves}</span><span class="bot-sprig bl">${leaves}</span><span class="bot-sprig br">${leaves}</span></div>`;
+}
+function botanicalHead(){
+  const ttl=String(S.title||'').trim()?titleInline():'CURRENT SPECIALS';
+  return `<div class="bot-head"><div class="bot-title">${ttl}</div><div class="bot-sub">SELECTED PRODUCTS ON SALE</div><div class="bot-centerleaf"><span></span></div></div>`;
+}
+function botanicalFoot(extra='Ask our team in-store'){
+  return `<div class="bot-foot"><div class="bot-footline"></div><div class="bot-foottext"><span>Sale items, no further discounts apply</span><span class="bot-midleaf"></span><span>${h(extra)}</span><span>${h(S.foot)}</span></div></div>`;
+}
+function botanicalProductText(p){return `<div class="bot-brand">${displayBrand(p.brand)}</div><div class="bot-name">${productText(p.name)}</div>`;}
+function botanicalPriceBlock(p,mode='compact'){
+  const d=priceData(p),cls=`bot-offer ${mode}`;
+  if(!d.has)return `<div class="${cls} deal-only"><span class="bot-chip">SPECIAL</span>${d.deal?`<div class="bot-dealonly">${h(d.deal)}</div>`:''}</div>`;
+  let ref=d.was?`WAS $${h(d.was)}`:(d.rrp?`RRP $${h(d.rrp)}`:'');
+  return `<div class="${cls}"><span class="bot-chip">NOW</span><div class="bot-price">${priceHTML(p.now)}</div>${d.deal?`<div class="bot-deal">${h(d.deal)}</div>`:''}${ref?`<div class="bot-ref">${ref}</div>`:''}</div>`;
+}
+function retailDecor(){return '<div class="retail-decor"></div>';}
+function retailTitle(){return String(S.title||'').trim()?titleInline():'CURRENT SPECIALS';}
+function retailHeader(kind='full'){
+  const pos=kind==='pos';
+  return `<div class="retail-head${pos?' pos':''}">${pos?'':`<div class="retail-logo"><img src="${ha(LOGO_LONG)}" alt="Prahran Health Foods"></div>`}<div class="retail-heading"><div class="retail-title">${retailTitle()}</div><div class="retail-sub">SELECTED PRODUCTS ON SALE</div></div>${pos?'':`<div class="retail-tagline">Real Foods.<br>Real Health.</div>`}</div>`;
+}
+function retailSaveLabel(p){
+  const now=numberFrom(p.now);
+  if(p.disc==='save$'){
+    const v=numberFrom(p.dv);if(Number.isFinite(v)&&v>0)return `SAVE $${savingText(v)}`;
+  }
+  if(p.disc==='save%'){
+    const v=numberFrom(p.dv);if(Number.isFinite(v)&&v>0)return `SAVE ${savingText(v)}%`;
+  }
+  if(p.disc==='was'){
+    const was=numberFrom(p.dv);if(Number.isFinite(was)&&Number.isFinite(now)&&was>now&&now>0)return `SAVE $${savingText(was-now)}`;
+  }
+  return '';
+}
+function retailRefLabel(p){
+  const d=priceData(p);if(d.was)return `WAS $${h(d.was)}`;if(d.rrp)return `RRP $${h(d.rrp)}`;return '';
+}
+function retailPriceBlock(p){
+  const d=priceData(p),save=retailSaveLabel(p),ref=retailRefLabel(p);
+  if(!d.has)return `<div class="retail-now">SPECIAL</div>${d.deal?`<div class="retail-deal">${h(d.deal)}</div>`:''}${ref||save?`<div class="retail-bottom">${ref?`<span class="retail-ref">${ref}</span>`:''}${save?`<span class="retail-save">${h(save)}</span>`:''}</div>`:''}`;
+  return `<div class="retail-now">NOW</div><div class="retail-price">${priceHTML(p.now)}</div>${d.deal?`<div class="retail-deal">${h(d.deal)}</div>`:''}${ref||save?`<div class="retail-bottom">${ref?`<span class="retail-ref">${ref}</span>`:''}${save?`<span class="retail-save">${h(save)}</span>`:''}</div>`:''}`;
+}
+function retailInfo(p){return `<div class="retail-info"><div class="retail-brand">${displayBrand(p.brand)}</div><div class="retail-name">${productText(p.name)}</div>${retailPriceBlock(p)}</div>`;}
+function retailCard(p,extra=''){return p?`<div class="retail-card ${extra}">${imgStamped(p)}${retailInfo(p)}</div>`:`<div class="retail-card empty-cell ${extra}"></div>`;}
+function retailFoot(){return `<div class="retail-foot"><span>Sale items, no further discounts apply. While stocks last.</span><span class="rf-site">${h(S.foot)}</span></div>`;}
+
 /* ---------- slide rendering ---------- */
 function emptyCell(cls='cell'){return `<div class="${cls} empty-cell"></div>`;}
 function render(rebuildInputs=true){
@@ -2864,6 +3035,24 @@ function render(rebuildInputs=true){
     if(count>=4)while(cells.length<6)cells.push(null);
     html=`<div class="pad"><div class="titlebar"><span class="big">${titleInline()}</span></div>
       <div class="body partial-${count}">${cells.map(p=>p?`<div class="scell">${imgStamped(p)}<div class="sinfo">${productName(p)}${pblock(p)}</div></div>`:`<div class="scell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
+  }else if(S.layout==='retailfour'){
+    const cells=[...P];while(cells.length<4)cells.push(null);
+    html=`<div class="retail-pad">${retailDecor()}${retailHeader('pos')}<div class="retail-grid">${cells.map(p=>retailCard(p)).join('')}</div>${retailFoot()}</div>`;
+  }else if(S.layout==='retailhero2'){
+    const hero=P[0]||null,side=[P[1]||null,P[2]||null];
+    html=`<div class="retail-pad">${retailDecor()}${retailHeader('pos')}<div class="retail-hero-grid">${retailCard(hero,'retail-hero')}<div class="retail-side">${side.map(p=>retailCard(p)).join('')}</div></div>${retailFoot()}</div>`;
+  }else if(S.layout==='retailbanner2'){
+    const cells=[...P];while(cells.length<2)cells.push(null);
+    html=`<div class="retail-pad">${retailDecor()}${retailHeader('full')}<div class="retail-grid">${cells.map(p=>retailCard(p)).join('')}</div>${retailFoot()}</div>`;
+  }else if(S.layout==='retailportrait'){
+    const cells=[...P];while(cells.length<4)cells.push(null);
+    html=`<div class="retail-pad">${retailDecor()}${retailHeader('full')}<div class="retail-grid">${cells.map(p=>retailCard(p)).join('')}</div>${retailFoot()}</div>`;
+  }else if(S.layout==='retailsquare4'){
+    const cells=[...P];while(cells.length<4)cells.push(null);
+    html=`<div class="retail-pad">${retailDecor()}${retailHeader('full')}<div class="retail-grid">${cells.map(p=>retailCard(p)).join('')}</div>${retailFoot()}</div>`;
+  }else if(S.layout==='retailsquarehero'){
+    const p=P[0]||null;
+    html=`<div class="retail-pad">${retailDecor()}${retailHeader('full')}<div class="retail-grid">${retailCard(p)}</div>${retailFoot()}</div>`;
   }else if(S.layout==='botanicalsingle'){
     const p=P[0]||null;
     html=`<div class="pad">${botanicalDecor()}${botanicalHead('botanicalsingle')}
