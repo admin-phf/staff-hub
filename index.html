@@ -3136,8 +3136,12 @@ function setStatus(cls,msg){const el=document.getElementById('loadStatus');el.cl
 */
 const PHF_DEFAULT_SHEET_ID='1v6k81JNmbv-sODC2FM4wjTembLIoWkxt1-0c6H0T2Y0';
 const PHF_DEFAULT_SHEET_GID='613883566';
-const PHF_DEFAULT_SHEET_URL='https://docs.google.com/spreadsheets/d/1v6k81JNmbv-sODC2FM4wjTembLIoWkxt1-0c6H0T2Y0/edit?gid=613883566#gid=613883566';
+const PHF_PRIVATE_SHEET_URL='https://docs.google.com/spreadsheets/d/1v6k81JNmbv-sODC2FM4wjTembLIoWkxt1-0c6H0T2Y0/edit?gid=613883566#gid=613883566';
 const PHF_PUBLISHED_ID='2PACX-1vTGglSeXsiczAdtrX1b_VxMSC9ip1lrtvTYgyVlPO2UcZLH3t3YZBMxU_4jkttp8VBWEo8UAdPYT5Wj';
+const PHF_PUBLISHED_SHEET_URL='https://docs.google.com/spreadsheets/d/e/'+PHF_PUBLISHED_ID+'/pub?gid='+PHF_DEFAULT_SHEET_GID+'&single=true&output=csv';
+// Use the already-published PHF Specials feed by default. The private edit URL is
+// retained only for identification/fallback and is not the preferred browser feed.
+const PHF_DEFAULT_SHEET_URL=PHF_PUBLISHED_SHEET_URL;
 const PHF_LAST_GOOD_CACHE_KEY='phf_specials_last_good_v1';
 
 function isAppsScriptFeedURL(url){
@@ -3314,15 +3318,25 @@ async function loadSheetData(input){
     throw new Error(diagnostics.join(' · '));
   }
 
-  /* If a normal Sheet URL was supplied, use its ID. If the old PHF published
-     URL is still saved in localStorage, map it back to the known source ID. */
-  let sheetId=id.sheetId;
-  let gid=id.gid||PHF_DEFAULT_SHEET_GID;
-  if(!sheetId && (!id.publishedId || id.publishedId===PHF_PUBLISHED_ID)){
-    sheetId=PHF_DEFAULT_SHEET_ID;
+  /* PHF's historical working route is the published-to-web CSV feed. Prefer
+     that for the known Specials sheet instead of converting it back to the
+     private edit URL, which requires Google authentication in a public page. */
+  if(id.publishedId===PHF_PUBLISHED_ID || id.sheetId===PHF_DEFAULT_SHEET_ID){
+    try{
+      const loaded=await fetchSheetCSV(PHF_PUBLISHED_SHEET_URL);
+      const rows=rowsFromCSV(loaded.text);
+      if(rows.length)return {url:PHF_PUBLISHED_SHEET_URL,rows,method:'Published Google Sheet'};
+      diagnostics.push('Published Google Sheet connected, but no active product rows matched the expected headers.');
+    }catch(e){
+      diagnostics.push('Published Google Sheet: '+((e&&e.message)||e));
+    }
   }
 
-  if(sheetId){
+  /* Other normal Google Sheet links can still use the Visualization route. */
+  let sheetId=id.sheetId;
+  let gid=id.gid||PHF_DEFAULT_SHEET_GID;
+
+  if(sheetId && sheetId!==PHF_DEFAULT_SHEET_ID){
     try{
       const response=await fetchGVizJSONP(sheetId,gid);
       const rows=rowsFromGViz(response);
@@ -3475,9 +3489,9 @@ document.getElementById('downloadAll').onclick=async()=>{
   }
 };
 
-/* boot: restore the last successful source URL. Existing Google URLs remain
-   supported; once an Apps Script /exec URL succeeds it becomes the remembered
-   preferred Specials source on this device. */
+/* boot: restore the last successful source URL. Keep a valid Apps Script feed
+   if one is deliberately configured, otherwise normalise the known PHF Sheet
+   back to its historical published-to-web feed. */
 (function(){
   let saved='',autoPref=null;
   try{
@@ -3485,7 +3499,9 @@ document.getElementById('downloadAll').onclick=async()=>{
     autoPref=localStorage.getItem('phf_auto_balance');
   }catch(e){}
   const oldId=googleSheetIdentity(saved);
-  if(!saved || oldId.publishedId===PHF_PUBLISHED_ID) saved=PHF_DEFAULT_SHEET_URL;
+  if(!saved || oldId.publishedId===PHF_PUBLISHED_ID || oldId.sheetId===PHF_DEFAULT_SHEET_ID){
+    saved=PHF_PUBLISHED_SHEET_URL;
+  }
   S.autoBalance=autoPref!=='off';
   document.getElementById('autoBalanceToggle').checked=S.autoBalance;
   S.source='sample';syncWork();
