@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prahran Health Foods — Staff Hub V21 · MULTI-CHANNEL RETAIL + V20 LAYOUTS</title>
+<title>Prahran Health Foods — Staff Hub V22 · MULTI-CHANNEL FIXED RETAIL + V20 LAYOUTS</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
@@ -1755,6 +1755,14 @@
   .retail-decor{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
   .retail-decor::before,.retail-decor::after{content:"";position:absolute;width:180px;height:180px;border-radius:56% 44% 62% 38%;background:rgba(102,139,54,.055);transform:rotate(28deg)}
   .retail-decor::before{left:-82px;top:-92px}.retail-decor::after{right:-92px;bottom:-96px;transform:rotate(-24deg)}
+  /* Reuse the existing botanical sprigs so the multi-channel retail artwork
+     visually matches the approved concept images instead of showing only
+     abstract pale blobs. */
+  .retail-decor .bot-sprig{opacity:.42;transform:scale(.92)}
+  .retail-decor .bot-sprig.tl{transform-origin:top left}
+  .retail-decor .bot-sprig.tr{transform-origin:top right}
+  .retail-decor .bot-sprig.bl{transform-origin:bottom left}
+  .retail-decor .bot-sprig.br{transform-origin:bottom right}
   .retail-head,.retail-grid,.retail-hero-grid,.retail-foot{position:relative;z-index:1}
   .retail-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:18px}
   .retail-head.pos{grid-template-columns:minmax(0,1fr);text-align:center}
@@ -1762,7 +1770,7 @@
   .retail-heading{text-align:center;min-width:0}
   .retail-title{font-weight:900;line-height:.93;letter-spacing:.025em;text-transform:uppercase;color:#123f20;white-space:nowrap}
   .retail-sub{display:inline-block;background:linear-gradient(90deg,#eef7d9,#e7f2cf);color:#274f23;font-weight:800;line-height:1;text-transform:uppercase;letter-spacing:.16em;border-radius:999px}
-  .retail-tagline{font-family:Georgia,"Times New Roman",serif;font-style:italic;color:#245a2e;line-height:1.05;text-align:right}
+  .retail-tagline{font-family:"Segoe Script","Brush Script MT","Lucida Handwriting",cursive;font-style:italic;color:#245a2e;line-height:1.05;text-align:right}
   .retail-grid{display:grid;min-height:0;flex:1}
   .retail-card{background:rgba(255,255,255,.97);border:1px solid #dfe5df;border-radius:22px;box-shadow:0 4px 16px rgba(20,55,31,.07);min-width:0;min-height:0;overflow:hidden}
   .retail-card .imgwrap{margin:0;min-width:0;min-height:0;align-self:stretch}
@@ -2950,7 +2958,10 @@ function botanicalPriceBlock(p,mode='compact'){
   let ref=d.was?`WAS $${h(d.was)}`:(d.rrp?`RRP $${h(d.rrp)}`:'');
   return `<div class="${cls}"><span class="bot-chip">NOW</span><div class="bot-price">${priceHTML(p.now)}</div>${d.deal?`<div class="bot-deal">${h(d.deal)}</div>`:''}${ref?`<div class="bot-ref">${ref}</div>`:''}</div>`;
 }
-function retailDecor(){return '<div class="retail-decor"></div>';}
+function retailDecor(){
+  const leaves='<i></i><i></i><i></i><i></i>';
+  return `<div class="retail-decor"><span class="bot-sprig tl">${leaves}</span><span class="bot-sprig tr">${leaves}</span><span class="bot-sprig bl">${leaves}</span><span class="bot-sprig br">${leaves}</span></div>`;
+}
 function retailTitle(){return String(S.title||'').trim()?titleInline():'CURRENT SPECIALS';}
 function retailHeader(kind='full'){
   const pos=kind==='pos';
@@ -2986,6 +2997,12 @@ function emptyCell(cls='cell'){return `<div class="${cls} empty-cell"></div>`;}
 function render(rebuildInputs=true){
   const L=LAYOUTS[S.layout],s=document.getElementById('slide');
   s.className='slide l-'+S.layout;
+  // IMPORTANT: the original hub used a fixed 1000×625 .slide. Multi-channel
+  // layouts must resize the actual DOM canvas as well as the export metadata;
+  // otherwise portrait/square/banner artwork is rendered into 1000×625 and
+  // then merely captured at a different size, causing clipping and distortion.
+  s.style.width=L.w+'px';
+  s.style.height=L.h+'px';
   document.getElementById('dimsNote').textContent=`Canvas ${L.w} × ${L.h} · PNG export ${L.w*EXPORT_SCALE} × ${L.h*EXPORT_SCALE} px`;
   if(S.page>=pageCount())S.page=0;
   const P=pageRows();let html='';
