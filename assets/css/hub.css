@@ -14,6 +14,9 @@ html,body{margin:0;padding:0}
 body{font-family:Arial,"Helvetica Neue",Helvetica,system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
 .wrap{max-width:1180px;margin:0 auto;padding:24px 28px 48px}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 0 18px;border-bottom:1px solid var(--line);margin-bottom:24px}
+.home-logo{display:inline-flex;align-items:center;text-decoration:none;border-radius:6px}
+.home-logo:focus-visible{outline:2px solid var(--green);outline-offset:4px}
+.topbar img.logo{display:block;height:40px;width:auto;max-width:min(440px,72vw)}
 .brand{font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 h1{font-size:28px;margin:0 0 5px}
 .sub{color:var(--muted);font-size:15px;margin-bottom:26px}
