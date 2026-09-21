@@ -1,0 +1,33 @@
+:root{
+  --grey:#6D6E71;
+  --red:#C03C4C;
+  --olive:#A29959;
+  --ink:#232323;
+  --green:#2E7D32;
+  --muted:#6a6a6d;
+  --line:#e4e2df;
+  --bg:#eef0f1;
+  --white:#fff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:Arial,"Helvetica Neue",Helvetica,system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 28px 48px}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 0 18px;border-bottom:1px solid var(--line);margin-bottom:24px}
+.brand{font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+h1{font-size:28px;margin:0 0 5px}
+.sub{color:var(--muted);font-size:15px;margin-bottom:26px}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.tile{position:relative;display:flex;flex-direction:column;min-height:160px;padding:22px;background:#fff;border:1px solid var(--line);border-radius:16px;text-decoration:none;color:inherit;transition:.15s}
+.tile:hover,.tile:focus-visible{border-color:var(--green);box-shadow:0 4px 18px rgba(0,0,0,.06);transform:translateY(-2px);outline:none}
+.tile.soon{opacity:.65;pointer-events:none}
+.ico{font-size:28px;margin-bottom:12px}
+.tile h2{font-size:17px;margin:0 0 6px}
+.tile p{font-size:13px;color:var(--muted);line-height:1.45;margin:0}
+.badge{position:absolute;top:16px;right:16px;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:4px 8px;border-radius:20px}
+.badge.live{background:var(--green);color:#fff}
+.badge.build{background:#fff4ce;color:#775900;border:1px solid #eadca5}
+.badge.soon{background:#eee;color:var(--muted)}
+.note{margin-top:28px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--muted);font-size:13px;line-height:1.5}
+@media(max-width:850px){.tiles{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.wrap{padding:18px}.tiles{grid-template-columns:1fr}}
