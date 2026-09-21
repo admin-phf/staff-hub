@@ -1,41 +1,39 @@
-# Reconcile CH2 Order
+# Reconcile CH2 Order — linked POS workbook v2
 
-Staff-facing browser tool for reconciling a POS back-end order against one or more CH2 / supplier invoices.
-
-## Current workflow
+This Staff Hub tool keeps the normal staff workflow simple:
 
 1. Drop the POS back-end order (`.xls`, `.xlsx` or `.csv`).
-2. Drop one or more supplier invoices (`.pdf`, `.xls`, `.xlsx` or `.csv`).
-3. Run reconciliation.
-4. Review exceptions on screen.
-5. Download the full Excel reconciliation workbook.
+2. Drop one or more CH2 / supplier invoices (`.pdf`, `.xls`, `.xlsx` or `.csv`).
+3. Run the reconciliation.
+4. Download the full linked-POS workbook.
 
-## Current CH2 logic
+## One-time reference setup per computer
 
-The browser implementation ports the useful reconciliation rules from the existing Python workflow:
+Open **Reference data** and load:
 
-- reads POS order quantity (`or_qty`) and POS product identifiers/descriptions;
-- uses POS normal wholesale (`adjwsprce`) and expected discounted unit price (`adjdprce`);
-- derives the expected discount percentage from those POS prices;
-- extracts CH2 PDF product code, supplier SKU, description, quantity supplied, discount %, unit price ex GST, line totals, RRP and Normal W/S;
-- supports CH2 lines with a printed discount and lines with no discount value;
-- matches exact CH2 product codes first, then Normal W/S + description, then description fallback;
-- flags low-confidence fallback matches for review;
-- compares ordered vs supplied quantity;
-- checks wholesale changes and adverse unit-price / discount differences;
-- calculates potential missed pricing only when the invoiced unit cost is higher than the expected POS order unit cost;
-- produces a multi-sheet Excel report.
+- the latest `merged_alligned_pos_supplier_uhp_full...` workbook; and
+- the current `POS DB & SUPPLIER MERGE` workbook containing `SRC_POS_SUPPLIERS` and `SRC_POS_ONGOING_DISCOUNTS`.
+
+These files are stored in IndexedDB in that browser on that computer. They are not committed to GitHub and are not uploaded to the Staff Hub.
+
+## Excel output
+
+The download recreates the established single-sheet `CH2 PDF Extract` workbook:
+
+- exact 43-column A:AQ layout;
+- row 1 summary / subtotal formulas;
+- row 2 headers;
+- data from row 3;
+- bottom `SUM TOTALS` row;
+- linked POS identity and pricing;
+- CH2 Normal W/S / unit / RRP / totals;
+- CH2 wholesale variance audit;
+- live discount-rule audit from `SRC_POS_ONGOING_DISCOUNTS`;
+- match status / method / confidence / fuzzy score;
+- original workbook number formats, fills, row heights, widths, filters and frozen rows.
+
+One supplier invoice creates one `.xlsx`. Multiple supplier invoices are returned as a ZIP containing one linked-POS `.xlsx` per invoice.
 
 ## Privacy
 
-Files are selected by the user and parsed in the browser. They are not intentionally uploaded to the Staff Hub or stored in the GitHub repository.
-
-Do not commit business PDFs, order files or exported reconciliation workbooks to GitHub.
-
-## External browser libraries
-
-The page currently loads SheetJS and PDF.js from their CDNs. A later hardening pass can vendor pinned copies into this folder so the tool has no runtime CDN dependency.
-
-## Next expansion
-
-The separate POS/master merge workflow can be incorporated behind the parser layer without changing Update Specials or the Staff Hub home page. Keep that code isolated inside this tool.
+Do not put order files, invoice PDFs, the merged POS master or supplier/discount workbooks into the GitHub repository. Runtime files and cached reference data stay on the local computer/browser.

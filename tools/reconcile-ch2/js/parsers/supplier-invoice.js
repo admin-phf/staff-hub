@@ -112,7 +112,7 @@
       }
       description=clean([description,...extras].filter(Boolean).join(' '));
       rows.push({
-        sourceFile, invoiceNumber:meta.invoiceNumber||'', invoiceDate:meta.invoiceDate||'', customerPo:meta.customerPo||'', supplierOrderNumber:meta.orderNumber||'', page:pageNo,
+        sourceFile, invoiceNumber:meta.invoiceNumber||'', invoiceDate:meta.invoiceDate||'', orderDate:meta.orderDate||meta.invoiceDate||'', customerPo:meta.customerPo||'', supplierOrderNumber:meta.orderNumber||'', page:pageNo,
         invoiceLine:Number(s.line), productCode:s.code, supplierSku:s.sku, description,
         qtySupplied:candidate.qty, discountPct:candidate.discPercent, unitPriceExGst:candidate.unitPriceExGst,
         extendedExGst:candidate.extendedExGst, gstAmount:candidate.gstAmount, totalIncGst:candidate.totalIncGst,
@@ -122,10 +122,12 @@
     return {rows,skipped};
   }
   function extractMetadata(text){
-    const s=clean(text); const meta={invoiceNumber:'',invoiceDate:'',customerPo:'',orderNumber:''};
+    const s=clean(text); const meta={invoiceNumber:'',invoiceDate:'',orderDate:'',customerPo:'',orderNumber:''};
     let m=s.match(/\b(\d{7,9})\s+RI\b/i); if(m) meta.invoiceNumber=m[1];
     m=s.match(/\b(\d{7,9})\s+SO\b/i); if(m) meta.orderNumber=m[1];
     m=s.match(/\b(\d{2}\/\d{2}\/\d{4})\b/); if(m) meta.invoiceDate=m[1];
+    m=s.match(/\b(\d{1,2})-([A-Za-z]{3,9})-(\d{4})\b/); if(m){const months={JAN:'01',FEB:'02',MAR:'03',APR:'04',MAY:'05',JUN:'06',JUL:'07',AUG:'08',SEP:'09',OCT:'10',NOV:'11',DEC:'12'};const mm=months[m[2].slice(0,3).toUpperCase()];if(mm)meta.orderDate=`${String(m[1]).padStart(2,'0')}/${mm}/${m[3]}`;}
+    if(!meta.orderDate) meta.orderDate=meta.invoiceDate;
     // CH2 customer PO pattern, e.g. 02.09.2026-MELB-SID.
     m=s.match(/\b(\d{2}[.\/-]\d{2}[.\/-]\d{4}[-–][A-Z]{2,10}[-–][A-Z0-9]{2,10})\b/i);
     if(m) meta.customerPo=m[1].replace(/[–—]/g,'-');
@@ -150,6 +152,7 @@
     allRows=allRows.map(r=>({...r,
       invoiceNumber:r.invoiceNumber||meta.invoiceNumber,
       invoiceDate:r.invoiceDate||meta.invoiceDate,
+      orderDate:r.orderDate||meta.orderDate||meta.invoiceDate,
       customerPo:r.customerPo||meta.customerPo,
       supplierOrderNumber:r.supplierOrderNumber||meta.orderNumber
     }));
@@ -194,7 +197,7 @@
       const row=chosen.matrix[r]||[], at=k=>chosen.map[k]>=0?row[chosen.map[k]]:'';
       const code=clean(at('productCode')), desc=clean(at('description'));
       if(!code && !desc) continue;
-      rows.push({sourceFile:file.name,invoiceNumber:clean(at('invoiceNumber')),invoiceDate:clean(at('invoiceDate')),customerPo:'',supplierOrderNumber:'',page:'',
+      rows.push({sourceFile:file.name,invoiceNumber:clean(at('invoiceNumber')),invoiceDate:clean(at('invoiceDate')),orderDate:clean(at('invoiceDate')),customerPo:'',supplierOrderNumber:'',page:'',
         invoiceLine:num(at('invoiceLine'))??(r-chosen.row),productCode:code.replace(/\.0+$/,''),supplierSku:clean(at('supplierSku')),description:desc,
         qtySupplied:num(at('qtySupplied'))??0,discountPct:num(at('discountPct'))??0,unitPriceExGst:num(at('unitPriceExGst')),extendedExGst:num(at('extendedExGst')),
         gstAmount:num(at('gstAmount'))??0,totalIncGst:num(at('totalIncGst')),rrp:num(at('rrp')),normalWholesale:num(at('normalWholesale')),parser:'SUPPLIER_SHEET'});
