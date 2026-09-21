@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Prahran Health Foods — Reconcile CH2 Order</title>
   <link rel="stylesheet" href="./css/app.css">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
   <main class="wrap">
@@ -16,12 +18,12 @@
     </header>
 
     <h1>Reconcile CH2 Order</h1>
-    <p class="sub">Compare the POS back-end order with one or more CH2 / supplier invoices. Files should stay on this computer and are not intended to be uploaded to the website.</p>
+    <p class="sub">Compare the POS back-end order with one or more CH2 / supplier invoices. The selected files are processed in your browser and are not uploaded to this website.</p>
 
     <section class="panel">
       <div class="step"><div class="stepnum">1</div><h2>POS back-end order</h2></div>
       <div class="dropzone" id="posDrop" tabindex="0" role="button">
-        <strong>Drag the POS order here</strong>
+        <strong>Drag the POS Order here</strong>
         <small>or click to choose an .XLS, .XLSX or .CSV file</small>
       </div>
       <input class="hidden" id="posInput" type="file" accept=".xls,.xlsx,.csv">
@@ -45,12 +47,41 @@
         <button class="btn" id="clearBtn">Clear Files</button>
       </div>
       <div class="status info" id="status">Add one POS order and at least one supplier invoice to continue.</div>
+      <div class="progress hidden" id="progress"><div id="progressBar"></div></div>
+    </section>
+
+    <section class="results hidden" id="results">
+      <div class="results-head">
+        <div>
+          <h2>Reconciliation result</h2>
+          <p id="resultSub"></p>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="downloadBtn">Download Full Reconciliation.xlsx</button>
+          <button class="btn" id="toggleAllBtn">Show all lines</button>
+        </div>
+      </div>
+      <div class="kpis" id="kpis"></div>
+      <div class="notice hidden" id="warningBox"></div>
+      <div class="table-wrap">
+        <table id="resultTable">
+          <thead><tr>
+            <th>Status</th><th>POS product</th><th>Ordered</th><th>Supplied</th><th>Expected unit</th><th>Invoice unit</th><th>Variance</th><th>Missed $</th><th>Match</th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </section>
 
     <section class="panel privacy">
-      <strong>File privacy:</strong> this module is being structured so business files are processed locally in the browser. Do not add invoice PDFs, order spreadsheets, customer information or account documents to the GitHub repository itself.
+      <strong>File privacy:</strong> this tool reads the files on this device only. Do not add invoice PDFs, order spreadsheets, customer information or account documents to the GitHub repository itself.
     </section>
   </main>
+
+  <script src="./js/parsers/pos-order.js"></script>
+  <script src="./js/parsers/supplier-invoice.js"></script>
+  <script src="./js/core/reconcile.js"></script>
+  <script src="./js/export/report.js"></script>
   <script src="./js/app.js"></script>
 </body>
 </html>
