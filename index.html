@@ -18,18 +18,12 @@
 
   /* ---- top bar ---- */
   .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 0 18px;border-bottom:1px solid var(--line);margin-bottom:24px}
-  .topbar .home-logo-link{display:inline-flex;align-items:center;border-radius:8px;text-decoration:none;cursor:pointer}
-  .topbar .home-logo-link:focus-visible{outline:3px solid rgba(46,125,50,.22);outline-offset:4px}
-  .topbar img.logo{height:40px;display:block}
+  .topbar img.logo{height:40px}
   .topbar .hubname{font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
   .crumbs{font-size:13px;color:var(--muted)}
   .crumbs a{color:var(--green);text-decoration:none;font-weight:600;cursor:pointer}
 
   /* ---- home tiles ---- */
-  .home-intro-link{display:block;width:100%;margin:0 0 22px;background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;line-height:0;text-decoration:none;box-shadow:0 3px 14px rgba(0,0,0,.035)}
-  .home-intro-link:hover{box-shadow:0 5px 18px rgba(0,0,0,.055)}
-  .home-intro-link:focus-visible{outline:3px solid rgba(46,125,50,.22);outline-offset:3px}
-  .home-intro{display:block;width:100%;height:auto}
   .home h1{font-size:26px;font-weight:800;letter-spacing:-.01em;margin-bottom:4px}
   .home .sub{color:var(--muted);font-size:15px;margin-bottom:26px}
   .tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
@@ -1988,17 +1982,12 @@
 <div class="wrap">
 
   <div class="topbar">
-    <a class="home-logo-link" id="topHomeLogo" href="#" aria-label="Return to Staff Hub home">
-      <img class="logo" src="LOGO_LONG_SRC" alt="Prahran Health Foods">
-    </a>
+    <img class="logo" src="LOGO_LONG_SRC">
     <div class="crumbs" id="crumbs"><span class="hubname">Staff Hub</span></div>
   </div>
 
   <!-- ============ HOME ============ -->
   <div class="home" id="home">
-    <a class="home-intro-link" href="#" id="homeIntroLink" aria-label="Staff Hub home">
-      <img class="home-intro" src="phf-home-intro-once.gif" alt="Prahran Health Foods">
-    </a>
     <h1>Staff Hub</h1>
     <div class="sub">Pick a tool. More modules will be added here over time.</div>
     <div class="tiles">
@@ -2150,12 +2139,7 @@ function goHome(){
   document.querySelectorAll('.module').forEach(m=>m.classList.remove('on'));
   home.classList.remove('off');
   crumbs.innerHTML='<span class="hubname">Staff Hub</span>';
-  window.scrollTo(0,0);
 }
-['topHomeLogo','homeIntroLink'].forEach(id=>{
-  const el=document.getElementById(id);
-  if(el) el.addEventListener('click',e=>{e.preventDefault();goHome();});
-});
 document.querySelectorAll('.tile[data-open]').forEach(t=>{
   t.onclick=()=>openModule(t.dataset.open);
   t.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openModule(t.dataset.open);}};
