@@ -33,3 +33,16 @@ page can populate the local cache manually without exposing those controls to st
 Do not commit POS orders, invoice PDFs, merged POS masters, supplier workbooks or
 other business data to GitHub. Runtime files and cached reference data remain on
 the local device/browser.
+
+
+## v2.2 POS-order integrity rule
+
+The Excel export is now POS-order driven. The first exported data row is always the first product row from the uploaded POS back-end order, the second is always the second, and so on. Every ordered line is retained even when it is not invoiced, short supplied, over supplied, low-confidence matched, or otherwise mismatched. The POS barcode, PLU, description, GST, WSP, last price and RRP are taken from the uploaded POS order snapshot. Supplier invoice values are merged into those fixed rows. Genuine supplier-only / not-ordered lines are appended only after the complete POS-order block. An integrity guard blocks the export if the POS row sequence changes.
+
+
+## v2.3 Excel compatibility and presentation
+
+- All generated workbook cells specify **Google Sans, size 8**.
+- All output cells use Excel **Middle Align** vertically.
+- Row 1 `INVOICE NUMBERS` and `UNIQUE REFS` are written as calculated text values rather than `UNIQUE(FILTER(...))` formulas. This avoids the Excel repair warning caused by unsupported/dynamic formula serialization in browser-generated XLSX files.
+- Standard `SUBTOTAL` formulas are retained for filter-aware numeric totals.
