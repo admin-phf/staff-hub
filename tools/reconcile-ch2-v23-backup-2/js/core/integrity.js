@@ -133,24 +133,6 @@
           const xml=await xmlFile.async('string');
           const bad=/__xludf|_xlfn|DUMMYFUNCTION|<f[^>]*>\s*=\s*<\/f>/i.test(xml);
           checks.push(check('Worksheet XML compatibility',!bad,bad?'Unsupported formula marker found in sheet XML.':'No unsupported formula markers found in sheet XML.'));
-
-          // Validate the approved 43-column width contract directly from sheet XML.
-          const widths=new Array(PHF.schema.COLUMNS.length).fill(null),colsMatch=xml.match(/<cols>([\s\S]*?)<\/cols>/i);
-          if(colsMatch){
-            const re=/<col\b([^>]*)\/>/gi;let m;
-            while((m=re.exec(colsMatch[1]))){
-              const a=m[1],minM=a.match(/\bmin="(\d+)"/i),maxM=a.match(/\bmax="(\d+)"/i),wM=a.match(/\bwidth="([0-9.]+)"/i);
-              if(!minM||!maxM||!wM)continue;const mn=Number(minM[1]),mx=Number(maxM[1]),w=Number(wM[1]);
-              for(let c=mn;c<=mx&&c<=widths.length;c++)widths[c-1]=w;
-            }
-          }
-          const widthErrors=[];PHF.schema.COLUMNS.forEach((c,i)=>{if(widths[i]==null||Math.abs(widths[i]-Number(c.width))>0.001)widthErrors.push(`${c.header}: expected ${c.width}, got ${widths[i]==null?'default':widths[i]}`);});
-          checks.push(check('Exact approved column widths',widthErrors.length===0,widthErrors.length?widthErrors.slice(0,6).join(' | '):'All 43 column widths match the approved workbook specification.'));
-
-          const rowHeights={};const rowRe=/<row\b([^>]*)>/gi;let rm;while((rm=rowRe.exec(xml))){const a=rm[1],rM=a.match(/\br="(\d+)"/i),hM=a.match(/\bht="([0-9.]+)"/i);if(rM&&hM)rowHeights[Number(rM[1])]=Number(hM[1]);}
-          const totalRow=2+(output&&output.rows?output.rows.length:0)+1,expectedHeights=[[1,PHF.schema.VISUAL.row1Height],[2,PHF.schema.VISUAL.row2Height],[totalRow,PHF.schema.VISUAL.totalsHeight]];
-          const heightErrors=[];for(const [r,h] of expectedHeights){if(rowHeights[r]==null||Math.abs(rowHeights[r]-h)>0.001)heightErrors.push(`row ${r}: expected ${h}, got ${rowHeights[r]==null?'default':rowHeights[r]}`);}
-          checks.push(check('Approved summary/header/totals heights',heightErrors.length===0,heightErrors.length?heightErrors.join(' | '):'Key row heights match the approved workbook specification.'));
         }
       }catch(err){checks.push(check('Worksheet XML compatibility',true,'XML secondary validation skipped.','warning'));}
     }

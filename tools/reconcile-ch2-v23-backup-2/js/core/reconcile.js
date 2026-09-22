@@ -72,7 +72,7 @@
 
   function reconcile(posOrder,invoiceDocuments,refs){
     const posRows=posOrder.rows||[],invoiceRows=[],warnings=[];
-    invoiceDocuments.forEach(doc=>{if(doc.warning)warnings.push(`${doc.sourceFile}: ${doc.warning}`);const docRows=(doc.rows||[]);docRows.forEach(r=>invoiceRows.push(r));if(doc.skipped&&doc.skipped.length)warnings.push(`${doc.sourceFile}: ${doc.skipped.length} non-billed/incomplete candidate line(s) were not treated as invoice product rows.`);if(doc.integrity&&doc.integrity.footerFound===false)warnings.push(`${doc.sourceFile}: footer totals were not machine-readable; line arithmetic was still checked.`);const missingDisc=docRows.filter(r=>r.discountPct==null).length,missingWs=docRows.filter(r=>r.normalWholesale==null).length;if(missingDisc)warnings.push(`${doc.sourceFile}: ${missingDisc} billed line(s) did not print a CH2 discount %. These remain blank and are marked NO CHECK, not 0%.`);if(missingWs)warnings.push(`${doc.sourceFile}: ${missingWs} billed line(s) did not print Normal W/S. Wholesale/discount price checks requiring Normal W/S are marked NO CHECK.`);});
+    invoiceDocuments.forEach(doc=>{if(doc.warning)warnings.push(`${doc.sourceFile}: ${doc.warning}`);(doc.rows||[]).forEach(r=>invoiceRows.push(r));if(doc.skipped&&doc.skipped.length)warnings.push(`${doc.sourceFile}: ${doc.skipped.length} non-billed/incomplete candidate line(s) were not treated as invoice product rows.`);if(doc.integrity&&doc.integrity.footerFound===false)warnings.push(`${doc.sourceFile}: footer totals were not machine-readable; line arithmetic was still checked.`);});
 
     const matchedByPos=new Map(),unmatchedInvoice=[],groups=groupInvoiceRows(invoiceRows),assignments=assignGroups(groups,posRows,refs);
     groups.forEach((g,gi)=>{
@@ -89,22 +89,22 @@
       const invs=matchedByPos.get(index)||[],suppliedQty=round(invs.reduce((a,r)=>a+Number(r.qtySupplied||0),0),3)??0,qtyVariance=round(suppliedQty-Number(pos.orderedQty||0),3)??0;
       const actualUnit=weightedAverage(invs,'unitPriceExGst'),actualDisc=weightedAverage(invs,'discountPct'),invoiceWs=weightedAverage(invs,'normalWholesale');
       const unitVariance=(actualUnit!=null&&pos.expectedUnit!=null)?round(actualUnit-pos.expectedUnit,4):null,wholesaleVariance=(invoiceWs!=null&&pos.normalWholesale!=null)?round(invoiceWs-pos.normalWholesale,4):null,missedTotal=(unitVariance!=null&&unitVariance>PRICE_TOL)?round(unitVariance*suppliedQty,2):0;
-      const statuses=[],auditDataMissing=!!invs.length&&(actualDisc==null||invoiceWs==null);
+      const statuses=[];
       if(!invs.length)statuses.push('NOT INVOICED');
-      else {if(qtyVariance<0)statuses.push('SHORT SUPPLIED');if(qtyVariance>0)statuses.push('OVER SUPPLIED');if(wholesaleVariance!=null&&Math.abs(wholesaleVariance)>WHOLESALE_TOL)statuses.push('WHOLESALE MISMATCH');if(unitVariance!=null&&unitVariance>PRICE_TOL)statuses.push('PRICE HIGH');if(unitVariance!=null&&unitVariance>PRICE_TOL&&actualDisc!=null&&pos.expectedDiscountPct!=null&&actualDisc+0.05<pos.expectedDiscountPct)statuses.push('DISCOUNT LOW');if(auditDataMissing)statuses.push('REVIEW - AUDIT DATA MISSING');}
+      else {if(qtyVariance<0)statuses.push('SHORT SUPPLIED');if(qtyVariance>0)statuses.push('OVER SUPPLIED');if(wholesaleVariance!=null&&Math.abs(wholesaleVariance)>WHOLESALE_TOL)statuses.push('WHOLESALE MISMATCH');if(unitVariance!=null&&unitVariance>PRICE_TOL)statuses.push('PRICE HIGH');if(unitVariance!=null&&unitVariance>PRICE_TOL&&actualDisc!=null&&pos.expectedDiscountPct!=null&&actualDisc+0.05<pos.expectedDiscountPct)statuses.push('DISCOUNT LOW');}
       if(!statuses.length)statuses.push(unitVariance!=null&&unitVariance<-PRICE_TOL?'BETTER PRICE':'OK');
       const rank={LOW:0,MEDIUM:1,HIGH:2};
       detail.push({
         posIndex:pos.posIndex,sourceRow:pos.sourceRow,identity:pos.identity,orderNumber:pos.orderNumber,plu:pos.plu,barcode:pos.barcode,subId:pos.subId,posDescription:pos.description,
         orderedQty:pos.orderedQty,suppliedQty,qtyVariance,posNormalWholesale:pos.normalWholesale,invoiceNormalWholesale:round(invoiceWs,2),wholesaleVariance,
         expectedDiscountPct:round(pos.expectedDiscountPct,2),actualDiscountPct:round(actualDisc,2),expectedUnit:round(pos.expectedUnit,2),actualUnit:round(actualUnit,4),unitVariance,missedTotal,rrp:pos.rrp,
-        status:statuses.join(' + '),hasException:statuses.some(s=>!['OK','BETTER PRICE'].includes(s)),auditDataMissing,invoiceNumbers:[...new Set(invs.map(x=>x.invoiceNumber).filter(Boolean))].join(', '),sourceFiles:[...new Set(invs.map(x=>x.sourceFile))].join(', '),
+        status:statuses.join(' + '),hasException:statuses.some(s=>!['OK','BETTER PRICE'].includes(s)),invoiceNumbers:[...new Set(invs.map(x=>x.invoiceNumber).filter(Boolean))].join(', '),sourceFiles:[...new Set(invs.map(x=>x.sourceFile))].join(', '),
         matchConfidence:invs.length?invs.map(x=>x.matchConfidence).sort((a,b)=>(rank[a]??9)-(rank[b]??9))[0]:'',matchMethods:[...new Set(invs.map(x=>x.matchMethod))].join(', '),invoiceRows:invs
       });
     });
 
     const exceptions=detail.filter(x=>x.hasException),betterPrice=detail.filter(x=>x.status==='BETTER PRICE'),lowConfidence=detail.filter(x=>x.matchConfidence==='LOW');
-    const totals={posLines:posRows.length,invoiceLines:invoiceRows.length,matchedInvoiceLines:invoiceRows.length-unmatchedInvoice.length,unmatchedInvoiceLines:unmatchedInvoice.length,correctLines:detail.filter(x=>x.status==='OK').length,betterPriceLines:betterPrice.length,exceptionLines:exceptions.length,lowConfidenceLines:lowConfidence.length,auditDataMissing:detail.filter(x=>x.auditDataMissing).length,notInvoiced:detail.filter(x=>x.status.includes('NOT INVOICED')).length,shortSupplied:detail.filter(x=>x.status.includes('SHORT SUPPLIED')).length,overSupplied:detail.filter(x=>x.status.includes('OVER SUPPLIED')).length,priceHigh:detail.filter(x=>x.status.includes('PRICE HIGH')).length,missedTotal:round(detail.reduce((a,x)=>a+Number(x.missedTotal||0),0),2)||0};
+    const totals={posLines:posRows.length,invoiceLines:invoiceRows.length,matchedInvoiceLines:invoiceRows.length-unmatchedInvoice.length,unmatchedInvoiceLines:unmatchedInvoice.length,correctLines:detail.filter(x=>x.status==='OK').length,betterPriceLines:betterPrice.length,exceptionLines:exceptions.length,lowConfidenceLines:lowConfidence.length,notInvoiced:detail.filter(x=>x.status.includes('NOT INVOICED')).length,shortSupplied:detail.filter(x=>x.status.includes('SHORT SUPPLIED')).length,overSupplied:detail.filter(x=>x.status.includes('OVER SUPPLIED')).length,priceHigh:detail.filter(x=>x.status.includes('PRICE HIGH')).length,missedTotal:round(detail.reduce((a,x)=>a+Number(x.missedTotal||0),0),2)||0};
     return {orderNumber:posOrder.orderNumber||'',sourcePosFile:posOrder.sourceFile,detail,exceptions,unmatchedInvoice,invoiceRows,totals,warnings,createdAt:new Date().toISOString()};
   }
 

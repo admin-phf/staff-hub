@@ -25,23 +25,8 @@
       if(s==='MATCHED')return 'good';if(s.includes('LOW CONFIDENCE'))return 'bad';if(s.includes('SHORT')||s.includes('OVER')||s.includes('UNMATCHED')||s.includes('NOT INVOICED'))return 'bad';return '';
     }
     if(kind==='confidence'){if(s==='HIGH')return 'good';if(s==='MEDIUM')return 'info';if(s==='LOW')return 'bad';}
-    if(kind==='check'){if(s==='OK')return 'good';if(s.includes('BETTER DISCOUNT')||s.includes('BETTER PRICE'))return 'info';if(s.includes('DISCOUNT LOW')||s.includes('PRICE HIGH')||s.includes('MISMATCH'))return 'bad';if(s.includes('NO RULE')||s.includes('NO CHECK')||s.includes('MISSING'))return 'muted';}
+    if(kind==='check'){if(s==='OK')return 'good';if(s.includes('MISMATCH'))return 'bad';if(s.includes('NO RULE')||s.includes('NO CHECK')||s.includes('MISSING'))return 'muted';}
     return '';
-  }
-
-
-  async function enforceExactPackage(buffer){
-    if(!global.JSZip||!PHF.schema||!PHF.schema.COLUMNS)return buffer;
-    const zip=await global.JSZip.loadAsync(buffer),sheetFile=zip.file('xl/worksheets/sheet1.xml');
-    if(!sheetFile)return buffer;
-    let xml=await sheetFile.async('string');
-    const tags=PHF.schema.COLUMNS.map((c,i)=>`<col min="${i+1}" max="${i+1}" width="${Number(c.width)}" customWidth="1"/>`).join('');
-    const colsBlock=`<cols>${tags}</cols>`;
-    if(/<cols>[\s\S]*?<\/cols>/.test(xml))xml=xml.replace(/<cols>[\s\S]*?<\/cols>/,colsBlock);
-    else if(/<sheetFormatPr[^>]*\/>/.test(xml))xml=xml.replace(/(<sheetFormatPr[^>]*\/>)/,`$1${colsBlock}`);
-    else xml=xml.replace(/(<worksheet[^>]*>)/,`$1${colsBlock}`);
-    zip.file('xl/worksheets/sheet1.xml',xml);
-    return zip.generateAsync({type:'arraybuffer',compression:'DEFLATE'});
   }
 
   async function buildWorkbook(output){
@@ -103,7 +88,7 @@
   }
 
   async function buildValidatedBuffer(output,posOrder){
-    const wb=await buildWorkbook(output),rawBuffer=await wb.xlsx.writeBuffer(),buffer=await enforceExactPackage(rawBuffer),validation=await PHF.integrity.validateWorkbookBuffer(buffer,output,posOrder);
+    const wb=await buildWorkbook(output),buffer=await wb.xlsx.writeBuffer(),validation=await PHF.integrity.validateWorkbookBuffer(buffer,output,posOrder);
     if(!validation.ok)throw new Error(`Excel integrity validation failed: ${validation.errors.join(' | ')}`);return {buffer,validation};
   }
 
@@ -115,6 +100,6 @@
     const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'}),stamp=new Date().toLocaleDateString('en-AU').replace(/\//g,'.');downloadBlob(blob,`CH2_CURRENT_RECONCILIATIONS_${stamp}.zip`);return outputs;
   }
 
-  PHF.report={buildWorkbook,buildValidatedBuffer,enforceExactPackage};
+  PHF.report={buildWorkbook,buildValidatedBuffer};
   PHF.exportReference=exportReference;
 })(window);

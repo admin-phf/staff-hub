@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.4.1
+# Prahran Health Foods — CH2 Reconciler v2.4.0
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -132,11 +132,3 @@ The spreadsheet renderer is isolated in `js/export/report.js` and the exact colu
 ## Privacy
 
 Do not commit supplier invoices, POS orders, merged POS masters, customer information, pricing workbooks or other business data to GitHub. Only application code belongs in the repository.
-
-
-## v2.4.1 refinements
-- Missing CH2 discount percentages remain blank/unknown rather than being converted to 0%.
-- Positive supplier outcomes are identified as BETTER DISCOUNT / BETTER PRICE instead of red mismatches.
-- Discount/price audit calculations use the raw invoice unit price precision; display cells remain aligned to the approved 43-column format.
-- Low-confidence matches are explicitly labelled REVIEW in the exported workbook.
-- The XLSX package is post-processed and validated against the exact approved column-width contract, including explicit CH2 GST width 9.

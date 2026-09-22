@@ -33,50 +33,21 @@
     const brandOk=(brand||prefix)?brandMatches(rBrand,rd,brand,prefix):false,supOk=!!(sup&&rs&&sup===rs);if((brand||prefix)&&sup)return brandOk&&supOk?{specificity:70,type:'POS_BRAND+POS_SUPPLIER',key:`POS_BRAND=${clean(brand||prefix)}; POS_SUPPLIER=${sup}`} : null;if(brand||prefix)return brandOk?{specificity:60,type:'POS_BRAND',key:`POS_BRAND=${clean(brand||prefix)}`} : null;if(sup)return supOk?{specificity:50,type:'POS_SUPPLIER',key:`POS_SUPPLIER=${sup}`} : null;return null;
   }
   function findDiscountRule(row,rules){const c=[];for(const rule of rules||[]){const m=matchRule(rule,row);if(m)c.push({...m,rule});}c.sort((a,b)=>(Number(b.rule.POS_DISCOUNT||0)-Number(a.rule.POS_DISCOUNT||0))||(b.specificity-a.specificity));return c[0]||null;}
-  function discountAudit(row,rules,isInvoiced,raw={}){
+  function discountAudit(row,rules,isInvoiced){
     if(!['POS SUPPLIER','POS MASTER BARCODE','POS PLU','POS BRAND','POS DESCR'].some(k=>clean(row[k])))return {'DIS EXPECTED %':'','DIS MATCH TYPE':'NO POS DATA','DIS MATCH KEY':'','DIS MATCH RULE':'','DIS CH2 DISC CHECK':'NO CHECK - NO POS DATA','DIS EXPECTED UNIT EXGST':'','DIS UNIT VARIANCE':'','DIS UNIT CHECK':'NO CHECK - NO POS DATA','DIS MISSED TOTAL':''};
     const best=findDiscountRule(row,rules);
     if(!best)return {'DIS EXPECTED %':'','DIS MATCH TYPE':'NO RULE','DIS MATCH KEY':'','DIS MATCH RULE':'','DIS CH2 DISC CHECK':'NO RULE','DIS EXPECTED UNIT EXGST':'','DIS UNIT VARIANCE':'','DIS UNIT CHECK':'NO RULE','DIS MISSED TOTAL':''};
     const expected=Number(best.rule.POS_DISCOUNT||0),base={'DIS EXPECTED %':round(expected,2),'DIS MATCH TYPE':best.type,'DIS MATCH KEY':best.key,'DIS MATCH RULE':ruleLabel(best.rule)};
     if(!isInvoiced)return {...base,'DIS CH2 DISC CHECK':'NO CHECK - NOT INVOICED','DIS EXPECTED UNIT EXGST':'','DIS UNIT VARIANCE':'','DIS UNIT CHECK':'NO CHECK - NOT INVOICED','DIS MISSED TOTAL':''};
-
-    // Preserve source truth: a discount that is not printed on the invoice is unknown, not 0%.
-    const actual=raw.disc!==undefined?num(raw.disc):num(row['CH2 DISC %']);
-    let discCheck='NO CHECK - DISC % NOT PROVIDED';
-    if(actual!=null){
-      const diff=actual-expected;
-      if(Math.abs(diff)<=PRICE_TOL)discCheck='OK';
-      else if(diff>PRICE_TOL)discCheck=`BETTER DISCOUNT CH2=${actual.toFixed(2)}`;
-      else discCheck=`DISCOUNT LOW CH2=${actual.toFixed(2)}`;
-    }
-
-    // Audit with raw invoice precision. Display values stay rounded to the approved workbook format.
-    const nws=raw.normalWs!==undefined?num(raw.normalWs):num(row['CH2 NORMAL W/S']);
-    const unit=raw.unit!==undefined?num(raw.unit):num(row['CH2 UNIT PRICE EX GST']);
-    const qty=raw.qty!==undefined?num(raw.qty):num(row['CH2 QTY SUPPLIED']);
-    let expectedUnit='',variance='',unitCheck='',missed='';
-    if(nws==null){
-      unitCheck='NO CHECK - MISSING CH2 NORMAL W/S';
-    }else{
-      const preciseExpected=nws*(1-expected/100);
-      expectedUnit=round(preciseExpected,2);
-      if(unit==null){
-        unitCheck='NO CHECK - MISSING CH2 UNIT PRICE EX GST';
-      }else{
-        const preciseVariance=unit-preciseExpected;
-        variance=round(preciseVariance,2);
-        if(Math.abs(preciseVariance)<=PRICE_TOL)unitCheck='OK';
-        else if(preciseVariance< -PRICE_TOL)unitCheck='BETTER PRICE';
-        else unitCheck='PRICE HIGH';
-        if(qty!=null)missed=round((preciseVariance>PRICE_TOL?preciseVariance:0)*qty,2);
-      }
-    }
+    const actual=num(row['CH2 DISC %']);let discCheck=actual==null?'MISSING IN CH2 DISC %':(Math.abs(actual-expected)<=PRICE_TOL?'OK':`MISMATCH CH2=${actual.toFixed(2)}`);
+    const nws=num(row['CH2 NORMAL W/S']),unit=num(row['CH2 UNIT PRICE EX GST']),qty=num(row['CH2 QTY SUPPLIED']);let expectedUnit='',variance='',unitCheck='',missed='';
+    if(nws==null)unitCheck='NO CHECK - MISSING CH2 NORMAL W/S';else if(unit==null){expectedUnit=round(nws*(1-expected/100),2);unitCheck='NO CHECK - MISSING CH2 UNIT PRICE EX GST';}else{const precise=nws*(1-expected/100);expectedUnit=round(precise,2);variance=round(unit-precise,2);unitCheck=Math.abs(Number(variance))<=PRICE_TOL?'OK':'MISMATCH';if(qty!=null)missed=round((Number(variance)>PRICE_TOL?Number(variance):0)*qty,2);}
     return {...base,'DIS CH2 DISC CHECK':discCheck,'DIS EXPECTED UNIT EXGST':expectedUnit,'DIS UNIT VARIANCE':variance,'DIS UNIT CHECK':unitCheck,'DIS MISSED TOTAL':missed};
   }
 
   function lineCount(v){const n=num(v);if(n==null)return clean(v);return Number.isInteger(n)?String(n):String(n).replace(/0+$/,'').replace(/\.$/,'');}
   function posReference(pos,refs){const b=bc(pos&&pos.barcode);if(b&&refs.master.byBarcode.has(b))return refs.master.byBarcode.get(b);const s=digits(pos&&pos.subId);if(s&&refs.master.byCode.has(s))return refs.master.byCode.get(s);const p=digits(pos&&pos.plu);if(p&&refs.master.byPlu&&refs.master.byPlu.has(p))return refs.master.byPlu.get(p);return {};}
-  function statusFor(pos,invs){const ordered=num(pos&&pos.orderedQty)||0,supplied=round(sumRows(invs,'qtySupplied'),3)||0;if(!invs.length)return `NOT INVOICED / SHORT SHIPPED — ORDERED ${ordered} / SUPPLIED 0`;const conf=lowestConfidence(invs),auditMissing=invs.some(r=>r.discountPct==null||r.normalWholesale==null);if(supplied<ordered-0.0001)return `MATCHED / SHORT SUPPLIED — ORDERED ${ordered} / SUPPLIED ${supplied}`;if(supplied>ordered+0.0001)return `MATCHED / OVER SUPPLIED — ORDERED ${ordered} / SUPPLIED ${supplied}`;if(conf==='LOW')return 'MATCHED - REVIEW (LOW CONFIDENCE)';if(auditMissing)return 'MATCHED - REVIEW (CH2 AUDIT DATA MISSING)';return 'MATCHED';}
+  function statusFor(pos,invs){const ordered=num(pos&&pos.orderedQty)||0,supplied=round(sumRows(invs,'qtySupplied'),3)||0;if(!invs.length)return `NOT INVOICED / SHORT SHIPPED — ORDERED ${ordered} / SUPPLIED 0`;const conf=lowestConfidence(invs);if(supplied<ordered-0.0001)return `MATCHED / SHORT SUPPLIED — ORDERED ${ordered} / SUPPLIED ${supplied}`;if(supplied>ordered+0.0001)return `MATCHED / OVER SUPPLIED — ORDERED ${ordered} / SUPPLIED ${supplied}`;return conf==='LOW'?'MATCHED - LOW CONFIDENCE':'MATCHED';}
   function docInvoiceRowsForDetail(detail,doc){return (detail&&detail.invoiceRows||[]).filter(r=>clean(r.sourceFile)===clean(doc.sourceFile));}
   function docMeta(doc){const first=(doc.rows||[])[0]||{},m=doc.meta||{};return {orderDate:clean(first.orderDate||m.orderDate||first.invoiceDate||m.invoiceDate),invoiceDate:clean(first.invoiceDate||m.invoiceDate),invoiceNumber:clean(first.invoiceNumber||m.invoiceNumber),customerPo:clean(first.customerPo||m.customerPo)};}
   function invoiceAggregates(invs){
@@ -103,7 +74,7 @@
         'POS RRP INCGST':round(pos.rrp,2),'CH2 RRP':invs.length?round(agg.rrp,2):'','POS TOTAL':posTotal,'CH2 TOTAL':invs.length?round(agg.totalInc,2):'','POS CH2 WHOLESALE EX GST':rawWs,
         'CH2 WHOLESALE VARIANCE':invs.length?wVar:'','CH2 WHOLESALE CHECK':invs.length?wCheck:'NO CHECK - NOT INVOICED'
       };
-      Object.assign(row,discountAudit(row,refs.supplier.discountRules,invs.length>0,{disc:agg.disc,normalWs:agg.normalWs,unit:agg.unit,qty:agg.qty}));out.push(row);
+      Object.assign(row,discountAudit(row,refs.supplier.discountRules,invs.length>0));out.push(row);
     });
 
     const extras=(reconciliation.unmatchedInvoice||[]).filter(r=>clean(r.sourceFile)===clean(doc.sourceFile));

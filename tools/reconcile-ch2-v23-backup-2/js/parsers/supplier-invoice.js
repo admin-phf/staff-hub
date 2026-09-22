@@ -28,8 +28,8 @@
     let best=null;
     for(let qi=0;qi<parts.length;qi++){
       if(!isQty(parts[qi].part))continue;
-      const qty=num(parts[qi].part);let j=qi+1,disc=null;
-      if(j<parts.length&&isDisc(parts[j].part)){disc=num(parts[j].part);j++;}
+      const qty=num(parts[qi].part);let j=qi+1,disc=0;
+      if(j<parts.length&&isDisc(parts[j].part)){disc=num(parts[j].part)??0;j++;}
       const nums=[];while(j<parts.length&&nums.length<4&&isMoney(parts[j].part)){nums.push(num(parts[j].part));j++;}
       const possibilities=[];if(nums.length>=4)possibilities.push([nums[0],nums[1],nums[2],nums[3]]);if(nums.length>=3)possibilities.push([nums[0],nums[1],0,nums[2]]);
       for(const [unit,extended,gst,total] of possibilities){
@@ -154,7 +154,7 @@
     for(let r=chosen.row+1;r<chosen.matrix.length;r++){
       const row=chosen.matrix[r]||[],at=k=>chosen.map[k]>=0?row[chosen.map[k]]:'',code=clean(at('productCode')),desc=clean(at('description'));if(!code&&!desc)continue;
       const qty=num(at('qtySupplied'))??0,unit=num(at('unitPriceExGst')),extended=num(at('extendedExGst')),gst=num(at('gstAmount'))??0,total=num(at('totalIncGst'));
-      const rec={sourceFile:file.name,invoiceNumber:clean(at('invoiceNumber')),invoiceDate:clean(at('invoiceDate')),orderDate:clean(at('invoiceDate')),customerPo:clean(at('customerPo')),supplierOrderNumber:'',page:'',invoiceLine:num(at('invoiceLine'))??(r-chosen.row),productCode:code.replace(/\.0+$/,''),supplierSku:clean(at('supplierSku')),description:desc,qtySupplied:qty,discountPct:num(at('discountPct')),unitPriceExGst:unit,extendedExGst:extended,gstAmount:gst,gstPct:extended?round(gst/extended*100,2):0,totalIncGst:total,rrp:num(at('rrp')),normalWholesale:num(at('normalWholesale')),parser:'SUPPLIER_SHEET'};
+      const rec={sourceFile:file.name,invoiceNumber:clean(at('invoiceNumber')),invoiceDate:clean(at('invoiceDate')),orderDate:clean(at('invoiceDate')),customerPo:clean(at('customerPo')),supplierOrderNumber:'',page:'',invoiceLine:num(at('invoiceLine'))??(r-chosen.row),productCode:code.replace(/\.0+$/,''),supplierSku:clean(at('supplierSku')),description:desc,qtySupplied:qty,discountPct:num(at('discountPct'))??0,unitPriceExGst:unit,extendedExGst:extended,gstAmount:gst,gstPct:extended?round(gst/extended*100,2):0,totalIncGst:total,rrp:num(at('rrp')),normalWholesale:num(at('normalWholesale')),parser:'SUPPLIER_SHEET'};
       rec.lineExtendedDiff=(qty!=null&&unit!=null&&extended!=null)?Math.abs(round(qty*unit,2)-round(extended,2)):0;rec.lineTotalDiff=(extended!=null&&total!=null)?Math.abs(round(extended+gst,2)-round(total,2)):0;rec.rowId=rowId(rec);rows.push(rec);
     }
     if(!rows.length)throw new Error(`${file.name}: no supplier invoice product rows were found.`);
