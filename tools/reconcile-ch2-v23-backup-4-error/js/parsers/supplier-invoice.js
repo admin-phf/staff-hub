@@ -42,91 +42,33 @@
   }
   function identifyStarts(items){
     const starts=[];
-    const add=(x)=>{if(!x||!x.line||!x.code||!x.sku)return;if(starts.some(y=>clean(y.line)===clean(x.line)))return;starts.push(x);};
-
-    // Fast path for the common CH2 layouts where PDF.js emits one field per text item.
     for(let i=0;i<items.length-2;i++){
       const a=clean(items[i]),b=clean(items[i+1]),c=clean(items[i+2]);
-      if(isCode(a)&&isLine(b)&&looksSku(c)){add({itemIndex:i,code:a,line:b,sku:c,descIndex:i-1});continue;}
+      if(isCode(a)&&isLine(b)&&looksSku(c)){starts.push({itemIndex:i,code:a,line:b,sku:c,descIndex:i-1});continue;}
       if(isLine(a)&&isCode(b)){
         let skuIndex=-1;for(let k=i+2;k<Math.min(items.length,i+9);k++)if(looksSku(items[k])){skuIndex=k;break;}
-        if(skuIndex>=0)add({itemIndex:i,code:b,line:a,sku:clean(items[skuIndex]),descIndex:i+2,skuIndex});
+        if(skuIndex>=0)starts.push({itemIndex:i,code:b,line:a,sku:clean(items[skuIndex]),descIndex:i+2,skuIndex});
       }
     }
-
-    // Fallback for CH2 pages where PDF.js combines fields into one item, e.g.
-    // "16.000 2622639 DR BRONNERS..." or "EACH 2 27.4160 ...".
-    // Work at token level but retain the original item indexes for block slicing.
-    const parts=splitParts(items);
-    const nearest=(idx,pred,before,after)=>{
-      let best=null;
-      for(let d=1;d<=Math.max(before,after);d++){
-        if(d<=before){const j=idx-d;if(j>=0&&pred(parts[j].part)){best=parts[j];break;}}
-        if(d<=after){const j=idx+d;if(j<parts.length&&pred(parts[j].part)){best=parts[j];break;}}
-      }
-      return best;
-    };
-    for(let ti=0;ti<parts.length;ti++){
-      const lineTok=parts[ti];if(!isLine(lineTok.part))continue;
-      if(starts.some(x=>clean(x.line)===clean(lineTok.part)))continue;
-      const codeTok=nearest(ti,isCode,8,8);if(!codeTok)continue;
-      let skuTok=null;
-      // SKU is normally after the line/product code. Prefer forward search strongly.
-      for(let d=1;d<=18;d++){const j=ti+d;if(j<parts.length&&looksSku(parts[j].part)){skuTok=parts[j];break;}}
-      if(!skuTok){for(let d=1;d<=8;d++){const j=ti-d;if(j>=0&&looksSku(parts[j].part)){skuTok=parts[j];break;}}}
-      if(!skuTok)continue;
-      const startIndex=Math.min(lineTok.itemIndex,codeTok.itemIndex);
-      add({itemIndex:startIndex,code:codeTok.part,line:lineTok.part,sku:skuTok.part,descIndex:Math.max(0,startIndex-1),skuIndex:skuTok.itemIndex,fallback:true});
-    }
-    return starts.sort((a,b)=>a.itemIndex-b.itemIndex||num(a.line)-num(b.line));
-  }
-  function stripIdentity(text,start){
-    let s=clean(text);for(const token of [start&&start.line,start&&start.code,start&&start.sku]){const t=clean(token);if(t)s=s.replace(new RegExp(`(^|\\s)${t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}(?=\\s|$)`,'g'),' ');}return clean(s);
-  }
-  function cancelledCandidate(parts){
-    for(let i=0;i<parts.length;i++){
-      if(clean(parts[i].part).toUpperCase()!=='C')continue;
-      // CH2 uses C + quantity for cancelled/backordered quantity. Full cancellations
-      // often print .0000 afterwards; partial-cancel sublines (e.g. 131.001) may
-      // instead print the unit price only. If no valid billed-price pattern exists,
-      // C + quantity is sufficient to classify the line as non-billed.
-      for(let j=i+1;j<Math.min(parts.length,i+4);j++){
-        const p=clean(parts[j].part);if(isQty(p))return {qtyCancelled:num(p)};
-      }
-    }
-    return null;
+    return starts.filter((x,idx,arr)=>idx===0||x.itemIndex!==arr[idx-1].itemIndex);
   }
   function rowId(r){return [clean(r.sourceFile),clean(r.invoiceNumber),clean(r.page),clean(r.invoiceLine),clean(r.productCode),clean(r.supplierSku)].join('|');}
   function parseBlocks(items,pageNo,sourceFile,meta){
-    const starts=identifyStarts(items),rows=[],skipped=[],cancelled=[];
+    const starts=identifyStarts(items),rows=[],skipped=[];
     for(let si=0;si<starts.length;si++){
       const s=starts[si],end=si+1<starts.length?starts[si+1].itemIndex:items.length,block=items.slice(s.itemIndex,end).map(clean).filter(Boolean);
       const joined=block.join(' '),{rrp,normalWs}=parseRrpWs(joined),useful=[];
       for(const x of block){if(isFooter(x))break;if(/RRP/i.test(x)||/NORMAL\s+W/i.test(x)||clean(x)==='.00')continue;useful.push(x);}
-      const parts=splitParts(useful),candidate=priceCandidate(parts),cancel=cancelledCandidate(parts);
-
-      let description='';
-      if(s.descIndex>=0&&s.descIndex<items.length){description=stripIdentity(items[s.descIndex],s);if(description==='.00'||isMoney(description)||isLine(description)||isCode(description))description='';}
-      const extras=[],limit=candidate?candidate.itemIndex:useful.length;
-      for(let bi=0;bi<useful.length&&bi<=limit;bi++){
-        let x=stripIdentity(useful[bi],s);if(!x)continue;
-        // If quantity/pricing shares an item with description/UOM, retain only the text before the quantity token.
-        if(candidate&&bi===candidate.itemIndex){
-          const qtyToken=String(candidate.qty);const pos=x.search(new RegExp(`(^|\\s)${qtyToken.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}(?=\\s|$)`));
-          if(pos>=0)x=clean(x.slice(0,pos));
-        }
-        if(!x||x===s.code||x===s.line||x===s.sku||looksSku(x))continue;
-        if(/^(EACH|EA|PKT|PK|CTN|BOX)(?:\s|$)/i.test(x)){x=clean(x.replace(/^(EACH|EA|PKT|PK|CTN|BOX)(?:\s+\d+)?\s*/i,''));if(!x)continue;}
-        if(isCode(x)||isLine(x)||isQty(x)||isDisc(x)||isMoney(x))continue;
-        if(x!==description&&!extras.includes(x))extras.push(x);
+      const candidate=priceCandidate(splitParts(useful));
+      if(!candidate){skipped.push({page:pageNo,line:s.line,productCode:s.code,reason:'NO_VALID_PRICE_PATTERN'});continue;}
+      let description='';if(s.descIndex>=0&&s.descIndex<items.length)description=clean(items[s.descIndex]);
+      const extras=[];
+      for(let bi=0;bi<useful.length;bi++){
+        if(bi>=candidate.itemIndex)break;const x=clean(useful[bi]);
+        if(!x||x===s.code||x===s.line||x===s.sku||looksSku(x))continue;if(/^(EACH|EA|PKT|PK|CTN|BOX)\b/i.test(x))continue;
+        if(isCode(x)||isLine(x)||isQty(x)||isDisc(x)||isMoney(x))continue;if(x!==description)extras.push(x);
       }
-      description=clean([description,...extras].filter(Boolean).join(' ')).replace(/\bC\s+\d+(?:\.\d+)?\s+\.0{3,4}\b/g,'').replace(/\s+/g,' ').trim();
-
-      if(!candidate){
-        if(cancel){cancelled.push({page:pageNo,line:Number(s.line),productCode:s.code,supplierSku:s.sku,description,qtyCancelled:cancel.qtyCancelled,rrp,normalWholesale:normalWs,reason:'CANCELLED_OR_BACKORDER'});}
-        else skipped.push({page:pageNo,line:Number(s.line),productCode:s.code,supplierSku:s.sku,description,reason:'NO_VALID_PRICE_PATTERN'});
-        continue;
-      }
+      description=clean([description,...extras].filter(Boolean).join(' '));
       const gstPct=candidate.extendedExGst?round((candidate.gstAmount/candidate.extendedExGst)*100,2):0;
       const row={sourceFile,invoiceNumber:meta.invoiceNumber||'',invoiceDate:meta.invoiceDate||'',orderDate:meta.orderDate||meta.invoiceDate||'',customerPo:meta.customerPo||'',supplierOrderNumber:meta.orderNumber||'',page:pageNo,
         invoiceLine:Number(s.line),productCode:s.code,supplierSku:s.sku,description,qtySupplied:candidate.qty,discountPct:candidate.discPercent,
@@ -134,7 +76,7 @@
         rrp,normalWholesale:normalWs,parser:'CH2_PDF',lineExtendedDiff:candidate.lineExtendedDiff,lineTotalDiff:candidate.lineTotalDiff};
       row.rowId=rowId(row);rows.push(row);
     }
-    return {rows,skipped,cancelled,startsFound:starts.length};
+    return {rows,skipped};
   }
   function extractMetadata(text){
     const s=clean(text),meta={invoiceNumber:'',invoiceDate:'',orderDate:'',customerPo:'',orderNumber:''};
@@ -175,19 +117,19 @@
     if(!global.pdfjsLib)throw new Error('PDF reader did not load. Check your internet connection and refresh the page.');
     global.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const pdf=await global.pdfjsLib.getDocument({data:new Uint8Array(await file.arrayBuffer())}).promise;
-    let allRows=[],skipped=[],cancelled=[],fullText='',lastFooter=null,totalStarts=0;
+    let allRows=[],skipped=[],fullText='',lastFooter=null;
     for(let pageNo=1;pageNo<=pdf.numPages;pageNo++){
       const page=await pdf.getPage(pageNo),tc=await page.getTextContent(),items=tc.items.map(x=>clean(x.str)).filter(Boolean),pageText=items.join(' '),meta=extractMetadata(pageText);
-      fullText+=' '+pageText;const parsed=parseBlocks(items,pageNo,file.name,meta);allRows.push(...parsed.rows);skipped.push(...parsed.skipped);cancelled.push(...(parsed.cancelled||[]));totalStarts+=Number(parsed.startsFound||0);
+      fullText+=' '+pageText;const parsed=parseBlocks(items,pageNo,file.name,meta);allRows.push(...parsed.rows);skipped.push(...parsed.skipped);
       if(pageNo===pdf.numPages)lastFooter=extractFooterTotals(tc,page.getViewport({scale:1}));
     }
     const meta=extractMetadata(fullText);
     allRows=allRows.map(r=>{const x={...r,invoiceNumber:r.invoiceNumber||meta.invoiceNumber,invoiceDate:r.invoiceDate||meta.invoiceDate,orderDate:r.orderDate||meta.orderDate||meta.invoiceDate,customerPo:r.customerPo||meta.customerPo,supplierOrderNumber:r.supplierOrderNumber||meta.orderNumber};x.rowId=rowId(x);return x;});
     const isCredit=/CREDIT NOTE/i.test(fullText)||/\b\d{5,9}\s+CI\b/i.test(fullText);
-    if(isCredit)return {type:'CREDIT_NOTE',sourceFile:file.name,rows:[],skipped,cancelled,meta,warning:'Credit note detected and not included in this order reconciliation.',integrity:{lineArithmeticOk:true,footerFound:false,footerOk:null}};
+    if(isCredit)return {type:'CREDIT_NOTE',sourceFile:file.name,rows:[],skipped,meta,warning:'Credit note detected and not included in this order reconciliation.',integrity:{lineArithmeticOk:true,footerFound:false,footerOk:null}};
     if(!allRows.length)throw new Error(`${file.name}: no CH2 product lines could be extracted from this PDF.`);
     const integrity=buildIntegrity(allRows,lastFooter);
-    return {type:'SUPPLIER_INVOICE',format:'PDF',sourceFile:file.name,rows:allRows,skipped,cancelled,meta,integrity,diagnostics:{pages:pdf.numPages,rows:allRows.length,cancelled:cancelled.length,skipped:skipped.length,candidateLines:totalStarts,footer:lastFooter}};
+    return {type:'SUPPLIER_INVOICE',format:'PDF',sourceFile:file.name,rows:allRows,skipped,meta,integrity,diagnostics:{pages:pdf.numPages,rows:allRows.length,skipped:skipped.length,footer:lastFooter}};
   }
 
   function normHeader(v){return clean(v).toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');}
@@ -217,7 +159,7 @@
     }
     if(!rows.length)throw new Error(`${file.name}: no supplier invoice product rows were found.`);
     const integrity=buildIntegrity(rows,null);
-    return {type:'SUPPLIER_INVOICE',format:'SPREADSHEET',sourceFile:file.name,rows,skipped:[],cancelled:[],meta:{},integrity,diagnostics:{rows:rows.length,cancelled:0,skipped:0,sheetName:chosen.sheetName}};
+    return {type:'SUPPLIER_INVOICE',format:'SPREADSHEET',sourceFile:file.name,rows,skipped:[],meta:{},integrity,diagnostics:{rows:rows.length,sheetName:chosen.sheetName}};
   }
   async function parseSupplierInvoice(file){const ext='.'+(file.name.split('.').pop()||'').toLowerCase();if(ext==='.pdf')return parsePdf(file);if(['.xls','.xlsx','.csv'].includes(ext))return parseSpreadsheet(file);throw new Error(`${file.name}: unsupported supplier invoice format.`);}
 

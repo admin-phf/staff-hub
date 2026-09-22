@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.4.4
+# Prahran Health Foods — CH2 Reconciler v2.4.3
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -162,12 +162,3 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - Movement is shown for POS WSP → CH2 Normal W/S, POS Last Price → CH2 Unit Price, and POS RRP → CH2 RRP.
 - The symbols are applied with Excel number formats, so the cells stay numeric for filtering, formulas and audit calculations.
 - Green remains reserved for true OK/pass states; price movement colours indicate direction only, not whether the supplier result is commercially correct.
-
-
-## v2.4.4 parser resilience + cancelled-line handling
-- Fixes CH2 PDFs where PDF.js combines the line number, product code, description, UOM, quantity or price into the same text item.
-- Adds a token-level fallback line-start detector without changing the normal fast-path parser.
-- Separates billed rows from CH2 `C` cancelled/backordered rows instead of reporting them as generic incomplete candidates.
-- Supports partial-cancel sublines such as `131.001` / `132.001`, where CH2 prints `C + quantity + unit price` without a billed extended total.
-- Preserves the integrity block: Excel is generated only when billed line sums reconcile to the supplier invoice footer.
-- Regression-tested against invoice 74089986: 116 billed rows, 42 cancelled/backordered line segments, 0 unclassified candidates, and footer totals 4,943.10 + GST 417.31 = 5,360.41.
