@@ -3,9 +3,9 @@
   const PHF=global.PHFReconcile=global.PHFReconcile||{};
 
   const BUILD=Object.freeze({
-    version:'2.4.3',
+    version:'2.4.1',
     name:'Integrity Engine',
-    date:'2026-09-23'
+    date:'2026-09-22'
   });
 
   // Exact 43-column workbook contract taken from the approved desired workbook.
@@ -73,9 +73,6 @@
     badFill:'#FCE8E6', badText:'#D93025',
     infoFill:'#E8F0FE', infoText:'#1967D2',
     mutedText:'#9AA0A6',
-    priceUpFill:'#FCE8E6', priceUpText:'#C5221F',
-    priceDownFill:'#E8F0FE', priceDownText:'#1967D2',
-    priceVisualTolerance:0.03,
     row1Height:25.5, row2Height:42, dataHeight:18, totalsHeight:25.5
   });
 

@@ -29,32 +29,6 @@
     return '';
   }
 
-  // Price movement visual contract from the approved workbook:
-  //   POS/current price = muted grey reference value.
-  //   CH2/new price unchanged within tolerance = muted grey.
-  //   CH2/new price increased = pale red / red text.
-  //   CH2/new price decreased = pale blue / blue text.
-  // This is deliberately presentation-only and does not alter reconciliation values.
-  function applyPriceComparison(oldCell,newCell,tolerance){
-    const V=PHF.schema.VISUAL,oldValue=oldCell.value,newValue=newCell.value;
-    if(numeric(oldValue))oldCell.font=font(V.mutedText,false);
-    if(!numeric(newValue))return;
-    newCell.font=font(V.mutedText,false);
-    if(!numeric(oldValue))return;
-    const tol=Number.isFinite(tolerance)?tolerance:(V.priceVisualTolerance||0.03),delta=newValue-oldValue;
-    if(delta>tol){
-      newCell.fill=fill(V.priceUpFill||V.badFill);
-      newCell.font=font(V.priceUpText||V.badText,true);
-      newCell.numFmt='"↑ "#,##0.00';
-    }else if(delta< -tol){
-      newCell.fill=fill(V.priceDownFill||V.infoFill);
-      newCell.font=font(V.priceDownText||V.infoText,true);
-      newCell.numFmt='"↓ "#,##0.00';
-    }else{
-      newCell.numFmt='"— "#,##0.00';
-    }
-  }
-
 
   async function enforceExactPackage(buffer){
     if(!global.JSZip||!PHF.schema||!PHF.schema.COLUMNS)return buffer;
@@ -85,7 +59,6 @@
     const idx=Object.fromEntries(HEADERS.map((h,i)=>[h,i+1])),invoiceCount=new Set(rows.map(r=>clean(r['Invoice Number'])).filter(Boolean)).size,refCount=new Set(rows.map(r=>clean(r['Your Ref'])).filter(Boolean)).size;
     setFormula(ws.getCell(1,1),`\"TOTAL ROWS: \"&TEXT(SUBTOTAL(103,A${dataStart}:A${dataEnd}),\"#,##0\")`,`TOTAL ROWS: ${rows.length}`);
     ws.getCell(1,4).value=`INVOICE NUMBERS: ${invoiceCount}`;ws.getCell(1,5).value=`UNIQUE REFS: ${refCount}`;
-    ws.getCell(1,11).value='PRICE MOVE: ↑ HIGHER  ↓ LOWER  — SAME';
     for(const h of TOTAL_HEADERS){
       const c=idx[h],letter=ws.getColumn(c).letter,res=sum(rows,h);setFormula(ws.getCell(1,c),`SUBTOTAL(109,${letter}${dataStart}:${letter}${dataEnd})`,res);setFormula(ws.getCell(totalsRow,c),`SUBTOTAL(109,${letter}${dataStart}:${letter}${dataEnd})`,res);
     }
@@ -105,16 +78,6 @@
       applyState(ws.getCell(r,idx['MATCH STATUS']),stateFor(ws.getCell(r,idx['MATCH STATUS']).value,'matchStatus'));
       applyState(ws.getCell(r,idx['MATCH CONFIDENCE']),stateFor(ws.getCell(r,idx['MATCH CONFIDENCE']).value,'confidence'));
       ['CH2 WHOLESALE CHECK','DIS CH2 DISC CHECK','DIS UNIT CHECK'].forEach(h=>applyState(ws.getCell(r,idx[h]),stateFor(ws.getCell(r,idx[h]).value,'check')));
-
-      // Restore the quick visual price movement comparison used in the approved output.
-      // Pair 1: POS wholesale -> CH2 normal wholesale.
-      // Pair 2: POS last price -> CH2 actual invoice unit price.
-      // Pair 3: POS RRP -> CH2 RRP.
-      const priceTol=VISUAL.priceVisualTolerance||0.03;
-      applyPriceComparison(ws.getCell(r,idx['POS WSP EXCGST']),ws.getCell(r,idx['CH2 NORMAL W/S']),priceTol);
-      applyPriceComparison(ws.getCell(r,idx['POS LAST PRICE']),ws.getCell(r,idx['CH2 UNIT PRICE EX GST']),priceTol);
-      applyPriceComparison(ws.getCell(r,idx['POS RRP INCGST']),ws.getCell(r,idx['CH2 RRP']),priceTol);
-
       const missed=ws.getCell(r,idx['DIS MISSED TOTAL']);if(numeric(missed.value)&&missed.value>0.005)applyState(missed,'bad');else if(missed.value===0)applyState(missed,'muted');
       const variance=ws.getCell(r,idx['DIS UNIT VARIANCE']);if(numeric(variance.value)&&variance.value<-0.005)applyState(variance,'info');
     }
@@ -131,15 +94,6 @@
       else if(col.type==='index')for(let r=dataStart;r<=dataEnd;r++)if(numeric(ws.getCell(r,c).value))ws.getCell(r,c).numFmt='0';
     }
     for(const h of TOTAL_HEADERS){const c=idx[h],fmt=h==='CH2 QTY SUPPLIED'?'#,##0.###':'$#,##0.00';ws.getCell(1,c).numFmt=fmt;ws.getCell(totalsRow,c).numFmt=fmt;}
-
-    // Reapply the POS-style movement symbols after standard numeric formats are set.
-    // The underlying cell values remain numeric; only their display format changes.
-    for(let r=dataStart;r<=dataEnd;r++){
-      const priceTol=VISUAL.priceVisualTolerance||0.03;
-      applyPriceComparison(ws.getCell(r,idx['POS WSP EXCGST']),ws.getCell(r,idx['CH2 NORMAL W/S']),priceTol);
-      applyPriceComparison(ws.getCell(r,idx['POS LAST PRICE']),ws.getCell(r,idx['CH2 UNIT PRICE EX GST']),priceTol);
-      applyPriceComparison(ws.getCell(r,idx['POS RRP INCGST']),ws.getCell(r,idx['CH2 RRP']),priceTol);
-    }
 
     // Force Excel Middle Align for every populated output cell, while preserving horizontal alignment choices.
     for(let r=1;r<=totalsRow;r++)for(let c=1;c<=HEADERS.length;c++){const cell=ws.getCell(r,c);cell.alignment={...(cell.alignment||{}),vertical:'middle'};}

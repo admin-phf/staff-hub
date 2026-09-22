@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.4.3
+# Prahran Health Foods — CH2 Reconciler v2.4.1
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -140,25 +140,3 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - Discount/price audit calculations use the raw invoice unit price precision; display cells remain aligned to the approved 43-column format.
 - Low-confidence matches are explicitly labelled REVIEW in the exported workbook.
 - The XLSX package is post-processed and validated against the exact approved column-width contract, including explicit CH2 GST width 9.
-
-
-## v2.4.2 refinements
-- Restores the approved quick visual price movement styling across all three price pairs.
-- POS/current reference prices are muted grey.
-- CH2/new prices within ±$0.03 of the POS reference remain muted grey (unchanged/neutral).
-- CH2/new price increases greater than $0.03 are highlighted pale red with red text.
-- CH2/new price decreases greater than $0.03 are highlighted pale blue with blue text.
-- The comparison pairs are POS WSP vs CH2 Normal W/S, POS Last Price vs CH2 Unit Price Ex GST, and POS RRP vs CH2 RRP.
-- Existing green OK/MATCHED/HIGH-confidence status styling remains unchanged.
-
-
-## v2.4.3 POS-style price movement refinements
-- Keeps the existing 43-column audit contract and POS-order row sequence unchanged.
-- Adds POS-style movement symbols directly to the CH2/new price cells while preserving numeric cell values.
-- `↑` red = CH2/new price is higher than the POS reference by more than $0.03.
-- `↓` blue = CH2/new price is lower than the POS reference by more than $0.03.
-- `—` grey = effectively unchanged within the ±$0.03 tolerance.
-- Adds a compact row-1 legend: `PRICE MOVE: ↑ HIGHER  ↓ LOWER  — SAME`.
-- Movement is shown for POS WSP → CH2 Normal W/S, POS Last Price → CH2 Unit Price, and POS RRP → CH2 RRP.
-- The symbols are applied with Excel number formats, so the cells stay numeric for filtering, formulas and audit calculations.
-- Green remains reserved for true OK/pass states; price movement colours indicate direction only, not whether the supplier result is commercially correct.
