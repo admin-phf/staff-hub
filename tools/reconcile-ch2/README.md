@@ -1,48 +1,134 @@
-# Reconcile CH2 Order
+# Prahran Health Foods — CH2 Reconciler v2.4.0
 
-Staff-facing CH2 reconciliation tool.
+Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
+
+## Core operating rule
+
+**The uploaded POS order is the row skeleton.**
+
+The reconciliation/export must never reorder, remove or replace those POS rows. Supplier invoice data is merged onto the existing POS rows. If a product is not invoiced, short supplied, over supplied, mismatched or low-confidence matched, the POS row remains in its original position. Genuine invoice-only lines are appended only after the complete POS-order block.
 
 ## Normal staff workflow
 
 1. Open **Reconcile CH2 Order**.
-2. Add the **POS back-end order** (`.xls`, `.xlsx` or `.csv`).
-3. Add one or more **supplier invoices** (`.pdf`, `.xls`, `.xlsx` or `.csv`).
+2. Add the POS back-end order (`.xls`, `.xlsx` or `.csv`).
+3. Add one or more CH2 invoices (`.pdf`, `.xls`, `.xlsx` or `.csv`).
 4. Run reconciliation.
-5. Download the 43-column linked-POS workbook.
+5. Review exceptions and the integrity result.
+6. Download the full linked-POS workbook only when integrity shows **PASS**.
 
-The main page deliberately does not show file-pickers for master/reference workbooks.
-It only shows a compact `Reference data: Ready` status.
+All runtime files are processed locally in the browser.
 
 ## Reference data
 
-Reference data is cached in IndexedDB in that browser/computer. A separate
-`reference-admin.html` page contains the temporary manual fallback controls.
+The Admin page stores two reference sources locally in IndexedDB on that computer/browser:
 
-Configured central sources:
+1. Latest merged POS/master workbook, normally named:
+   `merged_alligned_pos_supplier_uhp_full_DD.MM.YY.xlsx`
+2. Supplier/discount reference data:
+   - full `POS DB & SUPPLIER MERGE.xlsx`, or
+   - a CSV export of `SRC_POS_ONGOING_DISCOUNTS`
 
-- POS master Drive folder: `1jGg6Kayma2KZpVxZFRcJMbim8JRBy8lh`
-- POS master filename prefix: `merged_alligned_pos_supplier_uhp_full_`
-- Supplier/discount workbook: `1Uyc9m5o4-b3n20SAFA5AcXfoJ2NyCTfc_0vV8Mn_gTs`
+Configured central source IDs are retained in `js/reference/reference-config.js` for later authenticated Drive sync, but v2.4 does **not** require an automatic Drive endpoint to operate.
 
-The automatic Drive/Google Sheet endpoint is intentionally configured separately
-in `js/reference/reference-config.js`. Until the endpoint is deployed, the Admin
-page can populate the local cache manually without exposing those controls to staff.
+## v2.4 integrity engine
+
+Before Excel export is allowed, the application checks:
+
+- reconciliation row count equals the uploaded POS order row count;
+- each reconciliation row still maps to the same POS source row;
+- every parsed supplier invoice row is allocated exactly once (matched or unmatched);
+- invoice line arithmetic is valid;
+- when the CH2 PDF footer is machine-readable, parsed Ex-GST/GST/Total values reconcile to the invoice footer;
+- output retains every POS row in exact source order;
+- invoice-only rows are appended after the POS block;
+- the generated workbook has exactly one `CH2 PDF Extract` worksheet;
+- the 43 output headers match the approved specification exactly;
+- the generated XLSX contains no unsupported `_xlfn`, `__xludf`, `DUMMYFUNCTION` or invalid formula markers;
+- the generated workbook re-opens in SheetJS and still preserves the POS-order identity sequence.
+
+If a blocking integrity test fails, Excel download is disabled.
+
+## 43-column output contract
+
+The output is exactly:
+
+1. INDEX
+2. Order Date
+3. Invoice Date
+4. Invoice Number
+5. Your Ref
+6. Line Count
+7. Tax Amount
+8. Invoice Total
+9. POS SUPPLIER
+10. MATCH STATUS
+11. MATCH METHOD
+12. MATCH CONFIDENCE
+13. FUZZY SCORE
+14. POS MASTER BARCODE
+15. POS PLU
+16. POS BRAND
+17. POS DESCR
+18. CH2 SUPPLIER SKU
+19. CH2 PRODUCT CODE
+20. CH2 QTY SUPPLIED
+21. CH2 DISC %
+22. CH2 GST
+23. POS GST TAX PC
+24. POS WSP EXCGST
+25. CH2 NORMAL W/S
+26. POS LAST PRICE
+27. CH2 UNIT PRICE EX GST
+28. POS RRP INCGST
+29. CH2 RRP
+30. POS TOTAL
+31. CH2 TOTAL
+32. POS CH2 WHOLESALE EX GST
+33. CH2 WHOLESALE VARIANCE
+34. CH2 WHOLESALE CHECK
+35. DIS EXPECTED %
+36. DIS MATCH TYPE
+37. DIS MATCH KEY
+38. DIS MATCH RULE
+39. DIS CH2 DISC CHECK
+40. DIS EXPECTED UNIT EXGST
+41. DIS UNIT VARIANCE
+42. DIS UNIT CHECK
+43. DIS MISSED TOTAL
+
+## Approved workbook presentation
+
+The spreadsheet renderer is isolated in `js/export/report.js` and the exact column/schema settings are isolated in `js/core/schema.js`.
+
+- Worksheet: `CH2 PDF Extract`
+- Freeze: rows 1 and 2 (`A3`)
+- Filters: row 2
+- Page orientation: landscape
+- Font: **Google Sans 8**
+- Entire output: Excel vertical **Middle Align**
+- Row 1: dark navy `#1E3A5F`, gold `#E6CD74`, height 25.5
+- Row 2: `#DDE6ED`, bold centred wrapped header, height 42
+- Data: alternating `#FFFFFF` / `#F3F6F9`, height 18
+- Borders: thin `#D9E2F3`
+- Positive/OK statuses: pale green
+- Errors/mismatches: pale red
+- Informational/better results: pale blue
+- Bottom SUM TOTALS row: same treatment as row 1
+- Exact column widths are defined in `schema.js`
+
+## File responsibilities
+
+- `js/parsers/pos-order.js` — POS order parsing only; preserves source order and source row.
+- `js/parsers/supplier-invoice.js` — invoice extraction only; includes line and footer integrity.
+- `js/reference/reference-data.js` — reference-data parsing/cache only.
+- `js/core/reconcile.js` — invoice-to-POS allocation/matching.
+- `js/core/linked-pos.js` — converts reconciled rows into the fixed 43-column output record.
+- `js/core/integrity.js` — blocking run/export/workbook integrity checks.
+- `js/core/schema.js` — fixed output contract, exact widths and visual specification.
+- `js/export/report.js` — workbook rendering/validation/download only.
+- `js/app.js` — staff UI orchestration.
 
 ## Privacy
 
-Do not commit POS orders, invoice PDFs, merged POS masters, supplier workbooks or
-other business data to GitHub. Runtime files and cached reference data remain on
-the local device/browser.
-
-
-## v2.2 POS-order integrity rule
-
-The Excel export is now POS-order driven. The first exported data row is always the first product row from the uploaded POS back-end order, the second is always the second, and so on. Every ordered line is retained even when it is not invoiced, short supplied, over supplied, low-confidence matched, or otherwise mismatched. The POS barcode, PLU, description, GST, WSP, last price and RRP are taken from the uploaded POS order snapshot. Supplier invoice values are merged into those fixed rows. Genuine supplier-only / not-ordered lines are appended only after the complete POS-order block. An integrity guard blocks the export if the POS row sequence changes.
-
-
-## v2.3 Excel compatibility and presentation
-
-- All generated workbook cells specify **Google Sans, size 8**.
-- All output cells use Excel **Middle Align** vertically.
-- Row 1 `INVOICE NUMBERS` and `UNIQUE REFS` are written as calculated text values rather than `UNIQUE(FILTER(...))` formulas. This avoids the Excel repair warning caused by unsupported/dynamic formula serialization in browser-generated XLSX files.
-- Standard `SUBTOTAL` formulas are retained for filter-aware numeric totals.
+Do not commit supplier invoices, POS orders, merged POS masters, customer information, pricing workbooks or other business data to GitHub. Only application code belongs in the repository.

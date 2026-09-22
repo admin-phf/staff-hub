@@ -1,36 +1,12 @@
 (function(global){
   'use strict';
-  const PHF=global.PHFReconcile||{};
-  const CFG=global.PHFReferenceConfig||{};
-  const $=s=>document.querySelector(s);
-  const els={
-    masterRefStatus:$('#masterRefStatus'),supplierRefStatus:$('#supplierRefStatus'),referenceReady:$('#referenceReady'),
-    masterRefBtn:$('#masterRefBtn'),supplierRefBtn:$('#supplierRefBtn'),masterRefInput:$('#masterRefInput'),supplierRefInput:$('#supplierRefInput'),clearReferenceBtn:$('#clearReferenceBtn'),
-    sourceFolder:$('#sourceFolder'),sourcePrefix:$('#sourcePrefix'),sourceSupplier:$('#sourceSupplier'),autoSourceStatus:$('#autoSourceStatus'),masterCard:$('#masterCard'),supplierCard:$('#supplierCard')
-  };
+  const PHF=global.PHFReconcile||{},CFG=global.PHFReferenceConfig||{},$=s=>document.querySelector(s);
+  const els={masterRefStatus:$('#masterRefStatus'),supplierRefStatus:$('#supplierRefStatus'),referenceReady:$('#referenceReady'),masterRefBtn:$('#masterRefBtn'),supplierRefBtn:$('#supplierRefBtn'),masterRefInput:$('#masterRefInput'),supplierRefInput:$('#supplierRefInput'),clearReferenceBtn:$('#clearReferenceBtn'),sourceFolder:$('#sourceFolder'),sourcePrefix:$('#sourcePrefix'),sourceSupplier:$('#sourceSupplier'),masterCard:$('#masterCard'),supplierCard:$('#supplierCard')};
   function prettySize(bytes){if(bytes<1024)return `${bytes} B`;if(bytes<1024*1024)return `${(bytes/1024).toFixed(1)} KB`;return `${(bytes/1024/1024).toFixed(1)} MB`;}
   function refLabel(rec){if(!rec)return 'Not loaded';const when=rec.savedAt?new Date(rec.savedAt).toLocaleString():'saved';return `${rec.name} · ${prettySize(rec.size||0)} · ${when}`;}
-  async function refresh(){
-    const s=await PHF.referenceStore.status();
-    els.masterRefStatus.textContent=refLabel(s.master);els.supplierRefStatus.textContent=refLabel(s.supplier);
-    const ready=!!(s.master&&s.supplier);els.referenceReady.textContent=ready?'Reference data ready':'Reference data incomplete';els.referenceReady.className=`ref-ready ${ready?'ok':'warn'}`;
-  }
-  async function saveReference(kind,file,button,statusEl,card){
-    if(!file)return;button.disabled=true;card.classList.add('loading');const old=button.textContent;button.textContent='Checking…';statusEl.textContent=`Checking ${file.name}…`;
-    try{
-      if(kind==='posMaster'){const parsed=await PHF.referenceStore.parsePosMaster(file);if(!parsed.info.records)throw new Error('No usable CH2-linked POS records were found.');}
-      else {const parsed=await PHF.referenceStore.parseSupplierMerge(file);if(!parsed.info.discountRules)throw new Error('SRC_POS_ONGOING_DISCOUNTS could not be found or contains no usable rules.');}
-      await PHF.referenceStore.save(kind,file);await refresh();
-    }catch(err){console.error(err);statusEl.textContent=`Not saved — ${err.message||err}`;}
-    finally{button.disabled=false;button.textContent=old;card.classList.remove('loading');}
-  }
-  els.sourceFolder.textContent=CFG.POS_MASTER_FOLDER_ID||'Not configured';
-  els.sourcePrefix.textContent=CFG.POS_MASTER_PREFIX||'';
-  els.sourceSupplier.textContent=CFG.SUPPLIER_SPREADSHEET_ID||'Not configured';
-  if(CFG.AUTO_REFERENCE_ENDPOINT){els.autoSourceStatus.textContent='Automatic reference endpoint is configured.';els.autoSourceStatus.className='status ok';}
-  els.masterRefBtn.onclick=()=>els.masterRefInput.click();els.supplierRefBtn.onclick=()=>els.supplierRefInput.click();
-  els.masterRefInput.onchange=()=>saveReference('posMaster',els.masterRefInput.files[0],els.masterRefBtn,els.masterRefStatus,els.masterCard);
-  els.supplierRefInput.onchange=()=>saveReference('supplierMerge',els.supplierRefInput.files[0],els.supplierRefBtn,els.supplierRefStatus,els.supplierCard);
-  els.clearReferenceBtn.onclick=async()=>{if(!confirm('Clear the POS/master and supplier/discount reference data stored in this browser?'))return;await PHF.referenceStore.clear();await refresh();};
+  async function refresh(){const s=await PHF.referenceStore.status();els.masterRefStatus.textContent=refLabel(s.master);els.supplierRefStatus.textContent=refLabel(s.supplier);const ready=!!(s.master&&s.supplier);els.referenceReady.textContent=ready?'Reference data ready':'Reference data incomplete';els.referenceReady.className=`ref-ready ${ready?'ok':'warn'}`;}
+  async function saveReference(kind,file,button,statusEl,card){if(!file)return;button.disabled=true;card.classList.add('loading');const old=button.textContent;button.textContent='Checking…';statusEl.textContent=`Checking ${file.name}…`;try{if(kind==='posMaster'){const parsed=await PHF.referenceStore.parsePosMaster(file);if(!parsed.info.records)throw new Error('No usable CH2-linked POS records were found.');statusEl.textContent=`Validated ${parsed.info.records.toLocaleString()} CH2-linked POS records…`;}else{const parsed=await PHF.referenceStore.parseSupplierMerge(file);if(!parsed.info.discountRules)throw new Error('No usable discount rules were found. Load POS DB & SUPPLIER MERGE or a SRC_POS_ONGOING_DISCOUNTS CSV.');statusEl.textContent=`Validated ${parsed.info.discountRules.toLocaleString()} discount rules…`;}await PHF.referenceStore.save(kind,file);await refresh();}catch(err){console.error(err);statusEl.textContent=`Not saved — ${err.message||err}`;}finally{button.disabled=false;button.textContent=old;card.classList.remove('loading');}}
+  els.sourceFolder.textContent=CFG.POS_MASTER_FOLDER_ID||'Not configured';els.sourcePrefix.textContent=CFG.POS_MASTER_PREFIX||'';els.sourceSupplier.textContent=CFG.SUPPLIER_SPREADSHEET_ID||'Not configured';
+  els.masterRefBtn.onclick=()=>els.masterRefInput.click();els.supplierRefBtn.onclick=()=>els.supplierRefInput.click();els.masterRefInput.onchange=()=>saveReference('posMaster',els.masterRefInput.files[0],els.masterRefBtn,els.masterRefStatus,els.masterCard);els.supplierRefInput.onchange=()=>saveReference('supplierMerge',els.supplierRefInput.files[0],els.supplierRefBtn,els.supplierRefStatus,els.supplierCard);els.clearReferenceBtn.onclick=async()=>{if(!confirm('Clear the POS/master and supplier/discount reference data stored in this browser?'))return;await PHF.referenceStore.clear();await refresh();};
   refresh().catch(err=>{console.error(err);els.referenceReady.textContent='Reference data unavailable';els.referenceReady.className='ref-ready warn';});
 })(window);

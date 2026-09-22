@@ -3,209 +3,88 @@
   const PHF=global.PHFReconcile=global.PHFReconcile||{};
   const PRICE_TOL=0.03;
 
-  // IMPORTANT: This header list is the established linked-POS output contract.
-  // Do not reorder/add/remove columns without deliberately changing the template version.
-  const HEADERS=[
-    'INDEX','Order Date','Invoice Date','Invoice Number','Your Ref','Line Count','Tax Amount','Invoice Total','POS_SUPPLIER','MATCH_STATUS','MATCH_METHOD','MATCH_CONFIDENCE','FUZZY_SCORE','POS_MASTER_BARCODE','POS_PLU','POS_BRAND','POS_DESCR','CH2_SUPPLIER SKU','CH2_PRODUCT CODE','CH2_QTY SUPPLIED','CH2_DISC %','CH2_GST','POS_GST_TAX_PC','POS_WSP_EXCGST','CH2_NORMAL W/S','POS_LAST_PRICE','CH2_UNIT PRICE EX GST','POS_RRP_INCGST','CH2_RRP','POS_TOTAL','CH2_TOTAL','POS_CH2_WHOLESALE_EX_GST','CH2_WHOLESALE_VARIANCE','CH2_WHOLESALE_CHECK','DIS_EXPECTED %','DIS_MATCH_TYPE','DIS_MATCH_KEY','DIS_MATCH_RULE','DIS_CH2_DISC_CHECK','DIS_EXPECTED_UNIT_EXGST','DIS_UNIT_VARIANCE','DIS_UNIT_CHECK','DIS_MISSED_TOTAL'
-  ];
-  const TOTAL_HEADERS=new Set(['Tax Amount','Invoice Total','CH2_QTY SUPPLIED','POS_WSP_EXCGST','CH2_NORMAL W/S','POS_LAST_PRICE','CH2_UNIT PRICE EX GST','POS_RRP_INCGST','CH2_RRP','POS_TOTAL','CH2_TOTAL','POS_CH2_WHOLESALE_EX_GST','CH2_WHOLESALE_VARIANCE','DIS_EXPECTED_UNIT_EXGST','DIS_UNIT_VARIANCE','DIS_MISSED_TOTAL']);
-
   function clean(v){return v==null?'':String(v).trim();}
   function digits(v){return clean(v).replace(/\.0+$/,'').replace(/\D+/g,'');}
-  function bc(v){return clean(v).replace(/\.0+$/,'').replace(/\D+/g,'');}
+  function bc(v){return digits(v);}
   function num(v){if(typeof v==='number'&&Number.isFinite(v))return v;let s=clean(v).replace(/[$,%]/g,'').replace(/,/g,'');if(!s)return null;if(/^\.\d+$/.test(s))s='0'+s;const n=Number(s);return Number.isFinite(n)?n:null;}
   function round(v,n=2){const x=num(v);if(x==null)return '';const p=10**n;return Math.round((x+Number.EPSILON)*p)/p;}
   function normText(v){return clean(v).toUpperCase().replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();}
   function dateForFilename(v){const s=clean(v);let m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);if(m)return `${m[1]}.${m[2]}.${m[3].slice(-2)}`;m=s.match(/^(\d{2})[.-](\d{2})[.-](\d{4})$/);if(m)return `${m[1]}.${m[2]}.${m[3].slice(-2)}`;return new Date().toLocaleDateString('en-AU').split('/').map((x,i)=>i===2?x.slice(-2):x.padStart(2,'0')).join('.');}
   function safe(v,fallback='UNKNOWN'){let s=clean(v)||fallback;s=s.replace(/[^A-Za-z0-9._-]+/g,'_').replace(/_+/g,'_').replace(/^_+|_+$/g,'');return s||fallback;}
-  function tokenDice(a,b){const A=[...new Set(normText(a).split(' ').filter(Boolean))],B=[...new Set(normText(b).split(' ').filter(Boolean))];if(!A.length||!B.length)return 0;const bs=new Set(B);let c=0;A.forEach(x=>{if(bs.has(x))c++;});return 2*c/(A.length+B.length)*100;}
-  function levenshteinRatio(a,b){a=normText(a);b=normText(b);if(a===b)return a?100:0;if(!a||!b)return 0;if(a.length>b.length){const t=a;a=b;b=t;}let prev=Array.from({length:a.length+1},(_,i)=>i),cur=new Array(a.length+1);for(let j=1;j<=b.length;j++){cur[0]=j;for(let i=1;i<=a.length;i++)cur[i]=Math.min(cur[i-1]+1,prev[i]+1,prev[i-1]+(a[i-1]===b[j-1]?0:1));const t=prev;prev=cur;cur=t;}const d=prev[a.length],mx=Math.max(a.length,b.length);return mx?((mx-d)/mx)*100:100;}
-  function descScore(a,b){return Math.max(tokenDice(a,b),levenshteinRatio(a,b));}
-  function overlap(a,b){const A=new Set(normText(a).split(' ').filter(Boolean)),B=new Set(normText(b).split(' ').filter(Boolean));if(!A.size||!B.size)return 0;let c=0;A.forEach(x=>{if(B.has(x))c++;});return c/Math.max(1,Math.min(A.size,B.size));}
   function uniq(values){return [...new Set((values||[]).map(clean).filter(Boolean))];}
-  function sumRows(rows,key){return rows.reduce((a,r)=>a+(num(r[key])||0),0);}
-  function weightedAverage(rows,key,weightKey='qtySupplied'){
-    let n=0,d=0;
-    for(const r of rows||[]){const v=num(r[key]),w=num(r[weightKey]);if(v!=null&&w!=null&&w!==0){n+=v*w;d+=w;}}
-    return d?round(n/d,4):'';
-  }
-  function lowestConfidence(rows){
-    const rank={LOW:0,MEDIUM:1,HIGH:2};
-    const vals=uniq((rows||[]).map(r=>r.matchConfidence));
-    vals.sort((a,b)=>(rank[a]??9)-(rank[b]??9));
-    return vals[0]||'';
-  }
+  function sumRows(rows,key){return (rows||[]).reduce((a,r)=>a+(num(r[key])||0),0);}
+  function weightedAverage(rows,key,weightKey='qtySupplied'){let n=0,d=0;for(const r of rows||[]){const v=num(r[key]),w=num(r[weightKey]);if(v!=null&&w!=null&&w!==0){n+=v*w;d+=w;}}return d?round(n/d,4):'';}
+  function lowestConfidence(rows){const rank={LOW:0,MEDIUM:1,HIGH:2},vals=uniq((rows||[]).map(r=>r.matchConfidence));vals.sort((a,b)=>(rank[a]??9)-(rank[b]??9));return vals[0]||'';}
 
-  function hasCore(rec){return rec&&['POS_MASTER_BARCODE','POS_PLU','POS_BRAND','POS_DESCR','POS_WSP_EXCGST','POS_LAST_PRICE','POS_RRP_INCGST'].some(k=>clean(rec[k]));}
-  function matchMaster(inv,refs){
-    const code=digits(inv.productCode), master=refs.master, sup=refs.supplier.ch2SupplierLookup.get(code)||{};
-    let rec=master.byCode.get(code);
-    if(rec&&hasCore(rec)) return {record:rec,status:'MATCHED',method:'CH2_CODE→MERGED_ALIGNED',confidence:'HIGH',fuzzy:''};
-    const supBc=bc(sup.SUP_BARCODE); if(supBc){rec=master.byBarcode.get(supBc);if(rec&&hasCore(rec))return {record:rec,status:'MATCHED',method:'CH2_CODE→SUPPLIER_UPDATE→BARCODE→POS_DB',confidence:'HIGH',fuzzy:''};}
-    const query=inv.description; if(query){let best=null;for(const cand of master.fuzzy){const ov=overlap(query,cand.POS_DESCR);if(ov<0.35)continue;const sc=descScore(query,cand.POS_DESCR);if(!best||sc>best.score)best={score:sc,record:cand};}if(best&&best.score>=88)return {record:best.record,status:'MATCHED',method:'FUZZY_DESCRIPTION→MERGED_ALIGNED',confidence:'MEDIUM',fuzzy:round(best.score,1)};if(best&&best.score>=72)return {record:best.record,status:'MATCHED - LOW CONFIDENCE',method:'FUZZY_DESCRIPTION→MERGED_ALIGNED',confidence:'LOW',fuzzy:round(best.score,1)};}
-    return {record:{},status:'UNMATCHED',method:'NO MATCH',confidence:'',fuzzy:''};
-  }
-
-  function formatSupplier(raw,supplierMap,fallback){
-    raw=clean(raw); fallback=fallback||{};
-    if(/\(\d+\)\s*$/.test(raw))return raw;
-    const n=digits(raw);if(n){const name=supplierMap.get(n)||'';return name?`${name} (${n})`:`(${n})`;}
-    const fn=digits(fallback.POS_SUPPLIER_NUMBER), name=clean(fallback.POS_SUPPLIER_NAME)||(fn?supplierMap.get(fn)||'':'');
-    if(name&&fn)return `${name} (${fn})`;if(name)return name;if(fn)return `(${fn})`;return raw;
-  }
   function supplierFromPos(pos,refs,rec){
-    const raw=pos&&pos.raw?pos.raw:{};
-    const name=clean(raw.company)||clean(rec&&rec.POS_SUPPLIER_NAME)||'';
-    const no=digits(pos&&pos.supplier)||digits(rec&&rec.POS_SUPPLIER_NUMBER)||digits(rec&&rec.POS_SUPPLIER_RAW);
-    if(name&&no)return `${name} (${no})`;
-    if(name)return name;
+    const name=clean(pos&&pos.company)||clean(rec&&rec.POS_SUPPLIER_NAME)||'',no=digits(pos&&pos.supplier)||digits(rec&&rec.POS_SUPPLIER_NUMBER)||digits(rec&&rec.POS_SUPPLIER_RAW);
+    if(name&&no)return `${name} (${no})`;if(name)return name;
     if(no){const mapped=refs&&refs.supplier&&refs.supplier.supplierMap?refs.supplier.supplierMap.get(no):'';return mapped?`${mapped} (${no})`:`(${no})`;}
     return '';
   }
-  function supplierNo(v){const s=clean(v);const m=s.match(/\((\d+)\)\s*$/);return m?m[1]:digits(s);}
+  function supplierNo(v){const s=clean(v),m=s.match(/\((\d+)\)\s*$/);return m?m[1]:digits(s);}
   function brandMatches(posBrand,posDescr,ruleBrand,rulePrefix){const pb=normText(posBrand),pd=normText(posDescr),rb=normText(ruleBrand),rp=normText(rulePrefix);if(rb&&pb&&(pb===rb||pb.startsWith(rb)||rb.startsWith(pb)||pb.includes(rb)||rb.includes(pb)))return true;if(rp){if(pb&&pb.startsWith(rp))return true;if(pd&&(pd===rp||pd.startsWith(rp+' ')))return true;}return false;}
   function descrMatches(posDescr,ruleDescr){const p=normText(posDescr),r=normText(ruleDescr);if(!p||!r)return false;if(p===r)return true;if(r.length>=8&&p.includes(r))return true;if(p.length>=8&&r.includes(p))return true;return false;}
   function ruleLabel(rule){const p=[];if(clean(rule.POS_MASTER_BRAND))p.push(clean(rule.POS_MASTER_BRAND));if(clean(rule.POS_BRAND_PREFIX))p.push('PREFIX '+clean(rule.POS_BRAND_PREFIX));if(clean(rule.POS_SUPPLIER_NUMBER))p.push('SUP '+clean(rule.POS_SUPPLIER_NUMBER));if(clean(rule.POS_PLU))p.push('PLU '+clean(rule.POS_PLU));if(clean(rule.POS_MASTER_BARCODE))p.push('BC '+clean(rule.POS_MASTER_BARCODE));if(clean(rule.POS_DESCR))p.push(clean(rule.POS_DESCR));if(rule.POS_DISCOUNT!=null)p.push(`${Number(rule.POS_DISCOUNT).toFixed(2)}%`);if(clean(rule.POS_MEMBER))p.push('MEMBER '+clean(rule.POS_MEMBER));return p.join(' / ');}
   function matchRule(rule,row){
-    const rs=supplierNo(row.POS_SUPPLIER), rb=bc(row.POS_MASTER_BARCODE), rp=digits(row.POS_PLU), rBrand=clean(row.POS_BRAND), rd=clean(row.POS_DESCR);
-    const sup=digits(rule.POS_SUPPLIER_NUMBER), b=bc(rule.POS_MASTER_BARCODE), plu=digits(rule.POS_PLU), brand=clean(rule.POS_MASTER_BRAND), prefix=clean(rule.POS_BRAND_PREFIX), descr=clean(rule.POS_DESCR);
-    if(rule.POS_DISCOUNT==null)return null;
-    if(plu)return rp&&rp===plu?{specificity:100,type:'POS_PLU',key:`POS_PLU=${rp}`} : null;
-    if(b)return rb&&rb===b?{specificity:90,type:'POS_MASTER_BARCODE',key:`POS_MASTER_BARCODE=${rb}`} : null;
-    if(descr)return descrMatches(rd,descr)?{specificity:80,type:'POS_DESCR',key:`POS_DESCR=${descr}`} : null;
-    const brandOk=(brand||prefix)?brandMatches(rBrand,rd,brand,prefix):false, supOk=!!(sup&&rs&&sup===rs);
-    if((brand||prefix)&&sup)return brandOk&&supOk?{specificity:70,type:'POS_BRAND+POS_SUPPLIER',key:`POS_BRAND=${clean(brand||prefix)}; POS_SUPPLIER=${sup}`} : null;
-    if(brand||prefix)return brandOk?{specificity:60,type:'POS_BRAND',key:`POS_BRAND=${clean(brand||prefix)}`} : null;
-    if(sup)return supOk?{specificity:50,type:'POS_SUPPLIER',key:`POS_SUPPLIER=${sup}`} : null;
-    return null;
+    const rs=supplierNo(row['POS SUPPLIER']),rb=bc(row['POS MASTER BARCODE']),rp=digits(row['POS PLU']),rBrand=clean(row['POS BRAND']),rd=clean(row['POS DESCR']);
+    const sup=digits(rule.POS_SUPPLIER_NUMBER),b=bc(rule.POS_MASTER_BARCODE),plu=digits(rule.POS_PLU),brand=clean(rule.POS_MASTER_BRAND),prefix=clean(rule.POS_BRAND_PREFIX),descr=clean(rule.POS_DESCR);
+    if(rule.POS_DISCOUNT==null)return null;if(plu)return rp&&rp===plu?{specificity:100,type:'POS_PLU',key:`POS_PLU=${rp}`} : null;if(b)return rb&&rb===b?{specificity:90,type:'POS_MASTER_BARCODE',key:`POS_MASTER_BARCODE=${rb}`} : null;if(descr)return descrMatches(rd,descr)?{specificity:80,type:'POS_DESCR',key:`POS_DESCR=${descr}`} : null;
+    const brandOk=(brand||prefix)?brandMatches(rBrand,rd,brand,prefix):false,supOk=!!(sup&&rs&&sup===rs);if((brand||prefix)&&sup)return brandOk&&supOk?{specificity:70,type:'POS_BRAND+POS_SUPPLIER',key:`POS_BRAND=${clean(brand||prefix)}; POS_SUPPLIER=${sup}`} : null;if(brand||prefix)return brandOk?{specificity:60,type:'POS_BRAND',key:`POS_BRAND=${clean(brand||prefix)}`} : null;if(sup)return supOk?{specificity:50,type:'POS_SUPPLIER',key:`POS_SUPPLIER=${sup}`} : null;return null;
   }
-  function discountAudit(row,rules){
-    if(!['POS_SUPPLIER','POS_MASTER_BARCODE','POS_PLU','POS_BRAND','POS_DESCR'].some(k=>clean(row[k])))return {'DIS_EXPECTED %':'','DIS_MATCH_TYPE':'NO POS DATA','DIS_MATCH_KEY':'','DIS_MATCH_RULE':'','DIS_CH2_DISC_CHECK':'NO CHECK - NO POS DATA','DIS_EXPECTED_UNIT_EXGST':'','DIS_UNIT_VARIANCE':'','DIS_UNIT_CHECK':'NO CHECK - NO POS DATA','DIS_MISSED_TOTAL':''};
-    const c=[];for(const rule of rules||[]){const m=matchRule(rule,row);if(m)c.push({...m,rule});}c.sort((a,b)=>(Number(b.rule.POS_DISCOUNT||0)-Number(a.rule.POS_DISCOUNT||0))||(b.specificity-a.specificity));const best=c[0];
-    if(!best)return {'DIS_EXPECTED %':'','DIS_MATCH_TYPE':'NO RULE','DIS_MATCH_KEY':'','DIS_MATCH_RULE':'','DIS_CH2_DISC_CHECK':'NO RULE','DIS_EXPECTED_UNIT_EXGST':'','DIS_UNIT_VARIANCE':'','DIS_UNIT_CHECK':'NO RULE','DIS_MISSED_TOTAL':''};
-    const expected=Number(best.rule.POS_DISCOUNT||0), actual=num(row['CH2_DISC %']);let discCheck=actual==null?'MISSING IN CH2_DISC %':(Math.abs(actual-expected)<=PRICE_TOL?'OK':`MISMATCH CH2=${actual.toFixed(2)}`);
-    const nws=num(row['CH2_NORMAL W/S']), unit=num(row['CH2_UNIT PRICE EX GST']), qty=num(row['CH2_QTY SUPPLIED']);let expectedUnit='',variance='',unitCheck='',missed='';
-    if(nws==null)unitCheck='NO CHECK - MISSING CH2_NORMAL W/S';else if(unit==null){expectedUnit=round(nws*(1-expected/100),2);unitCheck='NO CHECK - MISSING CH2_UNIT PRICE EX GST';}else{const precise=nws*(1-expected/100);expectedUnit=round(precise,2);variance=round(unit-precise,2);unitCheck=Math.abs(Number(variance))<=PRICE_TOL?'OK':'MISMATCH';if(qty!=null)missed=round((Number(variance)>PRICE_TOL?Number(variance):0)*qty,2);}
-    return {'DIS_EXPECTED %':round(expected,2),'DIS_MATCH_TYPE':best.type,'DIS_MATCH_KEY':best.key,'DIS_MATCH_RULE':ruleLabel(best.rule),'DIS_CH2_DISC_CHECK':discCheck,'DIS_EXPECTED_UNIT_EXGST':expectedUnit,'DIS_UNIT_VARIANCE':variance,'DIS_UNIT_CHECK':unitCheck,'DIS_MISSED_TOTAL':missed};
+  function findDiscountRule(row,rules){const c=[];for(const rule of rules||[]){const m=matchRule(rule,row);if(m)c.push({...m,rule});}c.sort((a,b)=>(Number(b.rule.POS_DISCOUNT||0)-Number(a.rule.POS_DISCOUNT||0))||(b.specificity-a.specificity));return c[0]||null;}
+  function discountAudit(row,rules,isInvoiced){
+    if(!['POS SUPPLIER','POS MASTER BARCODE','POS PLU','POS BRAND','POS DESCR'].some(k=>clean(row[k])))return {'DIS EXPECTED %':'','DIS MATCH TYPE':'NO POS DATA','DIS MATCH KEY':'','DIS MATCH RULE':'','DIS CH2 DISC CHECK':'NO CHECK - NO POS DATA','DIS EXPECTED UNIT EXGST':'','DIS UNIT VARIANCE':'','DIS UNIT CHECK':'NO CHECK - NO POS DATA','DIS MISSED TOTAL':''};
+    const best=findDiscountRule(row,rules);
+    if(!best)return {'DIS EXPECTED %':'','DIS MATCH TYPE':'NO RULE','DIS MATCH KEY':'','DIS MATCH RULE':'','DIS CH2 DISC CHECK':'NO RULE','DIS EXPECTED UNIT EXGST':'','DIS UNIT VARIANCE':'','DIS UNIT CHECK':'NO RULE','DIS MISSED TOTAL':''};
+    const expected=Number(best.rule.POS_DISCOUNT||0),base={'DIS EXPECTED %':round(expected,2),'DIS MATCH TYPE':best.type,'DIS MATCH KEY':best.key,'DIS MATCH RULE':ruleLabel(best.rule)};
+    if(!isInvoiced)return {...base,'DIS CH2 DISC CHECK':'NO CHECK - NOT INVOICED','DIS EXPECTED UNIT EXGST':'','DIS UNIT VARIANCE':'','DIS UNIT CHECK':'NO CHECK - NOT INVOICED','DIS MISSED TOTAL':''};
+    const actual=num(row['CH2 DISC %']);let discCheck=actual==null?'MISSING IN CH2 DISC %':(Math.abs(actual-expected)<=PRICE_TOL?'OK':`MISMATCH CH2=${actual.toFixed(2)}`);
+    const nws=num(row['CH2 NORMAL W/S']),unit=num(row['CH2 UNIT PRICE EX GST']),qty=num(row['CH2 QTY SUPPLIED']);let expectedUnit='',variance='',unitCheck='',missed='';
+    if(nws==null)unitCheck='NO CHECK - MISSING CH2 NORMAL W/S';else if(unit==null){expectedUnit=round(nws*(1-expected/100),2);unitCheck='NO CHECK - MISSING CH2 UNIT PRICE EX GST';}else{const precise=nws*(1-expected/100);expectedUnit=round(precise,2);variance=round(unit-precise,2);unitCheck=Math.abs(Number(variance))<=PRICE_TOL?'OK':'MISMATCH';if(qty!=null)missed=round((Number(variance)>PRICE_TOL?Number(variance):0)*qty,2);}
+    return {...base,'DIS CH2 DISC CHECK':discCheck,'DIS EXPECTED UNIT EXGST':expectedUnit,'DIS UNIT VARIANCE':variance,'DIS UNIT CHECK':unitCheck,'DIS MISSED TOTAL':missed};
   }
 
-  function orderDate(inv){return clean(inv&& (inv.orderDate||inv.invoiceDate)||'');}
   function lineCount(v){const n=num(v);if(n==null)return clean(v);return Number.isInteger(n)?String(n):String(n).replace(/0+$/,'').replace(/\.$/,'');}
-  function posReference(pos,refs,byPlu){
-    const b=bc(pos&&pos.barcode); if(b&&refs.master.byBarcode.has(b))return refs.master.byBarcode.get(b);
-    const s=digits(pos&&pos.subId); if(s&&refs.master.byCode.has(s))return refs.master.byCode.get(s);
-    const p=digits(pos&&pos.plu); if(p&&byPlu.has(p))return byPlu.get(p);
-    return {};
-  }
-  function buildByPlu(refs){
-    const m=new Map();
-    for(const rec of refs.master.byCode.values()){const p=digits(rec.POS_PLU);if(p&&!m.has(p))m.set(p,rec);}
-    return m;
-  }
-  function statusFor(pos,invs){
-    const ordered=num(pos&&pos.orderedQty)||0;
-    const supplied=round(sumRows(invs,'qtySupplied'),3)||0;
-    if(!invs.length)return `NOT INVOICED / SHORT SHIPPED — ORDERED ${ordered} / SUPPLIED 0`;
-    const conf=lowestConfidence(invs);
-    if(supplied<ordered-0.0001)return `MATCHED / SHORT SUPPLIED — ORDERED ${ordered} / SUPPLIED ${supplied}`;
-    if(supplied>ordered+0.0001)return `MATCHED / OVER SUPPLIED — ORDERED ${ordered} / SUPPLIED ${supplied}`;
-    return conf==='LOW'?'MATCHED - LOW CONFIDENCE':'MATCHED';
-  }
-  function docInvoiceRowsForDetail(detail,doc){
-    return (detail&&detail.invoiceRows||[]).filter(r=>clean(r.sourceFile)===clean(doc.sourceFile));
-  }
-  function docMeta(doc){
-    const first=(doc.rows||[])[0]||{};
-    return {
-      orderDate:orderDate(first), invoiceDate:clean(first.invoiceDate||doc.meta&&doc.meta.invoiceDate),
-      invoiceNumber:clean(first.invoiceNumber||doc.meta&&doc.meta.invoiceNumber), customerPo:clean(first.customerPo||doc.meta&&doc.meta.customerPo)
-    };
-  }
+  function posReference(pos,refs){const b=bc(pos&&pos.barcode);if(b&&refs.master.byBarcode.has(b))return refs.master.byBarcode.get(b);const s=digits(pos&&pos.subId);if(s&&refs.master.byCode.has(s))return refs.master.byCode.get(s);const p=digits(pos&&pos.plu);if(p&&refs.master.byPlu&&refs.master.byPlu.has(p))return refs.master.byPlu.get(p);return {};}
+  function statusFor(pos,invs){const ordered=num(pos&&pos.orderedQty)||0,supplied=round(sumRows(invs,'qtySupplied'),3)||0;if(!invs.length)return `NOT INVOICED / SHORT SHIPPED — ORDERED ${ordered} / SUPPLIED 0`;const conf=lowestConfidence(invs);if(supplied<ordered-0.0001)return `MATCHED / SHORT SUPPLIED — ORDERED ${ordered} / SUPPLIED ${supplied}`;if(supplied>ordered+0.0001)return `MATCHED / OVER SUPPLIED — ORDERED ${ordered} / SUPPLIED ${supplied}`;return conf==='LOW'?'MATCHED - LOW CONFIDENCE':'MATCHED';}
+  function docInvoiceRowsForDetail(detail,doc){return (detail&&detail.invoiceRows||[]).filter(r=>clean(r.sourceFile)===clean(doc.sourceFile));}
+  function docMeta(doc){const first=(doc.rows||[])[0]||{},m=doc.meta||{};return {orderDate:clean(first.orderDate||m.orderDate||first.invoiceDate||m.invoiceDate),invoiceDate:clean(first.invoiceDate||m.invoiceDate),invoiceNumber:clean(first.invoiceNumber||m.invoiceNumber),customerPo:clean(first.customerPo||m.customerPo)};}
   function invoiceAggregates(invs){
-    const q=round(sumRows(invs,'qtySupplied'),3);
-    const gstAmount=round(sumRows(invs,'gstAmount'),2);
-    const totalInc=round(sumRows(invs,'totalIncGst'),2);
-    const lines=uniq(invs.map(r=>lineCount(r.invoiceLine))).sort((a,b)=>(num(a)||0)-(num(b)||0)).join(', ');
-    const methods=uniq(invs.map(r=>r.matchMethod)).join(', ');
-    const scores=invs.map(r=>num(r.descriptionScore)).filter(v=>v!=null);
-    return {
-      qty:q, gstAmount, totalInc, lines, methods,
-      confidence:lowestConfidence(invs), fuzzy:scores.length?round(Math.min(...scores),1):'',
-      sku:uniq(invs.map(r=>r.supplierSku)).join(', '), code:uniq(invs.map(r=>r.productCode)).join(', '),
-      disc:weightedAverage(invs,'discountPct'), normalWs:weightedAverage(invs,'normalWholesale'), unit:weightedAverage(invs,'unitPriceExGst'), rrp:weightedAverage(invs,'rrp'),
-      gstPct:(gstAmount!==''&&Number(gstAmount)>0)?10:0
-    };
+    const q=round(sumRows(invs,'qtySupplied'),3),gstAmount=round(sumRows(invs,'gstAmount'),2),totalInc=round(sumRows(invs,'totalIncGst'),2),lines=uniq(invs.map(r=>lineCount(r.invoiceLine))).sort((a,b)=>(num(a)||0)-(num(b)||0)).join(', '),methods=uniq(invs.map(r=>r.matchMethod)).join(', '),scores=invs.map(r=>num(r.descriptionScore)).filter(v=>v!=null);
+    return {qty:q,gstAmount,totalInc,lines,methods,confidence:lowestConfidence(invs),fuzzy:scores.length?round(Math.min(...scores),1):'',sku:uniq(invs.map(r=>r.supplierSku)).join(', '),code:uniq(invs.map(r=>r.productCode)).join(', '),disc:weightedAverage(invs,'discountPct'),normalWs:weightedAverage(invs,'normalWholesale'),unit:weightedAverage(invs,'unitPriceExGst'),rrp:weightedAverage(invs,'rrp'),gstPct:weightedAverage(invs,'gstPct')};
   }
 
-  // Build an output whose PRIMARY block is driven by the uploaded POS order.
-  // Therefore row 1 of the POS data remains row 1, row 2 remains row 2, etc.
-  // Invoice data is merged INTO those rows; it is never allowed to reorder them.
   function buildRowsForDocument(doc,refs,posOrder,reconciliation){
     if(!posOrder||!Array.isArray(posOrder.rows)||!posOrder.rows.length)throw new Error('POS order data is required for the linked-POS export.');
     if(!reconciliation||!Array.isArray(reconciliation.detail)||reconciliation.detail.length!==posOrder.rows.length)throw new Error('Reconciliation detail does not align to the POS order. Run reconciliation again before downloading.');
-
-    const sourceInvoiceRows=(doc.rows||[]).slice().sort((a,b)=>(num(a.invoiceLine)||0)-(num(b.invoiceLine)||0));
-    const tax=round(sourceInvoiceRows.reduce((a,r)=>a+(num(r.gstAmount)||0),0),2);
-    const total=round(sourceInvoiceRows.reduce((a,r)=>a+(num(r.totalIncGst)||0),0),2);
-    const meta=docMeta(doc), byPlu=buildByPlu(refs), out=[];
+    const sourceInvoiceRows=(doc.rows||[]).slice().sort((a,b)=>(num(a.invoiceLine)||0)-(num(b.invoiceLine)||0)),lineTax=round(sourceInvoiceRows.reduce((a,r)=>a+(num(r.gstAmount)||0),0),2),lineTotal=round(sourceInvoiceRows.reduce((a,r)=>a+(num(r.totalIncGst)||0),0),2),footer=doc.integrity&&doc.integrity.footerOk?doc.integrity.footer:null,tax=footer?footer.gst:lineTax,total=footer?footer.total:lineTotal,meta=docMeta(doc),out=[];
 
     posOrder.rows.forEach((pos,i)=>{
       const detail=reconciliation.detail[i];
-      // Hard integrity guard: the reconcile detail itself must still point at the same POS row.
-      if(clean(detail&&detail.plu)!==clean(pos.plu) || bc(detail&&detail.barcode)!==bc(pos.barcode)){
-        throw new Error(`Integrity check failed: reconciliation row ${i+1} no longer matches POS order row ${i+1}.`);
-      }
-      const invs=docInvoiceRowsForDetail(detail,doc);
-      const agg=invoiceAggregates(invs);
-      const rec=posReference(pos,refs,byPlu)||{};
-      const supplied=num(agg.qty), posGst=num(pos.gstPct)||0;
-      const posTotal=(supplied!=null&&supplied>0&&num(pos.lastPrice)!=null)?round(Number(pos.lastPrice)*supplied*(1+posGst/100),2):'';
-      const ch2Ws=round(agg.normalWs,2), rawWs=round(rec.POS_CH2_WHOLESALE_EX_GST,2);let wVar='',wCheck='NO CHECK - MISSING DATA';
+      if(Number(detail&&detail.sourceRow)!==Number(pos.sourceRow)||clean(detail&&detail.plu)!==clean(pos.plu)||bc(detail&&detail.barcode)!==bc(pos.barcode)||clean(detail&&detail.posDescription)!==clean(pos.description))throw new Error(`Integrity check failed: reconciliation row ${i+1} no longer matches POS order row ${i+1}.`);
+      const invs=docInvoiceRowsForDetail(detail,doc),agg=invoiceAggregates(invs),rec=posReference(pos,refs)||{},supplied=num(agg.qty),posGst=num(pos.gstPct)||0,posTotal=(supplied!=null&&supplied>0&&num(pos.lastPrice)!=null)?round(Number(pos.lastPrice)*supplied*(1+posGst/100),2):'',ch2Ws=round(agg.normalWs,2),rawWs=round(rec.POS_CH2_WHOLESALE_EX_GST,2);let wVar='',wCheck='NO CHECK - MISSING DATA';
       if(ch2Ws!==''&&rawWs!==''){wVar=round(Number(ch2Ws)-Number(rawWs),2);wCheck=Math.abs(Number(wVar))<=PRICE_TOL?'OK':'MISMATCH';}
       const row={
         'INDEX':i+1,'Order Date':meta.orderDate,'Invoice Date':meta.invoiceDate,'Invoice Number':meta.invoiceNumber,'Your Ref':meta.customerPo,'Line Count':agg.lines,'Tax Amount':i===0?tax:'','Invoice Total':i===0?total:'',
-        'POS_SUPPLIER':supplierFromPos(pos,refs,rec),'MATCH_STATUS':statusFor(pos,invs),'MATCH_METHOD':agg.methods,'MATCH_CONFIDENCE':agg.confidence,'FUZZY_SCORE':agg.fuzzy,
-        // These POS fields deliberately come from the uploaded POS order snapshot, not the reference master.
-        // This preserves row-for-row, value-for-value order integrity.
-        'POS_MASTER_BARCODE':clean(pos.barcode),'POS_PLU':clean(pos.plu),'POS_BRAND':clean(rec.POS_BRAND),'POS_DESCR':clean(pos.description),
-        'CH2_SUPPLIER SKU':agg.sku,'CH2_PRODUCT CODE':agg.code,'CH2_QTY SUPPLIED':invs.length?agg.qty:'','CH2_DISC %':invs.length?round(agg.disc,2):'','CH2_GST':invs.length?agg.gstPct:'',
-        'POS_GST_TAX_PC':round(pos.gstPct,2),'POS_WSP_EXCGST':round(pos.normalWholesale,2),'CH2_NORMAL W/S':invs.length?ch2Ws:'','POS_LAST_PRICE':round(pos.lastPrice,2),'CH2_UNIT PRICE EX GST':invs.length?round(agg.unit,4):'',
-        'POS_RRP_INCGST':round(pos.rrp,2),'CH2_RRP':invs.length?round(agg.rrp,2):'','POS_TOTAL':posTotal,'CH2_TOTAL':invs.length?round(agg.totalInc,2):'','POS_CH2_WHOLESALE_EX_GST':rawWs,
-        'CH2_WHOLESALE_VARIANCE':invs.length?wVar:'','CH2_WHOLESALE_CHECK':invs.length?wCheck:'NO CHECK - NOT INVOICED'
+        'POS SUPPLIER':supplierFromPos(pos,refs,rec),'MATCH STATUS':statusFor(pos,invs),'MATCH METHOD':invs.length?agg.methods:'NOT INVOICED','MATCH CONFIDENCE':agg.confidence,'FUZZY SCORE':agg.fuzzy,
+        'POS MASTER BARCODE':clean(pos.barcode),'POS PLU':clean(pos.plu),'POS BRAND':clean(rec.POS_BRAND),'POS DESCR':clean(pos.description),
+        'CH2 SUPPLIER SKU':agg.sku,'CH2 PRODUCT CODE':agg.code,'CH2 QTY SUPPLIED':invs.length?agg.qty:'','CH2 DISC %':invs.length?round(agg.disc,2):'','CH2 GST':invs.length?round(agg.gstPct,2):'',
+        'POS GST TAX PC':round(pos.gstPct,2),'POS WSP EXCGST':round(pos.normalWholesale,2),'CH2 NORMAL W/S':invs.length?ch2Ws:'','POS LAST PRICE':round(pos.lastPrice,2),'CH2 UNIT PRICE EX GST':invs.length?round(agg.unit,2):'',
+        'POS RRP INCGST':round(pos.rrp,2),'CH2 RRP':invs.length?round(agg.rrp,2):'','POS TOTAL':posTotal,'CH2 TOTAL':invs.length?round(agg.totalInc,2):'','POS CH2 WHOLESALE EX GST':rawWs,
+        'CH2 WHOLESALE VARIANCE':invs.length?wVar:'','CH2 WHOLESALE CHECK':invs.length?wCheck:'NO CHECK - NOT INVOICED'
       };
-      Object.assign(row,discountAudit(row,refs.supplier.discountRules));
-      out.push(row);
+      Object.assign(row,discountAudit(row,refs.supplier.discountRules,invs.length>0));out.push(row);
     });
 
-    // Never lose a genuine invoice-only line. It is appended AFTER the complete POS-order block,
-    // so it cannot disturb the exact POS row sequence.
     const extras=(reconciliation.unmatchedInvoice||[]).filter(r=>clean(r.sourceFile)===clean(doc.sourceFile));
-    extras.forEach((inv,ei)=>{
-      const agg=invoiceAggregates([inv]);
-      const row={
-        'INDEX':`EXTRA-${ei+1}`,'Order Date':orderDate(inv),'Invoice Date':clean(inv.invoiceDate||meta.invoiceDate),'Invoice Number':clean(inv.invoiceNumber||meta.invoiceNumber),'Your Ref':clean(inv.customerPo||meta.customerPo),'Line Count':lineCount(inv.invoiceLine),'Tax Amount':'','Invoice Total':'',
-        'POS_SUPPLIER':'','MATCH_STATUS':'NOT ORDERED / UNMATCHED','MATCH_METHOD':'NO POS ORDER MATCH','MATCH_CONFIDENCE':'','FUZZY_SCORE':'','POS_MASTER_BARCODE':'','POS_PLU':'','POS_BRAND':'','POS_DESCR':'',
-        'CH2_SUPPLIER SKU':clean(inv.supplierSku),'CH2_PRODUCT CODE':clean(inv.productCode),'CH2_QTY SUPPLIED':round(inv.qtySupplied,3),'CH2_DISC %':round(inv.discountPct,2),'CH2_GST':agg.gstPct,'POS_GST_TAX_PC':'','POS_WSP_EXCGST':'','CH2_NORMAL W/S':round(inv.normalWholesale,2),'POS_LAST_PRICE':'','CH2_UNIT PRICE EX GST':round(inv.unitPriceExGst,4),'POS_RRP_INCGST':'','CH2_RRP':round(inv.rrp,2),'POS_TOTAL':'','CH2_TOTAL':round(inv.totalIncGst,2),'POS_CH2_WHOLESALE_EX_GST':'','CH2_WHOLESALE_VARIANCE':'','CH2_WHOLESALE_CHECK':'NO CHECK - NOT ORDERED',
-        'DIS_EXPECTED %':'','DIS_MATCH_TYPE':'NO POS ORDER MATCH','DIS_MATCH_KEY':'','DIS_MATCH_RULE':'','DIS_CH2_DISC_CHECK':'NO CHECK - NOT ORDERED','DIS_EXPECTED_UNIT_EXGST':'','DIS_UNIT_VARIANCE':'','DIS_UNIT_CHECK':'NO CHECK - NOT ORDERED','DIS_MISSED_TOTAL':''
-      };
-      out.push(row);
-    });
-
-    // Final export integrity assertion. The first N rows MUST equal the uploaded POS order order.
-    for(let i=0;i<posOrder.rows.length;i++){
-      const expected=posOrder.rows[i], actual=out[i];
-      if(clean(actual.POS_PLU)!==clean(expected.plu) || bc(actual.POS_MASTER_BARCODE)!==bc(expected.barcode) || clean(actual.POS_DESCR)!==clean(expected.description)){
-        throw new Error(`Export blocked: POS-order integrity check failed at row ${i+1}.`);
-      }
-    }
+    extras.forEach((inv,ei)=>{const agg=invoiceAggregates([inv]);out.push({'INDEX':`EXTRA-${ei+1}`,'Order Date':clean(inv.orderDate||meta.orderDate),'Invoice Date':clean(inv.invoiceDate||meta.invoiceDate),'Invoice Number':clean(inv.invoiceNumber||meta.invoiceNumber),'Your Ref':clean(inv.customerPo||meta.customerPo),'Line Count':lineCount(inv.invoiceLine),'Tax Amount':'','Invoice Total':'','POS SUPPLIER':'','MATCH STATUS':'NOT ORDERED / UNMATCHED','MATCH METHOD':'NO POS ORDER MATCH','MATCH CONFIDENCE':'','FUZZY SCORE':'','POS MASTER BARCODE':'','POS PLU':'','POS BRAND':'','POS DESCR':'','CH2 SUPPLIER SKU':clean(inv.supplierSku),'CH2 PRODUCT CODE':clean(inv.productCode),'CH2 QTY SUPPLIED':round(inv.qtySupplied,3),'CH2 DISC %':round(inv.discountPct,2),'CH2 GST':round(inv.gstPct,2),'POS GST TAX PC':'','POS WSP EXCGST':'','CH2 NORMAL W/S':round(inv.normalWholesale,2),'POS LAST PRICE':'','CH2 UNIT PRICE EX GST':round(inv.unitPriceExGst,2),'POS RRP INCGST':'','CH2 RRP':round(inv.rrp,2),'POS TOTAL':'','CH2 TOTAL':round(inv.totalIncGst,2),'POS CH2 WHOLESALE EX GST':'','CH2 WHOLESALE VARIANCE':'','CH2 WHOLESALE CHECK':'NO CHECK - NOT ORDERED','DIS EXPECTED %':'','DIS MATCH TYPE':'NO POS ORDER MATCH','DIS MATCH KEY':'','DIS MATCH RULE':'','DIS CH2 DISC CHECK':'NO CHECK - NOT ORDERED','DIS EXPECTED UNIT EXGST':'','DIS UNIT VARIANCE':'','DIS UNIT CHECK':'NO CHECK - NOT ORDERED','DIS MISSED TOTAL':''});});
 
     const filename=`CH2_PO_${safe(meta.customerPo||posOrder.orderNumber||meta.invoiceNumber,'NO_PO')}_INV_${safe(meta.invoiceNumber||doc.sourceFile,'NO_INV')}_${dateForFilename(meta.invoiceDate)}_PRODUCT_EXTRACT_LINKED_POS.xlsx`;
-    return {rows:out,filename,invoiceNumber:meta.invoiceNumber,customerPo:meta.customerPo,tax,total,sourceFile:doc.sourceFile,posOrderRows:posOrder.rows.length,extraRows:extras.length};
+    const output={rows:out,filename,invoiceNumber:meta.invoiceNumber,customerPo:meta.customerPo,tax,total,sourceFile:doc.sourceFile,posOrderRows:posOrder.rows.length,extraRows:extras.length,doc};
+    const integrity=PHF.integrity.validateOutput(output,posOrder);if(!integrity.ok)throw new Error(`Export blocked: ${integrity.errors.join(' | ')}`);output.integrity=integrity;return output;
   }
+  function buildReferenceOutputs(invoiceDocs,refs,posOrder,reconciliation){return (invoiceDocs||[]).filter(d=>d.type!=='CREDIT_NOTE'&&(d.rows||[]).length).map(d=>buildRowsForDocument(d,refs,posOrder,reconciliation));}
 
-  function buildReferenceOutputs(invoiceDocs,refs,posOrder,reconciliation){
-    return (invoiceDocs||[]).filter(d=>d.type!=='CREDIT_NOTE'&&(d.rows||[]).length).map(d=>buildRowsForDocument(d,refs,posOrder,reconciliation));
-  }
-
-  PHF.linkedPos={HEADERS,TOTAL_HEADERS,buildReferenceOutputs,buildRowsForDocument};
+  PHF.linkedPos={HEADERS:PHF.schema.HEADERS,TOTAL_HEADERS:PHF.schema.TOTAL_HEADERS,buildReferenceOutputs,buildRowsForDocument};
 })(window);
