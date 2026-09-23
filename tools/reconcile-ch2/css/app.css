@@ -62,48 +62,93 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 @media(max-width:760px){.table-wrap.preview-pos{max-height:64vh}.preview-pos .pos-total-left span{display:none}}
 
 
-/* v2.4.8 — true full-width desktop reconciliation workspace.
-   The main upload workflow stays compact; only the results panel breaks out
-   of the 1000px .wrap so POS staff can use the available monitor width. */
+/* v2.4.9 — responsive reconciliation workspace.
+   The review area scales with the actual browser viewport instead of targeting a
+   fixed desktop width. Numeric POS columns remain compact; Product Description
+   absorbs spare width. On smaller screens the grid keeps a usable minimum width
+   and scrolls horizontally rather than crushing the columns. */
+.results {
+  --workspace-gutter: clamp(8px, 1.2vw, 24px);
+}
+
 @media (min-width: 1001px) {
   .results {
-    width: calc(100vw - 24px);
+    width: calc(100vw - (var(--workspace-gutter) * 2));
     max-width: none !important;
     position: relative;
     left: 50%;
     transform: translateX(-50%);
-    padding-left: 18px;
-    padding-right: 18px;
+    padding: clamp(12px, 1vw, 20px);
   }
 
   .results .table-wrap {
     width: 100%;
     max-width: none;
   }
-
-  .results .preview-pos table {
-    min-width: 1480px;
-  }
-
-  .results .preview-pos td.pos-desc {
-    min-width: 330px;
-    max-width: 520px;
-  }
 }
 
-@media (min-width: 1800px) {
-  .results {
-    width: calc(100vw - 32px);
-  }
+/* Scale the POS review viewport with screen height as well as width. */
+.table-wrap.preview-pos {
+  width: 100%;
+  height: clamp(440px, 66dvh, 900px);
+  max-height: none;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
 
-  .results .preview-pos table {
-    min-width: 1580px;
-  }
+/* Let the description use spare screen width while keeping operational fields
+   compact and familiar. */
+.results .preview-pos table.pos-preview-table {
+  width: 100%;
+  min-width: 1180px;
+  table-layout: auto;
+  font-size: clamp(10px, 0.42vw + 2px, 12px);
+}
 
-  .results .preview-pos td.pos-desc {
-    min-width: 380px;
-    max-width: 600px;
-  }
+.results .preview-pos th,
+.results .preview-pos td {
+  padding: clamp(4px, 0.22vw, 6px) clamp(5px, 0.32vw, 8px);
+}
+
+/* Identity columns */
+.results .preview-pos th:nth-child(1),
+.results .preview-pos td:nth-child(1) { width: 145px; min-width: 145px; }
+.results .preview-pos th:nth-child(2),
+.results .preview-pos td:nth-child(2) { width: 92px; min-width: 92px; }
+.results .preview-pos th:nth-child(3),
+.results .preview-pos td:nth-child(3) {
+  width: auto;
+  min-width: 260px;
+  max-width: none;
+}
+.results .preview-pos td.pos-desc {
+  min-width: 260px;
+  max-width: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Operational / price columns: deliberately compact.  width:1% makes these
+   hug their content while the description column receives unused space. */
+.results .preview-pos th:nth-child(n+4),
+.results .preview-pos td:nth-child(n+4) { width: 1%; white-space: nowrap; }
+.results .preview-pos th:nth-child(4), .results .preview-pos td:nth-child(4) { min-width: 54px; }
+.results .preview-pos th:nth-child(5), .results .preview-pos td:nth-child(5) { min-width: 48px; }
+.results .preview-pos th:nth-child(6), .results .preview-pos td:nth-child(6) { min-width: 50px; }
+.results .preview-pos th:nth-child(7), .results .preview-pos td:nth-child(7) { min-width: 56px; }
+.results .preview-pos th:nth-child(8), .results .preview-pos td:nth-child(8) { min-width: 38px; }
+.results .preview-pos th:nth-child(9), .results .preview-pos td:nth-child(9) { min-width: 55px; }
+.results .preview-pos th:nth-child(10), .results .preview-pos td:nth-child(10) { min-width: 55px; }
+.results .preview-pos th:nth-child(11), .results .preview-pos td:nth-child(11),
+.results .preview-pos th:nth-child(12), .results .preview-pos td:nth-child(12),
+.results .preview-pos th:nth-child(13), .results .preview-pos td:nth-child(13),
+.results .preview-pos th:nth-child(14), .results .preview-pos td:nth-child(14) { min-width: 72px; }
+.results .preview-pos th:nth-child(15), .results .preview-pos td:nth-child(15) { min-width: 62px; }
+.results .preview-pos th:nth-child(16), .results .preview-pos td:nth-child(16) { min-width: 38px; }
+
+/* Avoid oversized KPI cards on ultrawide monitors while still using the width. */
+@media (min-width: 1500px) {
+  .results .kpis { grid-template-columns: repeat(6, minmax(150px, 1fr)); }
 }
 
 @media (max-width: 1000px) {
@@ -113,4 +158,15 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
     left: auto;
     transform: none;
   }
+  .table-wrap.preview-pos {
+    height: clamp(400px, 62dvh, 720px);
+  }
+  .results .preview-pos table.pos-preview-table {
+    min-width: 1180px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 760px) {
+  .table-wrap.preview-pos { height: 60dvh; min-height: 360px; }
 }

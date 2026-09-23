@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.4.8
+# Prahran Health Foods — CH2 Reconciler v2.4.9
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -217,3 +217,13 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - Reconciliation results now use essentially the full browser width on desktop, leaving only a small outer margin.
 - Upload/reference panels remain compact and centred.
 - POS layout keeps its sticky header/footer, exact POS source order, unsupplied greying and price movement visuals.
+
+
+## v2.4.9 responsive POS workspace
+
+- Results workspace dynamically follows the browser viewport rather than a fixed pixel target.
+- POS preview height scales with available screen height.
+- Product Description absorbs spare horizontal width.
+- Numeric, quantity and price columns remain compact instead of stretching into wasted space.
+- Small screens retain a readable minimum grid width and scroll horizontally.
+- Sticky POS header, sticky totals, source-row ordering, grey unsupplied rows and price movement arrows are unchanged.
