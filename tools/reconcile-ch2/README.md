@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.4.7
+# Prahran Health Foods — CH2 Reconciler v2.4.8
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -184,7 +184,7 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - Preserves the integrity block: Excel is generated only when billed line sums reconcile to the supplier invoice footer.
 - Regression-tested against invoice 74089986: 116 billed rows, 42 cancelled/backordered line segments, 0 unclassified candidates, and footer totals 4,943.10 + GST 417.31 = 5,360.41.
 
-## v2.4.7 POS preview usability refinements
+## v2.4.8 POS preview usability refinements
 
 - The POS-layout preview continues to show **every ordered POS row in the exact uploaded source order**.
 - A POS row with zero supplier quantity is retained and greyed out instead of disappearing.
@@ -202,10 +202,18 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - The comparison is presentation-only. It does not replace the source POS values or alter reconciliation calculations.
 
 
-## v2.4.7 wide POS preview + source-order lock
+## v2.4.8 wide POS preview + source-order lock
 
 - Reconciliation results use the available desktop width (up to ~1680 px) while the upload workflow remains compact.
 - POS Layout is always rendered from the uploaded POS source rows sorted by `sourceRow`; supplier PDF order can never control the preview order.
 - Invoice/reconciliation detail is attached back to the POS row by `sourceRow`, matching the same principle used by the Excel export.
 - Switching preview views resets the table to the first row and first column so a retained scroll position cannot make the sequence appear out of order.
 - Existing grey not-supplied rows, sticky header/footer, totals, and price movement arrows are preserved.
+
+
+## v2.4.8 true full-width results workspace
+
+- Fixes the v2.4.7 stylesheet deployment issue where escaped newline text prevented the desktop breakout rules from being parsed by the browser.
+- Reconciliation results now use essentially the full browser width on desktop, leaving only a small outer margin.
+- Upload/reference panels remain compact and centred.
+- POS layout keeps its sticky header/footer, exact POS source order, unsupplied greying and price movement visuals.

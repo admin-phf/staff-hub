@@ -60,4 +60,57 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .preview-pos .price-same{background:#f2f3f4!important;color:#73777c!important;font-weight:700}
 .preview-pos .price-same .price-arrow{color:#9aa0a6}
 @media(max-width:760px){.table-wrap.preview-pos{max-height:64vh}.preview-pos .pos-total-left span{display:none}}
-\n\n/* v2.4.7 — use the desktop canvas for reconciliation previews */\n@media(min-width:1001px){\n  .results{\n    width:min(1600px,calc(100vw - 32px));\n    max-width:none;\n    position:relative;\n    left:50%;\n    transform:translateX(-50%);\n  }\n  .results .table-wrap{width:100%}\n  .results .preview-pos table{min-width:1420px}\n}\n@media(min-width:1500px){\n  .results{width:min(1680px,calc(100vw - 40px))}\n  .preview-pos td.pos-desc{min-width:330px;max-width:480px}\n}\n@media(max-width:1000px){\n  .results{width:auto;left:auto;transform:none}\n}\n
+
+
+/* v2.4.8 — true full-width desktop reconciliation workspace.
+   The main upload workflow stays compact; only the results panel breaks out
+   of the 1000px .wrap so POS staff can use the available monitor width. */
+@media (min-width: 1001px) {
+  .results {
+    width: calc(100vw - 24px);
+    max-width: none !important;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+
+  .results .table-wrap {
+    width: 100%;
+    max-width: none;
+  }
+
+  .results .preview-pos table {
+    min-width: 1480px;
+  }
+
+  .results .preview-pos td.pos-desc {
+    min-width: 330px;
+    max-width: 520px;
+  }
+}
+
+@media (min-width: 1800px) {
+  .results {
+    width: calc(100vw - 32px);
+  }
+
+  .results .preview-pos table {
+    min-width: 1580px;
+  }
+
+  .results .preview-pos td.pos-desc {
+    min-width: 380px;
+    max-width: 600px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .results {
+    width: auto;
+    max-width: none;
+    left: auto;
+    transform: none;
+  }
+}
