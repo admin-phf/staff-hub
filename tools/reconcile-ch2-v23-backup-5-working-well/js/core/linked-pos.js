@@ -8,7 +8,6 @@
   function bc(v){return digits(v);}
   function num(v){if(typeof v==='number'&&Number.isFinite(v))return v;let s=clean(v).replace(/[$,%]/g,'').replace(/,/g,'');if(!s)return null;if(/^\.\d+$/.test(s))s='0'+s;const n=Number(s);return Number.isFinite(n)?n:null;}
   function round(v,n=2){const x=num(v);if(x==null)return '';const p=10**n;return Math.round((x+Number.EPSILON)*p)/p;}
-  function roundHalfUp(v,n=2){const x=num(v);if(x==null)return '';const p=10**n,sign=x<0?-1:1;return sign*(Math.floor(Math.abs(x)*p+0.5+1e-9)/p);}
   function normText(v){return clean(v).toUpperCase().replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();}
   function dateForFilename(v){const s=clean(v);let m=s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);if(m)return `${m[1]}.${m[2]}.${m[3].slice(-2)}`;m=s.match(/^(\d{2})[.-](\d{2})[.-](\d{4})$/);if(m)return `${m[1]}.${m[2]}.${m[3].slice(-2)}`;return new Date().toLocaleDateString('en-AU').split('/').map((x,i)=>i===2?x.slice(-2):x.padStart(2,'0')).join('.');}
   function safe(v,fallback='UNKNOWN'){let s=clean(v)||fallback;s=s.replace(/[^A-Za-z0-9._-]+/g,'_').replace(/_+/g,'_').replace(/^_+|_+$/g,'');return s||fallback;}
@@ -60,16 +59,16 @@
       unitCheck='NO CHECK - MISSING CH2 NORMAL W/S';
     }else{
       const preciseExpected=nws*(1-expected/100);
-      expectedUnit=roundHalfUp(preciseExpected,2);
+      expectedUnit=round(preciseExpected,2);
       if(unit==null){
         unitCheck='NO CHECK - MISSING CH2 UNIT PRICE EX GST';
       }else{
         const preciseVariance=unit-preciseExpected;
-        variance=roundHalfUp(preciseVariance,2);
+        variance=round(preciseVariance,2);
         if(Math.abs(preciseVariance)<=PRICE_TOL)unitCheck='OK';
         else if(preciseVariance< -PRICE_TOL)unitCheck='BETTER PRICE';
         else unitCheck='PRICE HIGH';
-        if(qty!=null)missed=roundHalfUp((preciseVariance>PRICE_TOL?preciseVariance:0)*qty,2);
+        if(qty!=null)missed=round((preciseVariance>PRICE_TOL?preciseVariance:0)*qty,2);
       }
     }
     return {...base,'DIS CH2 DISC CHECK':discCheck,'DIS EXPECTED UNIT EXGST':expectedUnit,'DIS UNIT VARIANCE':variance,'DIS UNIT CHECK':unitCheck,'DIS MISSED TOTAL':missed};
@@ -79,7 +78,7 @@
   function posReference(pos,refs){const b=bc(pos&&pos.barcode);if(b&&refs.master.byBarcode.has(b))return refs.master.byBarcode.get(b);const s=digits(pos&&pos.subId);if(s&&refs.master.byCode.has(s))return refs.master.byCode.get(s);const p=digits(pos&&pos.plu);if(p&&refs.master.byPlu&&refs.master.byPlu.has(p))return refs.master.byPlu.get(p);return {};}
   function statusFor(pos,invs){const ordered=num(pos&&pos.orderedQty)||0,supplied=round(sumRows(invs,'qtySupplied'),3)||0;if(!invs.length)return `NOT INVOICED / SHORT SHIPPED — ORDERED ${ordered} / SUPPLIED 0`;const conf=lowestConfidence(invs),auditMissing=invs.some(r=>r.discountPct==null||r.normalWholesale==null);if(supplied<ordered-0.0001)return `MATCHED / SHORT SUPPLIED — ORDERED ${ordered} / SUPPLIED ${supplied}`;if(supplied>ordered+0.0001)return `MATCHED / OVER SUPPLIED — ORDERED ${ordered} / SUPPLIED ${supplied}`;if(conf==='LOW')return 'MATCHED - REVIEW (LOW CONFIDENCE)';if(auditMissing)return 'MATCHED - REVIEW (CH2 AUDIT DATA MISSING)';return 'MATCHED';}
   function docInvoiceRowsForDetail(detail,doc){return (detail&&detail.invoiceRows||[]).filter(r=>clean(r.sourceFile)===clean(doc.sourceFile));}
-  function docMeta(doc,posOrder){const first=(doc.rows||[])[0]||{},m=doc.meta||{};return {orderDate:clean(first.orderDate||m.orderDate||first.invoiceDate||m.invoiceDate),invoiceDate:clean(first.invoiceDate||m.invoiceDate),invoiceNumber:clean(first.invoiceNumber||m.invoiceNumber),customerPo:clean(first.customerPo||m.customerPo||(posOrder&&posOrder.orderNumber))};}
+  function docMeta(doc){const first=(doc.rows||[])[0]||{},m=doc.meta||{};return {orderDate:clean(first.orderDate||m.orderDate||first.invoiceDate||m.invoiceDate),invoiceDate:clean(first.invoiceDate||m.invoiceDate),invoiceNumber:clean(first.invoiceNumber||m.invoiceNumber),customerPo:clean(first.customerPo||m.customerPo)};}
   function invoiceAggregates(invs){
     const q=round(sumRows(invs,'qtySupplied'),3),gstAmount=round(sumRows(invs,'gstAmount'),2),totalInc=round(sumRows(invs,'totalIncGst'),2),lines=uniq(invs.map(r=>lineCount(r.invoiceLine))).sort((a,b)=>(num(a)||0)-(num(b)||0)).join(', '),methods=uniq(invs.map(r=>r.matchMethod)).join(', '),scores=invs.map(r=>num(r.descriptionScore)).filter(v=>v!=null);
     return {qty:q,gstAmount,totalInc,lines,methods,confidence:lowestConfidence(invs),fuzzy:scores.length?round(Math.min(...scores),1):'',sku:uniq(invs.map(r=>r.supplierSku)).join(', '),code:uniq(invs.map(r=>r.productCode)).join(', '),disc:weightedAverage(invs,'discountPct'),normalWs:weightedAverage(invs,'normalWholesale'),unit:weightedAverage(invs,'unitPriceExGst'),rrp:weightedAverage(invs,'rrp'),gstPct:weightedAverage(invs,'gstPct')};
@@ -88,7 +87,7 @@
   function buildRowsForDocument(doc,refs,posOrder,reconciliation){
     if(!posOrder||!Array.isArray(posOrder.rows)||!posOrder.rows.length)throw new Error('POS order data is required for the linked-POS export.');
     if(!reconciliation||!Array.isArray(reconciliation.detail)||reconciliation.detail.length!==posOrder.rows.length)throw new Error('Reconciliation detail does not align to the POS order. Run reconciliation again before downloading.');
-    const sourceInvoiceRows=(doc.rows||[]).slice().sort((a,b)=>(num(a.invoiceLine)||0)-(num(b.invoiceLine)||0)),lineTax=round(sourceInvoiceRows.reduce((a,r)=>a+(num(r.gstAmount)||0),0),2),lineTotal=round(sourceInvoiceRows.reduce((a,r)=>a+(num(r.totalIncGst)||0),0),2),footer=doc.integrity&&doc.integrity.footerOk?doc.integrity.footer:null,tax=footer?footer.gst:lineTax,total=footer?footer.total:lineTotal,meta=docMeta(doc,posOrder),out=[];
+    const sourceInvoiceRows=(doc.rows||[]).slice().sort((a,b)=>(num(a.invoiceLine)||0)-(num(b.invoiceLine)||0)),lineTax=round(sourceInvoiceRows.reduce((a,r)=>a+(num(r.gstAmount)||0),0),2),lineTotal=round(sourceInvoiceRows.reduce((a,r)=>a+(num(r.totalIncGst)||0),0),2),footer=doc.integrity&&doc.integrity.footerOk?doc.integrity.footer:null,tax=footer?footer.gst:lineTax,total=footer?footer.total:lineTotal,meta=docMeta(doc),out=[];
 
     posOrder.rows.forEach((pos,i)=>{
       const detail=reconciliation.detail[i];

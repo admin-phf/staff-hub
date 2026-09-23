@@ -142,9 +142,6 @@
     m=s.match(/\b(\d{2}\/\d{2}\/\d{4})\b/);if(m)meta.invoiceDate=m[1];
     m=s.match(/\b(\d{2}[.\/-]\d{2}[.\/-]\d{4}[-–][A-Z]{2,10}[-–][A-Z0-9]{2,10})\b/i);
     if(m){meta.customerPo=m[1].replace(/[–—]/g,'-');const d=meta.customerPo.match(/^(\d{2})[.\/-](\d{2})[.\/-](\d{4})/);if(d)meta.orderDate=`${d[1]}/${d[2]}/${d[3]}`;}
-    // Newer POS back-end orders can use a numeric reference such as 105-0008788
-    // rather than the older date/store reference. Preserve it as Your Ref.
-    if(!meta.customerPo){m=s.match(/\b(\d{3,4}-\d{6,9})\b/);if(m)meta.customerPo=m[1];}
     if(!meta.orderDate)meta.orderDate=meta.invoiceDate;return meta;
   }
   function extractFooterTotals(textContent,viewport){

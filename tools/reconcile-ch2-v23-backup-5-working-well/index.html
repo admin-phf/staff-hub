@@ -69,21 +69,18 @@
           <h2>Reconciliation result</h2>
           <p id="resultSub"></p>
         </div>
-        <div class="actions result-actions">
+        <div class="actions">
           <button class="btn primary" id="downloadBtn">Download Full Reconciliation.xlsx</button>
-          <div class="view-picker" role="group" aria-label="Preview view">
-            <span class="view-label">View:</span>
-            <button class="btn small view-btn active" id="viewExceptionsBtn" type="button">Exceptions</button>
-            <button class="btn small view-btn" id="viewAllBtn" type="button">All lines</button>
-            <button class="btn small view-btn" id="viewPosBtn" type="button">POS layout</button>
-          </div>
+          <button class="btn" id="toggleAllBtn">Show all lines</button>
         </div>
       </div>
       <div class="kpis" id="kpis"></div>
       <div class="notice hidden" id="warningBox"></div>
       <div class="table-wrap">
         <table id="resultTable">
-          <thead id="resultTableHead"></thead>
+          <thead><tr>
+            <th>Status</th><th>POS product</th><th>Ordered</th><th>Supplied</th><th>Expected unit</th><th>Invoice unit</th><th>Variance</th><th>Missed $</th><th>Match</th>
+          </tr></thead>
           <tbody></tbody>
         </table>
       </div>

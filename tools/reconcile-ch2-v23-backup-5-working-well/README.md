@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.4.5
+# Prahran Health Foods — CH2 Reconciler v2.4.4
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -30,18 +30,6 @@ The Admin page stores two reference sources locally in IndexedDB on that compute
    - a CSV export of `SRC_POS_ONGOING_DISCOUNTS`
 
 Configured central source IDs are retained in `js/reference/reference-config.js` for later authenticated Drive sync, but v2.4 does **not** require an automatic Drive endpoint to operate.
-
-
-## v2.4.5 preview and metadata refinements
-
-- `Your Ref` recognises both legacy date/store references and numeric POS order references such as `105-0008788`; the uploaded POS order number is also used as a safe fallback.
-- Expected discount unit prices use commercial **half-up** rounding for displayed/audited two-decimal values.
-- The browser preview now has three staff views:
-  1. **Exceptions** — only rows needing attention.
-  2. **All lines** — all reconciled POS rows plus genuine invoice-only rows.
-  3. **POS layout** — the uploaded POS order in the same source order using the familiar POS columns: Product #, Sub Id, Product Description, GST %, Units, Qty, Stk In, Ok, MU%, GP%, AdjRRPrc, AdjWSPrc, AdjCatPrc, AdjDPrc, Adj Qty and Inc.
-
-The POS-layout preview is source-only: it shows the actual uploaded POS order values and does not replace or recalculate them.
 
 ## v2.4 integrity engine
 
