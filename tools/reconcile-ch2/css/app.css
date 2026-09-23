@@ -157,3 +157,16 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 @media (min-width:1001px){
   .results .preview-pos table.pos-preview-table{min-width:100%}
 }
+
+
+/* v2.5.3 — cumulative unpacked-quantity entry */
+.pos-tools-actions{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.results .preview-pos td.unpack-qty-entry-cell,.results .preview-pos td.unpack-qty-total-cell{padding:3px 4px;text-align:center;overflow:visible}
+.unpack-qty-input,.unpack-qty-total{display:block;width:100%;min-width:0;height:22px;padding:2px 5px;border:1px solid #b9c1c7;border-radius:3px;font:700 10px/1 Arial,"Helvetica Neue",sans-serif;font-variant-numeric:tabular-nums;text-align:right;background:#fff;color:#222;outline:none}
+.unpack-qty-input:focus{border-color:#2E7D32;box-shadow:0 0 0 2px rgba(46,125,50,.14)}
+.unpack-qty-input::placeholder{color:#a3a8ad}
+.unpack-qty-total{background:#eef4f7;border-color:#cad7df;color:#0b3e78;font-weight:900;cursor:default}
+.preview-pos tbody tr.pos-not-supplied .unpack-qty-input{background:#fff;color:#4f555a;border-color:#c6cbd0}
+.preview-pos tbody tr.pos-not-supplied .unpack-qty-total{background:#e2e7ea;color:#657078;border-color:#c6cbd0}
+.preview-pos tbody tr.unpack-checked .unpack-qty-input,.preview-pos tbody tr.unpack-checked .unpack-qty-total{opacity:1!important;text-decoration:none!important}
+@media(max-width:760px){.pos-tools-actions{width:100%;justify-content:flex-end}}

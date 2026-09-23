@@ -1,10 +1,10 @@
 (function(global){
   'use strict';
   const PHF=global.PHFReconcile||{};
-  const state={pos:null,invoices:[],result:null,previewView:'exceptions',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackKey:null};
+  const state={pos:null,invoices:[],result:null,previewView:'exceptions',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null};
   const els={
     referenceReady:document.querySelector('#referenceReady'),referenceDot:document.querySelector('#referenceDot'),buildLabel:document.querySelector('#buildLabel'),
-    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn')
+    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn')
   };
 
   const RECON_HEADERS=['Status','POS product','Ordered','Supplied','Expected unit','Invoice unit','Variance','Missed $','Match'];
@@ -21,6 +21,8 @@
     {key:'gst_tax_pc',label:'GST %',kind:'number',dp:2,min:44,max:60,grow:.01},
     {key:'units',label:'Units',kind:'number',dp:2,min:40,max:54,grow:.01},
     {key:'qty',label:'Qty',kind:'number',dp:2,min:40,max:54,grow:.01},
+    {key:'__unpack_add',label:'Add Qty',kind:'qtyinput',cls:'unpack-qty-entry-cell',min:58,max:76,grow:.01},
+    {key:'__unpack_total',label:'Found',kind:'qtytotal',cls:'unpack-qty-total-cell',min:56,max:74,grow:.01},
     {key:'qty_stk_in',label:'Stk In',kind:'number',dp:3,min:46,max:62,grow:.01},
     {key:'or_ok',label:'Ok',kind:'bool',flag:'ok-flag',min:30,max:38},
     {key:'mupc',label:'MU%',kind:'number',dp:2,min:46,max:64,grow:.015},
@@ -128,6 +130,30 @@
     if(!state.unpackKey)return;
     try{sessionStorage.setItem(state.unpackKey,JSON.stringify([...state.unpackChecked]));}catch(err){console.warn('Could not save unpacking checklist',err);}
   }
+  function unpackCountsStorageKey(){
+    const id=(state.posParsed&&state.posParsed.orderNumber)||(state.pos&&state.pos.name)||'current-order';
+    return `phf-ch2-unpackqty:${String(id).replace(/[^a-z0-9._-]+/gi,'_')}`;
+  }
+  function loadUnpackCounts(){
+    const key=unpackCountsStorageKey();state.unpackCountsKey=key;state.unpackCounts=new Map();
+    try{const raw=sessionStorage.getItem(key);if(raw){const obj=JSON.parse(raw);if(obj&&typeof obj==='object'&&!Array.isArray(obj)){for(const [k,v] of Object.entries(obj)){const n=Number(v);if(Number.isFinite(n))state.unpackCounts.set(String(k),n);}}}}catch(err){console.warn('Could not restore unpacked quantity totals',err);}
+  }
+  function saveUnpackCounts(){
+    if(!state.unpackCountsKey)return;
+    try{sessionStorage.setItem(state.unpackCountsKey,JSON.stringify(Object.fromEntries(state.unpackCounts)));}catch(err){console.warn('Could not save unpacked quantity totals',err);}
+  }
+  function unpackCountFor(pos){
+    const key=unpackIdentity(pos),v=Number(state.unpackCounts.get(key)||0);return Number.isFinite(v)?v:0;
+  }
+  function displayUnpackCount(v){
+    const n=Number(v);if(!Number.isFinite(n))return '0';return n.toLocaleString(undefined,{minimumFractionDigits:0,maximumFractionDigits:3});
+  }
+  function applyUnpackDelta(posKey,delta){
+    const d=Number(delta);if(!posKey||!Number.isFinite(d)||d===0)return null;
+    const current=Number(state.unpackCounts.get(posKey)||0),next=Math.max(0,Math.round((current+d)*1000)/1000);
+    if(next===0)state.unpackCounts.delete(posKey);else state.unpackCounts.set(posKey,next);
+    saveUnpackCounts();return next;
+  }
   function checklistCount(rows){
     let checked=0;for(const pos of rows||[])if(state.unpackChecked.has(unpackIdentity(pos)))checked++;return checked;
   }
@@ -140,6 +166,8 @@
 
   function posSizingText(pos,c,detail,notSupplied){
     if(c.kind==='check')return '✓';
+    if(c.kind==='qtyinput')return '-999.999';
+    if(c.kind==='qtytotal')return displayUnpackCount(unpackCountFor(pos));
     const v=posColumnValue(pos,c);
     if(c.kind==='bool')return boolValue(v)?'✓':'';
     if(c.kind==='number'){
@@ -249,7 +277,7 @@
     else if(filesReady)setStatus(`Ready: 1 POS order and ${state.invoices.length} supplier invoice${state.invoices.length===1?'':'s'} selected.`,'ok');
     else setStatus('Add one POS order and at least one supplier invoice to continue.','info');
   }
-  function addPos(files){const f=[...files].find(x=>validExt(x,['.xls','.xlsx','.csv']));if(f)state.pos=f;state.result=null;state.posParsed=null;state.runIntegrity=null;state.unpackChecked=new Set();state.unpackKey=null;hideResults();renderFiles();}
+  function addPos(files){const f=[...files].find(x=>validExt(x,['.xls','.xlsx','.csv']));if(f)state.pos=f;state.result=null;state.posParsed=null;state.runIntegrity=null;state.unpackChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;hideResults();renderFiles();}
   function addInvoices(files){for(const f of files){if(validExt(f,['.pdf','.xls','.xlsx','.csv'])&&!state.invoices.some(x=>x.name===f.name&&x.size===f.size))state.invoices.push(f);}state.result=null;state.docs=[];state.runIntegrity=null;hideResults();renderFiles();}
   function wireDrop(zone,input,handler){zone.onclick=()=>input.click();zone.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();input.click();}};input.onchange=()=>handler(input.files);['dragenter','dragover'].forEach(evt=>zone.addEventListener(evt,e=>{e.preventDefault();zone.classList.add('drag');}));['dragleave','drop'].forEach(evt=>zone.addEventListener(evt,e=>{e.preventDefault();zone.classList.remove('drag');}));zone.addEventListener('drop',e=>handler(e.dataTransfer.files));}
 
@@ -281,6 +309,13 @@
         if(c.kind==='check'){
           html=`<button type="button" class="unpack-check ${unpackDone?'checked':''}" data-unpack-key="${escapeHtml(encodeURIComponent(checkKey))}" aria-pressed="${unpackDone?'true':'false'}" title="${unpackDone?'Mark as not checked':'Mark as unpacked / checked'}"><span aria-hidden="true">${unpackDone?'✓':''}</span></button>`;
           extraCls=' unpack-cell';
+        }else if(c.kind==='qtyinput'){
+          const item=String(pos.description||pos.barcode||'this product');
+          html=`<input class="unpack-qty-input" type="number" step="any" inputmode="decimal" autocomplete="off" data-unpack-qty-key="${escapeHtml(encodeURIComponent(checkKey))}" aria-label="Add unpacked quantity for ${escapeHtml(item)}" title="Enter a quantity and press Enter/Tab or click away. Negative values subtract.">`;
+        }else if(c.kind==='qtytotal'){
+          const found=unpackCountFor(pos),ordered=numberValue(pos.orderedQty),supplied=detail?numberValue(detail.suppliedQty):null;
+          const expected=supplied!=null?`Supplier supplied: ${displayUnpackCount(supplied)}`:(ordered!=null?`POS ordered: ${displayUnpackCount(ordered)}`:'Running unpacked total');
+          html=`<input class="unpack-qty-total" type="text" readonly tabindex="-1" value="${escapeHtml(displayUnpackCount(found))}" title="${escapeHtml(expected)}" aria-label="Running unpacked total ${escapeHtml(displayUnpackCount(found))}">`;
         }else if(c.kind==='bool'){const checked=boolValue(v);html=`<span class="pos-checkbox ${c.flag||''} ${checked?'checked':''}" aria-label="${checked?'Checked':'Not checked'}">${checked?'✓':''}</span>`;}
         else if(c.kind==='number'){
           html=escapeHtml(fixed(v,c.dp??2));const target=comparisonTarget(detail,c.key),move=priceMove(v,target);
@@ -291,6 +326,15 @@
       return `<tr${rowClasses?` class="${rowClasses}"`:''}${notSupplied?' data-not-supplied="1"':''}>${cells}</tr>`;
     }).join(''):`<tr><td colspan="${POS_VIEW_COLUMNS.length}">No POS order rows available.</td></tr>`;
 
+    function commitQtyInput(input){
+      if(!input||!input.classList.contains('unpack-qty-input'))return;
+      const raw=String(input.value||'').trim();if(!raw)return;
+      const delta=Number(raw);if(!Number.isFinite(delta)){input.value='';return;}
+      let key='';try{key=decodeURIComponent(input.dataset.unpackQtyKey||'');}catch(_){key=input.dataset.unpackQtyKey||'';}if(!key){input.value='';return;}
+      const total=applyUnpackDelta(key,delta);input.value='';
+      const tr=input.closest('tr'),out=tr&&tr.querySelector('.unpack-qty-total');if(out&&total!=null){out.value=displayUnpackCount(total);out.setAttribute('aria-label',`Running unpacked total ${displayUnpackCount(total)}`);}
+      schedulePosColumnSizing();
+    }
     els.tableBody.onclick=e=>{
       const btn=e.target.closest('.unpack-check');if(!btn)return;e.preventDefault();e.stopPropagation();
       let key='';try{key=decodeURIComponent(btn.dataset.unpackKey||'');}catch(_){key=btn.dataset.unpackKey||'';}if(!key)return;
@@ -299,6 +343,8 @@
       const tr=btn.closest('tr');if(tr)tr.classList.toggle('unpack-checked',checked);const p=updateChecklistUi(rows);
       const footProgress=els.tableFoot&&els.tableFoot.querySelector('[data-check-progress]');if(footProgress)footProgress.textContent=`checked ${p.checked}/${p.total}`;
     };
+    els.tableBody.onkeydown=e=>{const input=e.target.closest('.unpack-qty-input');if(input&&e.key==='Enter'){e.preventDefault();commitQtyInput(input);}};
+    els.tableBody.onfocusout=e=>{const input=e.target.closest('.unpack-qty-input');if(input)commitQtyInput(input);};
 
     if(els.tableFoot){
       if(rows.length){const totals=posTotals(rows),leftSpan=Math.max(1,POS_VIEW_COLUMNS.length-5);els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="${leftSpan}" class="pos-total-left"><strong>Current Order</strong><span>${rows.length.toLocaleString()} product line${rows.length===1?'':'s'} · <b data-check-progress>checked ${progress.checked}/${progress.total}</b> · grey rows = not supplied</span></td><td colspan="2" class="pos-total-label">Current / Adjusted Total</td><td class="pos-total-current">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted">${money(totals.adjusted)}</td></tr>`;}
@@ -324,7 +370,7 @@
     els.runBtn.disabled=true;els.clearBtn.disabled=true;hideResults();setProgress(4);setStatus('Loading POS/master and discount reference data…','info');
     try{
       state.refs=await PHF.referenceStore.parseStored();setProgress(18);setStatus(`Reference data ready: ${state.refs.master.info.records.toLocaleString()} CH2 codes and ${state.refs.supplier.info.discountRules.toLocaleString()} discount rules. Reading POS order…`,'info');
-      const pos=await PHF.parsePosOrder(state.pos);state.posParsed=pos;loadUnpackChecklist();setProgress(35);setStatus(`POS order read: ${pos.rows.length} ordered product lines. Reading supplier invoice(s)…`,'info');
+      const pos=await PHF.parsePosOrder(state.pos);state.posParsed=pos;loadUnpackChecklist();loadUnpackCounts();setProgress(35);setStatus(`POS order read: ${pos.rows.length} ordered product lines. Reading supplier invoice(s)…`,'info');
       const docs=[];for(let i=0;i<state.invoices.length;i++){const doc=await PHF.parseSupplierInvoice(state.invoices[i]);docs.push(doc);setProgress(35+Math.round(((i+1)/state.invoices.length)*38));}state.docs=docs;
       const invoiceCount=docs.reduce((a,d)=>a+(d.rows||[]).length,0);setStatus(`Supplier invoices read: ${invoiceCount} billed product lines. Matching to POS order…`,'info');setProgress(82);
       state.result=PHF.reconcile(pos,docs,state.refs);state.runIntegrity=PHF.integrity.validateRun(pos,docs,state.result);state.result.integrity=state.runIntegrity;setProgress(100);
@@ -335,7 +381,7 @@
   }
 
   wireDrop(els.posDrop,els.posInput,addPos);wireDrop(els.invoiceDrop,els.invoiceInput,addInvoices);
-  els.clearBtn.onclick=()=>{state.pos=null;state.invoices=[];state.result=null;state.docs=[];state.posParsed=null;state.previewView='exceptions';state.runIntegrity=null;state.unpackChecked=new Set();state.unpackKey=null;els.posInput.value='';els.invoiceInput.value='';hideResults();hideProgress();renderFiles();};
+  els.clearBtn.onclick=()=>{state.pos=null;state.invoices=[];state.result=null;state.docs=[];state.posParsed=null;state.previewView='exceptions';state.runIntegrity=null;state.unpackChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;els.posInput.value='';els.invoiceInput.value='';hideResults();hideProgress();renderFiles();};
   els.runBtn.onclick=run;
   els.downloadBtn.onclick=async()=>{if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok)return;const old=els.downloadBtn.textContent;els.downloadBtn.disabled=true;els.downloadBtn.textContent='Building + validating Excel…';try{await PHF.exportReference(state.docs,state.refs,state.posParsed,state.result);setStatus('Excel generated and passed workbook compatibility/integrity validation.','ok');}catch(err){console.error(err);setStatus(err&&err.message?err.message:String(err),'warn');}finally{els.downloadBtn.disabled=!state.runIntegrity.ok;els.downloadBtn.textContent=old;}};
   function setPreviewView(view){
@@ -348,6 +394,7 @@
   if(els.viewAllBtn)els.viewAllBtn.onclick=()=>setPreviewView('all');
   if(els.viewPosBtn)els.viewPosBtn.onclick=()=>setPreviewView('pos');
   if(els.clearChecksBtn)els.clearChecksBtn.onclick=()=>{state.unpackChecked.clear();saveUnpackChecklist();if(state.previewView==='pos'&&state.result)renderPosTable();};
+  if(els.clearCountsBtn)els.clearCountsBtn.onclick=()=>{state.unpackCounts.clear();saveUnpackCounts();if(state.previewView==='pos'&&state.result)renderPosTable();};
   if(els.buildLabel&&PHF.schema&&PHF.schema.BUILD)els.buildLabel.textContent=`v${PHF.schema.BUILD.version} · ${PHF.schema.BUILD.name}`;
   refreshReferenceStatus();
 })(window);

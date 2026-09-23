@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.5.2
+# Prahran Health Foods — CH2 Reconciler v2.5.3
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -263,3 +263,14 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - POS Layout identity block is now: unpacking check → Product # / barcode → POS Brand → POS PLU → Sub Id → Product Description.
 - POS Brand is read from the cached merged POS/master reference. If a master record cannot be resolved, the brand is left blank rather than guessed.
 - POS PLU comes from the uploaded POS order, preserving the source snapshot.
+
+
+## v2.5.3 cumulative unpacking quantity tally
+
+- POS Layout adds two operational unpacking columns immediately after the POS Qty column: **Add Qty** and **Found**.
+- **Add Qty** accepts the quantity found in the current carton/box. Press **Enter**, **Tab**, or click away to add it to the running **Found** total; the Add Qty field then clears automatically.
+- Negative entries are supported for corrections (for example `-6`). Running totals are never allowed below zero.
+- The **Found** field is read-only and shows the cumulative physical quantity entered for that POS row.
+- Quantity totals are session-local, keyed to the POS order/product identity, and survive switching between preview views and rerunning the same order in the current browser tab.
+- A **Clear qty** control resets only the physical-count totals; **Clear checks** continues to reset only the row checklist.
+- Quantity entry works on supplied and grey not-supplied rows alike. It is operational only and does not change reconciliation, pricing, supplier quantities, integrity checks, or Excel output.
