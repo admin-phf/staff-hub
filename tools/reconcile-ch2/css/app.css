@@ -133,3 +133,18 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 @media (max-width: 760px) {
   .table-wrap.preview-pos { height: 60dvh; min-height: 360px; }
 }
+
+
+/* v2.5.1 — natural-width POS columns + interactive unpacking checklist */
+.pos-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 8px;padding:7px 9px;border:1px solid #dfe3e6;border-radius:8px;background:#f8fafb;font-size:11px}
+.pos-check-progress{font-weight:900;color:#0b3e78;white-space:nowrap}.pos-tools-note{color:#6a6a6d;flex:1 1 260px}.pos-tools .btn{padding:5px 9px;font-size:10px}
+.results .preview-pos th.unpack-head,.results .preview-pos td.unpack-cell{text-align:center;padding-left:4px;padding-right:4px;overflow:visible}
+.unpack-check{width:18px;height:18px;border:1.5px solid #6c747c;border-radius:3px;background:#fff;display:inline-grid;place-items:center;padding:0;cursor:pointer;color:#fff;font-size:12px;font-weight:900;line-height:1;vertical-align:middle}
+.unpack-check:hover{border-color:#2E7D32;box-shadow:0 0 0 2px rgba(46,125,50,.12)}.unpack-check:focus-visible{outline:2px solid #2E7D32;outline-offset:2px}.unpack-check.checked{background:#2E7D32;border-color:#2E7D32}
+.preview-pos tbody tr.unpack-checked td:not(.unpack-cell){text-decoration-line:line-through;text-decoration-thickness:1px;text-decoration-color:rgba(35,35,35,.72)}
+.preview-pos tbody tr.unpack-checked td:not(.unpack-cell)>*{opacity:.68}.preview-pos tbody tr.unpack-checked td:not(.unpack-cell){color:#70767b}
+.preview-pos tbody tr.unpack-checked.pos-not-supplied td:not(.unpack-cell){text-decoration-color:rgba(90,95,100,.72)}
+/* Natural content is now allowed to stop before the far edge on ultrawide monitors.
+   This avoids stretching Product Description or price columns just to fill space. */
+.results .preview-pos table.pos-preview-table{width:auto;max-width:none}
+@media(max-width:760px){.pos-tools-note{display:none}.pos-tools{justify-content:space-between}}

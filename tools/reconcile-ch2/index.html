@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Prahran Health Foods — Reconcile CH2 Order</title>
-  <link rel="stylesheet" href="./css/app.css?v=250">
+  <link rel="stylesheet" href="./css/app.css?v=251">
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
@@ -81,6 +81,11 @@
       </div>
       <div class="kpis" id="kpis"></div>
       <div class="notice hidden" id="warningBox"></div>
+      <div class="pos-tools hidden" id="posTools">
+        <div class="pos-check-progress" id="posCheckProgress">Checked 0 / 0</div>
+        <span class="pos-tools-note">Unpacking checklist · click the box at the left of any POS row</span>
+        <button class="btn small" id="clearChecksBtn" type="button">Clear checks</button>
+      </div>
       <div class="table-wrap">
         <table id="resultTable">
           <thead id="resultTableHead"></thead>
@@ -95,15 +100,15 @@
     </section>
   </main>
 
-  <script src="./js/reference/reference-config.js?v=250"></script>
-  <script src="./js/reference/reference-data.js?v=250"></script>
-  <script src="./js/core/schema.js?v=250"></script>
-  <script src="./js/core/integrity.js?v=250"></script>
-  <script src="./js/parsers/pos-order.js?v=250"></script>
-  <script src="./js/parsers/supplier-invoice.js?v=250"></script>
-  <script src="./js/core/reconcile.js?v=250"></script>
-  <script src="./js/core/linked-pos.js?v=250"></script>
-  <script src="./js/export/report.js?v=250"></script>
-  <script src="./js/app.js?v=250"></script>
+  <script src="./js/reference/reference-config.js?v=251"></script>
+  <script src="./js/reference/reference-data.js?v=251"></script>
+  <script src="./js/core/schema.js?v=251"></script>
+  <script src="./js/core/integrity.js?v=251"></script>
+  <script src="./js/parsers/pos-order.js?v=251"></script>
+  <script src="./js/parsers/supplier-invoice.js?v=251"></script>
+  <script src="./js/core/reconcile.js?v=251"></script>
+  <script src="./js/core/linked-pos.js?v=251"></script>
+  <script src="./js/export/report.js?v=251"></script>
+  <script src="./js/app.js?v=251"></script>
 </body>
 </html>
