@@ -13,21 +13,23 @@
   // allowed to absorb spare viewport width or give it back first on a smaller window.
   const POS_VIEW_COLUMNS=[
     {key:'__unpack',label:'✓',kind:'check',cls:'unpack-cell',min:32,max:38},
-    {key:'main_id',label:'Product #',kind:'text',cls:'pos-code',min:104,max:178,grow:.10},
-    {key:'sub_id',label:'Sub Id',kind:'text',cls:'pos-code',min:64,max:142,grow:.06},
-    {key:'descr',label:'Product Description',kind:'text',cls:'pos-desc',min:190,max:460,grow:.34},
-    {key:'gst_tax_pc',label:'GST %',kind:'number',dp:2,min:44,max:60,grow:.02},
-    {key:'units',label:'Units',kind:'number',dp:2,min:40,max:54,grow:.02},
-    {key:'qty',label:'Qty',kind:'number',dp:2,min:40,max:54,grow:.02},
-    {key:'qty_stk_in',label:'Stk In',kind:'number',dp:3,min:46,max:62,grow:.02},
+    {key:'main_id',label:'Product #',kind:'text',cls:'pos-code',min:112,max:185,grow:.10,stretch:.11,hardMax:260},
+    {key:'__pos_brand',label:'POS Brand',kind:'text',cls:'pos-brand',min:78,max:170,grow:.12,stretch:.15,hardMax:280},
+    {key:'plu',label:'POS PLU',kind:'text',cls:'pos-code',min:58,max:96,grow:.05,stretch:.06,hardMax:140},
+    {key:'sub_id',label:'Sub Id',kind:'text',cls:'pos-code',min:64,max:145,grow:.06,stretch:.08,hardMax:220},
+    {key:'descr',label:'Product Description',kind:'text',cls:'pos-desc',min:220,max:520,grow:.30,stretch:.38,hardMax:940},
+    {key:'gst_tax_pc',label:'GST %',kind:'number',dp:2,min:44,max:60,grow:.01},
+    {key:'units',label:'Units',kind:'number',dp:2,min:40,max:54,grow:.01},
+    {key:'qty',label:'Qty',kind:'number',dp:2,min:40,max:54,grow:.01},
+    {key:'qty_stk_in',label:'Stk In',kind:'number',dp:3,min:46,max:62,grow:.01},
     {key:'or_ok',label:'Ok',kind:'bool',flag:'ok-flag',min:30,max:38},
-    {key:'mupc',label:'MU%',kind:'number',dp:2,min:46,max:64,grow:.025},
-    {key:'gppc',label:'GP%',kind:'number',dp:2,min:46,max:62,grow:.025},
-    {key:'adjrrprce',label:'AdjRRPrc',kind:'number',dp:2,min:60,max:88,grow:.06},
-    {key:'adjwsprce',label:'AdjWSPrc',kind:'number',dp:2,min:60,max:88,grow:.06},
-    {key:'adjcatprce',label:'AdjCatPrc',kind:'number',dp:2,min:60,max:88,grow:.05},
-    {key:'adjdprce',label:'AdjDPrc',kind:'number',dp:2,min:60,max:88,grow:.06},
-    {key:'or_qty',label:'Adj Qty',kind:'number',dp:3,min:50,max:70,grow:.02},
+    {key:'mupc',label:'MU%',kind:'number',dp:2,min:46,max:64,grow:.015},
+    {key:'gppc',label:'GP%',kind:'number',dp:2,min:46,max:62,grow:.015},
+    {key:'adjrrprce',label:'AdjRRPrc',kind:'number',dp:2,min:62,max:92,grow:.04,stretch:.035,hardMax:118},
+    {key:'adjwsprce',label:'AdjWSPrc',kind:'number',dp:2,min:62,max:92,grow:.04,stretch:.035,hardMax:118},
+    {key:'adjcatprce',label:'AdjCatPrc',kind:'number',dp:2,min:62,max:92,grow:.035,stretch:.025,hardMax:112},
+    {key:'adjdprce',label:'AdjDPrc',kind:'number',dp:2,min:62,max:92,grow:.04,stretch:.035,hardMax:118},
+    {key:'or_qty',label:'Adj Qty',kind:'number',dp:3,min:50,max:70,grow:.01},
     {key:'override',label:'Inc',kind:'bool',flag:'inc-flag',min:30,max:38}
   ];
 
@@ -46,6 +48,23 @@
   function hideResults(){els.results.classList.add('hidden');}
   function escapeHtml(v){return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
   function rawValue(pos,key){if(pos&&pos.raw&&Object.prototype.hasOwnProperty.call(pos.raw,key))return pos.raw[key];return '';}
+  function refDigits(v){return String(v??'').replace(/\.0+$/,'').replace(/\D+/g,'');}
+  function posReferenceRecord(pos){
+    const master=state.refs&&state.refs.master;if(!master||!pos)return {};
+    const bc=refDigits(pos.barcode);if(bc&&master.byBarcode&&master.byBarcode.has(bc))return master.byBarcode.get(bc)||{};
+    const sub=refDigits(pos.subId);if(sub&&master.byCode&&master.byCode.has(sub))return master.byCode.get(sub)||{};
+    const plu=refDigits(pos.plu);if(plu&&master.byPlu&&master.byPlu.has(plu))return master.byPlu.get(plu)||{};
+    return {};
+  }
+  function posColumnValue(pos,c){
+    if(!pos||!c)return '';
+    if(c.key==='__pos_brand')return String((posReferenceRecord(pos).POS_BRAND)||'');
+    if(c.key==='main_id')return pos.barcode??'';
+    if(c.key==='plu')return pos.plu??'';
+    if(c.key==='sub_id')return pos.subId??'';
+    if(c.key==='descr')return pos.description??'';
+    return rawValue(pos,c.key);
+  }
   function boolValue(v){if(v===true||v===1)return true;const s=String(v??'').trim().toLowerCase();return ['true','1','yes','y','checked'].includes(s);}
   function fixed(v,dp){if(v==null||v==='')return '';const n=Number(String(v).replace(/,/g,''));return Number.isFinite(n)?n.toFixed(dp):String(v);}
   function numberValue(v){if(v==null||v==='')return null;const n=Number(String(v).replace(/[$,%]/g,'').replace(/,/g,''));return Number.isFinite(n)?n:null;}
@@ -121,7 +140,7 @@
 
   function posSizingText(pos,c,detail,notSupplied){
     if(c.kind==='check')return '✓';
-    const v=rawValue(pos,c.key);
+    const v=posColumnValue(pos,c);
     if(c.kind==='bool')return boolValue(v)?'✓':'';
     if(c.kind==='number'){
       let text=fixed(v,c.dp??2);
@@ -163,30 +182,45 @@
       return clampWidth(Math.ceil(maxText),c.min,c.max);
     });
 
-    // Natural content width is the starting point. The preview no longer stretches
-    // one column simply to touch the far edge of an ultrawide monitor.
+    // Start from the measured content width, then make the plan workspace-aware.
+    // On a narrow window we preserve the compact POS numeric columns and shrink text
+    // columns first. On a wide window we deliberately use the available workspace,
+    // spreading spare pixels across Brand / Description / IDs and the price block
+    // instead of leaving a large blank area on the right.
     const available=Math.max(320,els.tableWrap.clientWidth-2);
     let total=widths.reduce((a,b)=>a+b,0);
 
     if(total>available){
       let excess=total-available;
-      // Shrink the human-readable columns first, then price columns. Operational
-      // quantity/status columns stay compact and readable for as long as possible.
-      const shrinkOrder=['descr','main_id','sub_id','adjrrprce','adjwsprce','adjcatprce','adjdprce','mupc','gppc','gst_tax_pc','qty_stk_in','or_qty','units','qty'];
+      const shrinkOrder=['descr','__pos_brand','main_id','sub_id','plu','adjrrprce','adjwsprce','adjcatprce','adjdprce','mupc','gppc','gst_tax_pc','qty_stk_in','or_qty','units','qty'];
       for(const key of shrinkOrder){
         if(excess<=.5)break;const i=POS_VIEW_COLUMNS.findIndex(c=>c.key===key);if(i<0)continue;
         const c=POS_VIEW_COLUMNS[i],room=Math.max(0,widths[i]-c.min),take=Math.min(room,excess);widths[i]-=take;excess-=take;
       }
     }else if(total<available){
-      // Add only a controlled amount of breathing room. This keeps the table
-      // dense like the real POS and avoids a huge blank Product Description area.
-      let budget=Math.min(available-total,Math.min(220,Math.max(36,total*0.12)));
-      const growIdx=POS_VIEW_COLUMNS.map((c,i)=>c.grow?i:-1).filter(i=>i>=0);
-      for(let pass=0;pass<4&&budget>.5;pass++){
-        const active=growIdx.filter(i=>widths[i]<POS_VIEW_COLUMNS[i].max-.5);if(!active.length)break;
-        const weight=active.reduce((a,i)=>a+(POS_VIEW_COLUMNS[i].grow||0),0)||1;let used=0;
-        for(const i of active){const c=POS_VIEW_COLUMNS[i],share=budget*((c.grow||0)/weight),room=c.max-widths[i],add=Math.max(0,Math.min(share,room));widths[i]+=add;used+=add;}
-        if(used<.5)break;budget-=used;
+      let spare=available-total;
+      const distribute=(weightKey,limitKey)=>{
+        for(let pass=0;pass<8&&spare>.5;pass++){
+          const active=POS_VIEW_COLUMNS.map((c,i)=>({c,i})).filter(x=>Number(x.c[weightKey]||0)>0&&widths[x.i]<(Number(x.c[limitKey])||Infinity)-.5);
+          if(!active.length)break;
+          const weight=active.reduce((a,x)=>a+Number(x.c[weightKey]||0),0)||1;let used=0;
+          for(const {c,i} of active){const share=spare*(Number(c[weightKey]||0)/weight),room=(Number(c[limitKey])||Infinity)-widths[i],add=Math.max(0,Math.min(share,room));widths[i]+=add;used+=add;}
+          if(used<.5)break;spare-=used;
+        }
+      };
+      // First add normal breathing room up to the preferred maxima measured for each column.
+      distribute('grow','max');
+      // Then use the remainder of a genuinely wide workspace across the columns that
+      // benefit from it. Product Description remains the main elastic field, while
+      // Brand, IDs and prices receive enough room to feel balanced and POS-like.
+      distribute('stretch','hardMax');
+      // If an unusually wide monitor still has spare room, do not leave a dead white
+      // strip. Spread it across the human-readable identity block in controlled ratios.
+      if(spare>.5){
+        const finalKeys=[['descr',.52],['__pos_brand',.16],['main_id',.10],['sub_id',.08],['plu',.05],['adjrrprce',.025],['adjwsprce',.025],['adjcatprce',.02],['adjdprce',.025]];
+        const w=finalKeys.reduce((a,x)=>a+x[1],0);let used=0;
+        for(const [key,weight] of finalKeys){const i=POS_VIEW_COLUMNS.findIndex(c=>c.key===key);if(i<0)continue;const add=spare*(weight/w);widths[i]+=add;used+=add;}
+        spare=Math.max(0,spare-used);
       }
     }
 
@@ -243,7 +277,7 @@
       const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(index),notSupplied=!detail||Number(detail.suppliedQty||0)<=0;
       const checkKey=unpackIdentity(pos),unpackDone=state.unpackChecked.has(checkKey),rowClasses=[notSupplied?'pos-not-supplied':'',unpackDone?'unpack-checked':''].filter(Boolean).join(' ');
       const cells=POS_VIEW_COLUMNS.map(c=>{
-        const v=rawValue(pos,c.key);let html='',extraCls='',title='';
+        const v=posColumnValue(pos,c);let html='',extraCls='',title='';
         if(c.kind==='check'){
           html=`<button type="button" class="unpack-check ${unpackDone?'checked':''}" data-unpack-key="${escapeHtml(encodeURIComponent(checkKey))}" aria-pressed="${unpackDone?'true':'false'}" title="${unpackDone?'Mark as not checked':'Mark as unpacked / checked'}"><span aria-hidden="true">${unpackDone?'✓':''}</span></button>`;
           extraCls=' unpack-cell';
@@ -255,7 +289,7 @@
         const cls=[c.cls||'',c.kind==='number'?'num':'',extraCls].filter(Boolean).join(' ');return `<td${cls?` class="${cls}"`:''}${title?` title="${escapeHtml(title)}"`:''}>${html}</td>`;
       }).join('');
       return `<tr${rowClasses?` class="${rowClasses}"`:''}${notSupplied?' data-not-supplied="1"':''}>${cells}</tr>`;
-    }).join(''):'<tr><td colspan="17">No POS order rows available.</td></tr>';
+    }).join(''):`<tr><td colspan="${POS_VIEW_COLUMNS.length}">No POS order rows available.</td></tr>`;
 
     els.tableBody.onclick=e=>{
       const btn=e.target.closest('.unpack-check');if(!btn)return;e.preventDefault();e.stopPropagation();
@@ -267,7 +301,7 @@
     };
 
     if(els.tableFoot){
-      if(rows.length){const totals=posTotals(rows);els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="12" class="pos-total-left"><strong>Current Order</strong><span>${rows.length.toLocaleString()} product line${rows.length===1?'':'s'} · <b data-check-progress>checked ${progress.checked}/${progress.total}</b> · grey rows = not supplied</span></td><td colspan="2" class="pos-total-label">Current / Adjusted Total</td><td class="pos-total-current">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted">${money(totals.adjusted)}</td></tr>`;}
+      if(rows.length){const totals=posTotals(rows),leftSpan=Math.max(1,POS_VIEW_COLUMNS.length-5);els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="${leftSpan}" class="pos-total-left"><strong>Current Order</strong><span>${rows.length.toLocaleString()} product line${rows.length===1?'':'s'} · <b data-check-progress>checked ${progress.checked}/${progress.total}</b> · grey rows = not supplied</span></td><td colspan="2" class="pos-total-label">Current / Adjusted Total</td><td class="pos-total-current">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted">${money(totals.adjusted)}</td></tr>`;}
       else els.tableFoot.innerHTML='';
     }
     ensurePosResizeObserver();schedulePosColumnSizing();

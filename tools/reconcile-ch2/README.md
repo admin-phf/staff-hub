@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.5.1
+# Prahran Health Foods — CH2 Reconciler v2.5.2
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -254,3 +254,12 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - Checklist state is session-local and survives switching between Exceptions / All lines / POS layout and rerunning the same order in the current browser tab.
 - A **Checked X / N** progress counter and **Clear checks** button are shown in POS Layout.
 - Checklist state is operational only; it does not change reconciliation logic, invoice allocation, integrity checks or Excel output.
+
+
+## v2.5.2 workspace-aware POS preview
+- POS Layout now fills the available preview workspace instead of stopping at natural content width.
+- Column widths are still measured from the actual order data, then spare window width is distributed intelligently across Product Description, POS Brand, IDs and price columns.
+- Resizing the browser recalculates the plan live through ResizeObserver.
+- POS Layout identity block is now: unpacking check → Product # / barcode → POS Brand → POS PLU → Sub Id → Product Description.
+- POS Brand is read from the cached merged POS/master reference. If a master record cannot be resolved, the brand is left blank rather than guessed.
+- POS PLU comes from the uploaded POS order, preserving the source snapshot.

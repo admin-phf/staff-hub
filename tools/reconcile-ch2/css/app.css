@@ -148,3 +148,12 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
    This avoids stretching Product Description or price columns just to fill space. */
 .results .preview-pos table.pos-preview-table{width:auto;max-width:none}
 @media(max-width:760px){.pos-tools-note{display:none}.pos-tools{justify-content:space-between}}
+
+
+/* v2.5.2 — workspace-aware fill + POS Brand / POS PLU identity block */
+.results .preview-pos table.pos-preview-table{width:100%;max-width:none}
+.results .preview-pos td.pos-brand{font-weight:700;color:#3f474e}
+.results .preview-pos th,.results .preview-pos td{transition:width .08s ease-out}
+@media (min-width:1001px){
+  .results .preview-pos table.pos-preview-table{min-width:100%}
+}
