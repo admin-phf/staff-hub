@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Prahran Health Foods — CH2 Reference Data Admin</title>
+  <link rel="stylesheet" href="./css/app.css?v=254">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <main class="wrap">
+    <header class="topbar">
+      <a class="home-logo" href="../../index.html" aria-label="Return to Staff Hub home"><img class="logo" src="./assets/phf-logo.png" alt="Prahran Health Foods"></a>
+      <div class="topbar-right"><strong>CH2 Reference Data Admin</strong><span class="build-label">v2.5.4 · Integrity Engine</span></div>
+    </header>
+
+    <div class="admin-page-head">
+      <div><h1>Reference Data Admin</h1><p class="sub">One-time setup and occasional updates. Normal staff do not need to use this page.</p></div>
+      <a class="btn" href="./index.html">Back to Reconcile CH2</a>
+    </div>
+
+    <section class="panel admin-source-panel">
+      <h2>Reference sources</h2>
+      <div class="source-list">
+        <div><strong>POS master source</strong><code id="sourceFolder"></code><small>Use the newest file beginning with <span id="sourcePrefix"></span></small></div>
+        <div><strong>Supplier / discount source</strong><code id="sourceSupplier"></code><small>POS DB &amp; SUPPLIER MERGE, or a CSV export of SRC_POS_ONGOING_DISCOUNTS.</small></div>
+      </div>
+      <div class="status info">v2.4.1 uses the locally cached reference files below. They remain on this computer/browser and are not uploaded to GitHub. Automatic Drive sync can be added later without changing the reconciliation engine.</div>
+    </section>
+
+    <section class="panel">
+      <h2>Local cached reference data</h2>
+      <p class="reference-help standalone">Load these once on this computer, then update them whenever your master/discount data changes.</p>
+      <div class="reference-grid">
+        <div class="reference-card" id="masterCard">
+          <div><strong>POS / master</strong><small id="masterRefStatus">Not loaded</small></div>
+          <button class="btn" id="masterRefBtn" type="button">Load / update POS master</button>
+          <input class="hidden" id="masterRefInput" type="file" accept=".xlsx,.xlsm,.csv">
+        </div>
+        <div class="reference-card" id="supplierCard">
+          <div><strong>Supplier + discount rules</strong><small id="supplierRefStatus">Not loaded</small></div>
+          <button class="btn" id="supplierRefBtn" type="button">Load / update supplier rules</button>
+          <input class="hidden" id="supplierRefInput" type="file" accept=".xlsx,.xlsm,.csv">
+        </div>
+      </div>
+      <div class="reference-actions"><span id="referenceReady" class="ref-ready warn">Checking…</span><button class="btn ghost small" id="clearReferenceBtn" type="button">Clear stored reference data</button></div>
+    </section>
+  </main>
+  <script src="./js/reference/reference-config.js?v=254"></script>
+  <script src="./js/reference/reference-data.js?v=254"></script>
+  <script src="./js/reference/reference-admin.js?v=254"></script>
+</body>
+</html>

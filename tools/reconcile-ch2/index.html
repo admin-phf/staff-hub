@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Prahran Health Foods — Reconcile CH2 Order</title>
+  <link rel="stylesheet" href="./css/app.css?v=254">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+<body>
+  <main class="wrap">
+    <header class="topbar">
+      <a class="home-logo" href="../../index.html" aria-label="Return to Staff Hub home">
+        <img class="logo" src="./assets/phf-logo.png" alt="Prahran Health Foods">
+      </a>
+      <div class="topbar-right"><strong>Reconcile CH2 Order</strong><span class="build-label" id="buildLabel"></span></div>
+    </header>
+
+    <h1>Reconcile CH2 Order</h1>
+    <p class="sub">Compare the POS back-end order with one or more CH2 / supplier invoices. The selected files are processed in your browser and are not uploaded to this website.</p>
+
+    <div class="reference-strip" id="referenceStrip" aria-live="polite">
+      <div class="reference-strip-main">
+        <span class="reference-dot checking" id="referenceDot"></span>
+        <div>
+          <strong>Reference data</strong>
+          <span id="referenceReady">Checking local reference data…</span>
+        </div>
+      </div>
+      <a class="admin-link" href="./reference-admin.html">Admin</a>
+    </div>
+
+    <section class="panel">
+      <div class="step"><div class="stepnum">1</div><h2>POS back-end order</h2></div>
+      <div class="dropzone" id="posDrop" tabindex="0" role="button">
+        <strong>Drag the POS Order here</strong>
+        <small>or click to choose an .XLS, .XLSX or .CSV file</small>
+      </div>
+      <input class="hidden" id="posInput" type="file" accept=".xls,.xlsx,.csv">
+      <div class="file-list" id="posFiles"></div>
+    </section>
+
+    <section class="panel">
+      <div class="step"><div class="stepnum">2</div><h2>Supplier invoices</h2></div>
+      <div class="dropzone" id="invoiceDrop" tabindex="0" role="button">
+        <strong>Drag supplier invoices here</strong>
+        <small>PDF, XLS, XLSX or CSV · multiple files allowed</small>
+      </div>
+      <input class="hidden" id="invoiceInput" type="file" multiple accept=".pdf,.xls,.xlsx,.csv">
+      <div class="file-list" id="invoiceFiles"></div>
+    </section>
+
+    <section class="panel">
+      <div class="step"><div class="stepnum">3</div><h2>Run reconciliation</h2></div>
+      <div class="actions">
+        <button class="btn primary" id="runBtn" disabled>Run Reconciliation</button>
+        <button class="btn" id="clearBtn">Clear Files</button>
+      </div>
+      <div class="status info" id="status">Add one POS order and at least one supplier invoice to continue.</div>
+      <div class="progress hidden" id="progress"><div id="progressBar"></div></div>
+    </section>
+
+    <section class="results hidden" id="results">
+      <div class="results-head">
+        <div>
+          <h2>Reconciliation result</h2>
+          <p id="resultSub"></p>
+        </div>
+        <div class="actions result-actions">
+          <button class="btn primary" id="downloadBtn">Download Full Reconciliation.xlsx</button>
+          <div class="view-picker" role="group" aria-label="Preview view">
+            <span class="view-label">View:</span>
+            <button class="btn small view-btn active" id="viewExceptionsBtn" type="button">Exceptions</button>
+            <button class="btn small view-btn" id="viewAllBtn" type="button">All lines</button>
+            <button class="btn small view-btn" id="viewPosBtn" type="button">POS layout</button>
+          </div>
+        </div>
+      </div>
+      <div class="kpis" id="kpis"></div>
+      <div class="notice hidden" id="warningBox"></div>
+      <div class="pos-tools hidden" id="posTools">
+        <div class="pos-check-progress" id="posCheckProgress">Checked 0 / 0</div>
+        <span class="pos-tools-note">Unpacking checklist · Add Qty saves on Enter, Tab, click-away or window/tab change · negative values subtract · Found: red = under, grey = correct, green = over</span>
+        <div class="pos-tools-actions">
+          <button class="btn small" id="clearCountsBtn" type="button">Clear qty</button>
+          <button class="btn small" id="clearChecksBtn" type="button">Clear checks</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="resultTable">
+          <thead id="resultTableHead"></thead>
+          <tbody></tbody>
+          <tfoot id="resultTableFoot"></tfoot>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel privacy">
+      <strong>File privacy:</strong> this tool reads the files on this device only. Do not add invoice PDFs, order spreadsheets, customer information or account documents to the GitHub repository itself.
+    </section>
+  </main>
+
+  <script src="./js/reference/reference-config.js?v=254"></script>
+  <script src="./js/reference/reference-data.js?v=254"></script>
+  <script src="./js/core/schema.js?v=254"></script>
+  <script src="./js/core/integrity.js?v=254"></script>
+  <script src="./js/parsers/pos-order.js?v=254"></script>
+  <script src="./js/parsers/supplier-invoice.js?v=254"></script>
+  <script src="./js/core/reconcile.js?v=254"></script>
+  <script src="./js/core/linked-pos.js?v=254"></script>
+  <script src="./js/export/report.js?v=254"></script>
+  <script src="./js/app.js?v=254"></script>
+</body>
+</html>
