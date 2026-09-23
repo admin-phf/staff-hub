@@ -4,7 +4,7 @@
   const state={pos:null,invoices:[],result:null,previewView:'exceptions',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null};
   const els={
     referenceReady:document.querySelector('#referenceReady'),referenceDot:document.querySelector('#referenceDot'),buildLabel:document.querySelector('#buildLabel'),
-    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn')
+    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn')
   };
 
   const RECON_HEADERS=['Status','POS product','Ordered','Supplied','Expected unit','Invoice unit','Variance','Missed $','Match'];
@@ -40,6 +40,36 @@
   function rawValue(pos,key){if(pos&&pos.raw&&Object.prototype.hasOwnProperty.call(pos.raw,key))return pos.raw[key];return '';}
   function boolValue(v){if(v===true||v===1)return true;const s=String(v??'').trim().toLowerCase();return ['true','1','yes','y','checked'].includes(s);}
   function fixed(v,dp){if(v==null||v==='')return '';const n=Number(String(v).replace(/,/g,''));return Number.isFinite(n)?n.toFixed(dp):String(v);}
+  function numberValue(v){if(v==null||v==='')return null;const n=Number(String(v).replace(/[$,%]/g,'').replace(/,/g,''));return Number.isFinite(n)?n:null;}
+  function posDetailAt(index){return state.result&&state.result.detail?state.result.detail[index]||null:null;}
+  function weightedInvoiceValue(detail,key){
+    if(!detail||!Array.isArray(detail.invoiceRows)||!detail.invoiceRows.length)return null;let total=0,weight=0;
+    for(const row of detail.invoiceRows){const v=numberValue(row&&row[key]),w=numberValue(row&&row.qtySupplied);if(v!=null&&w!=null&&w>0){total+=v*w;weight+=w;}}
+    return weight>0?total/weight:null;
+  }
+  function comparisonTarget(detail,key){
+    if(!detail)return null;
+    if(key==='adjrrprce')return weightedInvoiceValue(detail,'rrp');
+    if(key==='adjwsprce')return numberValue(detail.invoiceNormalWholesale);
+    if(key==='adjdprce')return numberValue(detail.actualUnit);
+    return null;
+  }
+  function priceMove(current,target){
+    const a=numberValue(current),b=numberValue(target),tol=(PHF.schema&&PHF.schema.VISUAL&&PHF.schema.VISUAL.priceVisualTolerance)||0.03;
+    if(a==null||b==null)return null;const diff=b-a;
+    if(Math.abs(diff)<=tol)return {kind:'same',symbol:'—',diff,target:b};
+    return diff>0?{kind:'up',symbol:'↑',diff,target:b}:{kind:'down',symbol:'↓',diff,target:b};
+  }
+  function posTotals(rows){
+    let current=0,adjusted=0;
+    for(const pos of rows||[]){
+      const raw=pos.raw||{},qtyNow=numberValue(raw.qty)??numberValue(pos.orderedQty)??0,qtyAdj=numberValue(raw.or_qty)??numberValue(pos.orderedQty)??0;
+      const currentPrice=numberValue(raw.last_price)??numberValue(raw.adjdprce)??numberValue(pos.expectedUnit)??0;
+      const adjustedPrice=numberValue(raw.adjdprce)??numberValue(pos.expectedUnit)??currentPrice;
+      current+=currentPrice*qtyNow;adjusted+=adjustedPrice*qtyAdj;
+    }
+    return {current,adjusted};
+  }
 
   async function refreshReferenceStatus(){
     try{const s=await PHF.referenceStore.status();state.referenceReady=!!(s.master&&s.supplier);if(state.referenceReady){const name=(s.master&&s.master.name)||'POS master';els.referenceReady.textContent=`Ready · ${name}`;els.referenceDot.className='reference-dot ok';}else{els.referenceReady.textContent='Admin setup required';els.referenceDot.className='reference-dot warn';}renderFiles();}
@@ -64,7 +94,7 @@
     Object.entries(map).forEach(([k,b])=>{if(!b)return;b.classList.toggle('active',state.previewView===k);b.setAttribute('aria-pressed',state.previewView===k?'true':'false');});
   }
   function renderReconTable(r){
-    els.tableWrap.classList.remove('preview-pos');els.table.classList.remove('pos-preview-table');
+    els.tableWrap.classList.remove('preview-pos');els.table.classList.remove('pos-preview-table');if(els.tableFoot)els.tableFoot.innerHTML='';
     els.tableHead.innerHTML=`<tr>${RECON_HEADERS.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr>`;
     const display=state.previewView==='all'?r.detail:r.detail.filter(x=>x.hasException||x.matchConfidence==='LOW');
     const extras=r.unmatchedInvoice.map(x=>({status:'NOT ORDERED / UNMATCHED',posDescription:x.description,orderedQty:null,suppliedQty:x.qtySupplied,expectedUnit:null,actualUnit:x.unitPriceExGst,unitVariance:null,missedTotal:0,matchConfidence:'',hasException:true}));
@@ -75,13 +105,24 @@
     els.tableWrap.classList.add('preview-pos');els.table.classList.add('pos-preview-table');
     els.tableHead.innerHTML=`<tr>${POS_VIEW_COLUMNS.map(c=>`<th>${escapeHtml(c.label)}</th>`).join('')}</tr>`;
     const rows=(state.posParsed&&state.posParsed.rows)||[];
-    els.tableBody.innerHTML=rows.length?rows.map(pos=>`<tr>${POS_VIEW_COLUMNS.map(c=>{
-      const v=rawValue(pos,c.key);let html='';
-      if(c.kind==='bool'){const checked=boolValue(v);html=`<span class="pos-checkbox ${c.flag||''} ${checked?'checked':''}" aria-label="${checked?'Checked':'Not checked'}">${checked?'✓':''}</span>`;}
-      else if(c.kind==='number')html=escapeHtml(fixed(v,c.dp??2));
-      else html=escapeHtml(v);
-      const cls=[c.cls||'',c.kind==='number'?'num':''].filter(Boolean).join(' ');return `<td${cls?` class="${cls}"`:''}>${html}</td>`;
-    }).join('')}</tr>`).join(''):'<tr><td colspan="16">No POS order rows available.</td></tr>';
+    els.tableBody.innerHTML=rows.length?rows.map((pos,index)=>{
+      const detail=posDetailAt(index),notSupplied=!detail||Number(detail.suppliedQty||0)<=0,rowCls=notSupplied?'pos-not-supplied':'';
+      const cells=POS_VIEW_COLUMNS.map(c=>{
+        const v=rawValue(pos,c.key);let html='',extraCls='',title='';
+        if(c.kind==='bool'){const checked=boolValue(v);html=`<span class="pos-checkbox ${c.flag||''} ${checked?'checked':''}" aria-label="${checked?'Checked':'Not checked'}">${checked?'✓':''}</span>`;}
+        else if(c.kind==='number'){
+          html=escapeHtml(fixed(v,c.dp??2));
+          const target=comparisonTarget(detail,c.key),move=priceMove(v,target);
+          if(move&&!notSupplied){extraCls=` price-move-cell price-${move.kind}`;const targetLabel=c.key==='adjrrprce'?'CH2 RRP':c.key==='adjwsprce'?'CH2 Normal W/S':'CH2 Unit Price';title=`${targetLabel}: ${Number(move.target).toFixed(2)} · ${move.symbol} ${Math.abs(move.diff).toFixed(2)}`;html=`<span class="pos-price-value">${html}</span><span class="price-arrow" aria-hidden="true">${move.symbol}</span>`;}
+        } else html=escapeHtml(v);
+        const cls=[c.cls||'',c.kind==='number'?'num':'',extraCls].filter(Boolean).join(' ');return `<td${cls?` class="${cls}"`:''}${title?` title="${escapeHtml(title)}"`:''}>${html}</td>`;
+      }).join('');
+      return `<tr${rowCls?` class="${rowCls}"`:''}${notSupplied?' title="Not supplied / not invoiced — retained in the original POS order position"':''}>${cells}</tr>`;
+    }).join(''):'<tr><td colspan="16">No POS order rows available.</td></tr>';
+    if(els.tableFoot){
+      if(rows.length){const totals=posTotals(rows);els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="11" class="pos-total-left"><strong>Current Order</strong><span>${rows.length.toLocaleString()} product line${rows.length===1?'':'s'} · grey rows = not supplied</span></td><td colspan="2" class="pos-total-label">Current / Adjusted Total</td><td class="pos-total-current">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted">${money(totals.adjusted)}</td></tr>`;}
+      else els.tableFoot.innerHTML='';
+    }
   }
   function renderPreview(r){if(state.previewView==='pos')renderPosTable();else renderReconTable(r);setViewButtons();}
 

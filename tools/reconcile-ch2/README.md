@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.4.5
+# Prahran Health Foods — CH2 Reconciler v2.4.6
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -183,3 +183,20 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - Supports partial-cancel sublines such as `131.001` / `132.001`, where CH2 prints `C + quantity + unit price` without a billed extended total.
 - Preserves the integrity block: Excel is generated only when billed line sums reconcile to the supplier invoice footer.
 - Regression-tested against invoice 74089986: 116 billed rows, 42 cancelled/backordered line segments, 0 unclassified candidates, and footer totals 4,943.10 + GST 417.31 = 5,360.41.
+
+## v2.4.6 POS preview usability refinements
+
+- The POS-layout preview continues to show **every ordered POS row in the exact uploaded source order**.
+- A POS row with zero supplier quantity is retained and greyed out instead of disappearing.
+- The POS-layout table is placed in its own scroll area with a **frozen header row** so the familiar POS column names remain visible while reviewing long orders.
+- A **sticky totals bar** at the bottom mirrors the POS screen style:
+  - Current total = source `last_price × qty` (falling back to the source discounted price where required).
+  - Adjusted total = source `adjdprce × or_qty`.
+- Directional price movement overlays are shown directly on the familiar POS pricing cells while preserving the original POS value:
+  - `AdjRRPrc` compared with CH2 RRP.
+  - `AdjWSPrc` compared with CH2 Normal W/S.
+  - `AdjDPrc` compared with CH2 Unit Price Ex GST.
+  - red `↑` = CH2/new price higher by more than $0.03;
+  - blue `↓` = CH2/new price lower by more than $0.03;
+  - grey `—` = effectively unchanged within ±$0.03.
+- The comparison is presentation-only. It does not replace the source POS values or alter reconciliation calculations.
