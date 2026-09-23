@@ -180,3 +180,38 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .preview-pos tbody tr.pos-not-supplied .unpack-qty-total.found-under{background:#fde8e6!important;border-color:#ef9a9a!important;color:#c62828!important}
 .preview-pos tbody tr.pos-not-supplied .unpack-qty-total.found-exact{background:#e1e5e8!important;border-color:#c6cbd0!important;color:#687077!important}
 .preview-pos tbody tr.pos-not-supplied .unpack-qty-total.found-over{background:#e6f4ea!important;border-color:#9ac7a3!important;color:#2e7d32!important}
+
+/* v2.5.5 — aligned preview columns, +2px preview type, progressive receiving list */
+/* Exceptions + All lines: numeric headers use the same edge as numeric data. */
+.results .table-wrap:not(.preview-pos) table{font-size:14.5px}
+.results .table-wrap:not(.preview-pos) th{font-size:13px;vertical-align:middle}
+.results .table-wrap:not(.preview-pos) td{vertical-align:middle}
+.results .table-wrap:not(.preview-pos) .status-pill{font-size:12px}
+.results th.num,.results td.num{text-align:right}
+.results th.center,.results td.center{text-align:center}
+
+/* POS Layout: +2px while retaining content/window-aware measurements. app.js reads
+   these computed sizes before measuring, so adaptive column sizing remains accurate. */
+.results .preview-pos table.pos-preview-table{font-size:clamp(12px,calc(.42vw + 4px),14px)}
+.results .preview-pos th{font-size:12px;vertical-align:middle}
+.results .preview-pos td{vertical-align:middle}
+.results .preview-pos th.num,.results .preview-pos td.num{text-align:right}
+.results .preview-pos th.center,.results .preview-pos td.center{text-align:center}
+.results .preview-pos .unpack-qty-input,
+.results .preview-pos .unpack-qty-total{font-size:12px;height:26px}
+.results .preview-pos .unpack-check{width:20px;height:20px;font-size:14px}
+.results .preview-pos .pos-checkbox{width:18px;height:18px;font-size:13px}
+.results .preview-pos .price-arrow{font-size:14px}
+.pos-tools{font-size:13px}
+.pos-check-progress{font-size:13px}
+.pos-tools .btn{font-size:12px}
+
+/* Completed items are moved below the remaining POS-order block. Relative POS order
+   is retained within both groups; the divider makes the hand-off obvious. */
+.preview-pos tbody tr.unpack-complete-start td{border-top:3px solid #2E7D32}
+.preview-pos tbody tr.unpack-checked td:not(.unpack-cell){opacity:.78}
+
+@media(max-width:1000px){
+  .results .preview-pos table.pos-preview-table{font-size:12px}
+  .results .preview-pos th{font-size:12px}
+}

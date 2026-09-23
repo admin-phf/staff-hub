@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.5.4
+# Prahran Health Foods — CH2 Reconciler v2.5.5
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -285,3 +285,14 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - Add Qty now commits on Enter, Tab, normal blur/change, clicking another control, switching browser window/tab, and page hide/navigation.
 - Negative corrections remain supported. A correction back to zero remains marked as a counted row until **Clear qty** is used.
 - These receiving controls remain operational only and do not alter reconciliation, supplier quantities, integrity checks, or Excel output.
+
+
+## v2.5.5 aligned previews + progressive receiving
+
+- Header alignment now matches body-cell alignment in Exceptions, All lines and POS Layout.
+- Preview typography is increased by 2px across all three views; the POS width engine measures the new computed font size so adaptive columns remain accurate.
+- The first POS receiving checkbox now means “all expected units accounted for”. Checking it writes the expected delivery quantity into Found.
+- Manual Add Qty completion (Found >= expected) automatically marks the row complete; a negative correction below expected returns it to remaining.
+- POS Layout displays remaining rows first and completed rows second, preserving original POS source order within each group.
+- A green divider marks the completed block and the progress indicator reports Complete / Remaining counts.
+- Receiving workflow changes are preview-only and do not alter the audit engine or Excel output.

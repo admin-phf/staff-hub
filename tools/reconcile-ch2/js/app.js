@@ -7,7 +7,17 @@
     posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn')
   };
 
-  const RECON_HEADERS=['Status','POS product','Ordered','Supplied','Expected unit','Invoice unit','Variance','Missed $','Match'];
+  const RECON_COLUMNS=[
+    {label:'Status',kind:'text'},
+    {label:'POS product',kind:'text'},
+    {label:'Ordered',kind:'number'},
+    {label:'Supplied',kind:'number'},
+    {label:'Expected unit',kind:'number'},
+    {label:'Invoice unit',kind:'number'},
+    {label:'Variance',kind:'number'},
+    {label:'Missed $',kind:'number'},
+    {label:'Match',kind:'center'}
+  ];
   // POS preview sizing metadata is intentionally kept next to the column contract.
   // min/max are safe visual bounds in CSS pixels. `flex` marks columns that are
   // allowed to absorb spare viewport width or give it back first on a smaller window.
@@ -173,6 +183,40 @@
     if(diff<0)return {kind:'under',label:`Under by ${displayUnpackCount(Math.abs(diff))} · expected ${displayUnpackCount(e)}`};
     return {kind:'over',label:`Over by ${displayUnpackCount(diff)} · expected ${displayUnpackCount(e)}`};
   }
+  function unpackRowComplete(pos,detail){
+    const key=unpackIdentity(pos),expected=unpackExpectedQty(pos,detail),found=unpackCountFor(pos);
+    if(state.unpackChecked.has(key))return true;
+    if(!state.unpackCounts.has(key))return false;
+    return Number(found)+.0005>=Number(expected);
+  }
+  function syncUnpackCompletion(pos,detail){
+    const key=unpackIdentity(pos),expected=unpackExpectedQty(pos,detail),found=unpackCountFor(pos);
+    const complete=state.unpackCounts.has(key)&&Number(found)+.0005>=Number(expected);
+    if(complete)state.unpackChecked.add(key);else state.unpackChecked.delete(key);
+    return complete;
+  }
+  function setUnpackComplete(pos,detail,complete){
+    const key=unpackIdentity(pos),expected=unpackExpectedQty(pos,detail);
+    if(complete){
+      state.unpackCounts.set(key,Math.max(0,Math.round(Number(expected||0)*1000)/1000));
+      state.unpackChecked.add(key);
+    }else{
+      state.unpackCounts.delete(key);
+      state.unpackChecked.delete(key);
+    }
+    saveUnpackCounts();saveUnpackChecklist();
+  }
+  function posPreviewRows(detailBySourceRow){
+    const base=sortedPosRows(),remaining=[],complete=[];
+    for(let i=0;i<base.length;i++){
+      const pos=base[i],detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(i);
+      (unpackRowComplete(pos,detail)?complete:remaining).push(pos);
+    }
+    return [...remaining,...complete];
+  }
+  function completionCount(rows,detailBySourceRow){
+    let done=0;for(let i=0;i<(rows||[]).length;i++){const pos=rows[i],detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(i);if(unpackRowComplete(pos,detail))done++;}return done;
+  }
   function updateUnpackTotalElement(out,posKey,total,expected){
     if(!out)return;const found=Number(total)||0,status=unpackCountStatus(posKey,found,expected);
     out.value=displayUnpackCount(found);
@@ -188,21 +232,23 @@
     const delta=Number(raw);if(!Number.isFinite(delta)){input.value='';return false;}
     const key=decodeUnpackKey(input.dataset.unpackQtyKey||'');if(!key){input.value='';return false;}
     const expected=numberValue(input.dataset.unpackExpected)??0,total=applyUnpackDelta(key,delta);input.value='';
+    if(total!=null){
+      if(Number(total)+.0005>=Number(expected))state.unpackChecked.add(key);else state.unpackChecked.delete(key);
+      saveUnpackChecklist();
+    }
     const tr=input.closest('tr'),out=tr&&tr.querySelector('.unpack-qty-total');
     if(out&&total!=null)updateUnpackTotalElement(out,key,total,expected);
-    schedulePosColumnSizing();return true;
+    if(state.previewView==='pos'&&state.result){setTimeout(()=>renderPosTable(),0);}else schedulePosColumnSizing();
+    return true;
   }
   function commitActiveQtyInput(){
     const active=document.activeElement;
     if(active&&active.classList&&active.classList.contains('unpack-qty-input'))commitQtyInput(active);
   }
-  function checklistCount(rows){
-    let checked=0;for(const pos of rows||[])if(state.unpackChecked.has(unpackIdentity(pos)))checked++;return checked;
-  }
-  function updateChecklistUi(rows){
-    const total=(rows||[]).length,checked=checklistCount(rows);
-    if(els.posCheckProgress)els.posCheckProgress.textContent=`Checked ${checked.toLocaleString()} / ${total.toLocaleString()}`;
-    return {checked,total};
+  function updateChecklistUi(rows,detailBySourceRow=posDetailMap()){
+    const total=(rows||[]).length,checked=completionCount(rows,detailBySourceRow),remaining=Math.max(0,total-checked);
+    if(els.posCheckProgress)els.posCheckProgress.textContent=`Complete ${checked.toLocaleString()} / ${total.toLocaleString()} · Remaining ${remaining.toLocaleString()}`;
+    return {checked,total,remaining};
   }
 
 
@@ -331,21 +377,31 @@
   }
   function renderReconTable(r){
     if(els.posTools)els.posTools.classList.add('hidden');els.tableWrap.classList.remove('preview-pos');els.table.classList.remove('pos-preview-table');clearPosColumnSizing();if(els.tableFoot)els.tableFoot.innerHTML='';
-    els.tableHead.innerHTML=`<tr>${RECON_HEADERS.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr>`;
+    els.tableHead.innerHTML=`<tr>${RECON_COLUMNS.map(c=>`<th${c.kind==='number'?' class="num"':c.kind==='center'?' class="center"':''}>${escapeHtml(c.label)}</th>`).join('')}</tr>`;
     const display=state.previewView==='all'?r.detail:r.detail.filter(x=>x.hasException||x.matchConfidence==='LOW');
     const extras=r.unmatchedInvoice.map(x=>({status:'NOT ORDERED / UNMATCHED',posDescription:x.description,orderedQty:null,suppliedQty:x.qtySupplied,expectedUnit:null,actualUnit:x.unitPriceExGst,unitVariance:null,missedTotal:0,matchConfidence:'',hasException:true}));
     const rows=[...display,...extras];
-    els.tableBody.innerHTML=rows.length?rows.map(x=>`<tr><td>${pill(x.status)}</td><td>${escapeHtml(x.posDescription)}</td><td class="num">${qty(x.orderedQty)}</td><td class="num">${qty(x.suppliedQty)}</td><td class="num">${money(x.expectedUnit)}</td><td class="num">${money(x.actualUnit,4)}</td><td class="num">${money(x.unitVariance,4)}</td><td class="num">${money(x.missedTotal)}</td><td>${x.matchConfidence?escapeHtml(x.matchConfidence):'<span class="muted">—</span>'}</td></tr>`).join(''):'<tr><td colspan="9">No exceptions found.</td></tr>';
+    els.tableBody.innerHTML=rows.length?rows.map(x=>`<tr><td>${pill(x.status)}</td><td>${escapeHtml(x.posDescription)}</td><td class="num">${qty(x.orderedQty)}</td><td class="num">${qty(x.suppliedQty)}</td><td class="num">${money(x.expectedUnit)}</td><td class="num">${money(x.actualUnit,4)}</td><td class="num">${money(x.unitVariance,4)}</td><td class="num">${money(x.missedTotal)}</td><td class="center">${x.matchConfidence?escapeHtml(x.matchConfidence):'<span class="muted">—</span>'}</td></tr>`).join(''):'<tr><td colspan="9">No exceptions found.</td></tr>';
   }
   function renderPosTable(){
     if(els.posTools)els.posTools.classList.remove('hidden');
     els.tableWrap.classList.add('preview-pos');els.table.classList.add('pos-preview-table');
-    els.tableHead.innerHTML=`<tr>${POS_VIEW_COLUMNS.map(c=>`<th${c.kind==='check'?' class="unpack-head" title="Unpacking check"':''}>${escapeHtml(c.label)}</th>`).join('')}</tr>`;
-    const rows=sortedPosRows();const detailBySourceRow=posDetailMap();
-    const progress=updateChecklistUi(rows);
+    els.tableHead.innerHTML=`<tr>${POS_VIEW_COLUMNS.map(c=>{const cls=[c.kind==='check'?'unpack-head':'',(['number','qtyinput','qtytotal'].includes(c.kind))?'num':'',(c.kind==='bool'||c.kind==='check')?'center':''].filter(Boolean).join(' ');return `<th${cls?` class="${cls}"`:''}${c.kind==='check'?' title="Unpacking check / mark complete"':''}>${escapeHtml(c.label)}</th>`;}).join('')}</tr>`;
+    const baseRows=sortedPosRows();const detailBySourceRow=posDetailMap();
+    // Migrate/normalise legacy session state: a checked row now means its expected
+    // receiving quantity is accounted for; a completed manual count also checks it.
+    let stateChanged=false;
+    for(let i=0;i<baseRows.length;i++){
+      const pos=baseRows[i],detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(i),key=unpackIdentity(pos),expected=unpackExpectedQty(pos,detail);
+      if(state.unpackChecked.has(key)&&!state.unpackCounts.has(key)){state.unpackCounts.set(key,expected);stateChanged=true;}
+      if(state.unpackCounts.has(key)){const should=unpackCountFor(pos)+.0005>=expected;if(should&&!state.unpackChecked.has(key)){state.unpackChecked.add(key);stateChanged=true;}if(!should&&state.unpackChecked.has(key)){state.unpackChecked.delete(key);stateChanged=true;}}
+    }
+    if(stateChanged){saveUnpackCounts();saveUnpackChecklist();}
+    const rows=posPreviewRows(detailBySourceRow);
+    const progress=updateChecklistUi(baseRows,detailBySourceRow),remainingCount=progress.remaining;
     els.tableBody.innerHTML=rows.length?rows.map((pos,index)=>{
       const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(index),notSupplied=!detail||Number(detail.suppliedQty||0)<=0;
-      const checkKey=unpackIdentity(pos),unpackDone=state.unpackChecked.has(checkKey),rowClasses=[notSupplied?'pos-not-supplied':'',unpackDone?'unpack-checked':''].filter(Boolean).join(' ');
+      const checkKey=unpackIdentity(pos),unpackDone=state.unpackChecked.has(checkKey),rowClasses=[notSupplied?'pos-not-supplied':'',unpackDone?'unpack-checked':'',(unpackDone&&index===remainingCount)?'unpack-complete-start':''].filter(Boolean).join(' ');
       const cells=POS_VIEW_COLUMNS.map(c=>{
         const v=posColumnValue(pos,c);let html='',extraCls='',title='';
         if(c.kind==='check'){
@@ -370,17 +426,20 @@
     els.tableBody.onclick=e=>{
       const btn=e.target.closest('.unpack-check');if(!btn)return;e.preventDefault();e.stopPropagation();
       const key=decodeUnpackKey(btn.dataset.unpackKey||'');if(!key)return;
-      const checked=!state.unpackChecked.has(key);if(checked)state.unpackChecked.add(key);else state.unpackChecked.delete(key);saveUnpackChecklist();
-      btn.classList.toggle('checked',checked);btn.setAttribute('aria-pressed',checked?'true':'false');btn.title=checked?'Mark as not checked':'Mark as unpacked / checked';btn.querySelector('span').textContent=checked?'✓':'';
-      const tr=btn.closest('tr');if(tr)tr.classList.toggle('unpack-checked',checked);const p=updateChecklistUi(rows);
-      const footProgress=els.tableFoot&&els.tableFoot.querySelector('[data-check-progress]');if(footProgress)footProgress.textContent=`checked ${p.checked}/${p.total}`;
+      const pos=baseRows.find(r=>unpackIdentity(r)===key);if(!pos)return;
+      const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||null;
+      const checked=!unpackRowComplete(pos,detail);
+      setUnpackComplete(pos,detail,checked);
+      // Re-render so completed rows immediately move below the remaining items while
+      // preserving original POS order inside both groups. Unchecking returns the row.
+      renderPosTable();
     };
     els.tableBody.onkeydown=e=>{const input=e.target.closest('.unpack-qty-input');if(input&&e.key==='Enter'){e.preventDefault();commitQtyInput(input);}};
     els.tableBody.onfocusout=e=>{const input=e.target.closest('.unpack-qty-input');if(input)commitQtyInput(input);};
     els.tableBody.onchange=e=>{const input=e.target.closest('.unpack-qty-input');if(input)commitQtyInput(input);};
 
     if(els.tableFoot){
-      if(rows.length){const totals=posTotals(rows),leftSpan=Math.max(1,POS_VIEW_COLUMNS.length-5);els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="${leftSpan}" class="pos-total-left"><strong>Current Order</strong><span>${rows.length.toLocaleString()} product line${rows.length===1?'':'s'} · <b data-check-progress>checked ${progress.checked}/${progress.total}</b> · grey rows = not supplied</span></td><td colspan="2" class="pos-total-label">Current / Adjusted Total</td><td class="pos-total-current">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted">${money(totals.adjusted)}</td></tr>`;}
+      if(baseRows.length){const totals=posTotals(baseRows),leftSpan=Math.max(1,POS_VIEW_COLUMNS.length-5);els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="${leftSpan}" class="pos-total-left"><strong>Current Order</strong><span>${baseRows.length.toLocaleString()} product line${baseRows.length===1?'':'s'} · <b data-check-progress>complete ${progress.checked}/${progress.total} · remaining ${progress.remaining}</b> · completed rows move below remaining items · grey rows = not supplied</span></td><td colspan="2" class="pos-total-label">Current / Adjusted Total</td><td class="pos-total-current">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted">${money(totals.adjusted)}</td></tr>`;}
       else els.tableFoot.innerHTML='';
     }
     ensurePosResizeObserver();schedulePosColumnSizing();
@@ -427,8 +486,8 @@
   if(els.viewExceptionsBtn)els.viewExceptionsBtn.onclick=()=>setPreviewView('exceptions');
   if(els.viewAllBtn)els.viewAllBtn.onclick=()=>setPreviewView('all');
   if(els.viewPosBtn)els.viewPosBtn.onclick=()=>setPreviewView('pos');
-  if(els.clearChecksBtn)els.clearChecksBtn.onclick=()=>{commitActiveQtyInput();state.unpackChecked.clear();saveUnpackChecklist();if(state.previewView==='pos'&&state.result)renderPosTable();};
-  if(els.clearCountsBtn)els.clearCountsBtn.onclick=()=>{commitActiveQtyInput();state.unpackCounts.clear();saveUnpackCounts();if(state.previewView==='pos'&&state.result)renderPosTable();};
+  if(els.clearChecksBtn)els.clearChecksBtn.onclick=()=>{commitActiveQtyInput();for(const key of state.unpackChecked)state.unpackCounts.delete(key);state.unpackChecked.clear();saveUnpackCounts();saveUnpackChecklist();if(state.previewView==='pos'&&state.result)renderPosTable();};
+  if(els.clearCountsBtn)els.clearCountsBtn.onclick=()=>{commitActiveQtyInput();state.unpackCounts.clear();state.unpackChecked.clear();saveUnpackCounts();saveUnpackChecklist();if(state.previewView==='pos'&&state.result)renderPosTable();};
 
   // Save any quantity still sitting in an Add Qty field whenever the user moves away
   // from it — including clicking another control, switching browser window/tab, or
