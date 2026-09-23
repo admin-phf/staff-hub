@@ -42,6 +42,14 @@
   function fixed(v,dp){if(v==null||v==='')return '';const n=Number(String(v).replace(/,/g,''));return Number.isFinite(n)?n.toFixed(dp):String(v);}
   function numberValue(v){if(v==null||v==='')return null;const n=Number(String(v).replace(/[$,%]/g,'').replace(/,/g,''));return Number.isFinite(n)?n:null;}
   function posDetailAt(index){return state.result&&state.result.detail?state.result.detail[index]||null:null;}
+  function posDetailMap(){
+    const map=new Map();
+    for(const d of (state.result&&state.result.detail)||[]){
+      const key=String(d&&d.sourceRow!=null?d.sourceRow:'');
+      if(key&&!map.has(key))map.set(key,d);
+    }
+    return map;
+  }
   function weightedInvoiceValue(detail,key){
     if(!detail||!Array.isArray(detail.invoiceRows)||!detail.invoiceRows.length)return null;let total=0,weight=0;
     for(const row of detail.invoiceRows){const v=numberValue(row&&row[key]),w=numberValue(row&&row.qtySupplied);if(v!=null&&w!=null&&w>0){total+=v*w;weight+=w;}}
@@ -104,9 +112,16 @@
   function renderPosTable(){
     els.tableWrap.classList.add('preview-pos');els.table.classList.add('pos-preview-table');
     els.tableHead.innerHTML=`<tr>${POS_VIEW_COLUMNS.map(c=>`<th>${escapeHtml(c.label)}</th>`).join('')}</tr>`;
-    const rows=(state.posParsed&&state.posParsed.rows)||[];
+    // POS preview is deliberately rebuilt from the uploaded POS source rows, never invoice order.
+    // Sorting by sourceRow makes the preview deterministic even if an upstream array is later refactored.
+    const rows=((state.posParsed&&state.posParsed.rows)||[]).slice().sort((a,b)=>{
+      const ar=Number(a&&a.sourceRow),br=Number(b&&b.sourceRow);
+      if(Number.isFinite(ar)&&Number.isFinite(br)&&ar!==br)return ar-br;
+      return Number(a&&a.posIndex||0)-Number(b&&b.posIndex||0);
+    });
+    const detailBySourceRow=posDetailMap();
     els.tableBody.innerHTML=rows.length?rows.map((pos,index)=>{
-      const detail=posDetailAt(index),notSupplied=!detail||Number(detail.suppliedQty||0)<=0,rowCls=notSupplied?'pos-not-supplied':'';
+      const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(index),notSupplied=!detail||Number(detail.suppliedQty||0)<=0,rowCls=notSupplied?'pos-not-supplied':'';
       const cells=POS_VIEW_COLUMNS.map(c=>{
         const v=rawValue(pos,c.key);let html='',extraCls='',title='';
         if(c.kind==='bool'){const checked=boolValue(v);html=`<span class="pos-checkbox ${c.flag||''} ${checked?'checked':''}" aria-label="${checked?'Checked':'Not checked'}">${checked?'✓':''}</span>`;}
@@ -156,9 +171,15 @@
   els.clearBtn.onclick=()=>{state.pos=null;state.invoices=[];state.result=null;state.docs=[];state.posParsed=null;state.previewView='exceptions';state.runIntegrity=null;els.posInput.value='';els.invoiceInput.value='';hideResults();hideProgress();renderFiles();};
   els.runBtn.onclick=run;
   els.downloadBtn.onclick=async()=>{if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok)return;const old=els.downloadBtn.textContent;els.downloadBtn.disabled=true;els.downloadBtn.textContent='Building + validating Excel…';try{await PHF.exportReference(state.docs,state.refs,state.posParsed,state.result);setStatus('Excel generated and passed workbook compatibility/integrity validation.','ok');}catch(err){console.error(err);setStatus(err&&err.message?err.message:String(err),'warn');}finally{els.downloadBtn.disabled=!state.runIntegrity.ok;els.downloadBtn.textContent=old;}};
-  if(els.viewExceptionsBtn)els.viewExceptionsBtn.onclick=()=>{state.previewView='exceptions';renderPreview(state.result);};
-  if(els.viewAllBtn)els.viewAllBtn.onclick=()=>{state.previewView='all';renderPreview(state.result);};
-  if(els.viewPosBtn)els.viewPosBtn.onclick=()=>{state.previewView='pos';renderPreview(state.result);};
+  function setPreviewView(view){
+    state.previewView=view;renderPreview(state.result);
+    // Always open a view at its first POS row / first column. This avoids a previous
+    // horizontal or vertical scroll position making the POS sequence look out of order.
+    if(els.tableWrap)requestAnimationFrame(()=>{els.tableWrap.scrollTop=0;els.tableWrap.scrollLeft=0;});
+  }
+  if(els.viewExceptionsBtn)els.viewExceptionsBtn.onclick=()=>setPreviewView('exceptions');
+  if(els.viewAllBtn)els.viewAllBtn.onclick=()=>setPreviewView('all');
+  if(els.viewPosBtn)els.viewPosBtn.onclick=()=>setPreviewView('pos');
   if(els.buildLabel&&PHF.schema&&PHF.schema.BUILD)els.buildLabel.textContent=`v${PHF.schema.BUILD.version} · ${PHF.schema.BUILD.name}`;
   refreshReferenceStatus();
 })(window);
