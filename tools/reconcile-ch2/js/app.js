@@ -1,10 +1,10 @@
 (function(global){
   'use strict';
   const PHF=global.PHFReconcile||{};
-  const state={pos:null,invoices:[],result:null,previewView:'exceptions',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null};
+  const state={pos:null,invoices:[],result:null,previewView:'exceptions',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null,orderOverrides:new Map()};
   const els={
     referenceReady:document.querySelector('#referenceReady'),referenceDot:document.querySelector('#referenceDot'),buildLabel:document.querySelector('#buildLabel'),
-    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),fullDownloadBtn:document.querySelector('#fullDownloadBtn'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn')
+    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),orderOverrideBox:document.querySelector('#orderOverrideBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),fullDownloadBtn:document.querySelector('#fullDownloadBtn'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn')
   };
 
   const RECON_COLUMNS=[
@@ -55,6 +55,23 @@
   function qty(v){return v==null?'—':Number(v).toLocaleString(undefined,{maximumFractionDigits:3});}
   function fileRow(file,onRemove){const div=document.createElement('div');div.className='file-row';const label=document.createElement('span');label.textContent=`✓ ${file.name} · ${prettySize(file.size)}`;const btn=document.createElement('button');btn.type='button';btn.textContent='Remove';btn.onclick=onRemove;div.append(label,btn);return div;}
   function setStatus(text,type='info'){els.status.className=`status ${type}`;els.status.textContent=text;}
+  function cleanText(v){return v==null?'':String(v).replace(/\u00a0/g,' ').trim();}
+  function normOrderRef(v){return cleanText(v).toUpperCase().replace(/[−–—]/g,'-').replace(/\s+/g,'');}
+  function sameOrderRef(a,b){return !!normOrderRef(a)&&normOrderRef(a)===normOrderRef(b);}
+  function invoiceDocMeta(doc){const first=(doc&&doc.rows||[])[0]||{},m=(doc&&doc.meta)||{};return {number:cleanText(first.invoiceNumber||m.invoiceNumber),customerPo:cleanText(first.customerPo||m.customerPo),sourceFile:cleanText(doc&&doc.sourceFile)};}
+  function orderLinkMismatches(){
+    const order=cleanText(state.posParsed&&state.posParsed.orderNumber);if(!order)return [];
+    const byNo=new Map();
+    for(const doc of state.docs||[]){if(!doc||doc.type==='CREDIT_NOTE')continue;const m=invoiceDocMeta(doc);if(!m.number||!m.customerPo||sameOrderRef(m.customerPo,order))continue;if(!byNo.has(m.number))byNo.set(m.number,{invoiceNumber:m.number,customerPo:m.customerPo,sourceFiles:[]});const rec=byNo.get(m.number);if(m.sourceFile&&!rec.sourceFiles.includes(m.sourceFile))rec.sourceFiles.push(m.sourceFile);}
+    return [...byNo.values()].map(x=>({...x,posOrder:order,overrideActive:sameOrderRef(state.orderOverrides.get(x.invoiceNumber),order)}));
+  }
+  function posExportOptions(){return {orderOverrides:Object.fromEntries(state.orderOverrides)};}
+  function renderOrderOverrideUi(){
+    const box=els.orderOverrideBox;if(!box)return;const mismatches=orderLinkMismatches();
+    if(!mismatches.length){box.classList.add('hidden');box.innerHTML='';return;}
+    box.classList.remove('hidden');
+    box.innerHTML=`<div class="order-override-title"><strong>Invoice → POS order link</strong><span>${mismatches.filter(x=>x.overrideActive).length}/${mismatches.length} override${mismatches.length===1?'':'s'} active</span></div><p class="order-override-help">CH2 used a Customer PO that differs from the uploaded POS order. A manual override only bypasses that PO-link check. Invoice number, product matching, quantities, pricing, master identity and totals are still fully validated.</p><div class="order-override-list">${mismatches.map(x=>`<div class="order-override-row"><div class="order-override-meta"><b>Invoice ${escapeHtml(x.invoiceNumber)}</b><br>CH2 Customer PO: <span class="override-ref">${escapeHtml(x.customerPo)}</span><br>Uploaded POS order: <span class="override-ref">${escapeHtml(x.posOrder)}</span></div><div class="order-override-actions">${x.overrideActive?`<span class="order-override-badge">MANUAL OVERRIDE ACTIVE</span><button class="btn small ghost" type="button" data-order-override-remove="${escapeHtml(x.invoiceNumber)}">Undo</button>`:`<button class="btn small" type="button" data-order-override-use="${escapeHtml(x.invoiceNumber)}">Use POS order ${escapeHtml(x.posOrder)}</button>`}</div></div>`).join('')}</div>`;
+  }
   function setProgress(pct){els.progress.classList.remove('hidden');els.progressBar.style.width=`${Math.max(0,Math.min(100,pct))}%`;}
   function hideProgress(){els.progress.classList.add('hidden');els.progressBar.style.width='0%';}
   function hideResults(){els.results.classList.add('hidden');}
@@ -396,15 +413,15 @@
     catch(err){console.error(err);state.referenceReady=false;els.referenceReady.textContent='Unavailable';els.referenceDot.className='reference-dot warn';renderFiles();}
   }
   function renderFiles(){
-    els.posFiles.replaceChildren();if(state.pos)els.posFiles.append(fileRow(state.pos,()=>{state.pos=null;state.result=null;state.posParsed=null;state.runIntegrity=null;renderFiles();hideResults();}));
-    els.invoiceFiles.replaceChildren();state.invoices.forEach((f,i)=>els.invoiceFiles.append(fileRow(f,()=>{state.invoices.splice(i,1);state.result=null;state.docs=[];state.runIntegrity=null;renderFiles();hideResults();})));
+    els.posFiles.replaceChildren();if(state.pos)els.posFiles.append(fileRow(state.pos,()=>{state.pos=null;state.result=null;state.posParsed=null;state.runIntegrity=null;state.orderOverrides=new Map();renderFiles();hideResults();}));
+    els.invoiceFiles.replaceChildren();state.invoices.forEach((f,i)=>els.invoiceFiles.append(fileRow(f,()=>{state.invoices.splice(i,1);state.result=null;state.docs=[];state.runIntegrity=null;state.orderOverrides=new Map();renderFiles();hideResults();})));
     const filesReady=!!state.pos&&state.invoices.length>0,ready=filesReady&&state.referenceReady;els.runBtn.disabled=!ready;
     if(!state.referenceReady)setStatus('Reference data is not ready on this computer. Open Admin to load the POS master and supplier/discount reference data.','warn');
     else if(filesReady)setStatus(`Ready: 1 POS order and ${state.invoices.length} supplier invoice${state.invoices.length===1?'':'s'} selected.`,'ok');
     else setStatus('Add one POS order and at least one supplier invoice to continue.','info');
   }
-  function addPos(files){const f=[...files].find(x=>validExt(x,['.xls','.xlsx','.csv']));if(f)state.pos=f;state.result=null;state.posParsed=null;state.runIntegrity=null;state.unpackChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;hideResults();renderFiles();}
-  function addInvoices(files){for(const f of files){if(validExt(f,['.pdf','.xls','.xlsx','.csv'])&&!state.invoices.some(x=>x.name===f.name&&x.size===f.size))state.invoices.push(f);}state.result=null;state.docs=[];state.runIntegrity=null;hideResults();renderFiles();}
+  function addPos(files){const f=[...files].find(x=>validExt(x,['.xls','.xlsx','.csv']));if(f)state.pos=f;state.result=null;state.posParsed=null;state.runIntegrity=null;state.orderOverrides=new Map();state.unpackChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;hideResults();renderFiles();}
+  function addInvoices(files){for(const f of files){if(validExt(f,['.pdf','.xls','.xlsx','.csv'])&&!state.invoices.some(x=>x.name===f.name&&x.size===f.size))state.invoices.push(f);}state.result=null;state.docs=[];state.runIntegrity=null;state.orderOverrides=new Map();hideResults();renderFiles();}
   function wireDrop(zone,input,handler){zone.onclick=()=>input.click();zone.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();input.click();}};input.onchange=()=>handler(input.files);['dragenter','dragover'].forEach(evt=>zone.addEventListener(evt,e=>{e.preventDefault();zone.classList.add('drag');}));['dragleave','drop'].forEach(evt=>zone.addEventListener(evt,e=>{e.preventDefault();zone.classList.remove('drag');}));zone.addEventListener('drop',e=>handler(e.dataTransfer.files));}
 
   function pill(status){let cls='bad';if(status==='OK')cls='ok';else if(status==='BETTER PRICE')cls='better';else if(/REVIEW|LOW/.test(status))cls='review';return `<span class="status-pill ${cls}">${escapeHtml(status)}</span>`;}
@@ -418,6 +435,7 @@
     }
     if(!els.downloadBtn)return;
     const activeInvoiceDocs=(state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').length;
+    const orderMismatches=orderLinkMismatches(),orderLinkReady=orderMismatches.every(x=>x.overrideActive);
     const labels={exceptions:'Download Exceptions.xlsx',pos:activeInvoiceDocs>1?'Download POS Import Files.zip':'Download POS Layout.txt'};
     if(state.previewView==='all'){
       els.downloadBtn.classList.add('hidden');
@@ -426,8 +444,9 @@
     }
     els.downloadBtn.classList.remove('hidden');
     els.downloadBtn.textContent=labels[state.previewView]||'Download Current View';
-    els.downloadBtn.disabled=!ready;
-    els.downloadBtn.title=ready?`Download the ${state.previewView==='pos'?'POS-layout tab-delimited text file':'exceptions workbook'}.`:'Export is blocked until all integrity checks pass.';
+    const posLinkBlocked=state.previewView==='pos'&&!orderLinkReady;
+    els.downloadBtn.disabled=!ready||posLinkBlocked;
+    els.downloadBtn.title=!ready?'Export is blocked until all integrity checks pass.':posLinkBlocked?'Confirm the Invoice → POS order manual override shown below before creating the POS import file.':`Download the ${state.previewView==='pos'?'POS-layout tab-delimited text file':'exceptions workbook'}.`;
   }
   function setViewButtons(){
     const map={exceptions:els.viewExceptionsBtn,all:els.viewAllBtn,pos:els.viewPosBtn};
@@ -516,7 +535,7 @@
     if(t.auditDataMissing)notes.push(`${t.auditDataMissing} matched POS line(s) cannot receive a complete CH2 discount/wholesale audit because the supplier invoice did not print all required audit fields.`);
     if(integ.ok)notes.unshift('Integrity checks passed: POS source order is locked, every parsed invoice row is accounted for exactly once, and supplier invoice arithmetic is valid.');else notes.unshift(...integ.errors.map(x=>`INTEGRITY BLOCK: ${x}`));notes.push(...(integ.warnings||[]));notes.push('Excel output keeps every POS order line in the exact uploaded sequence. Genuine invoice-only lines are appended only after the complete POS order block.');
     els.warningBox.classList.remove('hidden','ok','bad');els.warningBox.classList.add(integ.ok?'ok':'bad');els.warningBox.innerHTML='<strong>Review notes:</strong><br>'+notes.map(escapeHtml).join('<br>');
-    renderPreview(r);updateDownloadButton();els.results.scrollIntoView({behavior:'smooth',block:'start'});
+    renderOrderOverrideUi();renderPreview(r);updateDownloadButton();els.results.scrollIntoView({behavior:'smooth',block:'start'});
   }
 
   async function run(){
@@ -535,7 +554,7 @@
   }
 
   wireDrop(els.posDrop,els.posInput,addPos);wireDrop(els.invoiceDrop,els.invoiceInput,addInvoices);
-  els.clearBtn.onclick=()=>{state.pos=null;state.invoices=[];state.result=null;state.docs=[];state.posParsed=null;state.previewView='exceptions';state.runIntegrity=null;state.unpackChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;els.posInput.value='';els.invoiceInput.value='';hideResults();hideProgress();renderFiles();};
+  els.clearBtn.onclick=()=>{state.pos=null;state.invoices=[];state.result=null;state.docs=[];state.posParsed=null;state.previewView='exceptions';state.runIntegrity=null;state.unpackChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;state.orderOverrides=new Map();els.posInput.value='';els.invoiceInput.value='';hideResults();hideProgress();renderFiles();};
   els.runBtn.onclick=run;
   if(els.fullDownloadBtn)els.fullDownloadBtn.onclick=async()=>{
     if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok)return;
@@ -548,7 +567,7 @@
     if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok||state.previewView==='all')return;
     els.downloadBtn.disabled=true;els.downloadBtn.textContent=state.previewView==='pos'?(((state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').length>1)?'Building POS ZIP…':'Building TXT…'):'Building Excel…';
     try{
-      const exportResult=await PHF.exportView(state.previewView,state.docs,state.refs,state.posParsed,state.result);
+      const exportResult=await PHF.exportView(state.previewView,state.docs,state.refs,state.posParsed,state.result,posExportOptions());
       const label=state.previewView==='pos'?(((state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').length>1)?'POS import files':'POS layout text file'):'exceptions Excel';
       const warningCount=state.previewView==='pos'&&exportResult&&Array.isArray(exportResult.warnings)?exportResult.warnings.length:0;
       if(warningCount)setStatus(`${label} generated successfully with ${warningCount} non-blocking validation note${warningCount===1?'':'s'}. The uploaded POS order identity was preserved; the POS import screen will perform its own final validation.`,'warn');
@@ -565,6 +584,16 @@
       }
     }
     finally{updateDownloadButton();}
+  };
+  if(els.orderOverrideBox)els.orderOverrideBox.onclick=e=>{
+    const use=e.target.closest('[data-order-override-use]'),remove=e.target.closest('[data-order-override-remove]');
+    if(use){
+      const invoice=use.getAttribute('data-order-override-use'),mismatch=orderLinkMismatches().find(x=>x.invoiceNumber===invoice);if(!mismatch)return;
+      const ok=global.confirm(`Manually link invoice ${mismatch.invoiceNumber} to uploaded POS order ${mismatch.posOrder}?\n\nCH2 Customer PO: ${mismatch.customerPo}\nPOS order: ${mismatch.posOrder}\n\nThis ONLY overrides the Customer PO equality check. All product, quantity, price, master-identity and total validation remains active.`);
+      if(!ok)return;state.orderOverrides.set(mismatch.invoiceNumber,mismatch.posOrder);renderOrderOverrideUi();updateDownloadButton();setStatus(`Manual order-link override active: invoice ${mismatch.invoiceNumber} → POS order ${mismatch.posOrder}. Original CH2 Customer PO ${mismatch.customerPo} is preserved for audit.`, 'warn');
+    }else if(remove){
+      const invoice=remove.getAttribute('data-order-override-remove');state.orderOverrides.delete(invoice);renderOrderOverrideUi();updateDownloadButton();setStatus(`Manual order-link override removed for invoice ${invoice}.`, 'info');
+    }
   };
   function setPreviewView(view){
     commitActiveReceivingInput();

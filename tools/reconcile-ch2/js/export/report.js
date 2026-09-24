@@ -191,13 +191,13 @@
     }
     const filename=`CH2_PO_${safePart(reconciliation.orderNumber)}_EXCEPTIONS.xlsx`;return downloadWorkbook(wb,filename);
   }
-  async function exportPosLayout(invoiceDocs,refs,posOrder,reconciliation){
+  async function exportPosLayout(invoiceDocs,refs,posOrder,reconciliation,options={}){
     if(!PHF.posImport||typeof PHF.posImport.exportLegacyPosImport!=='function')throw new Error('POS import exporter did not load. Refresh the page and try again.');
-    return PHF.posImport.exportLegacyPosImport(invoiceDocs,refs,posOrder,reconciliation);
+    return PHF.posImport.exportLegacyPosImport(invoiceDocs,refs,posOrder,reconciliation,options);
   }
-  async function exportView(view,invoiceDocs,refs,posOrder,reconciliation){
+  async function exportView(view,invoiceDocs,refs,posOrder,reconciliation,options={}){
     if(view==='exceptions')return exportExceptions(reconciliation);
-    if(view==='pos')return exportPosLayout(invoiceDocs,refs,posOrder,reconciliation);
+    if(view==='pos')return exportPosLayout(invoiceDocs,refs,posOrder,reconciliation,options);
     return exportReference(invoiceDocs,refs,posOrder,reconciliation);
   }
 

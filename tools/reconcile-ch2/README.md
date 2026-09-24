@@ -375,3 +375,17 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - A supplied line with a valid Item/Sub Id but no barcode is now allowed with a warning; only missing both Item and Barcode is a hard identity failure.
 - Successful POS downloads now report the count of non-blocking validation notes in the page status, while the POS application remains the final import gate.
 - Full 43-column reconciliation, Exceptions export, POS receiving workflow, reference drag/drop, pricing/discount logic and all other v2.6.1 behaviour are preserved.
+
+
+## v2.6.3 manual order-link override + Reference Admin layout fix
+
+- Reference Admin cards no longer allow long cached filenames/status text to squeeze the file-select buttons into awkward multi-line wrapping.
+- Cached reference filenames remain compact with ellipsis and expose their full text as a hover tooltip.
+- When a CH2 invoice Customer PO differs from the uploaded POS order, the result screen now shows an explicit **Invoice → POS order link** control.
+- Staff can deliberately confirm a manual link, for example invoice `73930346` / CH2 Customer PO `02.09.2026-MELB-SID` → uploaded POS order `105-0008640`.
+- The manual override bypasses **only** the Customer PO equality check. It does not bypass invoice-number, product, quantity, price, master-identity, discount, arithmetic or total validation.
+- The original CH2 Customer PO is preserved; it is never rewritten in the reconciliation data.
+- POS import download remains disabled until every detected Customer PO mismatch has either matched normally or been explicitly confirmed.
+- Overrides are per invoice and session/current file selection, can be undone, and are cleared when the POS order or supplier files are changed.
+- The generated POS TXT continues to use the real CH2 invoice number as `Document Number` and the uploaded POS order number only as the order/import reference.
+- All v2.6.2 master-validation, 12-column legacy TXT, full 43-column Excel, Exceptions, receiving, preview and reference-data behaviour is preserved.

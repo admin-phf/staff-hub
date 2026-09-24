@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Prahran Health Foods — Reconcile CH2 Order</title>
-  <link rel="stylesheet" href="./css/app.css?v=262">
+  <link rel="stylesheet" href="./css/app.css?v=263">
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
@@ -82,6 +82,7 @@
       </div>
       <div class="kpis" id="kpis"></div>
       <div class="notice hidden" id="warningBox"></div>
+      <div class="order-override-panel hidden" id="orderOverrideBox" aria-live="polite"></div>
       <div class="pos-tools hidden" id="posTools">
         <div class="pos-check-progress" id="posCheckProgress">Checked 0 / 0</div>
         <span class="pos-tools-note">Receiving checklist · tick = set Found to expected delivery qty · Add Qty adds to the running total · Found is editable for a direct override · Remove not supplied moves grey lines to the processed section without changing reconciliation · complete rows move below remaining items · Found: red = under, grey = correct, green = over</span>
@@ -105,16 +106,16 @@
     </section>
   </main>
 
-  <script src="./js/reference/reference-config.js?v=262"></script>
-  <script src="./js/reference/reference-data.js?v=262"></script>
-  <script src="./js/core/schema.js?v=262"></script>
-  <script src="./js/core/integrity.js?v=262"></script>
-  <script src="./js/parsers/pos-order.js?v=262"></script>
-  <script src="./js/parsers/supplier-invoice.js?v=262"></script>
-  <script src="./js/core/reconcile.js?v=262"></script>
-  <script src="./js/core/linked-pos.js?v=262"></script>
-  <script src="./js/export/pos-import.js?v=262"></script>
-  <script src="./js/export/report.js?v=262"></script>
-  <script src="./js/app.js?v=262"></script>
+  <script src="./js/reference/reference-config.js?v=263"></script>
+  <script src="./js/reference/reference-data.js?v=263"></script>
+  <script src="./js/core/schema.js?v=263"></script>
+  <script src="./js/core/integrity.js?v=263"></script>
+  <script src="./js/parsers/pos-order.js?v=263"></script>
+  <script src="./js/parsers/supplier-invoice.js?v=263"></script>
+  <script src="./js/core/reconcile.js?v=263"></script>
+  <script src="./js/core/linked-pos.js?v=263"></script>
+  <script src="./js/export/pos-import.js?v=263"></script>
+  <script src="./js/export/report.js?v=263"></script>
+  <script src="./js/app.js?v=263"></script>
 </body>
 </html>

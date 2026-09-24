@@ -19,6 +19,11 @@
   function normCode(v){return code(v).toUpperCase();}
   function normRef(v){return clean(v).toUpperCase().replace(/[−–—]/g,'-').replace(/\s+/g,'');}
   function sameRef(a,b){return !!normRef(a)&&normRef(a)===normRef(b);}
+  function overrideTarget(options,invoiceNumber){
+    const o=options&&options.orderOverrides;if(!o)return '';
+    if(o instanceof Map)return clean(o.get(invoiceNumber));
+    return clean(o[invoiceNumber]);
+  }
   function safePart(v){return clean(v).replace(/[^A-Za-z0-9._-]+/g,'_').replace(/^_+|_+$/g,'')||'CURRENT';}
   function formatDate(v){
     if(v instanceof Date&&!Number.isNaN(v.getTime()))return `${String(v.getDate()).padStart(2,'0')}-${String(v.getMonth()+1).padStart(2,'0')}-${String(v.getFullYear()).slice(-2)}`;
@@ -156,25 +161,35 @@
   function lineLabel(pos,index){return `POS row ${index+1}${clean(pos&&pos.description)?` (${clean(pos.description)})`:''}`;}
   function pushIssue(list,msg,limit=40){if(list.length<limit)list.push(msg);}
 
-  function groupDocuments(invoiceDocs,posOrder){
-    const docs=activeDocs(invoiceDocs),groups=[],byNo=new Map(),errors=[];
+  function groupDocuments(invoiceDocs,posOrder,options={}){
+    const docs=activeDocs(invoiceDocs),groups=[],byNo=new Map(),errors=[],warnings=[];
     for(const doc of docs){
       const m=docMeta(doc);
       if(!m.number){pushIssue(errors,`${m.sourceFile||'Supplier invoice'}: invoice number is missing.`);continue;}
       if(!m.date){pushIssue(errors,`Invoice ${m.number}: invoice date is missing.`);continue;}
       const key=m.number;
       if(!byNo.has(key)){
-        const g={number:key,date:m.date,customerPo:m.customerPo,sourceFiles:new Set(),docs:[]};byNo.set(key,g);groups.push(g);
+        const g={number:key,date:m.date,customerPo:m.customerPo,sourceFiles:new Set(),docs:[],orderOverride:null};byNo.set(key,g);groups.push(g);
       }
       const g=byNo.get(key);g.docs.push(doc);if(m.sourceFile)g.sourceFiles.add(m.sourceFile);
       if(m.customerPo&&!g.customerPo)g.customerPo=m.customerPo;
     }
     for(const g of groups){
       const files=[...g.sourceFiles];if(g.docs.length>1)pushIssue(errors,`Invoice ${g.number} was uploaded more than once${files.length?` (${files.join(', ')})`:''}. Remove the duplicate copy before creating the POS import file.`);
-      if(clean(posOrder&&posOrder.orderNumber)&&g.customerPo&&!sameRef(g.customerPo,posOrder.orderNumber))pushIssue(errors,`Invoice ${g.number}: Customer PO ${g.customerPo} does not match uploaded POS order ${posOrder.orderNumber}.`);
+      const posNo=clean(posOrder&&posOrder.orderNumber),override=overrideTarget(options,g.number);
+      if(posNo&&g.customerPo&&!sameRef(g.customerPo,posNo)){
+        if(override&&sameRef(override,posNo)){
+          g.orderOverride={invoiceNumber:g.number,originalCustomerPo:g.customerPo,posOrder:posNo};
+          warnings.push(`MANUAL ORDER OVERRIDE — Invoice ${g.number}: original CH2 Customer PO ${g.customerPo} was explicitly linked to uploaded POS order ${posNo}. Only the Customer PO equality check is overridden; all product, quantity, pricing, master-identity and total validation remains active.`);
+        }else if(override){
+          pushIssue(errors,`Invoice ${g.number}: manual order override points to ${override}, but the currently uploaded POS order is ${posNo}. Remove/reconfirm the override for this order.`);
+        }else{
+          pushIssue(errors,`Invoice ${g.number}: Customer PO ${g.customerPo} does not match uploaded POS order ${posNo}. Use the Invoice → POS order link control in the reconciliation result to explicitly confirm a manual order override.`);
+        }
+      }
     }
     if(!groups.length&&!errors.length)pushIssue(errors,'No supplier invoice is available for POS import.');
-    return {groups,errors};
+    return {groups,errors,warnings};
   }
 
   function buildInvoicePayload(group,refs,posOrder,reconciliation){
@@ -291,9 +306,9 @@
     return {ok:errors.length===0,errors,warnings:[...(payload&&payload.warnings||[])]};
   }
 
-  function buildLegacyFiles(invoiceDocs,refs,posOrder,reconciliation){
-    const grouped=groupDocuments(invoiceDocs,posOrder);if(grouped.errors.length)return {ok:false,errors:grouped.errors,warnings:[],files:[]};
-    const files=[],errors=[],warnings=[];
+  function buildLegacyFiles(invoiceDocs,refs,posOrder,reconciliation,options={}){
+    const grouped=groupDocuments(invoiceDocs,posOrder,options);if(grouped.errors.length)return {ok:false,errors:grouped.errors,warnings:grouped.warnings||[],files:[]};
+    const files=[],errors=[],warnings=[...(grouped.warnings||[])];
     for(const group of grouped.groups){
       const payload=buildInvoicePayload(group,refs,posOrder,reconciliation),validation=validatePayload(payload);
       errors.push(...validation.errors);warnings.push(...validation.warnings);
@@ -305,8 +320,8 @@
   function errorMessage(errors){const list=(errors||[]),shown=list.slice(0,12),rest=Math.max(0,list.length-shown.length);return `POS import blocked — ${list.length} validation issue${list.length===1?'':'s'}:\n• ${shown.join('\n• ')}${rest?`\n• …and ${rest} more.`:''}`;}
   function downloadBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);}
 
-  async function exportLegacyPosImport(invoiceDocs,refs,posOrder,reconciliation){
-    const built=buildLegacyFiles(invoiceDocs,refs,posOrder,reconciliation);if(!built.ok)throw new Error(errorMessage(built.errors));
+  async function exportLegacyPosImport(invoiceDocs,refs,posOrder,reconciliation,options={}){
+    const built=buildLegacyFiles(invoiceDocs,refs,posOrder,reconciliation,options);if(!built.ok)throw new Error(errorMessage(built.errors));
     if(built.files.length===1){const f=built.files[0];downloadBlob(new Blob([f.text],{type:'text/plain;charset=utf-8'}),f.filename);return {filename:f.filename,files:1,rows:f.records.length,columns:12,validation:f.validation,warnings:built.warnings};}
     if(!global.JSZip)throw new Error('ZIP export library did not load. Refresh the page and try again.');
     const zip=new global.JSZip();for(const f of built.files)zip.file(f.filename,f.text);
@@ -314,5 +329,5 @@
     return {filename:zipName,files:built.files.length,rows:built.files.reduce((a,f)=>a+f.records.length,0),columns:12,warnings:built.warnings};
   }
 
-  PHF.posImport={CONTRACT,buildLegacyFiles,validatePayload,exportLegacyPosImport,makeTsv,parseTsv,formatDate};
+  PHF.posImport={CONTRACT,groupDocuments,buildLegacyFiles,validatePayload,exportLegacyPosImport,makeTsv,parseTsv,formatDate};
 })(window);
