@@ -32,15 +32,16 @@
     for(const name of wb.SheetNames){const matrix=matrixFor(wb,name),h=findHeader(matrix,[MASTER_ALIASES.code],100);if(!h)continue;const core=['barcode','plu','brand','descr','last','rrp'].reduce((n,k)=>n+(aliasCol(h.map,MASTER_ALIASES[k])>=0?1:0),0),score=100+core*10;if(!chosen||score>chosen.score)chosen={name,matrix,h,score};}
     if(!chosen)throw new Error('Could not find a CH2 product-code column in the merged POS/master workbook.');
     const cols={};for(const [k,names] of Object.entries(MASTER_ALIASES))cols[k]=aliasCol(chosen.h.map,names);
-    const byCode=new Map(),byBarcode=new Map(),byPlu=new Map();let duplicates=0;
+    const byCode=new Map(),byCodeAll=new Map(),byBarcode=new Map(),byPlu=new Map(),byPosSubId=new Map();let duplicates=0;
     for(let r=chosen.h.row+1;r<chosen.matrix.length;r++){
       const row=chosen.matrix[r]||[],code=digits(valueAt(row,cols.code));if(!code)continue;
       const record={MASTER_CODE:code,POS_SUPPLIER_RAW:clean(valueAt(row,cols.supplier)),POS_SUPPLIER_NAME:clean(valueAt(row,cols.supplierName)),POS_SUPPLIER_NUMBER:digits(valueAt(row,cols.supplierNumber)),POS_MASTER_BARCODE:barcode(valueAt(row,cols.barcode)),POS_PLU:clean(valueAt(row,cols.plu)).replace(/\.0+$/,''),POS_SUB_ID:clean(valueAt(row,cols.posSubId)).replace(/\.0+$/,''),POS_BRAND:clean(valueAt(row,cols.brand)),POS_DESCR:clean(valueAt(row,cols.descr)),POS_WSP_EXCGST:num(valueAt(row,cols.wsp)),POS_CH2_WHOLESALE_EX_GST:num(valueAt(row,cols.ch2Wholesale)),POS_LAST_PRICE:num(valueAt(row,cols.last)),POS_GST_TAX_PC:num(valueAt(row,cols.gst)),POS_RRP_INCGST:num(valueAt(row,cols.rrp))};
+      if(!byCodeAll.has(code))byCodeAll.set(code,[]);byCodeAll.get(code).push(record);
       if(byCode.has(code)){duplicates++;if(recordQuality(record)>recordQuality(byCode.get(code)))byCode.set(code,record);}else byCode.set(code,record);
-      const bc=record.POS_MASTER_BARCODE;if(bc&&!byBarcode.has(bc))byBarcode.set(bc,record);const plu=digits(record.POS_PLU);if(plu&&!byPlu.has(plu))byPlu.set(plu,record);
+      const bc=record.POS_MASTER_BARCODE;if(bc&&!byBarcode.has(bc))byBarcode.set(bc,record);const plu=digits(record.POS_PLU);if(plu&&!byPlu.has(plu))byPlu.set(plu,record);const sid=clean(record.POS_SUB_ID).toUpperCase();if(sid){if(!byPosSubId.has(sid))byPosSubId.set(sid,[]);byPosSubId.get(sid).push(record);}
     }
     const fuzzy=[];for(const rec of byCode.values())if(clean(rec.POS_DESCR))fuzzy.push(rec);
-    return {byCode,byBarcode,byPlu,fuzzy,info:{sheet:chosen.name,headerRow:chosen.h.row+1,records:byCode.size,duplicates}};
+    return {byCode,byCodeAll,byBarcode,byPlu,byPosSubId,fuzzy,info:{sheet:chosen.name,headerRow:chosen.h.row+1,records:byCode.size,duplicates}};
   }
 
   function locateSheet(wb,requirements,preferredNames=[]){const ordered=[...preferredNames.filter(n=>wb.SheetNames.includes(n)),...wb.SheetNames.filter(n=>!preferredNames.includes(n))];for(const name of ordered){const matrix=matrixFor(wb,name),h=findHeader(matrix,requirements,40);if(h)return {name,matrix,h};}return null;}

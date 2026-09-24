@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.5.9
+# Prahran Health Foods — CH2 Reconciler v2.6.0
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -336,3 +336,18 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - The POS import text export keeps the exact 14-column legacy tab-delimited layout and uses the canonical POS Sub ID from the linked master when available.
 - POS import filenames follow `oborne_invoice_{INVOICE}_(PO).txt`.
 - POS import text download is blocked if a supplied line has no Item/Sub Id.
+
+
+## v2.6.0 robust legacy POS import contract
+
+- POS-layout import export is isolated in `js/export/pos-import.js` so the known-working legacy POS-import contract cannot be accidentally changed by the 43-column Excel renderer.
+- Exact 12-column contract: `Date`, `Name`, `Document Number`, `Item`, `Description`, `Quantity`, `W/S ex GST`, `Discount`, `GST`, `Gross Amt`, `Barcode`, `Shipping Address`.
+- Fixed legacy customer values are retained: `JPRAHRAN Prahran Health Foods` and the known-working multiline shipping address.
+- `Document Number` is the actual CH2 supplier invoice number printed on the PDF. Customer PO/order number remains a separate reconciliation identity.
+- `Item` is the canonical POS Sub ID from the POS/master; supplied CH2 product codes are independently cross-checked against all available master mappings before download.
+- `W/S ex GST` is the actual discounted line total excluding GST. `Discount` uses legacy `less X%` text.
+- Zero/not-supplied order rows remain present in original POS sequence; the final `Overall Total` row is restored.
+- TXT format is CRLF tab-delimited, no BOM, with legacy-style quoted multiline address and comma-formatted totals.
+- POS import preflight blocks unsafe output for mismatched Customer PO, unmatched invoice lines, missing/ambiguous master identity, LOW-confidence matches, inconsistent discount rates or non-reconciling totals.
+- If one POS order is split across multiple supplier invoices, each actual invoice gets its own validated TXT inside one ZIP rather than mixing Document Numbers in a single legacy import file.
+- All v2.5.9 reconciliation, receiving, preview, reference-data and full 43-column Excel behaviour is preserved.

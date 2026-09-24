@@ -417,7 +417,8 @@
       els.fullDownloadBtn.title=ready?'Download the original complete 43-column linked-POS reconciliation workbook.':'Excel export is blocked until all integrity checks pass.';
     }
     if(!els.downloadBtn)return;
-    const labels={exceptions:'Download Exceptions.xlsx',pos:'Download POS Layout.txt'};
+    const activeInvoiceDocs=(state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').length;
+    const labels={exceptions:'Download Exceptions.xlsx',pos:activeInvoiceDocs>1?'Download POS Import Files.zip':'Download POS Layout.txt'};
     if(state.previewView==='all'){
       els.downloadBtn.classList.add('hidden');
       els.downloadBtn.disabled=true;
@@ -545,10 +546,10 @@
   };
   els.downloadBtn.onclick=async()=>{
     if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok||state.previewView==='all')return;
-    els.downloadBtn.disabled=true;els.downloadBtn.textContent=state.previewView==='pos'?'Building TXT…':'Building Excel…';
+    els.downloadBtn.disabled=true;els.downloadBtn.textContent=state.previewView==='pos'?(((state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').length>1)?'Building POS ZIP…':'Building TXT…'):'Building Excel…';
     try{
       await PHF.exportView(state.previewView,state.docs,state.refs,state.posParsed,state.result);
-      const label=state.previewView==='pos'?'POS layout text file':'exceptions Excel';
+      const label=state.previewView==='pos'?(((state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').length>1)?'POS import files':'POS layout text file'):'exceptions Excel';
       setStatus(`${label} generated successfully.`,'ok');
     }catch(err){console.error(err);setStatus(err&&err.message?err.message:String(err),'warn');}
     finally{updateDownloadButton();}
