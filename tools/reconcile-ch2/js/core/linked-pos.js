@@ -75,6 +75,28 @@
     return {...base,'DIS CH2 DISC CHECK':discCheck,'DIS EXPECTED UNIT EXGST':expectedUnit,'DIS UNIT VARIANCE':variance,'DIS UNIT CHECK':unitCheck,'DIS MISSED TOTAL':missed};
   }
 
+
+  function expectedPriceForPos(pos,refs,normalWholesale){
+    const nws=num(normalWholesale);if(nws==null)return {price:null,discountPct:null,match:null};
+    const rec=posReference(pos,refs)||{};
+    const row={
+      'POS SUPPLIER':supplierFromPos(pos,refs,rec),
+      'POS MASTER BARCODE':clean(pos&&pos.barcode),
+      'POS PLU':clean(pos&&pos.plu),
+      'POS BRAND':clean(rec.POS_BRAND),
+      'POS DESCR':clean(pos&&pos.description)
+    };
+    const best=findDiscountRule(row,refs&&refs.supplier&&refs.supplier.discountRules);
+    const discountPct=best?Number(best.rule.POS_DISCOUNT||0):0;
+    return {price:roundHalfUp(nws*(1-discountPct/100),2),discountPct,match:best||null};
+  }
+  function canonicalPosSubId(pos,refs){
+    const rec=posReference(pos,refs)||{},orderSub=clean(pos&&pos.subId),masterSub=clean(rec.POS_SUB_ID);
+    // The linked POS/master is the canonical source for the supplier Sub ID used by
+    // the legacy invoice-import screen. Fall back to the uploaded order when unavailable.
+    return masterSub||orderSub;
+  }
+
   function lineCount(v){const n=num(v);if(n==null)return clean(v);return Number.isInteger(n)?String(n):String(n).replace(/0+$/,'').replace(/\.$/,'');}
   function posReference(pos,refs){const b=bc(pos&&pos.barcode);if(b&&refs.master.byBarcode.has(b))return refs.master.byBarcode.get(b);const s=digits(pos&&pos.subId);if(s&&refs.master.byCode.has(s))return refs.master.byCode.get(s);const p=digits(pos&&pos.plu);if(p&&refs.master.byPlu&&refs.master.byPlu.has(p))return refs.master.byPlu.get(p);return {};}
   function statusFor(pos,invs){const ordered=num(pos&&pos.orderedQty)||0,supplied=round(sumRows(invs,'qtySupplied'),3)||0;if(!invs.length)return `NOT INVOICED / SHORT SHIPPED — ORDERED ${ordered} / SUPPLIED 0`;const conf=lowestConfidence(invs),auditMissing=invs.some(r=>r.discountPct==null||r.normalWholesale==null);if(supplied<ordered-0.0001)return `MATCHED / SHORT SUPPLIED — ORDERED ${ordered} / SUPPLIED ${supplied}`;if(supplied>ordered+0.0001)return `MATCHED / OVER SUPPLIED — ORDERED ${ordered} / SUPPLIED ${supplied}`;if(conf==='LOW')return 'MATCHED - REVIEW (LOW CONFIDENCE)';if(auditMissing)return 'MATCHED - REVIEW (CH2 AUDIT DATA MISSING)';return 'MATCHED';}
@@ -116,5 +138,5 @@
   }
   function buildReferenceOutputs(invoiceDocs,refs,posOrder,reconciliation){return (invoiceDocs||[]).filter(d=>d.type!=='CREDIT_NOTE'&&(d.rows||[]).length).map(d=>buildRowsForDocument(d,refs,posOrder,reconciliation));}
 
-  PHF.linkedPos={HEADERS:PHF.schema.HEADERS,TOTAL_HEADERS:PHF.schema.TOTAL_HEADERS,buildReferenceOutputs,buildRowsForDocument};
+  PHF.linkedPos={HEADERS:PHF.schema.HEADERS,TOTAL_HEADERS:PHF.schema.TOTAL_HEADERS,buildReferenceOutputs,buildRowsForDocument,expectedPriceForPos,canonicalPosSubId};
 })(window);

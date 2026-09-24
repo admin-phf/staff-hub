@@ -68,13 +68,29 @@
     const plu=refDigits(pos.plu);if(plu&&master.byPlu&&master.byPlu.has(plu))return master.byPlu.get(plu)||{};
     return {};
   }
-  function posColumnValue(pos,c){
+  function normalWholesaleForPos(pos,detail){
+    const invoiceWs=numberValue(detail&&detail.invoiceNormalWholesale);if(invoiceWs!=null)return invoiceWs;
+    const rec=posReferenceRecord(pos),masterWs=numberValue(rec&&rec.POS_CH2_WHOLESALE_EX_GST);if(masterWs!=null)return masterWs;
+    const posWs=numberValue(pos&&pos.normalWholesale);if(posWs!=null)return posWs;
+    return numberValue(rawValue(pos,'adjwsprce'));
+  }
+  function discountedPosPrice(pos,detail){
+    const nws=normalWholesaleForPos(pos,detail);if(nws==null)return '';
+    if(PHF.linkedPos&&typeof PHF.linkedPos.expectedPriceForPos==='function'){
+      const calc=PHF.linkedPos.expectedPriceForPos(pos,state.refs,nws);if(calc&&calc.price!=null)return calc.price;
+    }
+    return nws;
+  }
+  function posColumnValue(pos,c,detail=null){
     if(!pos||!c)return '';
     if(c.key==='__pos_brand')return String((posReferenceRecord(pos).POS_BRAND)||'');
     if(c.key==='main_id')return pos.barcode??'';
     if(c.key==='plu')return pos.plu??'';
     if(c.key==='sub_id')return pos.subId??'';
     if(c.key==='descr')return pos.description??'';
+    // POS receiving view rule: AdjCatPrc and AdjDPrc are the same expected cost,
+    // calculated as Normal W/S per unit ex GST less the matched supplier discount rule.
+    if(c.key==='adjcatprce'||c.key==='adjdprce')return discountedPosPrice(pos,detail);
     return rawValue(pos,c.key);
   }
   function boolValue(v){if(v===true||v===1)return true;const s=String(v??'').trim().toLowerCase();return ['true','1','yes','y','checked'].includes(s);}
@@ -98,7 +114,7 @@
     if(!detail)return null;
     if(key==='adjrrprce')return weightedInvoiceValue(detail,'rrp');
     if(key==='adjwsprce')return numberValue(detail.invoiceNormalWholesale);
-    if(key==='adjdprce')return numberValue(detail.actualUnit);
+    if(key==='adjcatprce'||key==='adjdprce')return numberValue(detail.actualUnit);
     return null;
   }
   function priceMove(current,target){
@@ -107,12 +123,13 @@
     if(Math.abs(diff)<=tol)return {kind:'same',symbol:'—',diff,target:b};
     return diff>0?{kind:'up',symbol:'↑',diff,target:b}:{kind:'down',symbol:'↓',diff,target:b};
   }
-  function posTotals(rows){
+  function posTotals(rows,detailBySourceRow=posDetailMap()){
     let current=0,adjusted=0;
     for(const pos of rows||[]){
       const raw=pos.raw||{},qtyNow=numberValue(raw.qty)??numberValue(pos.orderedQty)??0,qtyAdj=numberValue(raw.or_qty)??numberValue(pos.orderedQty)??0;
-      const currentPrice=numberValue(raw.last_price)??numberValue(raw.adjdprce)??numberValue(pos.expectedUnit)??0;
-      const adjustedPrice=numberValue(raw.adjdprce)??numberValue(pos.expectedUnit)??currentPrice;
+      const currentPrice=numberValue(raw.last_price)??numberValue(pos.expectedUnit)??0;
+      const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||null;
+      const adjustedPrice=numberValue(discountedPosPrice(pos,detail))??currentPrice;
       current+=currentPrice*qtyNow;adjusted+=adjustedPrice*qtyAdj;
     }
     return {current,adjusted};
@@ -277,7 +294,7 @@
     if(c.kind==='check')return '✓';
     if(c.kind==='qtyinput')return '-999.999';
     if(c.kind==='qtytotal')return displayUnpackCount(unpackCountFor(pos));
-    const v=posColumnValue(pos,c);
+    const v=posColumnValue(pos,c,detail);
     if(c.kind==='bool')return boolValue(v)?'✓':'';
     if(c.kind==='number'){
       let text=fixed(v,c.dp??2);
@@ -444,7 +461,7 @@
       const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(index),notSupplied=!detail||Number(detail.suppliedQty||0)<=0;
       const checkKey=unpackIdentity(pos),unpackDone=state.unpackChecked.has(checkKey),rowClasses=[notSupplied?'pos-not-supplied':'',unpackDone?'unpack-checked':'',(unpackDone&&index===remainingCount)?'unpack-complete-start':''].filter(Boolean).join(' ');
       const cells=POS_VIEW_COLUMNS.map(c=>{
-        const v=posColumnValue(pos,c);let html='',extraCls='',title='';
+        const v=posColumnValue(pos,c,detail);let html='',extraCls='',title='';
         if(c.kind==='check'){
           html=`<button type="button" class="unpack-check ${unpackDone?'checked':''}" data-unpack-key="${escapeHtml(encodeURIComponent(checkKey))}" aria-pressed="${unpackDone?'true':'false'}" title="${unpackDone?'Mark as not checked':'Mark as unpacked / checked'}"><span aria-hidden="true">${unpackDone?'✓':''}</span></button>`;
           extraCls=' unpack-cell';
@@ -483,7 +500,7 @@
     els.tableBody.onchange=e=>{const add=e.target.closest('.unpack-qty-input'),found=e.target.closest('.unpack-qty-total');if(add)commitQtyInput(add);else if(found)commitFoundInput(found);};
 
     if(els.tableFoot){
-      if(baseRows.length){const totals=posTotals(baseRows),leftSpan=Math.max(1,POS_VIEW_COLUMNS.length-5);els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="${leftSpan}" class="pos-total-left"><strong>Current Order</strong><span>${baseRows.length.toLocaleString()} product line${baseRows.length===1?'':'s'} · <b data-check-progress>complete ${progress.checked}/${progress.total} · remaining ${progress.remaining}</b> · completed rows move below remaining items · grey rows = not supplied</span></td><td colspan="2" class="pos-total-label">Current / Adjusted Total</td><td class="pos-total-current">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted">${money(totals.adjusted)}</td></tr>`;}
+      if(baseRows.length){const totals=posTotals(baseRows,detailBySourceRow),leftSpan=Math.max(1,POS_VIEW_COLUMNS.length-5);els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="${leftSpan}" class="pos-total-left"><strong>Current Order</strong><span>${baseRows.length.toLocaleString()} product line${baseRows.length===1?'':'s'} · <b data-check-progress>complete ${progress.checked}/${progress.total} · remaining ${progress.remaining}</b> · completed rows move below remaining items · grey rows = not supplied</span></td><td colspan="2" class="pos-total-label">Current / Adjusted Total</td><td class="pos-total-current">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted">${money(totals.adjusted)}</td></tr>`;}
       else els.tableFoot.innerHTML='';
     }
     ensurePosResizeObserver();schedulePosColumnSizing();

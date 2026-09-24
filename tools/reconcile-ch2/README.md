@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.5.8
+# Prahran Health Foods — CH2 Reconciler v2.5.9
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -327,3 +327,12 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - Exceptions view can still download its exceptions-only `.xlsx`.
 - POS layout now exports a **tab-delimited `.txt`** file matching the supplied reference structure/type: 14 exact columns, tab separators, CRLF line endings, and one row per POS-order line in source order.
 - `Quantity` is the reconciled supplied quantity, so not-supplied lines remain present with `0`.
+
+
+## v2.5.9 reference drag/drop + POS import mapping
+
+- POS/master and Supplier + discount reference cards now accept drag-and-drop as well as file chooser.
+- POS Layout `AdjCatPrc` and `AdjDPrc` intentionally show the same expected discounted unit cost: supplier Normal W/S per unit ex GST less the matched Supplier + discount rule.
+- The POS import text export keeps the exact 14-column legacy tab-delimited layout and uses the canonical POS Sub ID from the linked master when available.
+- POS import filenames follow `oborne_invoice_{INVOICE}_(PO).txt`.
+- POS import text download is blocked if a supplied line has no Item/Sub Id.

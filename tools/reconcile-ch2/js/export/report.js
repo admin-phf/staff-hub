@@ -214,7 +214,7 @@
     return s;
   }
   function makeTsv(rows){return rows.map(row=>row.map(textField).join('\t')).join('\r\n')+'\r\n';}
-  function posLayoutTextRows(invoiceDocs,posOrder,reconciliation){
+  function posLayoutTextRows(invoiceDocs,refs,posOrder,reconciliation){
     const headers=['Date','Document Number','UPC Code','Item','Description','Quantity','Tax Schedule','GST tax pc','Normal w/s per unit ex gst','RRP','% discount this invoice','Total Amount this invoice ex gst','GST','Gross Amount'];
     const details=detailBySourceRow(reconciliation),defaults=docDefaults(invoiceDocs),rows=[headers],posRows=sortedPos(posOrder);
     posRows.forEach((pos,i)=>{
@@ -222,11 +222,12 @@
       const firstInv=invRows[0]||{},gstPct=weightedInvoice(invRows,'gstPct'),invoiceDate=formatDateText(firstInv.invoiceDate||defaults.date),invoiceNo=textField(d.invoiceNumbers||firstInv.invoiceNumber||defaults.number);
       const supplied=n(d.suppliedQty)||0,normalWs=n(d.invoiceNormalWholesale),rrp=weightedInvoice(invRows,'rrp'),posWs=n(pos&&pos.normalWholesale),posRrp=n(pos&&pos.rrp),posGst=n(pos&&pos.gstPct);
       const ex=sumInvoiceRows(invRows,'extendedExGst'),gst=sumInvoiceRows(invRows,'gstAmount'),gross=sumInvoiceRows(invRows,'totalIncGst'),disc=n(d.actualDiscountPct),effectiveGst=gstPct!=null?gstPct:(posGst!=null?posGst:0);
+      const itemCode=PHF.linkedPos&&typeof PHF.linkedPos.canonicalPosSubId==='function'?PHF.linkedPos.canonicalPosSubId(pos,refs):textField(pos&&pos.subId);
       rows.push([
         invoiceDate,
         invoiceNo,
         textField(pos&&pos.barcode),
-        textField(pos&&pos.subId),
+        textField(itemCode),
         textField(pos&&pos.description),
         formatPlainNumber(supplied,3),
         effectiveGst>0?'Taxable':'Non Taxable',
@@ -241,15 +242,18 @@
     });
     return rows;
   }
-  async function exportPosLayout(invoiceDocs,posOrder,reconciliation){
-    const rows=posLayoutTextRows(invoiceDocs,posOrder,reconciliation),text=makeTsv(rows),defaults=docDefaults(invoiceDocs);
-    const filename=`ch2_invoice_{${safePart(defaults.number||'CURRENT')}}_(${safePart(reconciliation.orderNumber)}).txt`;
+  async function exportPosLayout(invoiceDocs,refs,posOrder,reconciliation){
+    const rows=posLayoutTextRows(invoiceDocs,refs,posOrder,reconciliation),defaults=docDefaults(invoiceDocs);
+    const missing=[];
+    for(let i=1;i<rows.length;i++){const q=n(rows[i][5])||0,item=textField(rows[i][3]);if(q>0&&!item)missing.push(i);}
+    if(missing.length)throw new Error(`POS import text export blocked: ${missing.length} supplied line${missing.length===1?' is':'s are'} missing the Item/Sub Id required by the POS importer.`);
+    const text=makeTsv(rows),filename=`oborne_invoice_{${safePart(defaults.number||'CURRENT')}}_(${safePart(reconciliation.orderNumber)}).txt`;
     downloadBlob(new Blob([text],{type:'text/plain;charset=utf-8'}),filename);
     return {filename,rows:rows.length-1,columns:rows[0].length};
   }
   async function exportView(view,invoiceDocs,refs,posOrder,reconciliation){
     if(view==='exceptions')return exportExceptions(reconciliation);
-    if(view==='pos')return exportPosLayout(invoiceDocs,posOrder,reconciliation);
+    if(view==='pos')return exportPosLayout(invoiceDocs,refs,posOrder,reconciliation);
     return exportReference(invoiceDocs,refs,posOrder,reconciliation);
   }
 

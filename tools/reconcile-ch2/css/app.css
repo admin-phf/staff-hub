@@ -260,3 +260,9 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 }
 #removeNotSuppliedBtn{white-space:nowrap}
 .preview-pos tbody tr.unpack-checked:not(.pos-not-supplied) td:not(.unpack-cell){color:inherit!important}
+
+/* v2.5.9 — reference-file drag/drop */
+.reference-drop-card{position:relative;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease}
+.reference-drop-card.drag{border-color:var(--green);background:#f1f8f1;box-shadow:0 0 0 2px rgba(46,125,50,.10) inset}
+.reference-drop-hint{display:block;margin-top:6px;color:var(--green);font-size:11px;font-weight:700}
+.reference-drop-card:focus-visible{outline:2px solid var(--green);outline-offset:2px}
