@@ -238,3 +238,25 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .results .preview-pos th.unpack-head,
 .results .preview-pos td.unpack-cell{overflow:visible!important;text-overflow:clip!important;white-space:nowrap;padding-left:4px;padding-right:4px}
 .results .preview-pos td.pos-bool-cell .pos-checkbox{display:inline-grid;margin:0 auto}
+
+
+/* v2.5.7 — processed-row readability + not-supplied bulk workflow */
+/* Completed delivered items move below the remaining list, so they stay fully readable. */
+.preview-pos tbody tr.unpack-checked td:not(.unpack-cell),
+.preview-pos tbody tr.unpack-checked td:not(.unpack-cell)>*{
+  text-decoration:none!important;
+  opacity:1!important;
+}
+/* Not supplied rows remain the one deliberate strike-through state. Receiving controls stay usable/readable. */
+.preview-pos tbody tr.pos-not-supplied td:not(.unpack-cell):not(.unpack-qty-entry-cell):not(.unpack-qty-total-cell){
+  text-decoration-line:line-through!important;
+  text-decoration-thickness:1px!important;
+  text-decoration-color:rgba(90,95,100,.72)!important;
+}
+.preview-pos tbody tr.pos-not-supplied td:not(.unpack-cell):not(.unpack-qty-entry-cell):not(.unpack-qty-total-cell)>*{
+  text-decoration-line:line-through!important;
+  text-decoration-thickness:1px!important;
+  text-decoration-color:rgba(90,95,100,.72)!important;
+}
+#removeNotSuppliedBtn{white-space:nowrap}
+.preview-pos tbody tr.unpack-checked:not(.pos-not-supplied) td:not(.unpack-cell){color:inherit!important}

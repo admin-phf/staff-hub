@@ -4,7 +4,7 @@
   const state={pos:null,invoices:[],result:null,previewView:'exceptions',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null};
   const els={
     referenceReady:document.querySelector('#referenceReady'),referenceDot:document.querySelector('#referenceDot'),buildLabel:document.querySelector('#buildLabel'),
-    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn')
+    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn')
   };
 
   const RECON_COLUMNS=[
@@ -392,9 +392,16 @@
 
   function pill(status){let cls='bad';if(status==='OK')cls='ok';else if(status==='BETTER PRICE')cls='better';else if(/REVIEW|LOW/.test(status))cls='review';return `<span class="status-pill ${cls}">${escapeHtml(status)}</span>`;}
   function kpi(label,value,cls=''){return `<div class="kpi ${cls}"><div class="n">${escapeHtml(value)}</div><div class="l">${escapeHtml(label)}</div></div>`;}
+  function updateDownloadButton(){
+    if(!els.downloadBtn)return;
+    const labels={exceptions:'Download Exceptions.xlsx',all:'Download All Lines.xlsx',pos:'Download POS Layout.xlsx'};
+    els.downloadBtn.textContent=labels[state.previewView]||'Download Current View.xlsx';
+    els.downloadBtn.title=state.runIntegrity&&state.runIntegrity.ok?`Download the ${state.previewView==='pos'?'POS layout':state.previewView==='all'?'full detailed reconciliation':'exceptions'} workbook`:'Excel export is blocked until all integrity checks pass.';
+  }
   function setViewButtons(){
     const map={exceptions:els.viewExceptionsBtn,all:els.viewAllBtn,pos:els.viewPosBtn};
     Object.entries(map).forEach(([k,b])=>{if(!b)return;b.classList.toggle('active',state.previewView===k);b.setAttribute('aria-pressed',state.previewView===k?'true':'false');});
+    updateDownloadButton();
   }
   function renderReconTable(r){
     if(els.posTools)els.posTools.classList.add('hidden');els.tableWrap.classList.remove('preview-pos');els.table.classList.remove('pos-preview-table');clearPosColumnSizing();if(els.tableFoot)els.tableFoot.innerHTML='';
@@ -499,7 +506,7 @@
   wireDrop(els.posDrop,els.posInput,addPos);wireDrop(els.invoiceDrop,els.invoiceInput,addInvoices);
   els.clearBtn.onclick=()=>{state.pos=null;state.invoices=[];state.result=null;state.docs=[];state.posParsed=null;state.previewView='exceptions';state.runIntegrity=null;state.unpackChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;els.posInput.value='';els.invoiceInput.value='';hideResults();hideProgress();renderFiles();};
   els.runBtn.onclick=run;
-  els.downloadBtn.onclick=async()=>{if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok)return;const old=els.downloadBtn.textContent;els.downloadBtn.disabled=true;els.downloadBtn.textContent='Building + validating Excel…';try{await PHF.exportReference(state.docs,state.refs,state.posParsed,state.result);setStatus('Excel generated and passed workbook compatibility/integrity validation.','ok');}catch(err){console.error(err);setStatus(err&&err.message?err.message:String(err),'warn');}finally{els.downloadBtn.disabled=!state.runIntegrity.ok;els.downloadBtn.textContent=old;}};
+  els.downloadBtn.onclick=async()=>{if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok)return;els.downloadBtn.disabled=true;els.downloadBtn.textContent='Building Excel…';try{await PHF.exportView(state.previewView,state.docs,state.refs,state.posParsed,state.result);const label=state.previewView==='pos'?'POS layout':state.previewView==='all'?'all-lines reconciliation':'exceptions';setStatus(`${label} Excel generated successfully.`,'ok');}catch(err){console.error(err);setStatus(err&&err.message?err.message:String(err),'warn');}finally{els.downloadBtn.disabled=!state.runIntegrity.ok;updateDownloadButton();}};
   function setPreviewView(view){
     commitActiveReceivingInput();
     state.previewView=view;renderPreview(state.result);
@@ -512,6 +519,18 @@
   if(els.viewPosBtn)els.viewPosBtn.onclick=()=>setPreviewView('pos');
   if(els.clearChecksBtn)els.clearChecksBtn.onclick=()=>{commitActiveReceivingInput();for(const key of state.unpackChecked)state.unpackCounts.delete(key);state.unpackChecked.clear();saveUnpackCounts();saveUnpackChecklist();if(state.previewView==='pos'&&state.result)renderPosTable();};
   if(els.clearCountsBtn)els.clearCountsBtn.onclick=()=>{commitActiveReceivingInput();state.unpackCounts.clear();state.unpackChecked.clear();saveUnpackCounts();saveUnpackChecklist();if(state.previewView==='pos'&&state.result)renderPosTable();};
+  if(els.removeNotSuppliedBtn)els.removeNotSuppliedBtn.onclick=()=>{
+    commitActiveReceivingInput();
+    const detailBySourceRow=posDetailMap(),rows=sortedPosRows();let moved=0;
+    for(let i=0;i<rows.length;i++){
+      const pos=rows[i],detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(i);
+      if(detail&&Number(detail.suppliedQty||0)>0)continue;
+      const key=unpackIdentity(pos);state.unpackCounts.set(key,0);state.unpackChecked.add(key);moved++;
+    }
+    saveUnpackCounts();saveUnpackChecklist();
+    if(state.previewView==='pos'&&state.result)renderPosTable();
+    if(moved)setStatus(`${moved} not-supplied POS line${moved===1?'':'s'} moved to the processed section. Reconciliation data was not changed.`,'ok');
+  };
 
   // Save any active receiving edit whenever the user moves away — including clicking
   // another control, switching browser window/tab, or navigating away. Add Qty commits
