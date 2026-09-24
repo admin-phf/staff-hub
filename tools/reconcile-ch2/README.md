@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.0
+# Prahran Health Foods — CH2 Reconciler v2.6.1
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -351,3 +351,13 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - POS import preflight blocks unsafe output for mismatched Customer PO, unmatched invoice lines, missing/ambiguous master identity, LOW-confidence matches, inconsistent discount rates or non-reconciling totals.
 - If one POS order is split across multiple supplier invoices, each actual invoice gets its own validated TXT inside one ZIP rather than mixing Document Numbers in a single legacy import file.
 - All v2.5.9 reconciliation, receiving, preview, reference-data and full 43-column Excel behaviour is preserved.
+
+
+## v2.6.1 POS import download reliability
+
+- Preserves the uploaded POS order `Sub Id` exactly in the legacy 12-column `Item` field.
+- A blank order Sub Id remains blank; it is never replaced by a CH2 product code or a newer master value.
+- Blank Item is allowed when the order has a valid barcode; supplied rows are blocked only when both Item and Barcode are unavailable.
+- CH2/master cross-checks now confirm the order row by barcode, POS PLU or order Sub Id rather than requiring every current-master identity field to be identical.
+- If POS import validation blocks a download, the reason is shown immediately in a dialog as well as the page status.
+- All v2.6.0 reconciliation, receiving, Excel, reference-data and POS-layout features remain unchanged.

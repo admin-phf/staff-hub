@@ -71,13 +71,20 @@
   }
   function canonicalIdentity(pos,refs){
     const rec=masterRecordForPos(pos,refs)||{};
-    const linked=PHF.linkedPos||{};
-    const item=typeof linked.canonicalPosSubId==='function'?code(linked.canonicalPosSubId(pos,refs)):code(rec.POS_SUB_ID||pos&&pos.subId);
+    // IMPORTANT: the uploaded POS order is the authority for the identity the
+    // legacy Apply Invoice screen is matching against.  A blank POS Sub Id is
+    // valid and must stay blank — never replace it with a CH2 product code or
+    // a newer master Sub Id, as that can make the invoice code differ from the
+    // original order.  The master remains an independent cross-check/enrichment
+    // source and can safely fill barcode/description only when the order lacks them.
+    const orderItem=code(pos&&pos.subId),masterItem=code(rec.POS_SUB_ID);
     return {
-      item,
-      barcode:digits(rec.POS_MASTER_BARCODE||pos&&pos.barcode),
-      plu:code(rec.POS_PLU||pos&&pos.plu),
-      description:clean(rec.POS_DESCR||pos&&pos.description),
+      item:orderItem,
+      orderItem,
+      masterItem,
+      barcode:digits(pos&&pos.barcode)||digits(rec.POS_MASTER_BARCODE),
+      plu:code(pos&&pos.plu)||code(rec.POS_PLU),
+      description:clean(pos&&pos.description)||clean(rec.POS_DESCR),
       brand:clean(rec.POS_BRAND),
       record:rec
     };
@@ -95,11 +102,15 @@
     return [];
   }
   function candidateMatchesIdentity(rec,id){
-    if(!rec)return false;let compared=0;
-    const ri=normCode(rec.POS_SUB_ID),ii=normCode(id.item);if(ri&&ii){compared++;if(ri!==ii)return false;}
-    const rb=digits(rec.POS_MASTER_BARCODE),ib=digits(id.barcode);if(rb&&ib){compared++;if(rb!==ib)return false;}
-    const rp=normCode(rec.POS_PLU),ip=normCode(id.plu);if(rp&&ip){compared++;if(rp!==ip)return false;}
-    return compared>0;
+    if(!rec||!id)return false;
+    // Match a CH2/master candidate back to the exact uploaded order row using
+    // stable POS anchors. Barcode is strongest, followed by POS PLU, then the
+    // order Sub Id when one exists.  Do not require every master field to match:
+    // the master may have been updated after the order was created.
+    const rb=digits(rec.POS_MASTER_BARCODE),ib=digits(id.barcode);if(rb&&ib&&rb===ib)return true;
+    const rp=normCode(rec.POS_PLU),ip=normCode(id.plu);if(rp&&ip&&rp===ip)return true;
+    const ri=normCode(rec.POS_SUB_ID),ii=normCode(id.orderItem||id.item);if(ri&&ii&&ri===ii)return true;
+    return false;
   }
   function lineLabel(pos,index){return `POS row ${index+1}${clean(pos&&pos.description)?` (${clean(pos.description)})`:''}`;}
   function pushIssue(list,msg,limit=40){if(list.length<limit)list.push(msg);}
@@ -138,8 +149,13 @@
       const discountValues=uniqueNumeric(invRows,'discountPct',0.02);
       if(invRows.length&&actualDiscount==null&&expected.discountPct!=null)warnings.push(`${lineLabel(pos,index)}: invoice discount was not printed/readable; POS import Discount uses the matched supplier rule (${round(expected.discountPct,2)}%).`);
 
-      if(!id.item)pushIssue(errors,`${lineLabel(pos,index)}: Item/Sub Id is blank. Load/refresh the POS master or correct the product mapping.`);
-      if(!id.barcode)pushIssue(errors,`${lineLabel(pos,index)}: Barcode is blank. Load/refresh the POS master or correct the product mapping.`);
+      // A blank Item/Sub Id is legitimate when the original POS order itself has
+      // a blank Sub Id.  Preserve that blank exactly and let Barcode identify the
+      // row, matching the POS order rather than inventing a supplier/CH2 code.
+      if(!id.item&&id.barcode)warnings.push(`${lineLabel(pos,index)}: POS order Sub Id is blank; POS import Item is intentionally blank and Barcode ${id.barcode} is retained for matching.`);
+      if(id.orderItem&&id.masterItem&&normCode(id.orderItem)!==normCode(id.masterItem))warnings.push(`${lineLabel(pos,index)}: current master Sub Id ${id.masterItem} differs from the order Sub Id ${id.orderItem}; the uploaded order value is preserved for POS import.`);
+      if(!id.item&&!id.barcode&&supplied>0)pushIssue(errors,`${lineLabel(pos,index)}: both Item/Sub Id and Barcode are blank for a supplied line. POS import cannot identify this product safely.`);
+      if(!id.barcode&&supplied>0)pushIssue(errors,`${lineLabel(pos,index)}: Barcode is blank for a supplied line. Load/refresh the POS master or correct the product mapping.`);
       if(!id.description)pushIssue(errors,`${lineLabel(pos,index)}: Description is blank.`);
       if(discount==null&&supplied>0)pushIssue(errors,`${lineLabel(pos,index)}: no invoice discount and no supplier discount rule could be resolved.`);
       if(invRows.length&&clean(d.matchConfidence).toUpperCase()==='LOW')pushIssue(errors,`${lineLabel(pos,index)}: invoice match confidence is LOW; review the product match before POS import.`);

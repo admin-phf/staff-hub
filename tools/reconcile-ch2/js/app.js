@@ -551,7 +551,17 @@
       await PHF.exportView(state.previewView,state.docs,state.refs,state.posParsed,state.result);
       const label=state.previewView==='pos'?(((state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').length>1)?'POS import files':'POS layout text file'):'exceptions Excel';
       setStatus(`${label} generated successfully.`,'ok');
-    }catch(err){console.error(err);setStatus(err&&err.message?err.message:String(err),'warn');}
+    }catch(err){
+      console.error(err);
+      const message=err&&err.message?err.message:String(err);
+      setStatus(message,'warn');
+      if(state.previewView==='pos'){
+        // POS import validation can intentionally block an unsafe file.  Make that
+        // reason visible at the point of action instead of only in the Step 3 status
+        // area above the results, which may be off-screen on long POS previews.
+        try{globalThis.alert(message);}catch(_e){}
+      }
+    }
     finally{updateDownloadButton();}
   };
   function setPreviewView(view){
