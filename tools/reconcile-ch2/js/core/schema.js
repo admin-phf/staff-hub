@@ -3,9 +3,9 @@
   const PHF=global.PHFReconcile=global.PHFReconcile||{};
 
   const BUILD=Object.freeze({
-    version:'2.5.5',
+    version:'2.5.6',
     name:'Integrity Engine',
-    date:'2026-09-23'
+    date:'2026-09-24'
   });
 
   // Exact 43-column workbook contract taken from the approved desired workbook.

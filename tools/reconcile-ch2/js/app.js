@@ -34,7 +34,7 @@
     {key:'__unpack_add',label:'Add Qty',kind:'qtyinput',cls:'unpack-qty-entry-cell',min:58,max:76,grow:.01},
     {key:'__unpack_total',label:'Found',kind:'qtytotal',cls:'unpack-qty-total-cell',min:56,max:74,grow:.01},
     {key:'qty_stk_in',label:'Stk In',kind:'number',dp:3,min:46,max:62,grow:.01},
-    {key:'or_ok',label:'Ok',kind:'bool',flag:'ok-flag',min:30,max:38},
+    {key:'or_ok',label:'Ok',kind:'bool',flag:'ok-flag',cls:'pos-bool-cell',min:38,max:46},
     {key:'mupc',label:'MU%',kind:'number',dp:2,min:46,max:64,grow:.015},
     {key:'gppc',label:'GP%',kind:'number',dp:2,min:46,max:62,grow:.015},
     {key:'adjrrprce',label:'AdjRRPrc',kind:'number',dp:2,min:62,max:92,grow:.04,stretch:.035,hardMax:118},
@@ -42,7 +42,7 @@
     {key:'adjcatprce',label:'AdjCatPrc',kind:'number',dp:2,min:62,max:92,grow:.035,stretch:.025,hardMax:112},
     {key:'adjdprce',label:'AdjDPrc',kind:'number',dp:2,min:62,max:92,grow:.04,stretch:.035,hardMax:118},
     {key:'or_qty',label:'Adj Qty',kind:'number',dp:3,min:50,max:70,grow:.01},
-    {key:'override',label:'Inc',kind:'bool',flag:'inc-flag',min:30,max:38}
+    {key:'override',label:'Inc',kind:'bool',flag:'inc-flag',cls:'pos-bool-cell',min:38,max:46}
   ];
 
   const posMeasureCanvas=document.createElement('canvas');
@@ -166,6 +166,12 @@
     state.unpackCounts.set(posKey,next);
     saveUnpackCounts();return next;
   }
+  function setUnpackTotal(posKey,total){
+    const n=Number(total);if(!posKey||!Number.isFinite(n))return null;
+    const next=Math.max(0,Math.round(n*1000)/1000);
+    state.unpackCounts.set(posKey,next);
+    saveUnpackCounts();return next;
+  }
   function unpackExpectedQty(pos,detail){
     // The physical receiving target is what CH2 says it supplied. A cancelled/not-
     // invoiced POS line therefore expects zero, while a short supply expects the
@@ -241,9 +247,24 @@
     if(state.previewView==='pos'&&state.result){setTimeout(()=>renderPosTable(),0);}else schedulePosColumnSizing();
     return true;
   }
-  function commitActiveQtyInput(){
+  function commitFoundInput(input){
+    if(!input||!input.classList||!input.classList.contains('unpack-qty-total'))return false;
+    const key=decodeUnpackKey(input.dataset.unpackTotalKey||'');if(!key)return false;
+    const expected=numberValue(input.dataset.unpackExpected)??0,raw=String(input.value||'').trim();
+    if(!raw){input.value=displayUnpackCount(Number(state.unpackCounts.get(key)||0));return false;}
+    const absolute=Number(raw);if(!Number.isFinite(absolute)){input.value=displayUnpackCount(Number(state.unpackCounts.get(key)||0));return false;}
+    const total=setUnpackTotal(key,absolute);if(total==null)return false;
+    if(Number(total)+.0005>=Number(expected))state.unpackChecked.add(key);else state.unpackChecked.delete(key);
+    saveUnpackChecklist();updateUnpackTotalElement(input,key,total,expected);
+    if(state.previewView==='pos'&&state.result){setTimeout(()=>renderPosTable(),0);}else schedulePosColumnSizing();
+    return true;
+  }
+  function commitActiveReceivingInput(){
     const active=document.activeElement;
-    if(active&&active.classList&&active.classList.contains('unpack-qty-input'))commitQtyInput(active);
+    if(!active||!active.classList)return false;
+    if(active.classList.contains('unpack-qty-input'))return commitQtyInput(active);
+    if(active.classList.contains('unpack-qty-total'))return commitFoundInput(active);
+    return false;
   }
   function updateChecklistUi(rows,detailBySourceRow=posDetailMap()){
     const total=(rows||[]).length,checked=completionCount(rows,detailBySourceRow),remaining=Math.max(0,total-checked);
@@ -386,7 +407,7 @@
   function renderPosTable(){
     if(els.posTools)els.posTools.classList.remove('hidden');
     els.tableWrap.classList.add('preview-pos');els.table.classList.add('pos-preview-table');
-    els.tableHead.innerHTML=`<tr>${POS_VIEW_COLUMNS.map(c=>{const cls=[c.kind==='check'?'unpack-head':'',(['number','qtyinput','qtytotal'].includes(c.kind))?'num':'',(c.kind==='bool'||c.kind==='check')?'center':''].filter(Boolean).join(' ');return `<th${cls?` class="${cls}"`:''}${c.kind==='check'?' title="Unpacking check / mark complete"':''}>${escapeHtml(c.label)}</th>`;}).join('')}</tr>`;
+    els.tableHead.innerHTML=`<tr>${POS_VIEW_COLUMNS.map(c=>{const cls=[c.kind==='check'?'unpack-head':'',c.kind==='bool'?'pos-bool-head':'',(['number','qtyinput','qtytotal'].includes(c.kind))?'num':'',(c.kind==='bool'||c.kind==='check')?'center':''].filter(Boolean).join(' ');return `<th${cls?` class="${cls}"`:''}${c.kind==='check'?' title="Unpacking check / mark complete"':''}>${escapeHtml(c.label)}</th>`;}).join('')}</tr>`;
     const baseRows=sortedPosRows();const detailBySourceRow=posDetailMap();
     // Migrate/normalise legacy session state: a checked row now means its expected
     // receiving quantity is accounted for; a completed manual count also checks it.
@@ -412,13 +433,13 @@
           html=`<input class="unpack-qty-input" type="number" step="any" inputmode="decimal" autocomplete="off" data-unpack-qty-key="${escapeHtml(encodeURIComponent(checkKey))}" data-unpack-expected="${escapeHtml(expectedQty)}" aria-label="Add unpacked quantity for ${escapeHtml(item)}" title="Expected in delivery: ${escapeHtml(displayUnpackCount(expectedQty))}. Enter a quantity; Enter, Tab, clicking elsewhere, switching window/tab or leaving the page will save it. Negative values subtract.">`;
         }else if(c.kind==='qtytotal'){
           const found=unpackCountFor(pos),expectedQty=unpackExpectedQty(pos,detail),status=unpackCountStatus(checkKey,found,expectedQty);
-          html=`<input class="unpack-qty-total found-${status.kind}" type="text" readonly tabindex="-1" value="${escapeHtml(displayUnpackCount(found))}" title="${escapeHtml(`Expected: ${displayUnpackCount(expectedQty)} · Found: ${displayUnpackCount(found)} · ${status.label}`)}" aria-label="${escapeHtml(`Found ${displayUnpackCount(found)}. ${status.label}`)}">`;
+          html=`<input class="unpack-qty-total found-${status.kind}" type="number" step="any" min="0" inputmode="decimal" autocomplete="off" data-unpack-total-key="${escapeHtml(encodeURIComponent(checkKey))}" data-unpack-expected="${escapeHtml(expectedQty)}" value="${escapeHtml(displayUnpackCount(found))}" title="${escapeHtml(`Expected: ${displayUnpackCount(expectedQty)} · Found: ${displayUnpackCount(found)} · ${status.label}. Edit this total directly to override the running count.`)}" aria-label="${escapeHtml(`Found ${displayUnpackCount(found)}. ${status.label}. Editable total.`)}">`;
         }else if(c.kind==='bool'){const checked=boolValue(v);html=`<span class="pos-checkbox ${c.flag||''} ${checked?'checked':''}" aria-label="${checked?'Checked':'Not checked'}">${checked?'✓':''}</span>`;}
         else if(c.kind==='number'){
           html=escapeHtml(fixed(v,c.dp??2));const target=comparisonTarget(detail,c.key),move=priceMove(v,target);
           if(move&&!notSupplied){extraCls=` price-move-cell price-${move.kind}`;const targetLabel=c.key==='adjrrprce'?'CH2 RRP':c.key==='adjwsprce'?'CH2 Normal W/S':'CH2 Unit Price';title=`${targetLabel}: ${Number(move.target).toFixed(2)} · ${move.symbol} ${Math.abs(move.diff).toFixed(2)}`;html=`<span class="pos-price-value">${html}</span><span class="price-arrow" aria-hidden="true">${move.symbol}</span>`;}
         } else {html=escapeHtml(v);if(v)title=String(v);}
-        const cls=[c.cls||'',c.kind==='number'?'num':'',extraCls].filter(Boolean).join(' ');return `<td${cls?` class="${cls}"`:''}${title?` title="${escapeHtml(title)}"`:''}>${html}</td>`;
+        const cls=[c.cls||'',c.kind==='number'?'num':'',c.kind==='bool'?'pos-bool-cell center':'',extraCls].filter(Boolean).join(' ');return `<td${cls?` class="${cls}"`:''}${title?` title="${escapeHtml(title)}"`:''}>${html}</td>`;
       }).join('');
       return `<tr${rowClasses?` class="${rowClasses}"`:''}${notSupplied?' data-not-supplied="1"':''}>${cells}</tr>`;
     }).join(''):`<tr><td colspan="${POS_VIEW_COLUMNS.length}">No POS order rows available.</td></tr>`;
@@ -434,9 +455,12 @@
       // preserving original POS order inside both groups. Unchecking returns the row.
       renderPosTable();
     };
-    els.tableBody.onkeydown=e=>{const input=e.target.closest('.unpack-qty-input');if(input&&e.key==='Enter'){e.preventDefault();commitQtyInput(input);}};
-    els.tableBody.onfocusout=e=>{const input=e.target.closest('.unpack-qty-input');if(input)commitQtyInput(input);};
-    els.tableBody.onchange=e=>{const input=e.target.closest('.unpack-qty-input');if(input)commitQtyInput(input);};
+    els.tableBody.onkeydown=e=>{
+      const add=e.target.closest('.unpack-qty-input'),found=e.target.closest('.unpack-qty-total');
+      if(e.key==='Enter'&&(add||found)){e.preventDefault();if(add)commitQtyInput(add);else commitFoundInput(found);}
+    };
+    els.tableBody.onfocusout=e=>{const add=e.target.closest('.unpack-qty-input'),found=e.target.closest('.unpack-qty-total');if(add)commitQtyInput(add);else if(found)commitFoundInput(found);};
+    els.tableBody.onchange=e=>{const add=e.target.closest('.unpack-qty-input'),found=e.target.closest('.unpack-qty-total');if(add)commitQtyInput(add);else if(found)commitFoundInput(found);};
 
     if(els.tableFoot){
       if(baseRows.length){const totals=posTotals(baseRows),leftSpan=Math.max(1,POS_VIEW_COLUMNS.length-5);els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="${leftSpan}" class="pos-total-left"><strong>Current Order</strong><span>${baseRows.length.toLocaleString()} product line${baseRows.length===1?'':'s'} · <b data-check-progress>complete ${progress.checked}/${progress.total} · remaining ${progress.remaining}</b> · completed rows move below remaining items · grey rows = not supplied</span></td><td colspan="2" class="pos-total-label">Current / Adjusted Total</td><td class="pos-total-current">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted">${money(totals.adjusted)}</td></tr>`;}
@@ -477,7 +501,7 @@
   els.runBtn.onclick=run;
   els.downloadBtn.onclick=async()=>{if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok)return;const old=els.downloadBtn.textContent;els.downloadBtn.disabled=true;els.downloadBtn.textContent='Building + validating Excel…';try{await PHF.exportReference(state.docs,state.refs,state.posParsed,state.result);setStatus('Excel generated and passed workbook compatibility/integrity validation.','ok');}catch(err){console.error(err);setStatus(err&&err.message?err.message:String(err),'warn');}finally{els.downloadBtn.disabled=!state.runIntegrity.ok;els.downloadBtn.textContent=old;}};
   function setPreviewView(view){
-    commitActiveQtyInput();
+    commitActiveReceivingInput();
     state.previewView=view;renderPreview(state.result);
     // Always open a view at its first POS row / first column. This avoids a previous
     // horizontal or vertical scroll position making the POS sequence look out of order.
@@ -486,18 +510,18 @@
   if(els.viewExceptionsBtn)els.viewExceptionsBtn.onclick=()=>setPreviewView('exceptions');
   if(els.viewAllBtn)els.viewAllBtn.onclick=()=>setPreviewView('all');
   if(els.viewPosBtn)els.viewPosBtn.onclick=()=>setPreviewView('pos');
-  if(els.clearChecksBtn)els.clearChecksBtn.onclick=()=>{commitActiveQtyInput();for(const key of state.unpackChecked)state.unpackCounts.delete(key);state.unpackChecked.clear();saveUnpackCounts();saveUnpackChecklist();if(state.previewView==='pos'&&state.result)renderPosTable();};
-  if(els.clearCountsBtn)els.clearCountsBtn.onclick=()=>{commitActiveQtyInput();state.unpackCounts.clear();state.unpackChecked.clear();saveUnpackCounts();saveUnpackChecklist();if(state.previewView==='pos'&&state.result)renderPosTable();};
+  if(els.clearChecksBtn)els.clearChecksBtn.onclick=()=>{commitActiveReceivingInput();for(const key of state.unpackChecked)state.unpackCounts.delete(key);state.unpackChecked.clear();saveUnpackCounts();saveUnpackChecklist();if(state.previewView==='pos'&&state.result)renderPosTable();};
+  if(els.clearCountsBtn)els.clearCountsBtn.onclick=()=>{commitActiveReceivingInput();state.unpackCounts.clear();state.unpackChecked.clear();saveUnpackCounts();saveUnpackChecklist();if(state.previewView==='pos'&&state.result)renderPosTable();};
 
-  // Save any quantity still sitting in an Add Qty field whenever the user moves away
-  // from it — including clicking another control, switching browser window/tab, or
-  // navigating away. The field clears only after its delta has been committed.
+  // Save any active receiving edit whenever the user moves away — including clicking
+  // another control, switching browser window/tab, or navigating away. Add Qty commits
+  // a delta and clears; Found commits an absolute override and remains visible.
   document.addEventListener('pointerdown',e=>{
-    const active=document.activeElement;if(active&&active.classList&&active.classList.contains('unpack-qty-input')&&active!==e.target)commitQtyInput(active);
+    const active=document.activeElement;if(active&&active.classList&&active!==e.target&&(active.classList.contains('unpack-qty-input')||active.classList.contains('unpack-qty-total')))commitActiveReceivingInput();
   },true);
-  global.addEventListener('blur',commitActiveQtyInput,true);
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')commitActiveQtyInput();});
-  global.addEventListener('pagehide',commitActiveQtyInput);
+  global.addEventListener('blur',commitActiveReceivingInput,true);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')commitActiveReceivingInput();});
+  global.addEventListener('pagehide',commitActiveReceivingInput);
   if(els.buildLabel&&PHF.schema&&PHF.schema.BUILD)els.buildLabel.textContent=`v${PHF.schema.BUILD.version} · ${PHF.schema.BUILD.name}`;
   refreshReferenceStatus();
 })(window);

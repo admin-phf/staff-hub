@@ -215,3 +215,26 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
   .results .preview-pos table.pos-preview-table{font-size:12px}
   .results .preview-pos th{font-size:12px}
 }
+
+
+/* v2.5.6 — editable Found total + receiving-control polish */
+.results .preview-pos .unpack-qty-input,
+.results .preview-pos .unpack-qty-total{height:32px;min-height:32px;line-height:normal;padding:4px 6px;box-sizing:border-box}
+.results .preview-pos .unpack-qty-total{cursor:text}
+.results .preview-pos .unpack-qty-total:focus{border-color:#2E7D32;box-shadow:0 0 0 2px rgba(46,125,50,.14);outline:none}
+.results .preview-pos input[type="number"]::-webkit-inner-spin-button,
+.results .preview-pos input[type="number"]::-webkit-outer-spin-button{opacity:1;height:26px;margin:0}
+.results .preview-pos tbody td{height:36px;line-height:1.22}
+
+/* Completed rows stay crossed out, but receiving controls remain live/readable. */
+.preview-pos tbody tr.unpack-checked td.unpack-qty-entry-cell,
+.preview-pos tbody tr.unpack-checked td.unpack-qty-total-cell{text-decoration:none!important;opacity:1!important;color:inherit}
+.preview-pos tbody tr.unpack-checked td.unpack-qty-entry-cell>*,
+.preview-pos tbody tr.unpack-checked td.unpack-qty-total-cell>*{opacity:1!important;text-decoration:none!important}
+
+/* Prevent checkbox cells/headers from showing ellipsis dots beside the square. */
+.results .preview-pos th.pos-bool-head,
+.results .preview-pos td.pos-bool-cell,
+.results .preview-pos th.unpack-head,
+.results .preview-pos td.unpack-cell{overflow:visible!important;text-overflow:clip!important;white-space:nowrap;padding-left:4px;padding-right:4px}
+.results .preview-pos td.pos-bool-cell .pos-checkbox{display:inline-grid;margin:0 auto}
