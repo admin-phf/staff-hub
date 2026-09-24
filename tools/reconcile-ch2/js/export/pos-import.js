@@ -112,6 +112,47 @@
     const ri=normCode(rec.POS_SUB_ID),ii=normCode(id.orderItem||id.item);if(ri&&ii&&ri===ii)return true;
     return false;
   }
+
+  function rawOrderIdentity(pos){
+    return {
+      item:code(pos&&pos.subId),
+      orderItem:code(pos&&pos.subId),
+      barcode:digits(pos&&pos.barcode),
+      plu:code(pos&&pos.plu),
+      description:clean(pos&&pos.description)
+    };
+  }
+  function candidateHasPosIdentity(rec){
+    return !!(digits(rec&&rec.POS_MASTER_BARCODE)||normCode(rec&&rec.POS_PLU)||normCode(rec&&rec.POS_SUB_ID));
+  }
+  function candidateSummary(rec){
+    return [code(rec&&rec.POS_SUB_ID),digits(rec&&rec.POS_MASTER_BARCODE),code(rec&&rec.POS_PLU)].filter(Boolean).join('/');
+  }
+  function descriptionEvidence(inv,pos,candidates){
+    let score=Number(inv&&inv.descriptionScore)||0;
+    if(PHF._descriptionScore&&typeof PHF._descriptionScore==='function'){
+      score=Math.max(score,Number(PHF._descriptionScore(inv&&inv.description,pos&&pos.description))||0);
+      for(const rec of candidates||[])score=Math.max(score,Number(PHF._descriptionScore(rec&&rec.POS_DESCR,pos&&pos.description))||0);
+    }
+    return score;
+  }
+  function closeEnough(a,b,tol){
+    const x=n(a),y=n(b);return x!=null&&y!=null&&Math.abs(x-y)<=tol;
+  }
+  function strongIndependentEvidence(inv,pos,candidates){
+    const desc=descriptionEvidence(inv,pos,candidates);
+    const ws=closeEnough(inv&&inv.normalWholesale,pos&&pos.normalWholesale,0.05);
+    const rrp=closeEnough(inv&&inv.rrp,pos&&pos.rrp,0.50);
+    const confidence=clean(inv&&inv.matchConfidence).toUpperCase();
+    const method=clean(inv&&inv.matchMethod).toUpperCase();
+    const direct=confidence==='HIGH'&&(/CH2 PRODUCT CODE.*POS SUB ID|SUPPLIER UPDATE.*BARCODE.*POS ORDER/.test(method));
+    // A current master can legitimately have newer identifiers than the order snapshot.
+    // If no competing row in this order owns the master's identity, allow a stale-master
+    // difference when the transaction itself has strong independent description/price evidence.
+    const semantic=(confidence==='HIGH'||confidence==='MEDIUM')&&desc>=70&&ws&&(rrp||desc>=82);
+    return {ok:direct||semantic,direct,semantic,desc,ws,rrp,confidence,method};
+  }
+
   function lineLabel(pos,index){return `POS row ${index+1}${clean(pos&&pos.description)?` (${clean(pos.description)})`:''}`;}
   function pushIssue(list,msg,limit=40){if(list.length<limit)list.push(msg);}
 
@@ -155,20 +196,52 @@
       if(!id.item&&id.barcode)warnings.push(`${lineLabel(pos,index)}: POS order Sub Id is blank; POS import Item is intentionally blank and Barcode ${id.barcode} is retained for matching.`);
       if(id.orderItem&&id.masterItem&&normCode(id.orderItem)!==normCode(id.masterItem))warnings.push(`${lineLabel(pos,index)}: current master Sub Id ${id.masterItem} differs from the order Sub Id ${id.orderItem}; the uploaded order value is preserved for POS import.`);
       if(!id.item&&!id.barcode&&supplied>0)pushIssue(errors,`${lineLabel(pos,index)}: both Item/Sub Id and Barcode are blank for a supplied line. POS import cannot identify this product safely.`);
-      if(!id.barcode&&supplied>0)pushIssue(errors,`${lineLabel(pos,index)}: Barcode is blank for a supplied line. Load/refresh the POS master or correct the product mapping.`);
+      if(!id.barcode&&id.item&&supplied>0)warnings.push(`${lineLabel(pos,index)}: Barcode is blank for a supplied line, but Item/Sub Id ${id.item} is present. The file is allowed and the POS importer will perform its own final item validation.`);
       if(!id.description)pushIssue(errors,`${lineLabel(pos,index)}: Description is blank.`);
       if(discount==null&&supplied>0)pushIssue(errors,`${lineLabel(pos,index)}: no invoice discount and no supplier discount rule could be resolved.`);
       if(invRows.length&&clean(d.matchConfidence).toUpperCase()==='LOW')pushIssue(errors,`${lineLabel(pos,index)}: invoice match confidence is LOW; review the product match before POS import.`);
       if(discountValues.length>1)pushIssue(errors,`${lineLabel(pos,index)}: invoice ${group.number} contains multiple discount rates for the same POS item (${discountValues.map(x=>`${x}%`).join(', ')}); one legacy import row cannot represent both safely.`);
 
       // Use the merged POS/master as an independent identity cross-check for each billed CH2 row.
+      // v2.6.2 distinguishes incomplete/stale reference data from a genuine competing-order conflict.
+      // The uploaded POS order remains authoritative for the legacy TXT identity; master differences are
+      // warnings unless they indicate another row in THIS order owns the CH2 master's identity, or the
+      // reconciliation has only weak evidence.
       for(const inv of invRows){
         const pc=digits(inv&&inv.productCode),candidates=masterCandidatesForInvoiceRow(inv,refs);
         if(!pc){pushIssue(errors,`${lineLabel(pos,index)}: a supplied invoice line has no CH2 product code.`);continue;}
-        if(!candidates.length){pushIssue(errors,`${lineLabel(pos,index)}: CH2 product ${pc} is not present in the loaded POS/master crosswalk.`);continue;}
-        if(!candidates.some(rec=>candidateMatchesIdentity(rec,id))){
-          const examples=candidates.slice(0,3).map(rec=>[code(rec.POS_SUB_ID),digits(rec.POS_MASTER_BARCODE),code(rec.POS_PLU)].filter(Boolean).join('/')).filter(Boolean).join(', ');
-          pushIssue(errors,`${lineLabel(pos,index)}: CH2 product ${pc} maps to a different POS identity in the master${examples?` (${examples})`:''}.`);
+        if(!candidates.length){
+          warnings.push(`${lineLabel(pos,index)}: MASTER CODE NOT FOUND — CH2 product ${pc} is absent from the current POS/master crosswalk. The order identity is preserved and the POS importer will perform its own final order-code validation.`);
+          continue;
+        }
+        if(candidates.some(rec=>candidateMatchesIdentity(rec,id)))continue;
+
+        const anchored=candidates.filter(candidateHasPosIdentity);
+        if(!anchored.length){
+          warnings.push(`${lineLabel(pos,index)}: MASTER LINK MISSING — CH2 product ${pc} exists in the master as CH2-only / without POS barcode, PLU or Sub Id. This is not treated as a contradiction; the uploaded order identity is preserved.`);
+          continue;
+        }
+
+        // If the master identity belongs to some OTHER row in the same uploaded order, that is a real
+        // contradiction and must remain a hard stop: otherwise invoice values could be posted to the wrong stock item.
+        const competing=[];
+        for(let oi=0;oi<posRows.length;oi++){
+          if(oi===index)continue;
+          const otherId=rawOrderIdentity(posRows[oi]);
+          if(anchored.some(rec=>candidateMatchesIdentity(rec,otherId)))competing.push({index:oi,pos:posRows[oi]});
+        }
+        const examples=anchored.slice(0,3).map(candidateSummary).filter(Boolean).join(', ');
+        if(competing.length){
+          const c=competing[0];
+          pushIssue(errors,`${lineLabel(pos,index)}: MASTER IDENTITY CONFLICT — CH2 product ${pc} maps to another row in this same POS order, POS row ${c.index+1}${clean(c.pos&&c.pos.description)?` (${clean(c.pos.description)})`:''}${examples?` [master ${examples}]`:''}. Review before import.`);
+          continue;
+        }
+
+        const evidence=strongIndependentEvidence(inv,pos,anchored);
+        if(evidence.ok){
+          warnings.push(`${lineLabel(pos,index)}: MASTER IDENTITY DIFFERENCE — CH2 product ${pc} has newer/different master identifiers${examples?` (${examples})`:''}, but no competing order row owns them and the invoice/order evidence is strong (description ${Math.round(evidence.desc)}%${evidence.ws?', Normal W/S match':''}${evidence.rrp?', RRP match':''}). The uploaded order Item/Barcode are preserved; POS will run its own final import validation.`);
+        }else{
+          pushIssue(errors,`${lineLabel(pos,index)}: MASTER IDENTITY CONFLICT — CH2 product ${pc} does not match this order row's Item/Barcode/PLU${examples?` (master ${examples})`:''}, and the independent invoice/order evidence is not strong enough to safely override the master.`);
         }
       }
 

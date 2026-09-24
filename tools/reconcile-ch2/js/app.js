@@ -548,9 +548,11 @@
     if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok||state.previewView==='all')return;
     els.downloadBtn.disabled=true;els.downloadBtn.textContent=state.previewView==='pos'?(((state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').length>1)?'Building POS ZIP…':'Building TXT…'):'Building Excel…';
     try{
-      await PHF.exportView(state.previewView,state.docs,state.refs,state.posParsed,state.result);
+      const exportResult=await PHF.exportView(state.previewView,state.docs,state.refs,state.posParsed,state.result);
       const label=state.previewView==='pos'?(((state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').length>1)?'POS import files':'POS layout text file'):'exceptions Excel';
-      setStatus(`${label} generated successfully.`,'ok');
+      const warningCount=state.previewView==='pos'&&exportResult&&Array.isArray(exportResult.warnings)?exportResult.warnings.length:0;
+      if(warningCount)setStatus(`${label} generated successfully with ${warningCount} non-blocking validation note${warningCount===1?'':'s'}. The uploaded POS order identity was preserved; the POS import screen will perform its own final validation.`,'warn');
+      else setStatus(`${label} generated successfully.`,'ok');
     }catch(err){
       console.error(err);
       const message=err&&err.message?err.message:String(err);

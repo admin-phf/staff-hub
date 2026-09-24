@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.1
+# Prahran Health Foods — CH2 Reconciler v2.6.2
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -361,3 +361,17 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - CH2/master cross-checks now confirm the order row by barcode, POS PLU or order Sub Id rather than requiring every current-master identity field to be identical.
 - If POS import validation blocks a download, the reason is shown immediately in a dialog as well as the page status.
 - All v2.6.0 reconciliation, receiving, Excel, reference-data and POS-layout features remain unchanged.
+
+
+## v2.6.2 smarter POS import validation
+
+- Keeps the legacy 12-column POS TXT contract and all v2.6.1 order-identity rules unchanged.
+- Master cross-checks now distinguish **reference gaps/stale mappings** from a **genuine competing-order conflict** instead of blocking every master disagreement.
+- CH2-only master records with no POS barcode/PLU/Sub Id are non-blocking `MASTER LINK MISSING` notes.
+- CH2 codes absent from the current master are non-blocking `MASTER CODE NOT FOUND` notes; the uploaded order identity is preserved.
+- If the master identity points to another row in the same uploaded POS order, export remains hard-blocked because that can post invoice values to the wrong stock item.
+- If the master identifiers differ but no competing order row exists, a strong invoice/order match (description plus Normal W/S and RRP, or a direct exact order-code/barcode match) is allowed with a non-blocking `MASTER IDENTITY DIFFERENCE` note.
+- Weak/LOW-confidence master contradictions still block.
+- A supplied line with a valid Item/Sub Id but no barcode is now allowed with a warning; only missing both Item and Barcode is a hard identity failure.
+- Successful POS downloads now report the count of non-blocking validation notes in the page status, while the POS application remains the final import gate.
+- Full 43-column reconciliation, Exceptions export, POS receiving workflow, reference drag/drop, pricing/discount logic and all other v2.6.1 behaviour are preserved.
