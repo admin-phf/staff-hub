@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.5.7
+# Prahran Health Foods — CH2 Reconciler v2.5.8
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -318,3 +318,12 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - POS layout exports an invoice-style operational workbook using Date / Document Number / UPC / Item / Description / Quantity / tax / wholesale / RRP / discount / ex-GST / GST / gross columns.
 - POS Layout adds **Remove not supplied**, which processes every grey/not-supplied row and moves it below the active unpacking list while retaining POS order.
 - Completed supplied rows remain fully readable; strikethrough is reserved for grey/not-supplied products.
+
+
+## v2.5.8 full reconciliation + exact POS text export
+
+- Restored the always-available original **Download Full Reconciliation.xlsx** export.
+- The original full export remains the established validated 43-column `CH2 PDF Extract` workbook.
+- Exceptions view can still download its exceptions-only `.xlsx`.
+- POS layout now exports a **tab-delimited `.txt`** file matching the supplied reference structure/type: 14 exact columns, tab separators, CRLF line endings, and one row per POS-order line in source order.
+- `Quantity` is the reconciled supplied quantity, so not-supplied lines remain present with `0`.

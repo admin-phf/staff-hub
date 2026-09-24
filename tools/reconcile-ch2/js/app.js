@@ -4,7 +4,7 @@
   const state={pos:null,invoices:[],result:null,previewView:'exceptions',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null};
   const els={
     referenceReady:document.querySelector('#referenceReady'),referenceDot:document.querySelector('#referenceDot'),buildLabel:document.querySelector('#buildLabel'),
-    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn')
+    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),fullDownloadBtn:document.querySelector('#fullDownloadBtn'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn')
   };
 
   const RECON_COLUMNS=[
@@ -393,10 +393,23 @@
   function pill(status){let cls='bad';if(status==='OK')cls='ok';else if(status==='BETTER PRICE')cls='better';else if(/REVIEW|LOW/.test(status))cls='review';return `<span class="status-pill ${cls}">${escapeHtml(status)}</span>`;}
   function kpi(label,value,cls=''){return `<div class="kpi ${cls}"><div class="n">${escapeHtml(value)}</div><div class="l">${escapeHtml(label)}</div></div>`;}
   function updateDownloadButton(){
+    const ready=!!(state.runIntegrity&&state.runIntegrity.ok);
+    if(els.fullDownloadBtn){
+      els.fullDownloadBtn.textContent='Download Full Reconciliation.xlsx';
+      els.fullDownloadBtn.disabled=!ready;
+      els.fullDownloadBtn.title=ready?'Download the original complete 43-column linked-POS reconciliation workbook.':'Excel export is blocked until all integrity checks pass.';
+    }
     if(!els.downloadBtn)return;
-    const labels={exceptions:'Download Exceptions.xlsx',all:'Download All Lines.xlsx',pos:'Download POS Layout.xlsx'};
-    els.downloadBtn.textContent=labels[state.previewView]||'Download Current View.xlsx';
-    els.downloadBtn.title=state.runIntegrity&&state.runIntegrity.ok?`Download the ${state.previewView==='pos'?'POS layout':state.previewView==='all'?'full detailed reconciliation':'exceptions'} workbook`:'Excel export is blocked until all integrity checks pass.';
+    const labels={exceptions:'Download Exceptions.xlsx',pos:'Download POS Layout.txt'};
+    if(state.previewView==='all'){
+      els.downloadBtn.classList.add('hidden');
+      els.downloadBtn.disabled=true;
+      return;
+    }
+    els.downloadBtn.classList.remove('hidden');
+    els.downloadBtn.textContent=labels[state.previewView]||'Download Current View';
+    els.downloadBtn.disabled=!ready;
+    els.downloadBtn.title=ready?`Download the ${state.previewView==='pos'?'POS-layout tab-delimited text file':'exceptions workbook'}.`:'Export is blocked until all integrity checks pass.';
   }
   function setViewButtons(){
     const map={exceptions:els.viewExceptionsBtn,all:els.viewAllBtn,pos:els.viewPosBtn};
@@ -485,7 +498,7 @@
     if(t.auditDataMissing)notes.push(`${t.auditDataMissing} matched POS line(s) cannot receive a complete CH2 discount/wholesale audit because the supplier invoice did not print all required audit fields.`);
     if(integ.ok)notes.unshift('Integrity checks passed: POS source order is locked, every parsed invoice row is accounted for exactly once, and supplier invoice arithmetic is valid.');else notes.unshift(...integ.errors.map(x=>`INTEGRITY BLOCK: ${x}`));notes.push(...(integ.warnings||[]));notes.push('Excel output keeps every POS order line in the exact uploaded sequence. Genuine invoice-only lines are appended only after the complete POS order block.');
     els.warningBox.classList.remove('hidden','ok','bad');els.warningBox.classList.add(integ.ok?'ok':'bad');els.warningBox.innerHTML='<strong>Review notes:</strong><br>'+notes.map(escapeHtml).join('<br>');
-    renderPreview(r);els.downloadBtn.disabled=!integ.ok;els.downloadBtn.title=integ.ok?'':'Excel export is blocked until all integrity checks pass.';els.results.scrollIntoView({behavior:'smooth',block:'start'});
+    renderPreview(r);updateDownloadButton();els.results.scrollIntoView({behavior:'smooth',block:'start'});
   }
 
   async function run(){
@@ -506,7 +519,23 @@
   wireDrop(els.posDrop,els.posInput,addPos);wireDrop(els.invoiceDrop,els.invoiceInput,addInvoices);
   els.clearBtn.onclick=()=>{state.pos=null;state.invoices=[];state.result=null;state.docs=[];state.posParsed=null;state.previewView='exceptions';state.runIntegrity=null;state.unpackChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;els.posInput.value='';els.invoiceInput.value='';hideResults();hideProgress();renderFiles();};
   els.runBtn.onclick=run;
-  els.downloadBtn.onclick=async()=>{if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok)return;els.downloadBtn.disabled=true;els.downloadBtn.textContent='Building Excel…';try{await PHF.exportView(state.previewView,state.docs,state.refs,state.posParsed,state.result);const label=state.previewView==='pos'?'POS layout':state.previewView==='all'?'all-lines reconciliation':'exceptions';setStatus(`${label} Excel generated successfully.`,'ok');}catch(err){console.error(err);setStatus(err&&err.message?err.message:String(err),'warn');}finally{els.downloadBtn.disabled=!state.runIntegrity.ok;updateDownloadButton();}};
+  if(els.fullDownloadBtn)els.fullDownloadBtn.onclick=async()=>{
+    if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok)return;
+    els.fullDownloadBtn.disabled=true;els.fullDownloadBtn.textContent='Building Full Excel…';
+    try{await PHF.exportReference(state.docs,state.refs,state.posParsed,state.result);setStatus('Full reconciliation Excel generated successfully.','ok');}
+    catch(err){console.error(err);setStatus(err&&err.message?err.message:String(err),'warn');}
+    finally{updateDownloadButton();}
+  };
+  els.downloadBtn.onclick=async()=>{
+    if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok||state.previewView==='all')return;
+    els.downloadBtn.disabled=true;els.downloadBtn.textContent=state.previewView==='pos'?'Building TXT…':'Building Excel…';
+    try{
+      await PHF.exportView(state.previewView,state.docs,state.refs,state.posParsed,state.result);
+      const label=state.previewView==='pos'?'POS layout text file':'exceptions Excel';
+      setStatus(`${label} generated successfully.`,'ok');
+    }catch(err){console.error(err);setStatus(err&&err.message?err.message:String(err),'warn');}
+    finally{updateDownloadButton();}
+  };
   function setPreviewView(view){
     commitActiveReceivingInput();
     state.previewView=view;renderPreview(state.result);

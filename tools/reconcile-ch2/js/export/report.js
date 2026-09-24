@@ -197,29 +197,55 @@
     const docs=(invoiceDocs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE'),first=docs[0]||{},m=first.meta||{},firstRow=(first.rows||[])[0]||{};
     return {date:clean(firstRow.invoiceDate||m.invoiceDate||firstRow.orderDate||m.orderDate),number:clean(firstRow.invoiceNumber||m.invoiceNumber)};
   }
-  async function exportPosLayout(invoiceDocs,posOrder,reconciliation){
-    if(!global.ExcelJS)throw new Error('Excel export library did not load. Refresh the page and try again.');
-    const wb=new global.ExcelJS.Workbook();wb.creator='Prahran Health Foods Staff Hub';
-    const ws=wb.addWorksheet('POS Layout');
+  function textField(v){return clean(v).replace(/[\t\r\n]+/g,' ').replace(/\s+/g,' ').trim();}
+  function formatPlainNumber(v,maxDp=8){
+    const x=n(v);if(x==null)return '';
+    const rounded=Math.round((x+Number.EPSILON)*10**maxDp)/10**maxDp;
+    return String(rounded);
+  }
+  function formatPercentText(v,fixed2=false){
+    const x=n(v);if(x==null)return '';
+    return `${fixed2?x.toFixed(2):formatPlainNumber(x,4)}%`;
+  }
+  function formatDateText(v){
+    const s=clean(v);if(!s)return '';
+    const m=s.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);if(m)return `${String(m[3]).padStart(2,'0')}/${String(m[2]).padStart(2,'0')}/${m[1]}`;
+    const a=s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})/);if(a)return `${String(a[1]).padStart(2,'0')}/${String(a[2]).padStart(2,'0')}/${a[3]}`;
+    return s;
+  }
+  function makeTsv(rows){return rows.map(row=>row.map(textField).join('\t')).join('\r\n')+'\r\n';}
+  function posLayoutTextRows(invoiceDocs,posOrder,reconciliation){
     const headers=['Date','Document Number','UPC Code','Item','Description','Quantity','Tax Schedule','GST tax pc','Normal w/s per unit ex gst','RRP','% discount this invoice','Total Amount this invoice ex gst','GST','Gross Amount'];
-    const widths=[13,18,18,18,54,11,14,11,24,12,22,28,12,15],details=detailBySourceRow(reconciliation),defaults=docDefaults(invoiceDocs),rows=[];
-    const posRows=sortedPos(posOrder);
+    const details=detailBySourceRow(reconciliation),defaults=docDefaults(invoiceDocs),rows=[headers],posRows=sortedPos(posOrder);
     posRows.forEach((pos,i)=>{
-      const d=details.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||(reconciliation.detail||[])[i]||{},invRows=d.invoiceRows||[],gstPct=weightedInvoice(invRows,'gstPct');
-      const invoiceDate=clean((invRows[0]&&invRows[0].invoiceDate)||defaults.date),invoiceNo=clean(d.invoiceNumbers||((invRows[0]&&invRows[0].invoiceNumber)||defaults.number));
-      const supplied=n(d.suppliedQty)||0,normalWs=n(d.invoiceNormalWholesale);const rrp=weightedInvoice(invRows,'rrp');
-      const posWs=n(pos&&pos.normalWholesale),posRrp=n(pos&&pos.rrp),posGst=n(pos&&pos.raw&&pos.raw.gst_tax_pc);
-      const ex=sumInvoiceRows(invRows,'extendedExGst'),gst=sumInvoiceRows(invRows,'gstAmount'),gross=sumInvoiceRows(invRows,'totalIncGst'),disc=n(d.actualDiscountPct);
-      const effectiveGst=gstPct!=null?gstPct:(posGst!=null?posGst:0);
-      rows.push([invoiceDate,invoiceNo,clean(pos&&pos.barcode),clean(pos&&pos.subId||pos&&pos.plu),clean(pos&&pos.description),supplied,effectiveGst>0?'Taxable':'Non Taxable',effectiveGst/100,normalWs!=null?normalWs:(posWs!=null?posWs:''),rrp!=null?rrp:(posRrp!=null?posRrp:''),disc!=null?disc/100:'',ex,gst,gross]);
+      const d=details.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||(reconciliation.detail||[])[i]||{},invRows=d.invoiceRows||[];
+      const firstInv=invRows[0]||{},gstPct=weightedInvoice(invRows,'gstPct'),invoiceDate=formatDateText(firstInv.invoiceDate||defaults.date),invoiceNo=textField(d.invoiceNumbers||firstInv.invoiceNumber||defaults.number);
+      const supplied=n(d.suppliedQty)||0,normalWs=n(d.invoiceNormalWholesale),rrp=weightedInvoice(invRows,'rrp'),posWs=n(pos&&pos.normalWholesale),posRrp=n(pos&&pos.rrp),posGst=n(pos&&pos.gstPct);
+      const ex=sumInvoiceRows(invRows,'extendedExGst'),gst=sumInvoiceRows(invRows,'gstAmount'),gross=sumInvoiceRows(invRows,'totalIncGst'),disc=n(d.actualDiscountPct),effectiveGst=gstPct!=null?gstPct:(posGst!=null?posGst:0);
+      rows.push([
+        invoiceDate,
+        invoiceNo,
+        textField(pos&&pos.barcode),
+        textField(pos&&pos.subId),
+        textField(pos&&pos.description),
+        formatPlainNumber(supplied,3),
+        effectiveGst>0?'Taxable':'Non Taxable',
+        formatPercentText(effectiveGst,false),
+        formatPlainNumber(normalWs!=null?normalWs:posWs,8),
+        formatPlainNumber(rrp!=null?rrp:posRrp,8),
+        disc!=null?formatPercentText(disc,true):'',
+        formatPlainNumber(ex,2),
+        formatPlainNumber(gst,2),
+        formatPlainNumber(gross,2)
+      ]);
     });
-    ws.addRow(headers);rows.forEach(r=>ws.addRow(r));styleSimpleSheet(ws,headers,widths);
-    for(let r=2;r<=ws.rowCount;r++){
-      ws.getCell(r,3).numFmt='@';ws.getCell(r,4).numFmt='@';ws.getCell(r,6).numFmt='0.###';ws.getCell(r,8).numFmt='0.00%';ws.getCell(r,11).numFmt='0.00%';
-      [9,10,12,13,14].forEach(c=>ws.getCell(r,c).numFmt='#,##0.00');
-      [6,8,9,10,11,12,13,14].forEach(c=>ws.getCell(r,c).alignment={vertical:'middle',horizontal:'right'});
-    }
-    const filename=`CH2_PO_${safePart(reconciliation.orderNumber)}_POS_LAYOUT.xlsx`;return downloadWorkbook(wb,filename);
+    return rows;
+  }
+  async function exportPosLayout(invoiceDocs,posOrder,reconciliation){
+    const rows=posLayoutTextRows(invoiceDocs,posOrder,reconciliation),text=makeTsv(rows),defaults=docDefaults(invoiceDocs);
+    const filename=`ch2_invoice_{${safePart(defaults.number||'CURRENT')}}_(${safePart(reconciliation.orderNumber)}).txt`;
+    downloadBlob(new Blob([text],{type:'text/plain;charset=utf-8'}),filename);
+    return {filename,rows:rows.length-1,columns:rows[0].length};
   }
   async function exportView(view,invoiceDocs,refs,posOrder,reconciliation){
     if(view==='exceptions')return exportExceptions(reconciliation);
