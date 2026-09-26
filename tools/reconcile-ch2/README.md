@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.9
+# Prahran Health Foods — CH2 Reconciler v2.6.12
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -464,3 +464,38 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - The POSActive 15-column exporter now preserves the exact header (including `Disc %`) while normalizing **data rows only**. Quote marks, dollar signs and percent signs found in display-only text such as product descriptions are removed from the POSActive TXT, with a validation note; the reconciliation/audit data is not changed.
 - POSActive match keys are still protected: if a **Sub ID** itself contains a forbidden quote/dollar/percent character, export remains blocked rather than silently changing the key.
 - All v2.6.8 receiving behaviour remains: partial/over counts stay in Remaining until exact or manually ticked, explicit zero is accounted/not supplied, delayed row movement, focus restoration, Tick All / Untick All, Clear qty, hidden Stk In/Ok/Inc, GST-inclusive totals, row Total inc GST and the proven 15-column POSActive import contract.
+
+
+## v2.6.10 CH2 line visibility + strict incremental receiving restoration
+
+- POS Layout adds a compact **CH2 Line** column beside the receiving checkbox. It shows the supplier invoice line number(s) linked to each POS product, so export errors such as `Invoice line 20` can be found immediately in the receiving grid.
+- POSActive validation messages now identify **both CH2 invoice line and POS row/product** for unsafe Sub ID match keys, and show the offending Sub ID value.
+- The v2.6.8/v2.6.9 completion persistence regression is removed. Entering any partial or over quantity no longer leaves an automatically completed row in Completed.
+- Automatic completion again occurs only when **Found exactly equals CH2 Qty Supplied**, or when an explicit zero records none supplied.
+- If an automatically exact row is later corrected short/over, it returns to Remaining after the existing 1.5 second delay.
+- The left checkbox is now tracked as the **only persistent manual acceptance**. If staff explicitly tick a short/over row, it stays completed through later quantity edits until they deliberately untick it.
+- Tick All / Untick All are treated as deliberate manual checkbox actions. Clear qty clears counts, selections and manual acceptance state.
+- Add Qty = 0 remains an explicit accounted/not-supplied action, but a later positive partial count returns the row to Remaining unless the left checkbox was deliberately ticked.
+- Stk In / Ok / Inc remain hidden only from POS Layout. GST-inclusive Current / Adjusted totals, row Total inc GST, the 1.5 second movement delay, Enter-to-next-row behavior, fresh-run receiving reset, and the proven 15-column POSActive import contract are preserved.
+- The stricter Sub ID character check introduced in v2.6.9 remains intentionally active because POSActive matches on column 5 Sub ID and the proven plain-text contract does not allow quote, dollar or percent characters in data rows. v2.6.10 improves identification rather than silently changing a match key.
+
+
+## v2.6.11 literal POS Sub ID support
+
+- Removes the v2.6.9/v2.6.10 hard block on quote (`"`), dollar (`$`) and percent (`%`) characters when those characters genuinely occur in the uploaded POS order **Sub ID**.
+- Column 5 **Sub ID** is now preserved literally in the POSActive 15-column TXT because POSActive uses that field as the match key. Silently deleting a real character would change the key and is less safe than preserving it.
+- A special-character Sub ID produces a visible non-blocking warning so staff know POSActive will perform the final match validation.
+- TAB, carriage-return and line-feed characters remain hard-blocked in Sub ID because they would corrupt the tab-delimited positional file.
+- Supplier Code and Description retain the existing import-only cleanup for quote / dollar / percent characters; reconciliation/audit data is unchanged.
+- The proven 15-column contract, POS Layout-first workflow, strict incremental receiving, explicit zero handling, Tick All / Untick All, 1.5 second movement delay, GST-inclusive totals, row Total inc GST, hidden Stk In / Ok / Inc, fresh-run reset, CH2 Line visibility and full Excel/Exceptions exports are otherwise unchanged.
+
+
+## v2.6.12 strict completion + partial receiving export restoration
+
+- Restores the original incremental receiving rule: positive partial and over counts stay in **Remaining**; they do not move to Completed merely because a quantity was entered.
+- Automatic completion occurs only when **Found exactly equals CH2 Qty Supplied**. The deliberate exceptions remain: an explicit **Add Qty = 0 / Found = 0** records not supplied and completes the row, and a deliberate left-checkbox tick manually accepts/completes a row.
+- A later correction from an automatically exact count back to short/over returns the row to Remaining after the existing 1.5 second movement delay unless the left checkbox was deliberately ticked.
+- Crucially, completion state no longer controls receiving quantity export. If staff enter a positive partial or over **Found** quantity, that exact Found quantity is used in the POSActive TXT even while the row correctly remains in Remaining.
+- Untouched + unticked rows still default to not supplied for the download. A tick with no entered Found quantity uses the expected CH2 supplied quantity.
+- Add Qty remains cumulative, Found remains directly editable, negative corrections remain supported, explicit zero remains accounted/not supplied, Tick All / Untick All and Clear qty remain available, and completed rows still move only after the short delay.
+- No reconciliation, PDF parsing, 43-column Excel, proven 15-column POSActive contract, price/discount logic, GST-inclusive totals, hidden POS-only columns, CH2 Line visibility, or reference-data behavior is removed.

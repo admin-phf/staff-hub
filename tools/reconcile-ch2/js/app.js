@@ -1,7 +1,7 @@
 (function(global){
   'use strict';
   const PHF=global.PHFReconcile||{};
-  const state={pos:null,invoices:[],result:null,previewView:'pos',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null,receivingMigratedFrom266:false,orderOverrides:new Map()};
+  const state={pos:null,invoices:[],result:null,previewView:'pos',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackManualChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null,receivingMigratedFrom266:false,orderOverrides:new Map()};
   const els={
     referenceReady:document.querySelector('#referenceReady'),referenceDot:document.querySelector('#referenceDot'),buildLabel:document.querySelector('#buildLabel'),
     posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),orderOverrideBox:document.querySelector('#orderOverrideBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),fullDownloadBtn:document.querySelector('#fullDownloadBtn'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn')
@@ -23,6 +23,7 @@
   // allowed to absorb spare viewport width or give it back first on a smaller window.
   const POS_VIEW_COLUMNS=[
     {key:'__unpack',label:'✓',kind:'check',cls:'unpack-cell',min:48,max:58},
+    {key:'__invoice_line',label:'CH2 Line',kind:'text',cls:'pos-code pos-invoice-line',min:50,max:78,grow:.01,stretch:.01,hardMax:100},
     {key:'main_id',label:'Product #',kind:'text',cls:'pos-code',min:112,max:185,grow:.10,stretch:.11,hardMax:260},
     {key:'__pos_brand',label:'POS Brand',kind:'text',cls:'pos-brand',min:78,max:170,grow:.12,stretch:.15,hardMax:280},
     {key:'plu',label:'POS PLU',kind:'text',cls:'pos-code',min:58,max:96,grow:.05,stretch:.06,hardMax:140},
@@ -70,14 +71,16 @@
       const pos=rows[i],key=unpackIdentity(pos),sourceKey=String(pos&&pos.sourceRow!=null?pos.sourceRow:'');
       if(!sourceKey)continue;
       const selected=state.unpackChecked.has(key);selectedBySourceRow[sourceKey]=selected;
-      if(selected){
-        const detail=detailBySourceRow.get(sourceKey)||posDetailAt(i),expected=unpackExpectedQty(pos,detail);
-        receivingBySourceRow[sourceKey]=state.unpackCounts.has(key)?unpackCountFor(pos):expected;
-      }else{
-        // POS Layout is now the receiving authority: anything not ticked is treated
-        // as not supplied for the POSActive file, regardless of the CH2 invoice qty.
-        receivingBySourceRow[sourceKey]=0;
-      }
+      const detail=detailBySourceRow.get(sourceKey)||posDetailAt(i),expected=unpackExpectedQty(pos,detail);
+
+      // POS Layout is the receiving authority, but completion and export quantity are
+      // deliberately separate concepts. A positive partial/over count must stay in
+      // Remaining while still being honoured in the downloaded POSActive file.
+      // Untouched + unticked means not supplied by default. A manual tick with no
+      // entered Found quantity means all expected CH2 units are accounted for.
+      if(state.unpackCounts.has(key))receivingBySourceRow[sourceKey]=unpackCountFor(pos);
+      else if(selected)receivingBySourceRow[sourceKey]=expected;
+      else receivingBySourceRow[sourceKey]=0;
     }
     return {orderOverrides:Object.fromEntries(state.orderOverrides),autoLinkPosOrder:true,receivingBySourceRow,selectedBySourceRow,uncheckedMeansNotSupplied:true};
   }
@@ -124,8 +127,20 @@
     if(unit==null||rowQty==null)return '';
     return Math.round((unit*Number(rowQty)*(1+gstPct/100)+Number.EPSILON)*100)/100;
   }
+  function invoiceLineDisplay(detail){
+    const rows=detail&&Array.isArray(detail.invoiceRows)?detail.invoiceRows:[];
+    const seen=new Set(),lines=[];
+    for(const row of rows){
+      const raw=numberValue(row&&row.invoiceLine);
+      if(raw==null)continue;
+      const line=Math.abs(raw-Math.round(raw))<1e-9?String(Math.round(raw)):String(raw);
+      if(!seen.has(line)){seen.add(line);lines.push(line);}
+    }
+    return lines.join(', ');
+  }
   function posColumnValue(pos,c,detail=null){
     if(!pos||!c)return '';
+    if(c.key==='__invoice_line')return invoiceLineDisplay(detail);
     if(c.key==='__row_total_inc_gst')return posRowTotalIncGst(pos,detail);
     if(c.key==='__pos_brand')return String((posReferenceRecord(pos).POS_BRAND)||'');
     if(c.key==='main_id')return pos.barcode??'';
@@ -228,7 +243,7 @@
   }
   function unpackStorageKey(){
     const id=(state.posParsed&&state.posParsed.orderNumber)||(state.pos&&state.pos.name)||'current-order';
-    return `phf-ch2-unpack-v269:${String(id).replace(/[^a-z0-9._-]+/gi,'_')}`;
+    return `phf-ch2-unpack-v2610:${String(id).replace(/[^a-z0-9._-]+/gi,'_')}`;
   }
   function receivingStorageSuffix(orderId){
     const id=orderId||(state.posParsed&&state.posParsed.orderNumber)||(state.pos&&state.pos.name)||'current-order';
@@ -237,6 +252,7 @@
   function clearStoredReceivingState(orderId){
     const suffix=receivingStorageSuffix(orderId);
     const keys=[
+      `phf-ch2-unpack-v2610:${suffix}`,`phf-ch2-unpackqty-v2610:${suffix}`,
       `phf-ch2-unpack-v269:${suffix}`,`phf-ch2-unpackqty-v269:${suffix}`,
       `phf-ch2-unpack-v267:${suffix}`,`phf-ch2-unpackqty-v267:${suffix}`,
       `phf-ch2-unpack-v266:${suffix}`,`phf-ch2-unpackqty-v266:${suffix}`,
@@ -248,6 +264,7 @@
     clearTimeout(posReceivingRenderTimer);posReceivingRenderTimer=0;
     if(clearStorage)clearStoredReceivingState(orderId);
     state.unpackChecked=new Set();
+    state.unpackManualChecked=new Set();
     state.unpackCounts=new Map();
     state.receivingMigratedFrom266=false;
     state.unpackKey=unpackStorageKey();
@@ -263,7 +280,7 @@
   }
   function unpackCountsStorageKey(){
     const id=(state.posParsed&&state.posParsed.orderNumber)||(state.pos&&state.pos.name)||'current-order';
-    return `phf-ch2-unpackqty-v269:${String(id).replace(/[^a-z0-9._-]+/gi,'_')}`;
+    return `phf-ch2-unpackqty-v2610:${String(id).replace(/[^a-z0-9._-]+/gi,'_')}`;
   }
   function loadUnpackCounts(){
     const key=unpackCountsStorageKey();state.unpackCountsKey=key;state.unpackCounts=new Map();state.receivingMigratedFrom266=false;
@@ -319,24 +336,26 @@
   }
   function syncUnpackCompletion(pos,detail,{explicitZero=false}={}){
     const key=unpackIdentity(pos),expected=unpackExpectedQty(pos,detail),found=unpackCountFor(pos);
-    // Automatic completion is deliberately strict: only an exact receiving count moves
-    // the row to Completed. Under and over counts remain visible in Remaining until the
-    // user resolves them or explicitly ticks the row. Entering zero is the one deliberate
-    // exception: it means "accounted for, none supplied".
-    const complete=explicitZero||receivingCountMatches(found,expected);
+    // Automatic completion is strict. Partial/over counts stay in Remaining until the
+    // expected CH2 quantity is reached. The only persistent override is an explicit
+    // click on the left checkbox; Add Qty/Found edits must never create that override.
+    const manual=state.unpackManualChecked.has(key);
+    const complete=manual||explicitZero||receivingCountMatches(found,expected);
     if(complete)state.unpackChecked.add(key);else state.unpackChecked.delete(key);
     saveUnpackChecklist();return complete;
   }
   function setUnpackComplete(pos,detail,complete){
     const key=unpackIdentity(pos),expected=unpackExpectedQty(pos,detail);
     if(complete){
-      // Checking a row means include/account for it. Preserve a manual short/over/zero
-      // Found count; only seed the expected CH2 qty when the row has not been counted.
+      // The left checkbox is the deliberate manual acceptance control. Preserve a
+      // short/over/zero Found count; only seed expected CH2 qty when not yet counted.
       if(!state.unpackCounts.has(key))state.unpackCounts.set(key,Math.max(0,Math.round(Number(expected||0)*1000)/1000));
+      state.unpackManualChecked.add(key);
       state.unpackChecked.add(key);
     }else{
-      // Unchecking excludes the row from the POSActive download but deliberately keeps
-      // any Found count. "Clear qty" is the separate destructive action for counts.
+      // Unticking removes the manual acceptance. Any Found quantity remains, and the
+      // row can auto-complete again only if that Found quantity exactly matches CH2.
+      state.unpackManualChecked.delete(key);
       state.unpackChecked.delete(key);
     }
     saveUnpackCounts();saveUnpackChecklist();
@@ -372,18 +391,19 @@
     // existing Found quantity, records an explicit zero, and marks the row accounted
     // for so it moves to Completed.  The POSActive exporter then omits that zero-qty
     // invoice line (as required by the importer contract) and reports it as not supplied.
-    const wasChecked=state.unpackChecked.has(key);
+    const manual=state.unpackManualChecked.has(key);
     let total,complete=false;
     if(Math.abs(delta)<.0000001){
       total=setUnpackTotal(key,0);
-      state.unpackChecked.add(key);saveUnpackChecklist();complete=true;
+      // Zero is an explicit "not supplied" result and is accounted immediately, but
+      // it is not a permanent manual checkbox override. A later positive partial count
+      // must return the row to Remaining unless the user actually ticks the checkbox.
+      complete=true;
+      state.unpackChecked.add(key);saveUnpackChecklist();
     }else{
       total=applyUnpackDelta(key,delta);
       if(total!=null){
-        // Once a row has been explicitly/automatically accounted for, later quantity
-        // corrections must not silently untick it or move it back to Remaining. Staff
-        // can still untick it deliberately with the left checkbox.
-        complete=wasChecked||receivingCountMatches(total,expected);
+        complete=manual||receivingCountMatches(total,expected);
         if(complete)state.unpackChecked.add(key);else state.unpackChecked.delete(key);
         saveUnpackChecklist();
       }
@@ -403,10 +423,10 @@
     const expected=numberValue(input.dataset.unpackExpected)??0,raw=String(input.value||'').trim();
     if(!raw){input.value=displayUnpackCount(Number(state.unpackCounts.get(key)||0));return false;}
     const absolute=Number(raw);if(!Number.isFinite(absolute)){input.value=displayUnpackCount(Number(state.unpackCounts.get(key)||0));return false;}
-    const wasChecked=state.unpackChecked.has(key);
+    const manual=state.unpackManualChecked.has(key);
     const total=setUnpackTotal(key,absolute);if(total==null)return false;
     const explicitZero=Math.abs(total)<=.0005&&Number(expected)>.0005;
-    const complete=wasChecked||explicitZero||receivingCountMatches(total,expected);
+    const complete=manual||explicitZero||receivingCountMatches(total,expected);
     if(complete)state.unpackChecked.add(key);else state.unpackChecked.delete(key);
     saveUnpackChecklist();updateUnpackTotalElement(input,key,total,expected);
     updateRowSelectionVisual(input.closest('tr'),complete);
@@ -615,9 +635,10 @@
     if(els.posTools)els.posTools.classList.remove('hidden');
     els.tableWrap.classList.add('preview-pos');els.table.classList.add('pos-preview-table');
     const baseRows=sortedPosRows();const detailBySourceRow=posDetailMap();
-    // A tick means this row is accounted for and included in the POSActive receiving
-    // decision. Unticked rows are treated as not supplied by the download. A checked row
-    // with no explicit Found value is seeded to the expected CH2 supplied quantity.
+    // A tick means this row is accounted for/completed. Export quantity is independent:
+    // an entered Found value (including a positive partial/over count) is always honoured
+    // in the POSActive file; only untouched + unticked rows default to not supplied. A
+    // checked row with no explicit Found value uses the expected CH2 supplied quantity.
     // If Found totals were migrated from the v2.6.6 regression, deliberately rebuild the
     // completion state once: exact counts and explicit zero are complete; partial/over
     // counts remain in Remaining so staff can continue counting or manually tick them.
@@ -647,7 +668,7 @@
       const cells=POS_VIEW_COLUMNS.map(c=>{
         const v=posColumnValue(pos,c,detail);let html='',extraCls='',title='';
         if(c.kind==='check'){
-          html=`<button type="button" class="unpack-check ${unpackDone?'checked':''}" data-unpack-key="${escapeHtml(encodeURIComponent(checkKey))}" aria-pressed="${unpackDone?'true':'false'}" title="${unpackDone?'Untick — treat as not supplied in POSActive download':'Tick — include/account for this row in POSActive download'}"><span aria-hidden="true">${unpackDone?'✓':''}</span></button>`;
+          html=`<button type="button" class="unpack-check ${unpackDone?'checked':''}" data-unpack-key="${escapeHtml(encodeURIComponent(checkKey))}" aria-pressed="${unpackDone?'true':'false'}" title="${unpackDone?'Untick manual completion — keep any entered Found quantity':'Tick — manually accept/account for this row'}"><span aria-hidden="true">${unpackDone?'✓':''}</span></button>`;
           extraCls=' unpack-cell';
         }else if(c.kind==='qtyinput'){
           const item=String(pos.description||pos.barcode||'this product'),expectedQty=unpackExpectedQty(pos,detail);
@@ -684,7 +705,12 @@
         const currentlyAll=baseRows.length>0&&baseRows.every(pos=>state.unpackChecked.has(unpackIdentity(pos))),selectAll=!currentlyAll;
         for(let i=0;i<baseRows.length;i++){
           const pos=baseRows[i],key=unpackIdentity(pos),detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(i);
-          if(selectAll){if(!state.unpackCounts.has(key))state.unpackCounts.set(key,unpackExpectedQty(pos,detail));state.unpackChecked.add(key);}else state.unpackChecked.delete(key);
+          if(selectAll){
+            if(!state.unpackCounts.has(key))state.unpackCounts.set(key,unpackExpectedQty(pos,detail));
+            state.unpackManualChecked.add(key);state.unpackChecked.add(key);
+          }else{
+            state.unpackManualChecked.delete(key);state.unpackChecked.delete(key);
+          }
         }
         saveUnpackCounts();saveUnpackChecklist();
         for(const tr of els.tableBody.querySelectorAll('tr')){const b=tr.querySelector('.unpack-check[data-unpack-key]');if(!b)continue;const k=decodeUnpackKey(b.dataset.unpackKey||'');updateRowSelectionVisual(tr,state.unpackChecked.has(k));}
@@ -694,7 +720,7 @@
       }
       if(clear){
         e.preventDefault();e.stopPropagation();
-        state.unpackCounts.clear();state.unpackChecked.clear();saveUnpackCounts();saveUnpackChecklist();scheduleReceivingRender();
+        state.unpackCounts.clear();state.unpackChecked.clear();state.unpackManualChecked.clear();saveUnpackCounts();saveUnpackChecklist();scheduleReceivingRender();
       }
     };
     els.tableBody.onkeydown=e=>{
@@ -712,7 +738,7 @@
     els.tableBody.onchange=e=>{const add=e.target.closest('.unpack-qty-input'),found=e.target.closest('.unpack-qty-total');if(add)commitQtyInput(add);else if(found)commitFoundInput(found);};
 
     if(els.tableFoot){
-      if(baseRows.length){const totals=posTotals(baseRows,detailBySourceRow),leftSpan=Math.max(1,POS_VIEW_COLUMNS.length-5);els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="${leftSpan}" class="pos-total-left"><strong>Current Order</strong><span>${baseRows.length.toLocaleString()} product line${baseRows.length===1?'':'s'} · <b data-check-progress>accounted ${progress.checked}/${progress.total} · unchecked ${progress.remaining}</b> · exact counts or manually ticked rows move below Remaining after a short delay · under/over counts stay in Remaining until resolved or manually ticked · once accounted, later qty edits stay accounted until you untick the row · unticked rows = not supplied in download · grey rows = not invoiced · Add Qty 0 = accounted / not supplied</span></td><td colspan="2" class="pos-total-label" title="Both totals include GST. Adjusted Total mirrors the POSActive import total and applies any Found receiving quantities.">Current / Adjusted Total inc GST</td><td class="pos-total-current" title="Current POS order total including GST">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted" title="Live POSActive import total including GST; Found quantities applied">${money(totals.adjusted)}</td></tr>`;}
+      if(baseRows.length){const totals=posTotals(baseRows,detailBySourceRow),leftSpan=Math.max(1,POS_VIEW_COLUMNS.length-5);els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="${leftSpan}" class="pos-total-left"><strong>Current Order</strong><span>${baseRows.length.toLocaleString()} product line${baseRows.length===1?'':'s'} · <b data-check-progress>accounted ${progress.checked}/${progress.total} · unchecked ${progress.remaining}</b> · exact counts or manually ticked rows move below Remaining after a short delay · under/over counts stay in Remaining until resolved or manually ticked · an auto-completed exact count returns to Remaining if later corrected short/over · only a left-checkbox manual acceptance stays completed through further qty edits · untouched + unticked rows = not supplied by default · entered Found always controls the download qty · grey rows = not invoiced · Add Qty 0 = accounted / not supplied</span></td><td colspan="2" class="pos-total-label" title="Both totals include GST. Adjusted Total mirrors the POSActive import total and applies any Found receiving quantities.">Current / Adjusted Total inc GST</td><td class="pos-total-current" title="Current POS order total including GST">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted" title="Live POSActive import total including GST; Found quantities applied">${money(totals.adjusted)}</td></tr>`;}
       else els.tableFoot.innerHTML='';
     }
     ensurePosResizeObserver();schedulePosColumnSizing();
@@ -752,7 +778,7 @@
   }
 
   wireDrop(els.posDrop,els.posInput,addPos);wireDrop(els.invoiceDrop,els.invoiceInput,addInvoices);
-  els.clearBtn.onclick=()=>{resetReceivingState({clearStorage:true});state.pos=null;state.invoices=[];state.result=null;state.docs=[];state.posParsed=null;state.previewView='pos';state.runIntegrity=null;state.unpackChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;state.receivingMigratedFrom266=false;state.orderOverrides=new Map();els.posInput.value='';els.invoiceInput.value='';hideResults();hideProgress();renderFiles();};
+  els.clearBtn.onclick=()=>{resetReceivingState({clearStorage:true});state.pos=null;state.invoices=[];state.result=null;state.docs=[];state.posParsed=null;state.previewView='pos';state.runIntegrity=null;state.unpackChecked=new Set();state.unpackManualChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;state.receivingMigratedFrom266=false;state.orderOverrides=new Map();els.posInput.value='';els.invoiceInput.value='';hideResults();hideProgress();renderFiles();};
   els.runBtn.onclick=run;
   if(els.fullDownloadBtn)els.fullDownloadBtn.onclick=async()=>{
     if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok)return;
