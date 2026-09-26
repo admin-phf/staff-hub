@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.6
+# Prahran Health Foods — CH2 Reconciler v2.6.5
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -417,16 +417,3 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - The POSActive contract cannot safely carry zero-quantity lines, so an explicit Found 0 is omitted from the TXT and retained as a validation note/manual zero action for POSActive.
 - Entering a later positive Add Qty value after an explicit zero resumes normal receiving; if still below expected, the row returns to Remaining.
 - The proven 15-column contract, automatic POS-order filename routing, Sub ID override logic, POS Layout-first workflow, full 43-column Excel, Exceptions export and all v2.6.4 reconciliation behaviour are preserved.
-
-
-## v2.6.6 POS receiving selection + simplified layout
-
-- POS Layout visually removes **Stk In**, **Ok** and **Inc** only. The source/order data and full reconciliation workbook are unchanged.
-- The first POS Layout column now has a header **All** checkbox control. Click it to tick all rows; click again when all are selected to untick all. Existing manual Found values are preserved when simply unticking, while **Clear qty** is the separate destructive reset.
-- **Clear qty** now sits directly above the **Add Qty** column rather than in the general toolbar.
-- The POSActive download now treats **every unticked POS row as not supplied by default**. Ticked rows use Found when entered, otherwise the expected CH2 supplied quantity.
-- Any deliberate Add Qty or Found entry automatically ticks/accounts for that row, including under-supplied, over-supplied and explicit zero counts.
-- Entering **0** records an explicit not-supplied result, keeps the row accounted, and omits the zero-quantity line from the 15-column POSActive TXT as required by the proven importer contract.
-- Row movement between Remaining and Accounted/Completed is debounced by **1.5 seconds**, giving staff time to correct a quantity before the row relocates.
-- Adjusted Total remains GST-inclusive and mirrors the current POSActive export selection/Found quantities.
-- The proven 15-column POSActive contract, auto filename/order routing, Sub ID overrides, full 43-column Excel and Exceptions export are preserved.
