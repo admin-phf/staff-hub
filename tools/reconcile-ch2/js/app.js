@@ -148,13 +148,50 @@
     return diff>0?{kind:'up',symbol:'↑',diff,target:b}:{kind:'down',symbol:'↓',diff,target:b};
   }
   function posTotals(rows,detailBySourceRow=posDetailMap()){
-    let current=0,adjusted=0;
+    // Current = the POS order's existing unit cost × ordered quantity, including the
+    // GST rate already stored on each POS row.  This mirrors the POSActive Current
+    // Order total instead of displaying an ex-GST subtotal.
+    let current=0;
     for(const pos of rows||[]){
-      const raw=pos.raw||{},qtyNow=numberValue(raw.qty)??numberValue(pos.orderedQty)??0,qtyAdj=numberValue(raw.or_qty)??numberValue(pos.orderedQty)??0;
+      const raw=pos.raw||{},qtyNow=numberValue(raw.qty)??numberValue(pos.orderedQty)??0;
       const currentPrice=numberValue(raw.last_price)??numberValue(pos.expectedUnit)??0;
-      const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||null;
-      const adjustedPrice=numberValue(discountedPosPrice(pos,detail))??currentPrice;
-      current+=currentPrice*qtyNow;adjusted+=adjustedPrice*qtyAdj;
+      const gstPct=Math.max(0,numberValue(raw.gst_tax_pc)??numberValue(pos.gstPct)??0);
+      current+=currentPrice*qtyNow*(1+gstPct/100);
+    }
+
+    // Adjusted = the total that the POSActive TXT would carry right now.  Re-use the
+    // proven 15-column exporter so short/over/zero Found quantities are reflected in
+    // the footer exactly the same way they will be in the downloaded file.  Column 14
+    // is Total inc GST, so this value is explicitly GST-inclusive.
+    let adjusted=null;
+    try{
+      if(PHF.posImport&&typeof PHF.posImport.buildLegacyFiles==='function'&&state.docs&&state.docs.length&&state.posParsed&&state.result){
+        const built=PHF.posImport.buildLegacyFiles(state.docs,state.refs,state.posParsed,state.result,posExportOptions());
+        if(built&&Array.isArray(built.files)&&built.files.length){
+          adjusted=built.files.reduce((sum,file)=>sum+(numberValue(file&&file.totals&&file.totals.total)||0),0);
+        }
+      }
+    }catch(err){console.warn('Could not calculate live POSActive import total',err);}
+
+    // Fallback for the brief interval before an export payload can be constructed.
+    // Untouched matched rows use their original CH2 gross line totals; a touched Found
+    // quantity uses the matched invoice unit price and GST rate.
+    if(adjusted==null){
+      adjusted=0;
+      for(const pos of rows||[]){
+        const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||null;
+        if(!detail||!Array.isArray(detail.invoiceRows)||!detail.invoiceRows.length)continue;
+        const key=unpackIdentity(pos),touched=state.unpackCounts.has(key),found=touched?unpackCountFor(pos):null;
+        if(!touched){
+          adjusted+=detail.invoiceRows.reduce((sum,row)=>sum+(numberValue(row&&row.totalIncGst)||0),0);
+          continue;
+        }
+        if(found<=0)continue;
+        const sourceQty=detail.invoiceRows.reduce((sum,row)=>sum+(numberValue(row&&row.qtySupplied)||0),0);
+        if(sourceQty<=0)continue;
+        const grossPerUnit=detail.invoiceRows.reduce((sum,row)=>sum+(numberValue(row&&row.totalIncGst)||0),0)/sourceQty;
+        adjusted+=grossPerUnit*found;
+      }
     }
     return {current,adjusted};
   }
@@ -226,6 +263,7 @@
     const f=Number(found),e=Number(expected);
     if(!touched||!Number.isFinite(f)||!Number.isFinite(e))return {kind:'untouched',label:'Not counted yet'};
     const tol=.0005,diff=f-e;
+    if(Math.abs(f)<=tol&&e>tol)return {kind:'under',label:`Not supplied · expected ${displayUnpackCount(e)}`};
     if(Math.abs(diff)<=tol)return {kind:'exact',label:`Correct · expected ${displayUnpackCount(e)}`};
     if(diff<0)return {kind:'under',label:`Under by ${displayUnpackCount(Math.abs(diff))} · expected ${displayUnpackCount(e)}`};
     return {kind:'over',label:`Over by ${displayUnpackCount(diff)} · expected ${displayUnpackCount(e)}`};
@@ -278,11 +316,25 @@
     const raw=String(input.value||'').trim();if(!raw)return false;
     const delta=Number(raw);if(!Number.isFinite(delta)){input.value='';return false;}
     const key=decodeUnpackKey(input.dataset.unpackQtyKey||'');if(!key){input.value='';return false;}
-    const expected=numberValue(input.dataset.unpackExpected)??0,total=applyUnpackDelta(key,delta);input.value='';
-    if(total!=null){
-      if(Number(total)+.0005>=Number(expected))state.unpackChecked.add(key);else state.unpackChecked.delete(key);
+    const expected=numberValue(input.dataset.unpackExpected)??0;
+
+    // Add Qty = 0 is a deliberate receiving instruction, not a no-op.  It clears any
+    // existing Found quantity, records an explicit zero, and marks the row accounted
+    // for so it moves to Completed.  The POSActive exporter then omits that zero-qty
+    // invoice line (as required by the importer contract) and reports it as not supplied.
+    let total;
+    if(Math.abs(delta)<.0000001){
+      total=setUnpackTotal(key,0);
+      state.unpackChecked.add(key);
       saveUnpackChecklist();
+    }else{
+      total=applyUnpackDelta(key,delta);
+      if(total!=null){
+        if(Number(total)+.0005>=Number(expected))state.unpackChecked.add(key);else state.unpackChecked.delete(key);
+        saveUnpackChecklist();
+      }
     }
+    input.value='';
     const tr=input.closest('tr'),out=tr&&tr.querySelector('.unpack-qty-total');
     if(out&&total!=null)updateUnpackTotalElement(out,key,total,expected);
     if(state.previewView==='pos'&&state.result){setTimeout(()=>renderPosTable(),0);}else schedulePosColumnSizing();
@@ -479,7 +531,16 @@
     for(let i=0;i<baseRows.length;i++){
       const pos=baseRows[i],detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(i),key=unpackIdentity(pos),expected=unpackExpectedQty(pos,detail);
       if(state.unpackChecked.has(key)&&!state.unpackCounts.has(key)){state.unpackCounts.set(key,expected);stateChanged=true;}
-      if(state.unpackCounts.has(key)){const should=unpackCountFor(pos)+.0005>=expected;if(should&&!state.unpackChecked.has(key)){state.unpackChecked.add(key);stateChanged=true;}if(!should&&state.unpackChecked.has(key)){state.unpackChecked.delete(key);stateChanged=true;}}
+      if(state.unpackCounts.has(key)){
+        const found=unpackCountFor(pos),should=found+.0005>=expected;
+        // Preserve an explicitly completed zero.  Add Qty = 0 means "accounted for,
+        // none received" and must stay in the completed section even though it is under
+        // the CH2 supplied quantity.  Any later positive correction below expected goes
+        // back to Remaining, preserving the existing negative-correction behaviour.
+        const explicitZero=state.unpackChecked.has(key)&&Math.abs(found)<=.0005&&expected>.0005;
+        if(should&&!state.unpackChecked.has(key)){state.unpackChecked.add(key);stateChanged=true;}
+        if(!should&&state.unpackChecked.has(key)&&!explicitZero){state.unpackChecked.delete(key);stateChanged=true;}
+      }
     }
     if(stateChanged){saveUnpackCounts();saveUnpackChecklist();}
     const rows=posPreviewRows(detailBySourceRow);
@@ -494,7 +555,7 @@
           extraCls=' unpack-cell';
         }else if(c.kind==='qtyinput'){
           const item=String(pos.description||pos.barcode||'this product'),expectedQty=unpackExpectedQty(pos,detail);
-          html=`<input class="unpack-qty-input" type="number" step="any" inputmode="decimal" autocomplete="off" data-unpack-qty-key="${escapeHtml(encodeURIComponent(checkKey))}" data-unpack-expected="${escapeHtml(expectedQty)}" aria-label="Add unpacked quantity for ${escapeHtml(item)}" title="Expected in delivery: ${escapeHtml(displayUnpackCount(expectedQty))}. Enter a quantity; Enter, Tab, clicking elsewhere, switching window/tab or leaving the page will save it. Negative values subtract.">`;
+          html=`<input class="unpack-qty-input" type="number" step="any" inputmode="decimal" autocomplete="off" data-unpack-qty-key="${escapeHtml(encodeURIComponent(checkKey))}" data-unpack-expected="${escapeHtml(expectedQty)}" aria-label="Add unpacked quantity for ${escapeHtml(item)}" title="Expected in delivery: ${escapeHtml(displayUnpackCount(expectedQty))}. Enter a quantity; Enter, Tab, clicking elsewhere, switching window/tab or leaving the page will save it. Negative values subtract. Enter 0 to clear Found, mark this row accounted as not supplied, and exclude its zero quantity from the POSActive import.">`;
         }else if(c.kind==='qtytotal'){
           const found=unpackCountFor(pos),expectedQty=unpackExpectedQty(pos,detail),status=unpackCountStatus(checkKey,found,expectedQty);
           html=`<input class="unpack-qty-total found-${status.kind}" type="number" step="any" min="0" inputmode="decimal" autocomplete="off" data-unpack-total-key="${escapeHtml(encodeURIComponent(checkKey))}" data-unpack-expected="${escapeHtml(expectedQty)}" value="${escapeHtml(displayUnpackCount(found))}" title="${escapeHtml(`Expected: ${displayUnpackCount(expectedQty)} · Found: ${displayUnpackCount(found)} · ${status.label}. Edit this total directly to override the running count.`)}" aria-label="${escapeHtml(`Found ${displayUnpackCount(found)}. ${status.label}. Editable total.`)}">`;
@@ -527,7 +588,7 @@
     els.tableBody.onchange=e=>{const add=e.target.closest('.unpack-qty-input'),found=e.target.closest('.unpack-qty-total');if(add)commitQtyInput(add);else if(found)commitFoundInput(found);};
 
     if(els.tableFoot){
-      if(baseRows.length){const totals=posTotals(baseRows,detailBySourceRow),leftSpan=Math.max(1,POS_VIEW_COLUMNS.length-5);els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="${leftSpan}" class="pos-total-left"><strong>Current Order</strong><span>${baseRows.length.toLocaleString()} product line${baseRows.length===1?'':'s'} · <b data-check-progress>complete ${progress.checked}/${progress.total} · remaining ${progress.remaining}</b> · completed rows move below remaining items · grey rows = not supplied</span></td><td colspan="2" class="pos-total-label">Current / Adjusted Total</td><td class="pos-total-current">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted">${money(totals.adjusted)}</td></tr>`;}
+      if(baseRows.length){const totals=posTotals(baseRows,detailBySourceRow),leftSpan=Math.max(1,POS_VIEW_COLUMNS.length-5);els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="${leftSpan}" class="pos-total-left"><strong>Current Order</strong><span>${baseRows.length.toLocaleString()} product line${baseRows.length===1?'':'s'} · <b data-check-progress>complete ${progress.checked}/${progress.total} · remaining ${progress.remaining}</b> · completed rows move below remaining items · grey rows = not supplied · Add Qty 0 = accounted / not supplied</span></td><td colspan="2" class="pos-total-label" title="Both totals include GST. Adjusted Total mirrors the POSActive import total and applies any Found receiving quantities.">Current / Adjusted Total inc GST</td><td class="pos-total-current" title="Current POS order total including GST">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted" title="Live POSActive import total including GST; Found quantities applied">${money(totals.adjusted)}</td></tr>`;}
       else els.tableFoot.innerHTML='';
     }
     ensurePosResizeObserver();schedulePosColumnSizing();

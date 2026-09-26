@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.4
+# Prahran Health Foods — CH2 Reconciler v2.6.5
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -405,3 +405,15 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - A Found value of zero is omitted because POSActive cannot safely import zero-quantity lines; the browser returns a note that the zero line must be set manually in POSActive.
 - A positive Found quantity on a product with no CH2 invoice line remains blocked from automatic import because no invoice price/discount exists to populate safely.
 - The full 43-column reconciliation workbook, Exceptions export, Reference Admin drag/drop/layout fixes, master identity checks, discount auditing, receiving checklist and all established POS preview behaviour remain available.
+
+
+## v2.6.5 GST-inclusive live totals + explicit zero receiving
+
+- POS Layout footer totals are now explicitly **GST-inclusive**.
+- **Current Total inc GST** mirrors the uploaded POS order: current POS unit cost × ordered quantity, applying each row's POS GST %.
+- **Adjusted Total inc GST** is built from the same proven 15-column POSActive export payload that will be downloaded, so it includes GST and reflects current Found receiving quantities. Untouched rows therefore reconcile to the supplier invoice gross total; short/over receiving updates the displayed import total live.
+- Entering **0 in Add Qty** is now a deliberate receiving action: it clears any existing Found quantity to zero, marks the row accounted/not supplied, and moves it into the completed section.
+- An explicit zero remains visually under-supplied (`Not supplied · expected …`) rather than being mistaken for an exact count.
+- The POSActive contract cannot safely carry zero-quantity lines, so an explicit Found 0 is omitted from the TXT and retained as a validation note/manual zero action for POSActive.
+- Entering a later positive Add Qty value after an explicit zero resumes normal receiving; if still below expected, the row returns to Remaining.
+- The proven 15-column contract, automatic POS-order filename routing, Sub ID override logic, POS Layout-first workflow, full 43-column Excel, Exceptions export and all v2.6.4 reconciliation behaviour are preserved.
