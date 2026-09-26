@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Prahran Health Foods — Reconcile CH2 Order</title>
-  <link rel="stylesheet" href="./css/app.css?v=2613">
+  <link rel="stylesheet" href="./css/app.css?v=2614">
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
@@ -69,17 +69,6 @@
           <h2>Reconciliation result</h2>
           <p id="resultSub"></p>
         </div>
-        <div class="actions result-actions">
-          <button class="btn primary" id="fullDownloadBtn">Download Full Reconciliation.xlsx</button>
-          <button class="btn" id="fullCsvDownloadBtn">Download Full Reconciliation.csv</button>
-          <button class="btn" id="downloadBtn">Download Exceptions.xlsx</button>
-          <div class="view-picker" role="group" aria-label="Preview view">
-            <span class="view-label">View:</span>
-            <button class="btn small view-btn active" id="viewPosBtn" type="button">POS layout</button>
-            <button class="btn small view-btn" id="viewExceptionsBtn" type="button">Exceptions</button>
-            <button class="btn small view-btn" id="viewAllBtn" type="button">All lines</button>
-          </div>
-        </div>
       </div>
       <div class="kpis" id="kpis"></div>
       <div class="notice hidden" id="warningBox"></div>
@@ -89,6 +78,17 @@
         <span class="pos-tools-note">Receiving checklist · Add Qty accumulates in Found · Enter moves to the next Add Qty row · exact Found = invoiced/supplied qty completes automatically · under/over counts stay in Remaining until resolved or manually ticked · if an exact count is later corrected short/over it returns to Remaining; only a left-checkbox manual acceptance stays completed · unticked rows are treated as not supplied in the POSActive download · enter 0 to clear Found and account for none supplied · Clear qty is above Add Qty · rows move only after a short delay · Total inc GST = receiving qty × AdjCatPrc + GST · CH2 Line identifies the supplier invoice line used by export validation · Found: red = under, grey = correct, green = over</span>
         <div class="pos-tools-actions">
           <button class="btn small" id="removeNotSuppliedBtn" type="button" title="Move all grey/not-supplied POS rows to the processed section">Remove not supplied</button>
+        </div>
+      </div>
+      <div class="actions result-actions result-controls-sticky" aria-label="Reconciliation downloads and views">
+        <button class="btn primary" id="fullDownloadBtn">Download Full Reconciliation.xlsx</button>
+        <button class="btn" id="fullCsvDownloadBtn">Download Full Reconciliation.csv</button>
+        <button class="btn" id="downloadBtn">Download Exceptions.xlsx</button>
+        <div class="view-picker" role="group" aria-label="Preview view">
+          <span class="view-label">View:</span>
+          <button class="btn small view-btn active" id="viewPosBtn" type="button">POS layout</button>
+          <button class="btn small view-btn" id="viewExceptionsBtn" type="button">Exceptions</button>
+          <button class="btn small view-btn" id="viewAllBtn" type="button">All lines</button>
         </div>
       </div>
       <div class="table-wrap">
@@ -105,16 +105,16 @@
     </section>
   </main>
 
-  <script src="./js/reference/reference-config.js?v=2613"></script>
-  <script src="./js/reference/reference-data.js?v=2613"></script>
-  <script src="./js/core/schema.js?v=2613"></script>
-  <script src="./js/core/integrity.js?v=2613"></script>
-  <script src="./js/parsers/pos-order.js?v=2613"></script>
-  <script src="./js/parsers/supplier-invoice.js?v=2613"></script>
-  <script src="./js/core/reconcile.js?v=2613"></script>
-  <script src="./js/core/linked-pos.js?v=2613"></script>
-  <script src="./js/export/pos-import.js?v=2613"></script>
-  <script src="./js/export/report.js?v=2613"></script>
-  <script src="./js/app.js?v=2613"></script>
+  <script src="./js/reference/reference-config.js?v=2614"></script>
+  <script src="./js/reference/reference-data.js?v=2614"></script>
+  <script src="./js/core/schema.js?v=2614"></script>
+  <script src="./js/core/integrity.js?v=2614"></script>
+  <script src="./js/parsers/pos-order.js?v=2614"></script>
+  <script src="./js/parsers/supplier-invoice.js?v=2614"></script>
+  <script src="./js/core/reconcile.js?v=2614"></script>
+  <script src="./js/core/linked-pos.js?v=2614"></script>
+  <script src="./js/export/pos-import.js?v=2614"></script>
+  <script src="./js/export/report.js?v=2614"></script>
+  <script src="./js/app.js?v=2614"></script>
 </body>
 </html>

@@ -27,7 +27,8 @@
     {key:'main_id',label:'Product #',kind:'text',cls:'pos-code',min:112,max:185,grow:.10,stretch:.11,hardMax:260},
     {key:'__pos_brand',label:'POS Brand',kind:'text',cls:'pos-brand',min:78,max:170,grow:.12,stretch:.15,hardMax:280},
     {key:'plu',label:'POS PLU',kind:'text',cls:'pos-code',min:58,max:96,grow:.05,stretch:.06,hardMax:140},
-    {key:'sub_id',label:'Sub Id',kind:'text',cls:'pos-code',min:64,max:145,grow:.06,stretch:.08,hardMax:220},
+    {key:'sub_id',label:'POS Sub ID',kind:'text',cls:'pos-code',min:74,max:155,grow:.06,stretch:.08,hardMax:240},
+    {key:'__ch2_item_code',label:'CH2 ITEM CODE',kind:'text',cls:'pos-code pos-ch2-item-code',min:78,max:132,grow:.05,stretch:.06,hardMax:180},
     {key:'descr',label:'Product Description',kind:'text',cls:'pos-desc',min:220,max:520,grow:.30,stretch:.38,hardMax:940},
     {key:'gst_tax_pc',label:'GST %',kind:'number',dp:2,min:44,max:60,grow:.01},
     {key:'units',label:'Units',kind:'number',dp:2,min:40,max:54,grow:.01},
@@ -139,9 +140,36 @@
     }
     return lines.join(', ');
   }
+  function ch2ItemCodeDisplay(detail){
+    const rows=detail&&Array.isArray(detail.invoiceRows)?detail.invoiceRows:[];
+    const seen=new Set(),codes=[];
+    for(const row of rows){
+      let value=cleanText(row&&row.productCode).replace(/\.0+$/,'');
+      if(!value)continue;
+      if(!seen.has(value)){seen.add(value);codes.push(value);}
+    }
+    return codes.join(', ');
+  }
+  function posSubIdReviewNotes(){
+    if(!state.result||!state.posParsed)return [];
+    const notes=[],rows=sortedPosRows(),details=posDetailMap();
+    for(let i=0;i<rows.length;i++){
+      const pos=rows[i],detail=details.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(i);
+      if(!detail||Number(detail.suppliedQty||0)<=0)continue;
+      const sub=cleanText(pos&&pos.subId);if(!sub)continue;
+      const special=[...new Set((sub.match(/["$%]/g)||[]))];
+      const promoLike=/[A-Za-z]/.test(sub)&&/\s/.test(sub)&&/\b(?:ORDER|PER|SKU|PROMO|SPECIAL|FREE|OFF|DEAL|BUY|SAVE)\b/i.test(sub);
+      if(!special.length&&!promoLike)continue;
+      const line=invoiceLineDisplay(detail)||'?',ch2=ch2ItemCodeDisplay(detail)||'not resolved',product=cleanText(pos&&pos.description)||cleanText(pos&&pos.barcode)||'product';
+      const why=special.length?`contains special character${special.length===1?'':'s'} ${special.map(x=>`“${x}”`).join(', ')}`:'resembles ordering/promotion text';
+      notes.push(`POS SUB ID REVIEW — CH2 line ${line} · POS row ${i+1} (${product}): POS Sub ID “${sub}” ${why}. POSActive permits these characters and export remains enabled. CH2 ITEM CODE: ${ch2}. If POSActive reports a supplier-order mismatch, confirm that this POS Sub ID is the intended supplier key.`);
+    }
+    return notes;
+  }
   function posColumnValue(pos,c,detail=null){
     if(!pos||!c)return '';
     if(c.key==='__invoice_line')return invoiceLineDisplay(detail);
+    if(c.key==='__ch2_item_code')return ch2ItemCodeDisplay(detail);
     if(c.key==='__row_total_inc_gst')return posRowTotalIncGst(pos,detail);
     if(c.key==='__pos_brand')return String((posReferenceRecord(pos).POS_BRAND)||'');
     if(c.key==='main_id')return pos.barcode??'';
@@ -534,7 +562,7 @@
 
     if(total>available){
       let excess=total-available;
-      const shrinkOrder=['descr','__pos_brand','main_id','sub_id','plu','adjrrprce','adjwsprce','adjcatprce','adjdprce','__row_total_inc_gst','mupc','gppc','gst_tax_pc','qty_stk_in','or_qty','units','qty'];
+      const shrinkOrder=['descr','__pos_brand','main_id','sub_id','__ch2_item_code','plu','adjrrprce','adjwsprce','adjcatprce','adjdprce','__row_total_inc_gst','mupc','gppc','gst_tax_pc','qty_stk_in','or_qty','units','qty'];
       for(const key of shrinkOrder){
         if(excess<=.5)break;const i=POS_VIEW_COLUMNS.findIndex(c=>c.key===key);if(i<0)continue;
         const c=POS_VIEW_COLUMNS[i],room=Math.max(0,widths[i]-c.min),take=Math.min(room,excess);widths[i]-=take;excess-=take;
@@ -559,7 +587,7 @@
       // If an unusually wide monitor still has spare room, do not leave a dead white
       // strip. Spread it across the human-readable identity block in controlled ratios.
       if(spare>.5){
-        const finalKeys=[['descr',.52],['__pos_brand',.16],['main_id',.10],['sub_id',.08],['plu',.05],['adjrrprce',.025],['adjwsprce',.025],['adjcatprce',.02],['adjdprce',.025],['__row_total_inc_gst',.03]];
+        const finalKeys=[['descr',.49],['__pos_brand',.15],['main_id',.09],['sub_id',.075],['__ch2_item_code',.065],['plu',.045],['adjrrprce',.025],['adjwsprce',.025],['adjcatprce',.02],['adjdprce',.025],['__row_total_inc_gst',.03]];
         const w=finalKeys.reduce((a,x)=>a+x[1],0);let used=0;
         for(const [key,weight] of finalKeys){const i=POS_VIEW_COLUMNS.findIndex(c=>c.key===key);if(i<0)continue;const add=spare*(weight/w);widths[i]+=add;used+=add;}
         spare=Math.max(0,spare-used);
@@ -757,8 +785,9 @@
     const notes=[...(r.warnings||[])];
     if(t.lowConfidenceLines){const low=r.detail.filter(x=>x.matchConfidence==='LOW').slice(0,8).map(x=>`${x.posDescription} [${x.matchMethods||'fallback match'}]`);notes.push(`${t.lowConfidenceLines} matched line(s) have LOW confidence and should be reviewed${low.length?`: ${low.join('; ')}`:'.'}`);}
     if(t.auditDataMissing)notes.push(`${t.auditDataMissing} matched POS line(s) cannot receive a complete CH2 discount/wholesale audit because the supplier invoice did not print all required audit fields.`);
+    const posIdentityNotes=posSubIdReviewNotes();notes.push(...posIdentityNotes);
     if(integ.ok)notes.unshift('Integrity checks passed: POS source order is locked, every parsed invoice row is accounted for exactly once, and supplier invoice arithmetic is valid.');else notes.unshift(...integ.errors.map(x=>`INTEGRITY BLOCK: ${x}`));notes.push(...(integ.warnings||[]));notes.push('Excel output keeps every POS order line in the exact uploaded sequence. Genuine invoice-only lines are appended only after the complete POS order block.');
-    els.warningBox.classList.remove('hidden','ok','bad');els.warningBox.classList.add(integ.ok?'ok':'bad');els.warningBox.innerHTML='<strong>Review notes:</strong><br>'+notes.map(escapeHtml).join('<br>');
+    els.warningBox.classList.remove('hidden','ok','bad');if(!integ.ok)els.warningBox.classList.add('bad');else if(!posIdentityNotes.length)els.warningBox.classList.add('ok');els.warningBox.innerHTML='<strong>Review notes:</strong><br>'+notes.map(escapeHtml).join('<br>');
     renderOrderOverrideUi();renderPreview(r);updateDownloadButton();els.results.scrollIntoView({behavior:'smooth',block:'start'});
   }
 

@@ -302,3 +302,28 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .pos-header-action{appearance:none;border:1px solid #b9c1c7;border-radius:4px;background:#fff;color:#4f555a;font:700 9px/1.1 Arial,"Helvetica Neue",sans-serif;padding:3px 5px;white-space:nowrap;cursor:pointer}
 .pos-header-action:hover{border-color:#2E7D32;color:#2E7D32;background:#f3f8f3}
 .pos-header-action:focus-visible{outline:2px solid #2E7D32;outline-offset:1px}
+
+
+/* v2.6.14 — keep downloads and view controls visible at the top of the result table. */
+.result-controls-sticky{
+  position:sticky;
+  top:6px;
+  z-index:20;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:8px 0;
+  padding:8px 10px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:rgba(255,255,255,.97);
+  box-shadow:0 2px 8px rgba(0,0,0,.08);
+  backdrop-filter:blur(4px);
+}
+.result-controls-sticky .view-picker{margin-left:auto}
+@media(max-width:760px){
+  .result-controls-sticky{top:4px}
+  .result-controls-sticky .view-picker{margin-left:0;width:100%}
+}

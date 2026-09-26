@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.13
+# Prahran Health Foods — CH2 Reconciler v2.6.14
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -39,7 +39,7 @@ Configured central source IDs are retained in `js/reference/reference-config.js`
 - The browser preview now has three staff views:
   1. **Exceptions** — only rows needing attention.
   2. **All lines** — all reconciled POS rows plus genuine invoice-only rows.
-  3. **POS layout** — the uploaded POS order in the same source order using the familiar POS columns: Product #, Sub Id, Product Description, GST %, Units, Qty, Stk In, Ok, MU%, GP%, AdjRRPrc, AdjWSPrc, AdjCatPrc, AdjDPrc, Adj Qty and Inc.
+  3. **POS layout** — the uploaded POS order in the same source order, including CH2 Line, Product #, POS Brand, POS PLU, POS Sub ID, CH2 ITEM CODE, Product Description, GST %, Units, Qty, Found/receiving fields, pricing fields, Adj Qty and Total inc GST.
 
 The POS-layout preview is source-only: it shows the actual uploaded POS order values and does not replace or recalculate them.
 
@@ -515,3 +515,14 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - Human-facing identifier/code fields are safely normalised for TAB/CR/LF, quote, dollar and percent characters. Product descriptions and audit wording are not destructively cleaned.
 - No existing XLSX, Exceptions, POS Layout, receiving, discount-audit, PDF parser, reference-admin or POSActive 15-column feature is removed.
 
+
+
+## v2.6.14 literal POS Sub IDs + sticky result controls
+
+- Quote (`"`), dollar (`$`) and percent (`%`) characters in POSActive column 5 **Sub ID** are now preserved literally and are **warnings only**. They no longer block export.
+- This explicitly supersedes the v2.6.13 hard-block assumption after confirmed POSActive behaviour showed that legitimate special-character Sub IDs such as `3 PER SKU 25%` must be allowed through unchanged.
+- TAB, carriage-return and line-feed characters remain hard blockers in Sub ID because they would structurally corrupt the tab-delimited 15-column file.
+- Special/free-text Sub IDs are surfaced as review notes with the CH2 invoice line, POS row/product and the matched **CH2 ITEM CODE**, so staff can investigate a POSActive mismatch without the reconciler changing or suppressing the supplier key.
+- POS Layout now shows **POS SUB ID** followed immediately by **CH2 ITEM CODE**.
+- Download controls and the POS layout / Exceptions / All lines view controls are now a sticky toolbar directly above the result table.
+- The v2.6.12 receiving model, 15-column POSActive contract, 43-column Excel/CSV contracts, reference/admin features, pricing/discount audit, integrity checks and barcode-safe export handling are retained.
