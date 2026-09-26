@@ -5,6 +5,7 @@
 
   function clean(v){return v==null?'':String(v).trim();}
   function digits(v){return clean(v).replace(/\.0+$/,'').replace(/\D+/g,'');}
+  function numericCodeOnly(v){let s=clean(v);if(/^\d+\.0+$/.test(s))s=s.split('.')[0];return /^\d+$/.test(s)?s:'';}
   function bc(v){return digits(v);}
   function num(v){if(typeof v==='number'&&Number.isFinite(v))return v;let s=clean(v).replace(/[$,%]/g,'').replace(/,/g,'');if(!s)return null;if(/^\.\d+$/.test(s))s='0'+s;const n=Number(s);return Number.isFinite(n)?n:null;}
   function round(v,n=2){const x=num(v);if(x==null)return '';const p=10**n;return Math.round((x+Number.EPSILON)*p)/p;}
@@ -98,7 +99,7 @@
   }
 
   function lineCount(v){const n=num(v);if(n==null)return clean(v);return Number.isInteger(n)?String(n):String(n).replace(/0+$/,'').replace(/\.$/,'');}
-  function posReference(pos,refs){const b=bc(pos&&pos.barcode);if(b&&refs.master.byBarcode.has(b))return refs.master.byBarcode.get(b);const s=digits(pos&&pos.subId);if(s&&refs.master.byCode.has(s))return refs.master.byCode.get(s);const p=digits(pos&&pos.plu);if(p&&refs.master.byPlu&&refs.master.byPlu.has(p))return refs.master.byPlu.get(p);return {};}
+  function posReference(pos,refs){const b=bc(pos&&pos.barcode);if(b&&refs.master.byBarcode.has(b))return refs.master.byBarcode.get(b);const s=numericCodeOnly(pos&&pos.subId);if(s&&refs.master.byCode.has(s))return refs.master.byCode.get(s);const p=digits(pos&&pos.plu);if(p&&refs.master.byPlu&&refs.master.byPlu.has(p))return refs.master.byPlu.get(p);return {};}
   function statusFor(pos,invs){const ordered=num(pos&&pos.orderedQty)||0,supplied=round(sumRows(invs,'qtySupplied'),3)||0;if(!invs.length)return `NOT INVOICED / SHORT SHIPPED — ORDERED ${ordered} / SUPPLIED 0`;const conf=lowestConfidence(invs),auditMissing=invs.some(r=>r.discountPct==null||r.normalWholesale==null);if(supplied<ordered-0.0001)return `MATCHED / SHORT SUPPLIED — ORDERED ${ordered} / SUPPLIED ${supplied}`;if(supplied>ordered+0.0001)return `MATCHED / OVER SUPPLIED — ORDERED ${ordered} / SUPPLIED ${supplied}`;if(conf==='LOW')return 'MATCHED - REVIEW (LOW CONFIDENCE)';if(auditMissing)return 'MATCHED - REVIEW (CH2 AUDIT DATA MISSING)';return 'MATCHED';}
   function docInvoiceRowsForDetail(detail,doc){return (detail&&detail.invoiceRows||[]).filter(r=>clean(r.sourceFile)===clean(doc.sourceFile));}
   function docMeta(doc,posOrder){const first=(doc.rows||[])[0]||{},m=doc.meta||{};return {orderDate:clean(first.orderDate||m.orderDate||first.invoiceDate||m.invoiceDate),invoiceDate:clean(first.invoiceDate||m.invoiceDate),invoiceNumber:clean(first.invoiceNumber||m.invoiceNumber),customerPo:clean(first.customerPo||m.customerPo||(posOrder&&posOrder.orderNumber))};}
@@ -120,7 +121,7 @@
       const row={
         'INDEX':i+1,'Order Date':meta.orderDate,'Invoice Date':meta.invoiceDate,'Invoice Number':meta.invoiceNumber,'Your Ref':meta.customerPo,'Line Count':agg.lines,'Tax Amount':i===0?tax:'','Invoice Total':i===0?total:'',
         'POS SUPPLIER':supplierFromPos(pos,refs,rec),'MATCH STATUS':statusFor(pos,invs),'MATCH METHOD':invs.length?agg.methods:'NOT INVOICED','MATCH CONFIDENCE':agg.confidence,'FUZZY SCORE':agg.fuzzy,
-        'POS MASTER BARCODE':clean(pos.barcode),'POS PLU':clean(pos.plu),'POS BRAND':clean(rec.POS_BRAND),'POS DESCR':clean(pos.description),
+        'POS MASTER BARCODE':bc(pos.barcode)||bc(rec.POS_MASTER_BARCODE),'POS PLU':clean(pos.plu),'POS BRAND':clean(rec.POS_BRAND),'POS DESCR':clean(pos.description),
         'CH2 SUPPLIER SKU':agg.sku,'CH2 PRODUCT CODE':agg.code,'CH2 QTY SUPPLIED':invs.length?agg.qty:'','CH2 DISC %':invs.length?round(agg.disc,2):'','CH2 GST':invs.length?round(agg.gstPct,2):'',
         'POS GST TAX PC':round(pos.gstPct,2),'POS WSP EXCGST':round(pos.normalWholesale,2),'CH2 NORMAL W/S':invs.length?ch2Ws:'','POS LAST PRICE':round(pos.lastPrice,2),'CH2 UNIT PRICE EX GST':invs.length?round(agg.unit,2):'',
         'POS RRP INCGST':round(pos.rrp,2),'CH2 RRP':invs.length?round(agg.rrp,2):'','POS TOTAL':posTotal,'CH2 TOTAL':invs.length?round(agg.totalInc,2):'','POS CH2 WHOLESALE EX GST':rawWs,

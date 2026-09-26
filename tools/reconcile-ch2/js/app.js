@@ -4,7 +4,7 @@
   const state={pos:null,invoices:[],result:null,previewView:'pos',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackManualChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null,receivingMigratedFrom266:false,orderOverrides:new Map()};
   const els={
     referenceReady:document.querySelector('#referenceReady'),referenceDot:document.querySelector('#referenceDot'),buildLabel:document.querySelector('#buildLabel'),
-    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),orderOverrideBox:document.querySelector('#orderOverrideBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),fullDownloadBtn:document.querySelector('#fullDownloadBtn'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn')
+    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),orderOverrideBox:document.querySelector('#orderOverrideBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),fullDownloadBtn:document.querySelector('#fullDownloadBtn'),fullCsvDownloadBtn:document.querySelector('#fullCsvDownloadBtn'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn')
   };
 
   const RECON_COLUMNS=[
@@ -96,10 +96,11 @@
   function escapeHtml(v){return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
   function rawValue(pos,key){if(pos&&pos.raw&&Object.prototype.hasOwnProperty.call(pos.raw,key))return pos.raw[key];return '';}
   function refDigits(v){return String(v??'').replace(/\.0+$/,'').replace(/\D+/g,'');}
+  function refNumericCode(v){let s=cleanText(v);if(/^\d+\.0+$/.test(s))s=s.split('.')[0];return /^\d+$/.test(s)?s:'';}
   function posReferenceRecord(pos){
     const master=state.refs&&state.refs.master;if(!master||!pos)return {};
     const bc=refDigits(pos.barcode);if(bc&&master.byBarcode&&master.byBarcode.has(bc))return master.byBarcode.get(bc)||{};
-    const sub=refDigits(pos.subId);if(sub&&master.byCode&&master.byCode.has(sub))return master.byCode.get(sub)||{};
+    const sub=refNumericCode(pos.subId);if(sub&&master.byCode&&master.byCode.has(sub))return master.byCode.get(sub)||{};
     const plu=refDigits(pos.plu);if(plu&&master.byPlu&&master.byPlu.has(plu))return master.byPlu.get(plu)||{};
     return {};
   }
@@ -601,7 +602,12 @@
     if(els.fullDownloadBtn){
       els.fullDownloadBtn.textContent='Download Full Reconciliation.xlsx';
       els.fullDownloadBtn.disabled=!ready;
-      els.fullDownloadBtn.title=ready?'Download the original complete 43-column linked-POS reconciliation workbook.':'Excel export is blocked until all integrity checks pass.';
+      els.fullDownloadBtn.title=ready?'Download the original complete 43-column linked-POS reconciliation workbook. Barcodes are stored as exact text.':'Excel export is blocked until all integrity checks pass.';
+    }
+    if(els.fullCsvDownloadBtn){
+      els.fullCsvDownloadBtn.textContent='Download Full Reconciliation.csv';
+      els.fullCsvDownloadBtn.disabled=!ready;
+      els.fullCsvDownloadBtn.title=ready?'Download the same 43-column reconciliation as an Excel-safe UTF-8 CSV. Barcodes use a text formula so leading zeroes remain visible when opened directly in Excel.':'CSV export is blocked until all integrity checks pass.';
     }
     if(!els.downloadBtn)return;
     const activeInvoiceDocs=(state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').length;
@@ -784,6 +790,13 @@
     if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok)return;
     els.fullDownloadBtn.disabled=true;els.fullDownloadBtn.textContent='Building Full Excel…';
     try{await PHF.exportReference(state.docs,state.refs,state.posParsed,state.result);setStatus('Full reconciliation Excel generated successfully.','ok');}
+    catch(err){console.error(err);setStatus(err&&err.message?err.message:String(err),'warn');}
+    finally{updateDownloadButton();}
+  };
+  if(els.fullCsvDownloadBtn)els.fullCsvDownloadBtn.onclick=async()=>{
+    if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok)return;
+    els.fullCsvDownloadBtn.disabled=true;els.fullCsvDownloadBtn.textContent='Building CSV…';
+    try{await PHF.exportReferenceCsv(state.docs,state.refs,state.posParsed,state.result);setStatus('Full reconciliation CSV generated successfully. Barcodes are Excel-safe text.','ok');}
     catch(err){console.error(err);setStatus(err&&err.message?err.message:String(err),'warn');}
     finally{updateDownloadButton();}
   };

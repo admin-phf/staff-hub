@@ -206,7 +206,11 @@
       if(/["$%]/.test(rawSupplierCode))warnings.push(`Invoice line ${lineText(inv.invoiceLine)}: POSActive-forbidden quote / dollar / percent character removed from Supplier Code for import only; reconciliation data is unchanged.`);
       if(/["$%]/.test(rawDescription))warnings.push(`Invoice line ${lineText(inv.invoiceLine)}: POSActive-forbidden quote / dollar / percent character removed from Description for import only; reconciliation data is unchanged.`);
       if(/[\t\r\n]/.test(subId))pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)} · ${lineLabel(ctx.pos,ctx.index)}: Sub ID contains a TAB or line break, which would corrupt the 15-column POSActive file. Correct the POS Sub ID before export.`);
-      if(/["$%]/.test(subId))warnings.push(`Invoice line ${lineText(inv.invoiceLine)} · ${lineLabel(ctx.pos,ctx.index)}: POS Sub ID "${subId}" contains a quote mark, dollar sign or percent sign. The exact Sub ID is preserved in column 5 because POSActive matches this field literally; POSActive will perform its own final match validation.`);
+      if(/["$%]/.test(subId)){
+        const masterSub=code(ctx.identity.masterSubId);
+        pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)} · ${lineLabel(ctx.pos,ctx.index)}: POS Sub ID "${subId}" contains a quote mark, dollar sign or percent sign. POSActive has proven unable to reliably match these characters in the supplier-order key. Export is blocked rather than silently changing the key.${masterSub&&normCode(masterSub)!==normCode(subId)?` Master/reference Sub ID is "${masterSub}"; verify/correct the POS supplier Sub ID before export.`:' Correct the POS supplier Sub ID before export.'}`);
+      }
+      if(/[A-Za-z]/.test(subId)&&/\s/.test(subId)&&/\b(?:ORDER|PER|SKU|PROMO|SPECIAL|FREE|OFF|DEAL|BUY|SAVE)\b/i.test(subId))warnings.push(`Invoice line ${lineText(inv.invoiceLine)} · ${lineLabel(ctx.pos,ctx.index)}: REVIEW SUB ID "${subId}" — it resembles ordering/promotion text rather than a stable supplier product code.`);
       if(!subId)pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)}: Sub ID cannot be resolved from the POS order or CH2 product code.`);
       if(ctx.identity.orderSubId&&normCode(ctx.identity.orderSubId)!==normCode(ch2Code))warnings.push(`SUB ID OVERRIDE — CH2 ${ch2Code} uses POS order Sub ID ${ctx.identity.orderSubId} for ${description}.`);
       const predWs=round(round(ext/outQty,2)/(1-disc/100),2),wsRounded=round(normalWs,2),wsDiff=round(predWs-wsRounded,2);
@@ -248,10 +252,10 @@
       if(!Array.isArray(row)||row.length!==CONTRACT.columns)throw new Error(`POSActive logical row ${rowIndex+1} does not have exactly ${CONTRACT.columns} fields.`);
       // Header text is part of the proven contract and must remain exact (including
       // "Disc %"). Most display-only text is normalized for the legacy import.
-      // Column 5 (Sub ID, zero-based index 4) is different: it is POSActive's literal
-      // match key, so quote / dollar / percent characters must be preserved exactly
-      // when they genuinely exist in the uploaded POS order. TAB/CR/LF are still
-      // forbidden because they would break the positional TSV structure.
+      // Column 5 (Sub ID, zero-based index 4) is POSActive's literal match key.
+      // It is never silently sanitized. TAB/CR/LF are structurally forbidden here;
+      // quote / dollar / percent are serialized only so validatePayload can report the
+      // exact offending key, and the download is then hard-blocked.
       return row.map((v,colIndex)=>{
         if(rowIndex===0)return clean(v);
         if(colIndex===4){const x=code(v);if(/[\t\r\n]/.test(x))throw new Error(`POSActive Sub ID in logical row ${rowIndex+1} contains a TAB or line break.`);return x;}
@@ -272,16 +276,18 @@
     const parsed=parseTsv(text);if(parsed.length!==rows.length)pushIssue(errors,`Serialized POSActive file contains ${parsed.length} rows; ${rows.length} were expected.`);
     if(parsed.some(r=>r.length!==CONTRACT.columns))pushIssue(errors,'Serialized POSActive file contains a row that does not have exactly 15 tab-delimited fields.');
     if(parsed.length&&!CONTRACT.headers.every((x,i)=>parsed[0][i]===x))pushIssue(errors,'Serialized POSActive header changed after conversion.');
-    // Quote / dollar / percent characters remain prohibited in normalized display/data
-    // fields, but are allowed in column 5 Sub ID because that field must match the POS
-    // order literally. Altering a real Sub ID would be more dangerous than preserving it.
+    // Quote / dollar / percent characters are prohibited in all POSActive fields.
+    // Column 5 Sub ID is NOT cleaned automatically: changing the literal match key can
+    // point POSActive at the wrong item, so an unsafe Sub ID must block the download.
     for(let i=1;i<parsed.length;i++){
       const row=parsed[i]||[];
       for(let c=0;c<row.length;c++){
         if(c===4)continue;
         if(/["$%]/.test(String(row[c]||''))){pushIssue(errors,`Serialized POSActive row ${i+1}, column ${c+1} contains a quote mark, dollar sign or percent sign outside Sub ID.`);break;}
       }
-      if(/[\t\r\n]/.test(String(row[4]||'')))pushIssue(errors,`Serialized POSActive row ${i+1} Sub ID contains a TAB or line break.`);
+      const subId=String(row[4]||'');
+      if(/[\t\r\n]/.test(subId))pushIssue(errors,`Serialized POSActive row ${i+1} Sub ID contains a TAB or line break.`);
+      if(/["$%]/.test(subId)&&!errors.some(e=>String(e).includes(`POS Sub ID "${subId}"`)))pushIssue(errors,`Serialized POSActive row ${i+1} Sub ID "${subId}" contains a quote mark, dollar sign or percent sign and is unsafe for POSActive matching.`);
     }
     return {ok:errors.length===0,errors,warnings:[...(payload&&payload.warnings||[])]};
   }

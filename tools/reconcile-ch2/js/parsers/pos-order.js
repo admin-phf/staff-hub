@@ -36,6 +36,18 @@
     if(typeof v==='number'&&Number.isFinite(v))return Number.isInteger(v)?String(v):String(v);
     return clean(v).replace(/\.0+$/,'');
   }
+  function displayCode(rawValue,formattedValue){
+    const formatted=clean(formattedValue);
+    // Prefer the workbook's displayed text because custom Excel number formats can
+    // preserve significant leading zeroes. If Excel formatted the cell as scientific
+    // notation, fall back to the raw numeric value so IDs are never exported as 9.33E+12.
+    if(formatted&&!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)[Ee][+-]?\d+$/.test(formatted))return textCode(formatted);
+    return textCode(rawValue);
+  }
+  function barcodeCode(rawValue,formattedValue){
+    const value=displayCode(rawValue,formattedValue);
+    return clean(value).replace(/\.0+$/,'').replace(/\D+/g,'');
+  }
   function findHeaderRow(matrix){
     let best={row:-1,score:-1};
     for(let r=0;r<Math.min(matrix.length,50);r++){
@@ -63,19 +75,22 @@
 
     let chosen=null;
     for(const sheetName of wb.SheetNames){
-      const matrix=global.XLSX.utils.sheet_to_json(wb.Sheets[sheetName],{header:1,defval:'',raw:true,blankrows:false});
-      const headerRow=findHeaderRow(matrix);
-      if(headerRow>=0){const score=matrix.length-headerRow;if(!chosen||score>chosen.score)chosen={sheetName,matrix,headerRow,score};}
+      const sheet=wb.Sheets[sheetName];
+      const matrix=global.XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:true,blankrows:false});
+      const displayMatrix=global.XLSX.utils.sheet_to_json(sheet,{header:1,defval:'',raw:false,blankrows:false});
+      const headerMatrix=displayMatrix.length?displayMatrix:matrix,headerRow=findHeaderRow(headerMatrix);
+      if(headerRow>=0){const score=matrix.length-headerRow;if(!chosen||score>chosen.score)chosen={sheetName,matrix,displayMatrix,headerRow,score};}
     }
     if(!chosen)throw new Error('Could not recognise the POS back-end order columns. Expected fields such as descr, or_qty, adjwsprce and adjdprce.');
 
-    const headers=chosen.matrix[chosen.headerRow].map(clean),hm=makeHeaderMap(headers),rows=[];
+    const headerSource=(chosen.displayMatrix&&chosen.displayMatrix[chosen.headerRow])||chosen.matrix[chosen.headerRow]||[];
+    const headers=headerSource.map(clean),hm=makeHeaderMap(headers),rows=[];
     for(let r=chosen.headerRow+1;r<chosen.matrix.length;r++){
-      const raw=chosen.matrix[r]||[];
-      const description=clean(valueAt(raw,hm.description));
-      const barcode=textCode(valueAt(raw,hm.barcode));
-      const subId=textCode(valueAt(raw,hm.subId));
-      const plu=textCode(valueAt(raw,hm.plu));
+      const raw=chosen.matrix[r]||[],display=(chosen.displayMatrix&&chosen.displayMatrix[r])||[];
+      const description=clean(valueAt(display,hm.description)||valueAt(raw,hm.description));
+      const barcode=barcodeCode(valueAt(raw,hm.barcode),valueAt(display,hm.barcode));
+      const subId=displayCode(valueAt(raw,hm.subId),valueAt(display,hm.subId));
+      const plu=displayCode(valueAt(raw,hm.plu),valueAt(display,hm.plu));
       const orderedQty=toNumber(valueAt(raw,hm.orderedQty))??toNumber(valueAt(raw,hm.qty));
       if(!description&&!barcode&&!subId&&!plu)continue;
       // The exported reconciliation represents ordered product rows, not blank/zero order rows.
@@ -89,11 +104,11 @@
       const objectRaw=Object.fromEntries(headers.map((h,c)=>[h||`COL_${c+1}`,raw[c]??'']));
       const row={
         posIndex:rows.length+1,sourceRow:r+1,
-        orderNumber:clean(valueAt(raw,hm.orderNumber)),plu,barcode,subId,description,
+        orderNumber:displayCode(valueAt(raw,hm.orderNumber),valueAt(display,hm.orderNumber)),plu,barcode,subId,description,
         gstPct:toNumber(valueAt(raw,hm.gstPct)),orderedQty,qtyStockIn:toNumber(valueAt(raw,hm.qtyStockIn)),
         normalWholesale,expectedUnit,expectedDiscountPct,lastPrice,rrp:toNumber(valueAt(raw,hm.rrp)),
-        supplier:textCode(valueAt(raw,hm.supplier)),company:clean(valueAt(raw,hm.company)),
-        itemSize:clean(valueAt(raw,hm.itemSize)),stockOnHand:toNumber(valueAt(raw,hm.stockOnHand)),raw:objectRaw
+        supplier:displayCode(valueAt(raw,hm.supplier),valueAt(display,hm.supplier)),company:clean(valueAt(display,hm.company)||valueAt(raw,hm.company)),
+        itemSize:clean(valueAt(display,hm.itemSize)||valueAt(raw,hm.itemSize)),stockOnHand:toNumber(valueAt(raw,hm.stockOnHand)),raw:objectRaw
       };
       row.identity=identity(row);rows.push(row);
     }

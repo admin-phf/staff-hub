@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.12
+# Prahran Health Foods — CH2 Reconciler v2.6.13
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -499,3 +499,19 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - Untouched + unticked rows still default to not supplied for the download. A tick with no entered Found quantity uses the expected CH2 supplied quantity.
 - Add Qty remains cumulative, Found remains directly editable, negative corrections remain supported, explicit zero remains accounted/not supplied, Tick All / Untick All and Clear qty remain available, and completed rows still move only after the short delay.
 - No reconciliation, PDF parsing, 43-column Excel, proven 15-column POSActive contract, price/discount logic, GST-inclusive totals, hidden POS-only columns, CH2 Line visibility, or reference-data behavior is removed.
+
+## v2.6.13 POSActive key safety + barcode-safe exports
+
+- Keeps all v2.6.12 receiving/completion behaviour unchanged, including partial or over **Found** quantities being exported even while the row correctly remains in Remaining.
+- Based on the real POSActive 47/48 import result, quote (`"`), dollar (`$`) and percent (`%`) characters in **column 5 Sub ID** are again a hard export block. The literal match key is never silently cleaned or substituted.
+- TAB/CR/LF remain hard-blocked in Sub ID because they would break the tab-delimited 15-column file. Supplier Code and Description keep the existing import-only quote/dollar/percent cleanup because those are not the POSActive match key.
+- Error messages identify the CH2 invoice line, POS row/product and offending Sub ID. Promotion/order-like Sub IDs also receive a review warning.
+- Matching no longer extracts embedded digits from an alphanumeric/free-text Sub ID. For example, `3 PER SKU 25%` is no longer treated as numeric code `325`. Direct CH2-code → POS Sub ID matching is allowed only when the **entire** Sub ID is numeric.
+- The same numeric-only rule is used when resolving a POS row back to the master by CH2 code, preventing accidental master matches from embedded digits.
+- POS order parsing now reads both raw and displayed spreadsheet values. Identifier fields prefer displayed text (which can preserve custom-format leading zeroes) but fall back to raw values if the displayed value is scientific notation.
+- Reference-data parsing uses displayed spreadsheet text for identifier fields; numeric price/discount parsing still accepts those formatted strings.
+- Full reconciliation XLSX output explicitly writes text fields as strings. `POS MASTER BARCODE` is normalised to its exact digit string and workbook validation confirms it re-opens as a text cell, with leading zeroes preserved and no scientific notation.
+- Adds **Download Full Reconciliation.csv**. The CSV keeps the same 43 columns and emits barcodes as Excel-safe text formulas (for example `="0099904170612"`) so opening the CSV directly in Excel shows the complete barcode.
+- Human-facing identifier/code fields are safely normalised for TAB/CR/LF, quote, dollar and percent characters. Product descriptions and audit wording are not destructively cleaned.
+- No existing XLSX, Exceptions, POS Layout, receiving, discount-audit, PDF parser, reference-admin or POSActive 15-column feature is removed.
+
