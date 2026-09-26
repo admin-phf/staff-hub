@@ -98,6 +98,12 @@
     return {touched:true,value:n(map[key])};
   }
 
+  function selectedOverride(options,pos){
+    const map=options&&options.selectedBySourceRow,key=sourceRowKey(pos);if(!map||!key)return null;
+    if(map instanceof Map)return map.has(key)?!!map.get(key):null;
+    return Object.prototype.hasOwnProperty.call(map,key)?!!map[key]:null;
+  }
+
   function groupDocuments(invoiceDocs,posOrder,options={}){
     const docs=activeDocs(invoiceDocs),groups=[],byNo=new Map(),errors=[],warnings=[],posNo=clean(posOrder&&posOrder.orderNumber);
     for(const doc of docs){
@@ -163,7 +169,7 @@
   }
 
   function buildInvoicePayload(group,refs,posOrder,reconciliation,options={}){
-    const errors=[],warnings=[],posRows=sortedPos(posOrder),details=detailBySourceRow(reconciliation),contexts=[],invoiceToContext=new Map(),allocation=new Map(),receivingChanges=[];
+    const errors=[],warnings=[],posRows=sortedPos(posOrder),details=detailBySourceRow(reconciliation),contexts=[],invoiceToContext=new Map(),allocation=new Map(),receivingChanges=[],omittedNotSupplied=[];
     const unmatched=((reconciliation&&reconciliation.unmatchedInvoice)||[]).filter(r=>invoiceNo(r)===group.number||group.sourceFiles.has(clean(r&&r.sourceFile)));
     if(unmatched.length)pushIssue(errors,`Invoice ${group.number}: ${unmatched.length} invoice line${unmatched.length===1?' is':'s are'} not matched to the POS order.`);
 
@@ -193,7 +199,7 @@
       if(disc==null){pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)}: Disc % is missing; POSActive cannot derive WS Price safely.`);continue;}
       if(normalWs==null){pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)}: Normal W/S is missing; POSActive import validation cannot confirm WS Price.`);continue;}
       const outQty=allocation.has(key)?allocation.get(key):originalQty;
-      if(outQty<=0){warnings.push(`RECEIVING ADJUSTMENT — Invoice line ${lineText(inv.invoiceLine)} ${sanitizeText(inv.description)} is omitted because POS Layout Found = 0. POSActive cannot import a zero-quantity line; set that order line to 0 manually if needed.`);continue;}
+      if(outQty<=0){omittedNotSupplied.push({inv,ctx,selected:selectedOverride(options,ctx.pos)});continue;}
       const adjusted=Math.abs(outQty-originalQty)>0.0005,ext=adjusted?round(unit*outQty,2):round(inv.extendedExGst,2),gstRate=n(inv.gstPct)!=null?n(inv.gstPct):((n(inv.gstAmount)||0)>0?10:0),gst=adjusted?round(ext*gstRate/100,2):round(inv.gstAmount,2),total=adjusted?round(ext+gst,2):round(inv.totalIncGst,2);
       const ch2Code=digits(inv.productCode),subId=code(ctx.identity.orderSubId)||ch2Code,supplierCode=sanitizeText(inv.supplierSku),description=sanitizeText(inv.description);
       if(!subId)pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)}: Sub ID cannot be resolved from the POS order or CH2 product code.`);
@@ -207,6 +213,14 @@
         sourceQty:originalQty,receivingAdjusted:adjusted,pos:ctx.pos
       });
     }
+
+    if(omittedNotSupplied.length){
+      const unticked=omittedNotSupplied.filter(x=>x.selected===false).length,explicitZero=omittedNotSupplied.length-unticked;
+      const parts=[];if(unticked)parts.push(`${unticked} unticked`);if(explicitZero)parts.push(`${explicitZero} Found=0`);
+      warnings.push(`POS LAYOUT NOT SUPPLIED — ${omittedNotSupplied.length} invoice line${omittedNotSupplied.length===1?' is':'s are'} omitted from the POSActive TXT (${parts.join(', ')}). POSActive cannot import zero-quantity lines.`);
+      for(const x of omittedNotSupplied.slice(0,8))warnings.push(`Omitted line ${lineText(x.inv&&x.inv.invoiceLine)} ${sanitizeText(x.inv&&x.inv.description)} — ${x.selected===false?'unticked in POS Layout':'Found = 0'}.`);
+    }
+    if(!records.length&&invoiceRows.some(r=>(n(r&&r.qtySupplied)||0)>0&&(n(r&&r.unitPriceExGst)||0)!==0))pushIssue(errors,'No supplied POSActive rows remain. Tick at least one POS Layout item (or use Tick All) before downloading the import file.');
 
     const totals={qty:round(records.reduce((a,r)=>a+r.qtySupplied,0),3),ext:round(records.reduce((a,r)=>a+r.extended,0),2),gst:round(records.reduce((a,r)=>a+r.gst,0),2),total:round(records.reduce((a,r)=>a+r.total,0),2)};
     if(Math.abs(round(totals.ext+totals.gst-totals.total,2))>0.02)pushIssue(errors,`Invoice ${group.number}: POSActive import totals do not balance (${totals.ext.toFixed(2)} + GST ${totals.gst.toFixed(2)} ≠ ${totals.total.toFixed(2)}).`);
