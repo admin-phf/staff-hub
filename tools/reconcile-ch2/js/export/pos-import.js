@@ -24,6 +24,7 @@
   function sameRef(a,b){return !!normRef(a)&&normRef(a)===normRef(b);}
   function safePart(v){return clean(v).replace(/[^A-Za-z0-9._-]+/g,'_').replace(/^_+|_+$/g,'')||'CURRENT';}
   function sanitizeText(v){return clean(v).replace(/[−–—]/g,'-').replace(/[\t\r\n"]/g,' ').replace(/\s+/g,' ').trim();}
+  function sanitizeDataText(v){return sanitizeText(v).replace(/[$%]/g,'').replace(/\s+/g,' ').trim();}
   function fixed(v,dp){const x=n(v);return (x==null?0:x).toFixed(dp);}
   function qtyText(v){const x=n(v);if(x==null)return '0';if(Math.abs(x-Math.round(x))<1e-9)return String(Math.round(x));return String(round(x,3)).replace(/0+$/,'').replace(/\.$/,'');}
   function lineText(v){const x=n(v);if(x==null)return '';return Math.abs(x-Math.round(x))<1e-9?String(Math.round(x)):String(x);}
@@ -201,7 +202,10 @@
       const outQty=allocation.has(key)?allocation.get(key):originalQty;
       if(outQty<=0){omittedNotSupplied.push({inv,ctx,selected:selectedOverride(options,ctx.pos)});continue;}
       const adjusted=Math.abs(outQty-originalQty)>0.0005,ext=adjusted?round(unit*outQty,2):round(inv.extendedExGst,2),gstRate=n(inv.gstPct)!=null?n(inv.gstPct):((n(inv.gstAmount)||0)>0?10:0),gst=adjusted?round(ext*gstRate/100,2):round(inv.gstAmount,2),total=adjusted?round(ext+gst,2):round(inv.totalIncGst,2);
-      const ch2Code=digits(inv.productCode),subId=code(ctx.identity.orderSubId)||ch2Code,supplierCode=sanitizeText(inv.supplierSku),description=sanitizeText(inv.description);
+      const ch2Code=digits(inv.productCode),subId=code(ctx.identity.orderSubId)||ch2Code,rawSupplierCode=clean(inv.supplierSku),rawDescription=clean(inv.description),supplierCode=sanitizeDataText(rawSupplierCode),description=sanitizeDataText(rawDescription);
+      if(/["$%]/.test(rawSupplierCode))warnings.push(`Invoice line ${lineText(inv.invoiceLine)}: POSActive-forbidden quote / dollar / percent character removed from Supplier Code for import only; reconciliation data is unchanged.`);
+      if(/["$%]/.test(rawDescription))warnings.push(`Invoice line ${lineText(inv.invoiceLine)}: POSActive-forbidden quote / dollar / percent character removed from Description for import only; reconciliation data is unchanged.`);
+      if(/["$%]/.test(subId))pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)}: Sub ID contains a quote mark, dollar sign or percent sign. Because Sub ID is the POSActive match key it cannot be altered automatically.`);
       if(!subId)pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)}: Sub ID cannot be resolved from the POS order or CH2 product code.`);
       if(ctx.identity.orderSubId&&normCode(ctx.identity.orderSubId)!==normCode(ch2Code))warnings.push(`SUB ID OVERRIDE — CH2 ${ch2Code} uses POS order Sub ID ${ctx.identity.orderSubId} for ${description}.`);
       const predWs=round(round(ext/outQty,2)/(1-disc/100),2),wsRounded=round(normalWs,2),wsDiff=round(predWs-wsRounded,2);
@@ -241,7 +245,11 @@
   function makeTsv(rows){
     return (rows||[]).map((row,rowIndex)=>{
       if(!Array.isArray(row)||row.length!==CONTRACT.columns)throw new Error(`POSActive logical row ${rowIndex+1} does not have exactly ${CONTRACT.columns} fields.`);
-      return row.map(v=>sanitizeText(v)).join('\t');
+      // Header text is part of the proven contract and must remain exact (including
+      // "Disc %"). Data rows are normalized separately so product descriptions such
+      // as "100%" or text containing a dollar/quote cannot make an otherwise valid
+      // POSActive file fail its plain-field contract.
+      return row.map(v=>rowIndex===0?clean(v):sanitizeDataText(v)).join('\t');
     }).join('\r\n')+'\r\n';
   }
   function parseTsv(text){return String(text||'').split('\r\n').filter((x,i,a)=>x!==''||i<a.length-1).map(line=>line.split('\t'));}

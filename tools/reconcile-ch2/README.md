@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.8
+# Prahran Health Foods — CH2 Reconciler v2.6.9
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -454,3 +454,13 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - POS Layout adds a final **Total inc GST** column. It uses the current physical receiving quantity when Found has been entered; otherwise it uses the reconciled CH2 supplied quantity. Formula: `quantity × AdjCatPrc × (1 + POS GST % / 100)`.
 - The new row total is preview-only. It does not alter the proven 15-column POSActive import contract or the full 43-column reconciliation workbook.
 - Existing POS Layout simplification remains: Stk In / Ok / Inc are hidden only from this preview; Tick All / Untick All, Clear qty, Found status colours, short/over receiving download behaviour, and GST-inclusive footer totals are preserved.
+
+
+## v2.6.9 fresh-run receiving reset + POSActive plain-text normalization
+
+- **Every Run starts fresh.** Re-running the same files clears all receiving checkboxes, Found/Add Qty totals, explicit zero/not-supplied decisions and prior Remove-not-supplied processing before the new reconciliation is displayed.
+- Changing/removing invoice files, changing/removing the POS order, or using **Clear Files** also clears the current receiving session and its browser session-storage keys.
+- Grey/not-invoiced rows therefore appear again by default on each new run until staff deliberately choose **Remove not supplied**.
+- The POSActive 15-column exporter now preserves the exact header (including `Disc %`) while normalizing **data rows only**. Quote marks, dollar signs and percent signs found in display-only text such as product descriptions are removed from the POSActive TXT, with a validation note; the reconciliation/audit data is not changed.
+- POSActive match keys are still protected: if a **Sub ID** itself contains a forbidden quote/dollar/percent character, export remains blocked rather than silently changing the key.
+- All v2.6.8 receiving behaviour remains: partial/over counts stay in Remaining until exact or manually ticked, explicit zero is accounted/not supplied, delayed row movement, focus restoration, Tick All / Untick All, Clear qty, hidden Stk In/Ok/Inc, GST-inclusive totals, row Total inc GST and the proven 15-column POSActive import contract.

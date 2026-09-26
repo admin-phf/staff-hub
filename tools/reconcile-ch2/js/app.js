@@ -228,7 +228,30 @@
   }
   function unpackStorageKey(){
     const id=(state.posParsed&&state.posParsed.orderNumber)||(state.pos&&state.pos.name)||'current-order';
-    return `phf-ch2-unpack-v267:${String(id).replace(/[^a-z0-9._-]+/gi,'_')}`;
+    return `phf-ch2-unpack-v269:${String(id).replace(/[^a-z0-9._-]+/gi,'_')}`;
+  }
+  function receivingStorageSuffix(orderId){
+    const id=orderId||(state.posParsed&&state.posParsed.orderNumber)||(state.pos&&state.pos.name)||'current-order';
+    return String(id).replace(/[^a-z0-9._-]+/gi,'_');
+  }
+  function clearStoredReceivingState(orderId){
+    const suffix=receivingStorageSuffix(orderId);
+    const keys=[
+      `phf-ch2-unpack-v269:${suffix}`,`phf-ch2-unpackqty-v269:${suffix}`,
+      `phf-ch2-unpack-v267:${suffix}`,`phf-ch2-unpackqty-v267:${suffix}`,
+      `phf-ch2-unpack-v266:${suffix}`,`phf-ch2-unpackqty-v266:${suffix}`,
+      `phf-ch2-unpack:${suffix}`,`phf-ch2-unpackqty:${suffix}`
+    ];
+    try{for(const key of keys)sessionStorage.removeItem(key);}catch(err){console.warn('Could not clear previous receiving session',err);}
+  }
+  function resetReceivingState({clearStorage=true,orderId=''}={}){
+    clearTimeout(posReceivingRenderTimer);posReceivingRenderTimer=0;
+    if(clearStorage)clearStoredReceivingState(orderId);
+    state.unpackChecked=new Set();
+    state.unpackCounts=new Map();
+    state.receivingMigratedFrom266=false;
+    state.unpackKey=unpackStorageKey();
+    state.unpackCountsKey=unpackCountsStorageKey();
   }
   function loadUnpackChecklist(){
     const key=unpackStorageKey();state.unpackKey=key;state.unpackChecked=new Set();
@@ -240,24 +263,11 @@
   }
   function unpackCountsStorageKey(){
     const id=(state.posParsed&&state.posParsed.orderNumber)||(state.pos&&state.pos.name)||'current-order';
-    return `phf-ch2-unpackqty-v267:${String(id).replace(/[^a-z0-9._-]+/gi,'_')}`;
+    return `phf-ch2-unpackqty-v269:${String(id).replace(/[^a-z0-9._-]+/gi,'_')}`;
   }
   function loadUnpackCounts(){
     const key=unpackCountsStorageKey();state.unpackCountsKey=key;state.unpackCounts=new Map();state.receivingMigratedFrom266=false;
-    try{
-      let raw=sessionStorage.getItem(key);
-      // v2.6.6 accidentally treated every quantity entry as completed. Preserve only the
-      // numeric Found totals from that build, never its checked/completed state. v2.6.7
-      // rebuilds completion safely after reconciliation: exact counts and explicit zero
-      // are accounted; partial/over counts stay in Remaining until the user ticks them.
-      if(!raw){
-        const id=(state.posParsed&&state.posParsed.orderNumber)||(state.pos&&state.pos.name)||'current-order';
-        const legacyKey=`phf-ch2-unpackqty-v266:${String(id).replace(/[^a-z0-9._-]+/gi,'_')}`;
-        raw=sessionStorage.getItem(legacyKey);if(raw)state.receivingMigratedFrom266=true;
-      }
-      if(raw){const obj=JSON.parse(raw);if(obj&&typeof obj==='object'&&!Array.isArray(obj)){for(const [k,v] of Object.entries(obj)){const n=Number(v);if(Number.isFinite(n))state.unpackCounts.set(String(k),n);}}}
-      if(state.receivingMigratedFrom266&&state.unpackCounts.size)saveUnpackCounts();
-    }catch(err){console.warn('Could not restore unpacked quantity totals',err);}
+    try{const raw=sessionStorage.getItem(key);if(raw){const obj=JSON.parse(raw);if(obj&&typeof obj==='object'&&!Array.isArray(obj)){for(const [k,v] of Object.entries(obj)){const n=Number(v);if(Number.isFinite(n))state.unpackCounts.set(String(k),n);}}}}catch(err){console.warn('Could not restore unpacked quantity totals',err);}
   }
   function saveUnpackCounts(){
     if(!state.unpackCountsKey)return;
@@ -553,15 +563,15 @@
     catch(err){console.error(err);state.referenceReady=false;els.referenceReady.textContent='Unavailable';els.referenceDot.className='reference-dot warn';renderFiles();}
   }
   function renderFiles(){
-    els.posFiles.replaceChildren();if(state.pos)els.posFiles.append(fileRow(state.pos,()=>{state.pos=null;state.result=null;state.posParsed=null;state.runIntegrity=null;state.orderOverrides=new Map();renderFiles();hideResults();}));
-    els.invoiceFiles.replaceChildren();state.invoices.forEach((f,i)=>els.invoiceFiles.append(fileRow(f,()=>{state.invoices.splice(i,1);state.result=null;state.docs=[];state.runIntegrity=null;state.orderOverrides=new Map();renderFiles();hideResults();})));
+    els.posFiles.replaceChildren();if(state.pos)els.posFiles.append(fileRow(state.pos,()=>{resetReceivingState({clearStorage:true});state.pos=null;state.result=null;state.posParsed=null;state.runIntegrity=null;state.orderOverrides=new Map();renderFiles();hideResults();}));
+    els.invoiceFiles.replaceChildren();state.invoices.forEach((f,i)=>els.invoiceFiles.append(fileRow(f,()=>{resetReceivingState({clearStorage:true});state.invoices.splice(i,1);state.result=null;state.docs=[];state.runIntegrity=null;state.orderOverrides=new Map();renderFiles();hideResults();})));
     const filesReady=!!state.pos&&state.invoices.length>0,ready=filesReady&&state.referenceReady;els.runBtn.disabled=!ready;
     if(!state.referenceReady)setStatus('Reference data is not ready on this computer. Open Admin to load the POS master and supplier/discount reference data.','warn');
     else if(filesReady)setStatus(`Ready: 1 POS order and ${state.invoices.length} supplier invoice${state.invoices.length===1?'':'s'} selected.`,'ok');
     else setStatus('Add one POS order and at least one supplier invoice to continue.','info');
   }
-  function addPos(files){const f=[...files].find(x=>validExt(x,['.xls','.xlsx','.csv']));if(f)state.pos=f;state.result=null;state.posParsed=null;state.runIntegrity=null;state.orderOverrides=new Map();state.unpackChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;hideResults();renderFiles();}
-  function addInvoices(files){for(const f of files){if(validExt(f,['.pdf','.xls','.xlsx','.csv'])&&!state.invoices.some(x=>x.name===f.name&&x.size===f.size))state.invoices.push(f);}state.result=null;state.docs=[];state.runIntegrity=null;state.orderOverrides=new Map();hideResults();renderFiles();}
+  function addPos(files){resetReceivingState({clearStorage:true});const f=[...files].find(x=>validExt(x,['.xls','.xlsx','.csv']));if(f)state.pos=f;state.result=null;state.posParsed=null;state.runIntegrity=null;state.orderOverrides=new Map();state.unpackChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;hideResults();renderFiles();}
+  function addInvoices(files){resetReceivingState({clearStorage:true});for(const f of files){if(validExt(f,['.pdf','.xls','.xlsx','.csv'])&&!state.invoices.some(x=>x.name===f.name&&x.size===f.size))state.invoices.push(f);}state.result=null;state.docs=[];state.runIntegrity=null;state.orderOverrides=new Map();hideResults();renderFiles();}
   function wireDrop(zone,input,handler){zone.onclick=()=>input.click();zone.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();input.click();}};input.onchange=()=>handler(input.files);['dragenter','dragover'].forEach(evt=>zone.addEventListener(evt,e=>{e.preventDefault();zone.classList.add('drag');}));['dragleave','drop'].forEach(evt=>zone.addEventListener(evt,e=>{e.preventDefault();zone.classList.remove('drag');}));zone.addEventListener('drop',e=>handler(e.dataTransfer.files));}
 
   function pill(status){let cls='bad';if(status==='OK')cls='ok';else if(status==='BETTER PRICE')cls='better';else if(/REVIEW|LOW/.test(status))cls='review';return `<span class="status-pill ${cls}">${escapeHtml(status)}</span>`;}
@@ -725,7 +735,13 @@
     els.runBtn.disabled=true;els.clearBtn.disabled=true;hideResults();setProgress(4);setStatus('Loading POS/master and discount reference data…','info');
     try{
       state.refs=await PHF.referenceStore.parseStored();setProgress(18);setStatus(`Reference data ready: ${state.refs.master.info.records.toLocaleString()} CH2 codes and ${state.refs.supplier.info.discountRules.toLocaleString()} discount rules. Reading POS order…`,'info');
-      const pos=await PHF.parsePosOrder(state.pos);state.posParsed=pos;loadUnpackChecklist();loadUnpackCounts();setProgress(35);setStatus(`POS order read: ${pos.rows.length} ordered product lines. Reading supplier invoice(s)…`,'info');
+      const pos=await PHF.parsePosOrder(state.pos);state.posParsed=pos;
+      // Every Run starts as a genuinely new receiving session. Previous ticks, Found
+      // totals, explicit zeros and Remove-not-supplied actions are deliberately cleared,
+      // even when the same POS order/invoice files are run again.
+      resetReceivingState({clearStorage:true,orderId:pos.orderNumber});
+      state.orderOverrides=new Map();
+      setProgress(35);setStatus(`POS order read: ${pos.rows.length} ordered product lines. Receiving checklist reset for a new run. Reading supplier invoice(s)…`,'info');
       const docs=[];for(let i=0;i<state.invoices.length;i++){const doc=await PHF.parseSupplierInvoice(state.invoices[i]);docs.push(doc);setProgress(35+Math.round(((i+1)/state.invoices.length)*38));}state.docs=docs;
       const invoiceCount=docs.reduce((a,d)=>a+(d.rows||[]).length,0);setStatus(`Supplier invoices read: ${invoiceCount} billed product lines. Matching to POS order…`,'info');setProgress(82);
       state.result=PHF.reconcile(pos,docs,state.refs);state.runIntegrity=PHF.integrity.validateRun(pos,docs,state.result);state.result.integrity=state.runIntegrity;setProgress(100);
@@ -736,7 +752,7 @@
   }
 
   wireDrop(els.posDrop,els.posInput,addPos);wireDrop(els.invoiceDrop,els.invoiceInput,addInvoices);
-  els.clearBtn.onclick=()=>{state.pos=null;state.invoices=[];state.result=null;state.docs=[];state.posParsed=null;state.previewView='pos';state.runIntegrity=null;state.unpackChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;state.receivingMigratedFrom266=false;state.orderOverrides=new Map();els.posInput.value='';els.invoiceInput.value='';hideResults();hideProgress();renderFiles();};
+  els.clearBtn.onclick=()=>{resetReceivingState({clearStorage:true});state.pos=null;state.invoices=[];state.result=null;state.docs=[];state.posParsed=null;state.previewView='pos';state.runIntegrity=null;state.unpackChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;state.receivingMigratedFrom266=false;state.orderOverrides=new Map();els.posInput.value='';els.invoiceInput.value='';hideResults();hideProgress();renderFiles();};
   els.runBtn.onclick=run;
   if(els.fullDownloadBtn)els.fullDownloadBtn.onclick=async()=>{
     if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok)return;
