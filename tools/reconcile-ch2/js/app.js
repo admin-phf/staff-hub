@@ -39,7 +39,8 @@
     {key:'adjwsprce',label:'AdjWSPrc',kind:'number',dp:2,min:62,max:92,grow:.04,stretch:.035,hardMax:118},
     {key:'adjcatprce',label:'AdjCatPrc',kind:'number',dp:2,min:62,max:92,grow:.035,stretch:.025,hardMax:112},
     {key:'adjdprce',label:'AdjDPrc',kind:'number',dp:2,min:62,max:92,grow:.04,stretch:.035,hardMax:118},
-    {key:'or_qty',label:'Adj Qty',kind:'number',dp:3,min:50,max:70,grow:.01}
+    {key:'or_qty',label:'Adj Qty',kind:'number',dp:3,min:50,max:70,grow:.01},
+    {key:'__row_total_inc_gst',label:'Total inc GST',kind:'number',dp:2,min:78,max:110,grow:.025,stretch:.02,hardMax:135}
   ];
 
   const posMeasureCanvas=document.createElement('canvas');
@@ -112,8 +113,20 @@
     }
     return nws;
   }
+  function posRowTotalIncGst(pos,detail=null){
+    if(!pos)return '';
+    const key=unpackIdentity(pos),touched=state.unpackCounts.has(key);
+    // Before staff count a row, show the reconciled CH2 supplied quantity. Once Found
+    // has been entered, the row total follows that physical receiving quantity live.
+    const rowQty=touched?unpackCountFor(pos):(numberValue(detail&&detail.suppliedQty)??numberValue(rawValue(pos,'qty'))??numberValue(pos.orderedQty)??0);
+    const unit=numberValue(discountedPosPrice(pos,detail));
+    const gstPct=Math.max(0,numberValue(rawValue(pos,'gst_tax_pc'))??numberValue(pos.gstPct)??0);
+    if(unit==null||rowQty==null)return '';
+    return Math.round((unit*Number(rowQty)*(1+gstPct/100)+Number.EPSILON)*100)/100;
+  }
   function posColumnValue(pos,c,detail=null){
     if(!pos||!c)return '';
+    if(c.key==='__row_total_inc_gst')return posRowTotalIncGst(pos,detail);
     if(c.key==='__pos_brand')return String((posReferenceRecord(pos).POS_BRAND)||'');
     if(c.key==='main_id')return pos.barcode??'';
     if(c.key==='plu')return pos.plu??'';
@@ -349,6 +362,7 @@
     // existing Found quantity, records an explicit zero, and marks the row accounted
     // for so it moves to Completed.  The POSActive exporter then omits that zero-qty
     // invoice line (as required by the importer contract) and reports it as not supplied.
+    const wasChecked=state.unpackChecked.has(key);
     let total,complete=false;
     if(Math.abs(delta)<.0000001){
       total=setUnpackTotal(key,0);
@@ -356,7 +370,10 @@
     }else{
       total=applyUnpackDelta(key,delta);
       if(total!=null){
-        complete=receivingCountMatches(total,expected);
+        // Once a row has been explicitly/automatically accounted for, later quantity
+        // corrections must not silently untick it or move it back to Remaining. Staff
+        // can still untick it deliberately with the left checkbox.
+        complete=wasChecked||receivingCountMatches(total,expected);
         if(complete)state.unpackChecked.add(key);else state.unpackChecked.delete(key);
         saveUnpackChecklist();
       }
@@ -376,9 +393,10 @@
     const expected=numberValue(input.dataset.unpackExpected)??0,raw=String(input.value||'').trim();
     if(!raw){input.value=displayUnpackCount(Number(state.unpackCounts.get(key)||0));return false;}
     const absolute=Number(raw);if(!Number.isFinite(absolute)){input.value=displayUnpackCount(Number(state.unpackCounts.get(key)||0));return false;}
+    const wasChecked=state.unpackChecked.has(key);
     const total=setUnpackTotal(key,absolute);if(total==null)return false;
     const explicitZero=Math.abs(total)<=.0005&&Number(expected)>.0005;
-    const complete=explicitZero||receivingCountMatches(total,expected);
+    const complete=wasChecked||explicitZero||receivingCountMatches(total,expected);
     if(complete)state.unpackChecked.add(key);else state.unpackChecked.delete(key);
     saveUnpackChecklist();updateUnpackTotalElement(input,key,total,expected);
     updateRowSelectionVisual(input.closest('tr'),complete);
@@ -402,7 +420,22 @@
     clearTimeout(posReceivingRenderTimer);
     posReceivingRenderTimer=setTimeout(()=>{
       posReceivingRenderTimer=0;
-      if(state.previewView==='pos'&&state.result)renderPosTable();else schedulePosColumnSizing();
+      let focus=null;const active=document.activeElement;
+      if(active&&active.classList){
+        if(active.classList.contains('unpack-qty-input'))focus={kind:'add',key:active.dataset.unpackQtyKey||''};
+        else if(active.classList.contains('unpack-qty-total'))focus={kind:'found',key:active.dataset.unpackTotalKey||''};
+      }
+      if(state.previewView==='pos'&&state.result){
+        renderPosTable();
+        // Re-rendering moves completed rows after the delay. Restore the user's current
+        // receiving field so a row move never steals the cursor while they are working.
+        if(focus&&focus.key)requestAnimationFrame(()=>{
+          const attr=focus.kind==='add'?'data-unpack-qty-key':'data-unpack-total-key';
+          const selector=focus.kind==='add'?'.unpack-qty-input':'.unpack-qty-total';
+          const target=[...els.tableBody.querySelectorAll(selector)].find(el=>String(el.getAttribute(attr)||'')===String(focus.key));
+          if(target){target.focus();if(typeof target.select==='function')target.select();}
+        });
+      }else schedulePosColumnSizing();
     },delay);
   }
   function updateRowSelectionVisual(tr,selected){
@@ -470,7 +503,7 @@
 
     if(total>available){
       let excess=total-available;
-      const shrinkOrder=['descr','__pos_brand','main_id','sub_id','plu','adjrrprce','adjwsprce','adjcatprce','adjdprce','mupc','gppc','gst_tax_pc','qty_stk_in','or_qty','units','qty'];
+      const shrinkOrder=['descr','__pos_brand','main_id','sub_id','plu','adjrrprce','adjwsprce','adjcatprce','adjdprce','__row_total_inc_gst','mupc','gppc','gst_tax_pc','qty_stk_in','or_qty','units','qty'];
       for(const key of shrinkOrder){
         if(excess<=.5)break;const i=POS_VIEW_COLUMNS.findIndex(c=>c.key===key);if(i<0)continue;
         const c=POS_VIEW_COLUMNS[i],room=Math.max(0,widths[i]-c.min),take=Math.min(room,excess);widths[i]-=take;excess-=take;
@@ -495,7 +528,7 @@
       // If an unusually wide monitor still has spare room, do not leave a dead white
       // strip. Spread it across the human-readable identity block in controlled ratios.
       if(spare>.5){
-        const finalKeys=[['descr',.52],['__pos_brand',.16],['main_id',.10],['sub_id',.08],['plu',.05],['adjrrprce',.025],['adjwsprce',.025],['adjcatprce',.02],['adjdprce',.025]];
+        const finalKeys=[['descr',.52],['__pos_brand',.16],['main_id',.10],['sub_id',.08],['plu',.05],['adjrrprce',.025],['adjwsprce',.025],['adjcatprce',.02],['adjdprce',.025],['__row_total_inc_gst',.03]];
         const w=finalKeys.reduce((a,x)=>a+x[1],0);let used=0;
         for(const [key,weight] of finalKeys){const i=POS_VIEW_COLUMNS.findIndex(c=>c.key===key);if(i<0)continue;const add=spare*(weight/w);widths[i]+=add;used+=add;}
         spare=Math.max(0,spare-used);
@@ -615,7 +648,10 @@
         }else if(c.kind==='bool'){const checked=boolValue(v);html=`<span class="pos-checkbox ${c.flag||''} ${checked?'checked':''}" aria-label="${checked?'Checked':'Not checked'}">${checked?'✓':''}</span>`;}
         else if(c.kind==='number'){
           html=escapeHtml(fixed(v,c.dp??2));const target=comparisonTarget(detail,c.key),move=priceMove(v,target);
-          if(move&&!notSupplied){extraCls=` price-move-cell price-${move.kind}`;const targetLabel=c.key==='adjrrprce'?'CH2 RRP':c.key==='adjwsprce'?'CH2 Normal W/S':'CH2 Unit Price';title=`${targetLabel}: ${Number(move.target).toFixed(2)} · ${move.symbol} ${Math.abs(move.diff).toFixed(2)}`;html=`<span class="pos-price-value">${html}</span><span class="price-arrow" aria-hidden="true">${move.symbol}</span>`;}
+          if(c.key==='__row_total_inc_gst'){
+            const rowQty=state.unpackCounts.has(checkKey)?unpackCountFor(pos):(numberValue(detail&&detail.suppliedQty)??numberValue(rawValue(pos,'qty'))??numberValue(pos.orderedQty)??0);
+            title=`${displayUnpackCount(rowQty)} × AdjCatPrc ${fixed(discountedPosPrice(pos,detail),2) || '—'} plus GST ${fixed(rawValue(pos,'gst_tax_pc')||pos.gstPct||0,2)}%`;
+          }else if(move&&!notSupplied){extraCls=` price-move-cell price-${move.kind}`;const targetLabel=c.key==='adjrrprce'?'CH2 RRP':c.key==='adjwsprce'?'CH2 Normal W/S':'CH2 Unit Price';title=`${targetLabel}: ${Number(move.target).toFixed(2)} · ${move.symbol} ${Math.abs(move.diff).toFixed(2)}`;html=`<span class="pos-price-value">${html}</span><span class="price-arrow" aria-hidden="true">${move.symbol}</span>`;}
         } else {html=escapeHtml(v);if(v)title=String(v);}
         const cls=[c.cls||'',c.kind==='number'?'num':'',c.kind==='bool'?'pos-bool-cell center':'',extraCls].filter(Boolean).join(' ');return `<td${cls?` class="${cls}"`:''}${title?` title="${escapeHtml(title)}"`:''}>${html}</td>`;
       }).join('');
@@ -653,13 +689,20 @@
     };
     els.tableBody.onkeydown=e=>{
       const add=e.target.closest('.unpack-qty-input'),found=e.target.closest('.unpack-qty-total');
-      if(e.key==='Enter'&&(add||found)){e.preventDefault();if(add)commitQtyInput(add);else commitFoundInput(found);}
+      if(e.key==='Enter'&&(add||found)){
+        e.preventDefault();
+        if(add){
+          const inputs=[...els.tableBody.querySelectorAll('.unpack-qty-input')],idx=inputs.indexOf(add),next=idx>=0?inputs[idx+1]:null;
+          commitQtyInput(add);
+          if(next)requestAnimationFrame(()=>{next.focus();if(typeof next.select==='function')next.select();});
+        }else commitFoundInput(found);
+      }
     };
     els.tableBody.onfocusout=e=>{const add=e.target.closest('.unpack-qty-input'),found=e.target.closest('.unpack-qty-total');if(add)commitQtyInput(add);else if(found)commitFoundInput(found);};
     els.tableBody.onchange=e=>{const add=e.target.closest('.unpack-qty-input'),found=e.target.closest('.unpack-qty-total');if(add)commitQtyInput(add);else if(found)commitFoundInput(found);};
 
     if(els.tableFoot){
-      if(baseRows.length){const totals=posTotals(baseRows,detailBySourceRow),leftSpan=Math.max(1,POS_VIEW_COLUMNS.length-5);els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="${leftSpan}" class="pos-total-left"><strong>Current Order</strong><span>${baseRows.length.toLocaleString()} product line${baseRows.length===1?'':'s'} · <b data-check-progress>accounted ${progress.checked}/${progress.total} · unchecked ${progress.remaining}</b> · exact counts or manually ticked rows move below Remaining after a short delay · under/over counts stay in Remaining until resolved or manually ticked · unticked rows = not supplied in download · grey rows = not invoiced · Add Qty 0 = accounted / not supplied</span></td><td colspan="2" class="pos-total-label" title="Both totals include GST. Adjusted Total mirrors the POSActive import total and applies any Found receiving quantities.">Current / Adjusted Total inc GST</td><td class="pos-total-current" title="Current POS order total including GST">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted" title="Live POSActive import total including GST; Found quantities applied">${money(totals.adjusted)}</td></tr>`;}
+      if(baseRows.length){const totals=posTotals(baseRows,detailBySourceRow),leftSpan=Math.max(1,POS_VIEW_COLUMNS.length-5);els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="${leftSpan}" class="pos-total-left"><strong>Current Order</strong><span>${baseRows.length.toLocaleString()} product line${baseRows.length===1?'':'s'} · <b data-check-progress>accounted ${progress.checked}/${progress.total} · unchecked ${progress.remaining}</b> · exact counts or manually ticked rows move below Remaining after a short delay · under/over counts stay in Remaining until resolved or manually ticked · once accounted, later qty edits stay accounted until you untick the row · unticked rows = not supplied in download · grey rows = not invoiced · Add Qty 0 = accounted / not supplied</span></td><td colspan="2" class="pos-total-label" title="Both totals include GST. Adjusted Total mirrors the POSActive import total and applies any Found receiving quantities.">Current / Adjusted Total inc GST</td><td class="pos-total-current" title="Current POS order total including GST">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted" title="Live POSActive import total including GST; Found quantities applied">${money(totals.adjusted)}</td></tr>`;}
       else els.tableFoot.innerHTML='';
     }
     ensurePosResizeObserver();schedulePosColumnSizing();

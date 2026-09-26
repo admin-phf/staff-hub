@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.7
+# Prahran Health Foods — CH2 Reconciler v2.6.8
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -443,3 +443,14 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - Negative corrections remain supported. If an exact completed count is corrected below or above expected, it returns to Remaining.
 - The 1.5 second delayed row movement, Tick All / Untick All, Clear qty in the Add Qty header, simplified POS Layout columns, GST-inclusive totals and the proven 15-column POSActive import contract are preserved.
 - v2.6.7 uses fresh receiving-state keys. If v2.6.6 Found totals exist in the same browser session, the numeric counts are migrated once but the faulty v2.6.6 completion flags are not. Exact and zero counts are rebuilt as completed; partial/over counts are restored to Remaining.
+
+
+## v2.6.8 receiving focus + persistent completion + row total
+
+- Pressing **Enter** in an **Add Qty** field commits the quantity and moves the cursor directly to the next visible Add Qty row.
+- The 1.5 second delayed Remaining / Completed re-order still applies. If the delayed render occurs while a receiving field is focused, the same field is re-focused after the table moves so counting can continue without losing the cursor.
+- Once a row is already **accounted / checked**, later edits to Add Qty or Found no longer silently untick it or send it back to Remaining. It stays in Completed until staff explicitly untick the left checkbox.
+- Untouched partial/over counts still stay in Remaining; exact counts still auto-complete; explicit zero still means accounted / not supplied.
+- POS Layout adds a final **Total inc GST** column. It uses the current physical receiving quantity when Found has been entered; otherwise it uses the reconciled CH2 supplied quantity. Formula: `quantity × AdjCatPrc × (1 + POS GST % / 100)`.
+- The new row total is preview-only. It does not alter the proven 15-column POSActive import contract or the full 43-column reconciliation workbook.
+- Existing POS Layout simplification remains: Stk In / Ok / Inc are hidden only from this preview; Tick All / Untick All, Clear qty, Found status colours, short/over receiving download behaviour, and GST-inclusive footer totals are preserved.
