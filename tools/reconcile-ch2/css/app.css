@@ -291,3 +291,14 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
   .order-override-row{grid-template-columns:1fr}
   .order-override-actions{justify-content:flex-start}
 }
+
+
+/* v2.6.6 — POS receiving selection controls + calmer row movement */
+.results .preview-pos th.unpack-head{min-width:48px}
+.pos-header-stack{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:38px}
+.pos-header-mini-label{font-size:9px;line-height:1;color:#5f6368;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+.unpack-check-all.partial{background:#eef4f7;border-color:#4775a8;color:#4775a8}
+.unpack-check-all.partial span{color:#4775a8}
+.pos-header-action{appearance:none;border:1px solid #b9c1c7;border-radius:4px;background:#fff;color:#4f555a;font:700 9px/1.1 Arial,"Helvetica Neue",sans-serif;padding:3px 5px;white-space:nowrap;cursor:pointer}
+.pos-header-action:hover{border-color:#2E7D32;color:#2E7D32;background:#f3f8f3}
+.pos-header-action:focus-visible{outline:2px solid #2E7D32;outline-offset:1px}
