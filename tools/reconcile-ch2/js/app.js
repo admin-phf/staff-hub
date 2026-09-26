@@ -1,7 +1,7 @@
 (function(global){
   'use strict';
   const PHF=global.PHFReconcile||{};
-  const state={pos:null,invoices:[],result:null,previewView:'exceptions',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null,orderOverrides:new Map()};
+  const state={pos:null,invoices:[],result:null,previewView:'pos',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null,orderOverrides:new Map()};
   const els={
     referenceReady:document.querySelector('#referenceReady'),referenceDot:document.querySelector('#referenceDot'),buildLabel:document.querySelector('#buildLabel'),
     posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),orderOverrideBox:document.querySelector('#orderOverrideBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),fullDownloadBtn:document.querySelector('#fullDownloadBtn'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn')
@@ -65,12 +65,19 @@
     for(const doc of state.docs||[]){if(!doc||doc.type==='CREDIT_NOTE')continue;const m=invoiceDocMeta(doc);if(!m.number||!m.customerPo||sameOrderRef(m.customerPo,order))continue;if(!byNo.has(m.number))byNo.set(m.number,{invoiceNumber:m.number,customerPo:m.customerPo,sourceFiles:[]});const rec=byNo.get(m.number);if(m.sourceFile&&!rec.sourceFiles.includes(m.sourceFile))rec.sourceFiles.push(m.sourceFile);}
     return [...byNo.values()].map(x=>({...x,posOrder:order,overrideActive:sameOrderRef(state.orderOverrides.get(x.invoiceNumber),order)}));
   }
-  function posExportOptions(){return {orderOverrides:Object.fromEntries(state.orderOverrides)};}
+  function posExportOptions(){
+    const receivingBySourceRow={};
+    for(const pos of (state.posParsed&&state.posParsed.rows)||[]){
+      const key=unpackIdentity(pos);
+      if(state.unpackCounts.has(key))receivingBySourceRow[String(pos&&pos.sourceRow!=null?pos.sourceRow:'')]=unpackCountFor(pos);
+    }
+    return {orderOverrides:Object.fromEntries(state.orderOverrides),autoLinkPosOrder:true,receivingBySourceRow};
+  }
   function renderOrderOverrideUi(){
     const box=els.orderOverrideBox;if(!box)return;const mismatches=orderLinkMismatches();
     if(!mismatches.length){box.classList.add('hidden');box.innerHTML='';return;}
     box.classList.remove('hidden');
-    box.innerHTML=`<div class="order-override-title"><strong>Invoice → POS order link</strong><span>${mismatches.filter(x=>x.overrideActive).length}/${mismatches.length} override${mismatches.length===1?'':'s'} active</span></div><p class="order-override-help">CH2 used a Customer PO that differs from the uploaded POS order. A manual override only bypasses that PO-link check. Invoice number, product matching, quantities, pricing, master identity and totals are still fully validated.</p><div class="order-override-list">${mismatches.map(x=>`<div class="order-override-row"><div class="order-override-meta"><b>Invoice ${escapeHtml(x.invoiceNumber)}</b><br>CH2 Customer PO: <span class="override-ref">${escapeHtml(x.customerPo)}</span><br>Uploaded POS order: <span class="override-ref">${escapeHtml(x.posOrder)}</span></div><div class="order-override-actions">${x.overrideActive?`<span class="order-override-badge">MANUAL OVERRIDE ACTIVE</span><button class="btn small ghost" type="button" data-order-override-remove="${escapeHtml(x.invoiceNumber)}">Undo</button>`:`<button class="btn small" type="button" data-order-override-use="${escapeHtml(x.invoiceNumber)}">Use POS order ${escapeHtml(x.posOrder)}</button>`}</div></div>`).join('')}</div>`;
+    box.innerHTML=`<div class="order-override-title"><strong>Invoice → POS order link</strong><span>${mismatches.length}/${mismatches.length} auto-linked</span></div><p class="order-override-help">CH2 used a Customer PO that differs from the uploaded POS order. Because one POS order is loaded, POSActive routing defaults to that uploaded order. This changes only the import filename/order link — the original CH2 Customer PO remains unchanged in the audit, and all product, quantity, pricing, master-identity and total validation remains active.</p><div class="order-override-list">${mismatches.map(x=>`<div class="order-override-row"><div class="order-override-meta"><b>Invoice ${escapeHtml(x.invoiceNumber)}</b><br>CH2 Customer PO: <span class="override-ref">${escapeHtml(x.customerPo)}</span><br>POSActive order: <span class="override-ref">${escapeHtml(x.posOrder)}</span><br>Import filename: <span class="override-ref">${escapeHtml(`oborne_invoice_{${x.invoiceNumber}}_(${x.posOrder}).txt`)}</span></div><div class="order-override-actions"><span class="order-override-badge">AUTO POS ORDER LINK ACTIVE</span></div></div>`).join('')}</div>`;
   }
   function setProgress(pct){els.progress.classList.remove('hidden');els.progressBar.style.width=`${Math.max(0,Math.min(100,pct))}%`;}
   function hideProgress(){els.progress.classList.add('hidden');els.progressBar.style.width='0%';}
@@ -435,8 +442,8 @@
     }
     if(!els.downloadBtn)return;
     const activeInvoiceDocs=(state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').length;
-    const orderMismatches=orderLinkMismatches(),orderLinkReady=orderMismatches.every(x=>x.overrideActive);
-    const labels={exceptions:'Download Exceptions.xlsx',pos:activeInvoiceDocs>1?'Download POS Import Files.zip':'Download POS Layout.txt'};
+    const orderMismatches=orderLinkMismatches(),orderLinkReady=true;
+    const labels={exceptions:'Download Exceptions.xlsx',pos:activeInvoiceDocs>1?'Download POSActive Import Files.zip':'Download POSActive Import.txt'};
     if(state.previewView==='all'){
       els.downloadBtn.classList.add('hidden');
       els.downloadBtn.disabled=true;
@@ -444,9 +451,9 @@
     }
     els.downloadBtn.classList.remove('hidden');
     els.downloadBtn.textContent=labels[state.previewView]||'Download Current View';
-    const posLinkBlocked=state.previewView==='pos'&&!orderLinkReady;
-    els.downloadBtn.disabled=!ready||posLinkBlocked;
-    els.downloadBtn.title=!ready?'Export is blocked until all integrity checks pass.':posLinkBlocked?'Confirm the Invoice → POS order manual override shown below before creating the POS import file.':`Download the ${state.previewView==='pos'?'POS-layout tab-delimited text file':'exceptions workbook'}.`;
+    const posLinkBlocked=false;
+    els.downloadBtn.disabled=!ready;
+    els.downloadBtn.title=!ready?'Export is blocked until all integrity checks pass.':`Download the ${state.previewView==='pos'?'POSActive 15-column tab-delimited import file; Found quantities entered in POS layout are applied':'exceptions workbook'}.`;
   }
   function setViewButtons(){
     const map={exceptions:els.viewExceptionsBtn,all:els.viewAllBtn,pos:els.viewPosBtn};
@@ -548,13 +555,13 @@
       const invoiceCount=docs.reduce((a,d)=>a+(d.rows||[]).length,0);setStatus(`Supplier invoices read: ${invoiceCount} billed product lines. Matching to POS order…`,'info');setProgress(82);
       state.result=PHF.reconcile(pos,docs,state.refs);state.runIntegrity=PHF.integrity.validateRun(pos,docs,state.result);state.result.integrity=state.runIntegrity;setProgress(100);
       const t=state.result.totals;if(state.runIntegrity.ok)setStatus(`Complete: ${t.matchedInvoiceLines}/${t.invoiceLines} invoice lines matched. ${t.exceptionLines} POS line exception${t.exceptionLines===1?'':'s'}${t.unmatchedInvoiceLines?`, ${t.unmatchedInvoiceLines} unmatched invoice line${t.unmatchedInvoiceLines===1?'':'s'}`:''}. Integrity PASS.`,'ok');else setStatus(`Reconciliation completed, but Excel export is blocked by ${state.runIntegrity.errors.length} integrity check${state.runIntegrity.errors.length===1?'':'s'}. Review the notes below.`,'warn');
-      state.previewView='exceptions';renderResults();setTimeout(hideProgress,500);
+      state.previewView='pos';renderResults();setTimeout(hideProgress,500);
     }catch(err){console.error(err);hideProgress();setStatus(err&&err.message?err.message:String(err),'warn');}
     finally{els.runBtn.disabled=!(state.pos&&state.invoices.length&&state.referenceReady);els.clearBtn.disabled=false;}
   }
 
   wireDrop(els.posDrop,els.posInput,addPos);wireDrop(els.invoiceDrop,els.invoiceInput,addInvoices);
-  els.clearBtn.onclick=()=>{state.pos=null;state.invoices=[];state.result=null;state.docs=[];state.posParsed=null;state.previewView='exceptions';state.runIntegrity=null;state.unpackChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;state.orderOverrides=new Map();els.posInput.value='';els.invoiceInput.value='';hideResults();hideProgress();renderFiles();};
+  els.clearBtn.onclick=()=>{state.pos=null;state.invoices=[];state.result=null;state.docs=[];state.posParsed=null;state.previewView='pos';state.runIntegrity=null;state.unpackChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;state.orderOverrides=new Map();els.posInput.value='';els.invoiceInput.value='';hideResults();hideProgress();renderFiles();};
   els.runBtn.onclick=run;
   if(els.fullDownloadBtn)els.fullDownloadBtn.onclick=async()=>{
     if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok)return;
@@ -564,14 +571,18 @@
     finally{updateDownloadButton();}
   };
   els.downloadBtn.onclick=async()=>{
+    commitActiveReceivingInput();
     if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok||state.previewView==='all')return;
     els.downloadBtn.disabled=true;els.downloadBtn.textContent=state.previewView==='pos'?(((state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').length>1)?'Building POS ZIP…':'Building TXT…'):'Building Excel…';
     try{
       const exportResult=await PHF.exportView(state.previewView,state.docs,state.refs,state.posParsed,state.result,posExportOptions());
-      const label=state.previewView==='pos'?(((state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').length>1)?'POS import files':'POS layout text file'):'exceptions Excel';
+      const label=state.previewView==='pos'?(((state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').length>1)?'POSActive import files':'POSActive import file'):'exceptions Excel';
       const warningCount=state.previewView==='pos'&&exportResult&&Array.isArray(exportResult.warnings)?exportResult.warnings.length:0;
-      if(warningCount)setStatus(`${label} generated successfully with ${warningCount} non-blocking validation note${warningCount===1?'':'s'}. The uploaded POS order identity was preserved; the POS import screen will perform its own final validation.`,'warn');
-      else setStatus(`${label} generated successfully.`,'ok');
+      const receivingAdjustments=state.previewView==='pos'&&exportResult?Number(exportResult.receivingAdjustments||0):0;
+      if(warningCount||receivingAdjustments){
+        const parts=[];if(receivingAdjustments)parts.push(`${receivingAdjustments} POS Layout receiving adjustment${receivingAdjustments===1?'':'s'} applied`);if(warningCount)parts.push(`${warningCount} validation note${warningCount===1?'':'s'}`);
+        setStatus(`${label} generated successfully · ${parts.join(' · ')}. POSActive will perform its own final Sub ID/order validation on import.`,'warn');
+      }else setStatus(`${label} generated successfully.`,'ok');
     }catch(err){
       console.error(err);
       const message=err&&err.message?err.message:String(err);

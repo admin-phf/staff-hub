@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Prahran Health Foods — Reconcile CH2 Order</title>
-  <link rel="stylesheet" href="./css/app.css?v=263">
+  <link rel="stylesheet" href="./css/app.css?v=264">
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
@@ -74,9 +74,9 @@
           <button class="btn" id="downloadBtn">Download Exceptions.xlsx</button>
           <div class="view-picker" role="group" aria-label="Preview view">
             <span class="view-label">View:</span>
-            <button class="btn small view-btn active" id="viewExceptionsBtn" type="button">Exceptions</button>
+            <button class="btn small view-btn active" id="viewPosBtn" type="button">POS layout</button>
+            <button class="btn small view-btn" id="viewExceptionsBtn" type="button">Exceptions</button>
             <button class="btn small view-btn" id="viewAllBtn" type="button">All lines</button>
-            <button class="btn small view-btn" id="viewPosBtn" type="button">POS layout</button>
           </div>
         </div>
       </div>
@@ -85,7 +85,7 @@
       <div class="order-override-panel hidden" id="orderOverrideBox" aria-live="polite"></div>
       <div class="pos-tools hidden" id="posTools">
         <div class="pos-check-progress" id="posCheckProgress">Checked 0 / 0</div>
-        <span class="pos-tools-note">Receiving checklist · tick = set Found to expected delivery qty · Add Qty adds to the running total · Found is editable for a direct override · Remove not supplied moves grey lines to the processed section without changing reconciliation · complete rows move below remaining items · Found: red = under, grey = correct, green = over</span>
+        <span class="pos-tools-note">Receiving checklist · tick = set Found to expected CH2 delivery qty · Add Qty adds to the running total · Found is editable for a direct override · POSActive download uses Found wherever you have entered/ticked a count; untouched rows use CH2 supplied qty · Remove not supplied moves grey lines to the processed section · complete rows move below remaining items · Found: red = under, grey = correct, green = over</span>
         <div class="pos-tools-actions">
           <button class="btn small" id="removeNotSuppliedBtn" type="button" title="Move all grey/not-supplied POS rows to the processed section">Remove not supplied</button>
           <button class="btn small" id="clearCountsBtn" type="button">Clear qty</button>
@@ -106,16 +106,16 @@
     </section>
   </main>
 
-  <script src="./js/reference/reference-config.js?v=263"></script>
-  <script src="./js/reference/reference-data.js?v=263"></script>
-  <script src="./js/core/schema.js?v=263"></script>
-  <script src="./js/core/integrity.js?v=263"></script>
-  <script src="./js/parsers/pos-order.js?v=263"></script>
-  <script src="./js/parsers/supplier-invoice.js?v=263"></script>
-  <script src="./js/core/reconcile.js?v=263"></script>
-  <script src="./js/core/linked-pos.js?v=263"></script>
-  <script src="./js/export/pos-import.js?v=263"></script>
-  <script src="./js/export/report.js?v=263"></script>
-  <script src="./js/app.js?v=263"></script>
+  <script src="./js/reference/reference-config.js?v=264"></script>
+  <script src="./js/reference/reference-data.js?v=264"></script>
+  <script src="./js/core/schema.js?v=264"></script>
+  <script src="./js/core/integrity.js?v=264"></script>
+  <script src="./js/parsers/pos-order.js?v=264"></script>
+  <script src="./js/parsers/supplier-invoice.js?v=264"></script>
+  <script src="./js/core/reconcile.js?v=264"></script>
+  <script src="./js/core/linked-pos.js?v=264"></script>
+  <script src="./js/export/pos-import.js?v=264"></script>
+  <script src="./js/export/report.js?v=264"></script>
+  <script src="./js/app.js?v=264"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.2
+# Prahran Health Foods — CH2 Reconciler v2.6.4
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -389,3 +389,19 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - Overrides are per invoice and session/current file selection, can be undone, and are cleared when the POS order or supplier files are changed.
 - The generated POS TXT continues to use the real CH2 invoice number as `Document Number` and the uploaded POS order number only as the order/import reference.
 - All v2.6.2 master-validation, 12-column legacy TXT, full 43-column Excel, Exceptions, receiving, preview and reference-data behaviour is preserved.
+
+
+## v2.6.4 proven POSActive import + POS Layout receiving export
+
+- **POS Layout is now the default result view** after a reconciliation finishes. The view buttons are ordered POS layout → Exceptions → All lines.
+- POSActive export now uses the **proven 15-field positional contract** accepted by Apply Oborne Health Services Invoice:
+  `Invoice No`, `Line`, `CH2 Code`, `Supplier Code`, `Sub ID`, `Description`, `Qty`, `Qty Supplied`, `Normal WS`, `Unit Price ex GST`, `Rebate`, `Extended ex GST`, `GST`, `Total inc GST`, `Disc %`.
+- POSActive reads those fields by position. The exporter therefore hard-validates exactly 15 tab-delimited fields, CRLF endings, no BOM, no quotes/currency/percent symbols in data rows, and the exact header order.
+- The filename is generated automatically in the POSActive-required format: `oborne_invoice_{INVOICE}_(POS-ORDER).txt`.
+- If CH2 Customer PO differs from the one uploaded POS order, the uploaded POS order is **auto-linked for POSActive routing/filename**. The original CH2 Customer PO remains unchanged in the audit and all product/price/quantity/master/totals checks remain active.
+- POS Sub ID overrides are automatic: column 3 always keeps the CH2 product code; column 5 uses the uploaded POS order Sub ID when it differs (for example Biopractica/BioGaia codes), otherwise the CH2 code is used.
+- **POS Layout receiving counts now feed the POSActive download.** Untouched rows use CH2 Qty Supplied. If a staff member enters/ticks `Found`, that value becomes `Qty` and `Qty Supplied` in the POSActive file.
+- When Found is short/over versus CH2, Extended ex GST, GST and Total inc GST are recalculated from the invoice unit price and actual Found quantity so POSActive derives the same WS price/discount instead of distorting unit cost. The full reconciliation workbook remains unchanged and preserves the original supplier invoice.
+- A Found value of zero is omitted because POSActive cannot safely import zero-quantity lines; the browser returns a note that the zero line must be set manually in POSActive.
+- A positive Found quantity on a product with no CH2 invoice line remains blocked from automatic import because no invoice price/discount exists to populate safely.
+- The full 43-column reconciliation workbook, Exceptions export, Reference Admin drag/drop/layout fixes, master identity checks, discount auditing, receiving checklist and all established POS preview behaviour remain available.
