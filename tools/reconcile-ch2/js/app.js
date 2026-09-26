@@ -1,7 +1,7 @@
 (function(global){
   'use strict';
   const PHF=global.PHFReconcile||{};
-  const state={pos:null,invoices:[],result:null,previewView:'pos',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackManualChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null,receivingMigratedFrom266:false,orderOverrides:new Map()};
+  const state={pos:null,invoices:[],result:null,previewView:'pos',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackManualChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null,receivingMigratedFrom266:false,orderOverrides:new Map(),posSortKey:'__pos_order_index',posSortDir:'asc'};
   const els={
     referenceReady:document.querySelector('#referenceReady'),referenceDot:document.querySelector('#referenceDot'),buildLabel:document.querySelector('#buildLabel'),
     posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),orderOverrideBox:document.querySelector('#orderOverrideBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),fullDownloadBtn:document.querySelector('#fullDownloadBtn'),fullCsvDownloadBtn:document.querySelector('#fullCsvDownloadBtn'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn')
@@ -22,7 +22,8 @@
   // min/max are safe visual bounds in CSS pixels. `flex` marks columns that are
   // allowed to absorb spare viewport width or give it back first on a smaller window.
   const POS_VIEW_COLUMNS=[
-    {key:'__unpack',label:'✓',kind:'check',cls:'unpack-cell',min:48,max:58},
+    {key:'__unpack',label:'✓',kind:'check',cls:'unpack-cell',min:48,max:58,sortable:false},
+    {key:'__pos_order_index',label:'POS Index',kind:'number',dp:0,cls:'pos-code pos-order-index',min:58,max:76,grow:.01,stretch:.01,hardMax:96},
     {key:'__invoice_line',label:'CH2 Line',kind:'text',cls:'pos-code pos-invoice-line',min:50,max:78,grow:.01,stretch:.01,hardMax:100},
     {key:'main_id',label:'Product #',kind:'text',cls:'pos-code',min:112,max:185,grow:.10,stretch:.11,hardMax:260},
     {key:'__pos_brand',label:'POS Brand',kind:'text',cls:'pos-brand',min:78,max:170,grow:.12,stretch:.15,hardMax:280},
@@ -33,7 +34,7 @@
     {key:'gst_tax_pc',label:'GST %',kind:'number',dp:2,min:44,max:60,grow:.01},
     {key:'units',label:'Units',kind:'number',dp:2,min:40,max:54,grow:.01},
     {key:'qty',label:'Qty',kind:'number',dp:2,min:40,max:54,grow:.01},
-    {key:'__unpack_add',label:'Add Qty',kind:'qtyinput',cls:'unpack-qty-entry-cell',min:72,max:92,grow:.01},
+    {key:'__unpack_add',label:'Add Qty',kind:'qtyinput',cls:'unpack-qty-entry-cell',min:72,max:92,grow:.01,sortable:false},
     {key:'__unpack_total',label:'Found',kind:'qtytotal',cls:'unpack-qty-total-cell',min:56,max:74,grow:.01},
     {key:'mupc',label:'MU%',kind:'number',dp:2,min:46,max:64,grow:.015},
     {key:'gppc',label:'GP%',kind:'number',dp:2,min:46,max:62,grow:.015},
@@ -89,7 +90,8 @@
     const box=els.orderOverrideBox;if(!box)return;const mismatches=orderLinkMismatches();
     if(!mismatches.length){box.classList.add('hidden');box.innerHTML='';return;}
     box.classList.remove('hidden');
-    box.innerHTML=`<div class="order-override-title"><strong>Invoice → POS order link</strong><span>${mismatches.length}/${mismatches.length} auto-linked</span></div><p class="order-override-help">CH2 used a Customer PO that differs from the uploaded POS order. Because one POS order is loaded, POSActive routing defaults to that uploaded order. This changes only the import filename/order link — the original CH2 Customer PO remains unchanged in the audit, and all product, quantity, pricing, master-identity and total validation remains active.</p><div class="order-override-list">${mismatches.map(x=>`<div class="order-override-row"><div class="order-override-meta"><b>Invoice ${escapeHtml(x.invoiceNumber)}</b><br>CH2 Customer PO: <span class="override-ref">${escapeHtml(x.customerPo)}</span><br>POSActive order: <span class="override-ref">${escapeHtml(x.posOrder)}</span><br>Import filename: <span class="override-ref">${escapeHtml(`oborne_invoice_{${x.invoiceNumber}}_(${x.posOrder}).txt`)}</span></div><div class="order-override-actions"><span class="order-override-badge">AUTO POS ORDER LINK ACTIVE</span></div></div>`).join('')}</div>`;
+    const invoiceNos=[...new Set((state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').map(d=>invoiceDocMeta(d).number).filter(Boolean))],primary=invoiceNos[0]||'CURRENT',order=cleanText(state.posParsed&&state.posParsed.orderNumber)||'CURRENT',mergedName=`oborne_invoice_{${primary}}_(${order}).txt`;
+    box.innerHTML=`<div class="order-override-title"><strong>Invoice → POS order link</strong><span>${mismatches.length}/${mismatches.length} auto-linked</span></div><p class="order-override-help">CH2 used a Customer PO that differs from the uploaded POS order. All uploaded supplier invoices are reconciled against this one POS order and exported as one combined POSActive TXT. The original CH2 invoice numbers and Customer POs remain unchanged in the audit and in each import row. Combined import: <span class="override-ref">${escapeHtml(mergedName)}</span>.</p><div class="order-override-list">${mismatches.map(x=>`<div class="order-override-row"><div class="order-override-meta"><b>Invoice ${escapeHtml(x.invoiceNumber)}</b><br>CH2 Customer PO: <span class="override-ref">${escapeHtml(x.customerPo)}</span><br>POSActive order: <span class="override-ref">${escapeHtml(x.posOrder)}</span></div><div class="order-override-actions"><span class="order-override-badge">AUTO POS ORDER LINK ACTIVE</span></div></div>`).join('')}</div>`;
   }
   function setProgress(pct){els.progress.classList.remove('hidden');els.progressBar.style.width=`${Math.max(0,Math.min(100,pct))}%`;}
   function hideProgress(){els.progress.classList.add('hidden');els.progressBar.style.width='0%';}
@@ -168,6 +170,7 @@
   }
   function posColumnValue(pos,c,detail=null){
     if(!pos||!c)return '';
+    if(c.key==='__pos_order_index')return Number(pos.posIndex||0)||'';
     if(c.key==='__invoice_line')return invoiceLineDisplay(detail);
     if(c.key==='__ch2_item_code')return ch2ItemCodeDisplay(detail);
     if(c.key==='__row_total_inc_gst')return posRowTotalIncGst(pos,detail);
@@ -296,6 +299,7 @@
     state.unpackManualChecked=new Set();
     state.unpackCounts=new Map();
     state.receivingMigratedFrom266=false;
+    state.posSortKey='__pos_order_index';state.posSortDir='asc';
     state.unpackKey=unpackStorageKey();
     state.unpackCountsKey=unpackCountsStorageKey();
   }
@@ -382,20 +386,42 @@
       state.unpackManualChecked.add(key);
       state.unpackChecked.add(key);
     }else{
-      // Unticking removes the manual acceptance. Any Found quantity remains, and the
-      // row can auto-complete again only if that Found quantity exactly matches CH2.
+      // Unticking is an explicit undo: clear the manual acceptance and the Found total
+      // so a miscount can be restarted cleanly from zero.
       state.unpackManualChecked.delete(key);
       state.unpackChecked.delete(key);
+      state.unpackCounts.delete(key);
     }
     saveUnpackCounts();saveUnpackChecklist();
   }
-  function posPreviewRows(detailBySourceRow){
+  const posSortCollator=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
+  function posSortValue(pos,c,detail){
+    if(!c)return '';
+    if(c.kind==='qtytotal')return unpackCountFor(pos);
+    if(c.kind==='check')return state.unpackChecked.has(unpackIdentity(pos))?1:0;
+    const v=posColumnValue(pos,c,detail);
+    if(c.kind==='number')return numberValue(v)??Number.NEGATIVE_INFINITY;
+    return cleanText(v);
+  }
+  function sortPosPreviewRows(rows,detailBySourceRow){
+    const key=state.posSortKey||'__pos_order_index',c=POS_VIEW_COLUMNS.find(x=>x.key===key)||POS_VIEW_COLUMNS.find(x=>x.key==='__pos_order_index'),dir=state.posSortDir==='desc'?-1:1;
+    return (rows||[]).slice().sort((a,b)=>{
+      const ad=detailBySourceRow.get(String(a&&a.sourceRow!=null?a.sourceRow:''))||null,bd=detailBySourceRow.get(String(b&&b.sourceRow!=null?b.sourceRow:''))||null;
+      const av=posSortValue(a,c,ad),bv=posSortValue(b,c,bd);
+      let cmp=0;
+      if(typeof av==='number'&&typeof bv==='number')cmp=av-bv;
+      else cmp=posSortCollator.compare(String(av??''),String(bv??''));
+      if(!cmp)cmp=(Number(a&&a.posIndex)||0)-(Number(b&&b.posIndex)||0);
+      return cmp*dir;
+    });
+  }
+  function posPreviewSections(detailBySourceRow){
     const base=sortedPosRows(),remaining=[],complete=[];
     for(let i=0;i<base.length;i++){
       const pos=base[i],detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(i);
       (unpackRowComplete(pos,detail)?complete:remaining).push(pos);
     }
-    return [...remaining,...complete];
+    return {remaining:sortPosPreviewRows(remaining,detailBySourceRow),complete:sortPosPreviewRows(complete,detailBySourceRow)};
   }
   function completionCount(rows,detailBySourceRow){
     let done=0;for(let i=0;i<(rows||[]).length;i++){const pos=rows[i],detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(i);if(unpackRowComplete(pos,detail))done++;}return done;
@@ -638,9 +664,8 @@
       els.fullCsvDownloadBtn.title=ready?'Download the same 43-column reconciliation as an Excel-safe UTF-8 CSV. Barcodes use a text formula so leading zeroes remain visible when opened directly in Excel.':'CSV export is blocked until all integrity checks pass.';
     }
     if(!els.downloadBtn)return;
-    const activeInvoiceDocs=(state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').length;
     const orderMismatches=orderLinkMismatches(),orderLinkReady=true;
-    const labels={exceptions:'Download Exceptions.xlsx',pos:activeInvoiceDocs>1?'Download POSActive Import Files.zip':'Download POSActive Import.txt'};
+    const labels={exceptions:'Download Exceptions.xlsx',pos:'Download POSActive Import.txt'};
     if(state.previewView==='all'){
       els.downloadBtn.classList.add('hidden');
       els.downloadBtn.disabled=true;
@@ -690,19 +715,20 @@
     const selectedCount=baseRows.reduce((n,pos)=>n+(state.unpackChecked.has(unpackIdentity(pos))?1:0),0),allSelected=baseRows.length>0&&selectedCount===baseRows.length,partSelected=selectedCount>0&&!allSelected;
     els.tableHead.innerHTML=`<tr>${POS_VIEW_COLUMNS.map(c=>{
       const cls=[c.kind==='check'?'unpack-head':'',c.kind==='bool'?'pos-bool-head':'',(['number','qtyinput','qtytotal'].includes(c.kind))?'num':'',(c.kind==='bool'||c.kind==='check')?'center':''].filter(Boolean).join(' ');
-      if(c.kind==='check')return `<th class="${cls}" title="Tick all / untick all POS rows for the POSActive download"><div class="pos-header-stack"><button type="button" class="unpack-check unpack-check-all ${allSelected?'checked':''} ${partSelected?'partial':''}" data-toggle-all aria-pressed="${allSelected?'true':'false'}" title="${allSelected?'Untick all — rows will be treated as not supplied':'Tick all — untouched rows use expected CH2 supplied qty'}"><span aria-hidden="true">${allSelected?'✓':partSelected?'−':''}</span></button><span class="pos-header-mini-label">All</span></div></th>`;
+      if(c.kind==='check')return `<th class="${cls}" title="Tick all / untick all POS rows for the POSActive download"><div class="pos-header-stack"><button type="button" class="unpack-check unpack-check-all ${allSelected?'checked':''} ${partSelected?'partial':''}" data-toggle-all aria-pressed="${allSelected?'true':'false'}" title="${allSelected?'Untick all — clear all Found quantities and return rows to Remaining':'Tick all — untouched rows use expected CH2 supplied qty'}"><span aria-hidden="true">${allSelected?'✓':partSelected?'−':''}</span></button><span class="pos-header-mini-label">All</span></div></th>`;
       if(c.kind==='qtyinput')return `<th class="${cls}"><div class="pos-header-stack"><span>${escapeHtml(c.label)}</span><button type="button" class="pos-header-action" data-clear-qty title="Clear all Found quantities and receiving selections">Clear qty</button></div></th>`;
-      return `<th${cls?` class="${cls}"`:''}>${escapeHtml(c.label)}</th>`;
+      const sortable=c.sortable!==false,active=sortable&&state.posSortKey===c.key,arrow=active?(state.posSortDir==='desc'?'▼':'▲'):'↕';
+      return `<th${cls?` class="${cls}"`:''}>${sortable?`<button type="button" class="pos-sort-button ${active?'active':''}" data-sort-key="${escapeHtml(c.key)}" title="Sort by ${escapeHtml(c.label)}">${escapeHtml(c.label)} <span aria-hidden="true">${arrow}</span></button>`:escapeHtml(c.label)}</th>`;
     }).join('')}</tr>`;
-    const rows=posPreviewRows(detailBySourceRow);
-    const progress=updateChecklistUi(baseRows,detailBySourceRow),remainingCount=progress.remaining;
-    els.tableBody.innerHTML=rows.length?rows.map((pos,index)=>{
-      const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(index),notSupplied=!detail||Number(detail.suppliedQty||0)<=0;
-      const checkKey=unpackIdentity(pos),unpackDone=state.unpackChecked.has(checkKey),rowClasses=[notSupplied?'pos-not-supplied':'',unpackDone?'unpack-checked':'',(unpackDone&&index===remainingCount)?'unpack-complete-start':''].filter(Boolean).join(' ');
+    const sections=posPreviewSections(detailBySourceRow);
+    const progress=updateChecklistUi(baseRows,detailBySourceRow);
+    const renderPosRow=(pos)=>{
+      const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(Math.max(0,(Number(pos&&pos.posIndex)||1)-1)),notSupplied=!detail||Number(detail.suppliedQty||0)<=0;
+      const checkKey=unpackIdentity(pos),unpackDone=state.unpackChecked.has(checkKey),rowClasses=[notSupplied?'pos-not-supplied':'',unpackDone?'unpack-checked':''].filter(Boolean).join(' ');
       const cells=POS_VIEW_COLUMNS.map(c=>{
         const v=posColumnValue(pos,c,detail);let html='',extraCls='',title='';
         if(c.kind==='check'){
-          html=`<button type="button" class="unpack-check ${unpackDone?'checked':''}" data-unpack-key="${escapeHtml(encodeURIComponent(checkKey))}" aria-pressed="${unpackDone?'true':'false'}" title="${unpackDone?'Untick manual completion — keep any entered Found quantity':'Tick — manually accept/account for this row'}"><span aria-hidden="true">${unpackDone?'✓':''}</span></button>`;
+          html=`<button type="button" class="unpack-check ${unpackDone?'checked':''}" data-unpack-key="${escapeHtml(encodeURIComponent(checkKey))}" aria-pressed="${unpackDone?'true':'false'}" title="${unpackDone?'Untick — clear Found and return this row to Remaining':'Tick — manually accept/account for this row'}"><span aria-hidden="true">${unpackDone?'✓':''}</span></button>`;
           extraCls=' unpack-cell';
         }else if(c.kind==='qtyinput'){
           const item=String(pos.description||pos.barcode||'this product'),expectedQty=unpackExpectedQty(pos,detail);
@@ -721,19 +747,24 @@
         const cls=[c.cls||'',c.kind==='number'?'num':'',c.kind==='bool'?'pos-bool-cell center':'',extraCls].filter(Boolean).join(' ');return `<td${cls?` class="${cls}"`:''}${title?` title="${escapeHtml(title)}"`:''}>${html}</td>`;
       }).join('');
       return `<tr${rowClasses?` class="${rowClasses}"`:''}${notSupplied?' data-not-supplied="1"':''}>${cells}</tr>`;
-    }).join(''):`<tr><td colspan="${POS_VIEW_COLUMNS.length}">No POS order rows available.</td></tr>`;
+    };
+    const sectionHtml=[];
+    if(sections.remaining.length){sectionHtml.push(`<tr class="pos-section-row pos-section-remaining"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Remaining / to check</strong><span>${sections.remaining.length} item${sections.remaining.length===1?'':'s'}</span></td></tr>`);for(const pos of sections.remaining)sectionHtml.push(renderPosRow(pos));}
+    if(sections.complete.length){sectionHtml.push(`<tr class="pos-section-row pos-section-complete"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Completed / accounted</strong><span>${sections.complete.length} item${sections.complete.length===1?'':'s'} · untick a row to clear Found and return it to Remaining</span></td></tr>`);for(const pos of sections.complete)sectionHtml.push(renderPosRow(pos));}
+    els.tableBody.innerHTML=sectionHtml.length?sectionHtml.join(''):`<tr><td colspan="${POS_VIEW_COLUMNS.length}">No POS order rows available.</td></tr>`;
 
     els.tableBody.onclick=e=>{
       const btn=e.target.closest('.unpack-check');if(!btn)return;e.preventDefault();e.stopPropagation();
       const key=decodeUnpackKey(btn.dataset.unpackKey||'');if(!key)return;
       const pos=baseRows.find(r=>unpackIdentity(r)===key);if(!pos)return;
       const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||null;
-      const checked=!state.unpackChecked.has(key);
-      setUnpackComplete(pos,detail,checked);updateRowSelectionVisual(btn.closest('tr'),checked);
+      const checked=!state.unpackChecked.has(key),tr=btn.closest('tr');
+      setUnpackComplete(pos,detail,checked);updateRowSelectionVisual(tr,checked);
+      if(!checked){const found=tr&&tr.querySelector('.unpack-qty-total');if(found)updateUnpackTotalElement(found,key,0,unpackExpectedQty(pos,detail));}
       scheduleReceivingRender();
     };
     els.tableHead.onclick=e=>{
-      const toggle=e.target.closest('[data-toggle-all]'),clear=e.target.closest('[data-clear-qty]');
+      const toggle=e.target.closest('[data-toggle-all]'),clear=e.target.closest('[data-clear-qty]'),sort=e.target.closest('[data-sort-key]');
       if(toggle){
         e.preventDefault();e.stopPropagation();
         const currentlyAll=baseRows.length>0&&baseRows.every(pos=>state.unpackChecked.has(unpackIdentity(pos))),selectAll=!currentlyAll;
@@ -743,7 +774,7 @@
             if(!state.unpackCounts.has(key))state.unpackCounts.set(key,unpackExpectedQty(pos,detail));
             state.unpackManualChecked.add(key);state.unpackChecked.add(key);
           }else{
-            state.unpackManualChecked.delete(key);state.unpackChecked.delete(key);
+            state.unpackManualChecked.delete(key);state.unpackChecked.delete(key);state.unpackCounts.delete(key);
           }
         }
         saveUnpackCounts();saveUnpackChecklist();
@@ -755,6 +786,12 @@
       if(clear){
         e.preventDefault();e.stopPropagation();
         state.unpackCounts.clear();state.unpackChecked.clear();state.unpackManualChecked.clear();saveUnpackCounts();saveUnpackChecklist();scheduleReceivingRender();
+        return;
+      }
+      if(sort){
+        e.preventDefault();e.stopPropagation();const key=String(sort.dataset.sortKey||'');if(!key)return;
+        if(state.posSortKey===key)state.posSortDir=state.posSortDir==='asc'?'desc':'asc';else{state.posSortKey=key;state.posSortDir='asc';}
+        renderPosTable();
       }
     };
     els.tableBody.onkeydown=e=>{
@@ -772,7 +809,10 @@
     els.tableBody.onchange=e=>{const add=e.target.closest('.unpack-qty-input'),found=e.target.closest('.unpack-qty-total');if(add)commitQtyInput(add);else if(found)commitFoundInput(found);};
 
     if(els.tableFoot){
-      if(baseRows.length){const totals=posTotals(baseRows,detailBySourceRow),leftSpan=Math.max(1,POS_VIEW_COLUMNS.length-5);els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="${leftSpan}" class="pos-total-left"><strong>Current Order</strong><span>${baseRows.length.toLocaleString()} product line${baseRows.length===1?'':'s'} · <b data-check-progress>accounted ${progress.checked}/${progress.total} · unchecked ${progress.remaining}</b> · exact counts or manually ticked rows move below Remaining after a short delay · under/over counts stay in Remaining until resolved or manually ticked · an auto-completed exact count returns to Remaining if later corrected short/over · only a left-checkbox manual acceptance stays completed through further qty edits · untouched + unticked rows = not supplied by default · entered Found always controls the download qty · grey rows = not invoiced · Add Qty 0 = accounted / not supplied</span></td><td colspan="2" class="pos-total-label" title="Both totals include GST. Adjusted Total mirrors the POSActive import total and applies any Found receiving quantities.">Current / Adjusted Total inc GST</td><td class="pos-total-current" title="Current POS order total including GST">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted" title="Live POSActive import total including GST; Found quantities applied">${money(totals.adjusted)}</td></tr>`;}
+      if(baseRows.length){
+        const totals=posTotals(baseRows,detailBySourceRow),foundTotal=baseRows.reduce((sum,pos)=>sum+(state.unpackCounts.has(unpackIdentity(pos))?unpackCountFor(pos):0),0),foundIndex=POS_VIEW_COLUMNS.findIndex(c=>c.key==='__unpack_total'),lastBlock=5,leftSpan=Math.max(1,foundIndex-1),middleSpan=Math.max(0,POS_VIEW_COLUMNS.length-lastBlock-(leftSpan+2));
+        els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="${leftSpan}" class="pos-total-left"><strong>Current Order</strong><span>${baseRows.length.toLocaleString()} product line${baseRows.length===1?'':'s'} · <b data-check-progress>accounted ${progress.checked}/${progress.total} · unchecked ${progress.remaining}</b> · exact counts or manually ticked rows move below Remaining after a short delay · under/over counts stay in Remaining until resolved or manually ticked · unticking a row clears Found and returns it to Remaining · untouched + unticked rows = not supplied by default · entered Found always controls the download qty · grey rows = not invoiced · Add Qty 0 = accounted / not supplied</span></td><td class="pos-found-total-label" title="Total units physically found across all touched POS rows">Found total</td><td class="pos-found-total-value num" title="Total units physically found across all touched POS rows">${displayUnpackCount(foundTotal)}</td>${middleSpan?`<td colspan="${middleSpan}" class="pos-total-spacer"></td>`:''}<td colspan="2" class="pos-total-label" title="Both totals include GST. Adjusted Total mirrors the POSActive import total and applies any Found receiving quantities.">Current / Adjusted Total inc GST</td><td class="pos-total-current" title="Current POS order total including GST">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted" title="Live POSActive import total including GST; Found quantities applied">${money(totals.adjusted)}</td></tr>`;
+      }
       else els.tableFoot.innerHTML='';
     }
     ensurePosResizeObserver();schedulePosColumnSizing();
@@ -832,10 +872,10 @@
   els.downloadBtn.onclick=async()=>{
     commitActiveReceivingInput();
     if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok||state.previewView==='all')return;
-    els.downloadBtn.disabled=true;els.downloadBtn.textContent=state.previewView==='pos'?(((state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').length>1)?'Building POS ZIP…':'Building TXT…'):'Building Excel…';
+    els.downloadBtn.disabled=true;els.downloadBtn.textContent=state.previewView==='pos'?'Building merged TXT…':'Building Excel…';
     try{
       const exportResult=await PHF.exportView(state.previewView,state.docs,state.refs,state.posParsed,state.result,posExportOptions());
-      const label=state.previewView==='pos'?(((state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').length>1)?'POSActive import files':'POSActive import file'):'exceptions Excel';
+      const label=state.previewView==='pos'?'POSActive merged import file':'exceptions Excel';
       const warningCount=state.previewView==='pos'&&exportResult&&Array.isArray(exportResult.warnings)?exportResult.warnings.length:0;
       const receivingAdjustments=state.previewView==='pos'&&exportResult?Number(exportResult.receivingAdjustments||0):0;
       if(warningCount||receivingAdjustments){

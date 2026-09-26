@@ -1,4 +1,4 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.14
+# Prahran Health Foods — CH2 Reconciler v2.6.15
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 
@@ -349,7 +349,7 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - Zero/not-supplied order rows remain present in original POS sequence; the final `Overall Total` row is restored.
 - TXT format is CRLF tab-delimited, no BOM, with legacy-style quoted multiline address and comma-formatted totals.
 - POS import preflight blocks unsafe output for mismatched Customer PO, unmatched invoice lines, missing/ambiguous master identity, LOW-confidence matches, inconsistent discount rates or non-reconciling totals.
-- If one POS order is split across multiple supplier invoices, each actual invoice gets its own validated TXT inside one ZIP rather than mixing Document Numbers in a single legacy import file.
+- If one POS order is split across multiple supplier invoices (for example refrigerated goods or separate dispatch locations), all matched invoices are combined into one validated POSActive TXT for that POS order. Each product row retains its original supplier Invoice No in column 1.
 - All v2.5.9 reconciliation, receiving, preview, reference-data and full 43-column Excel behaviour is preserved.
 
 
@@ -517,7 +517,7 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 
 
 
-## v2.6.14 literal POS Sub IDs + sticky result controls
+## v2.6.15 literal POS Sub IDs + sticky result controls
 
 - Quote (`"`), dollar (`$`) and percent (`%`) characters in POSActive column 5 **Sub ID** are now preserved literally and are **warnings only**. They no longer block export.
 - This explicitly supersedes the v2.6.13 hard-block assumption after confirmed POSActive behaviour showed that legitimate special-character Sub IDs such as `3 PER SKU 25%` must be allowed through unchanged.
@@ -526,3 +526,13 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - POS Layout now shows **POS SUB ID** followed immediately by **CH2 ITEM CODE**.
 - Download controls and the POS layout / Exceptions / All lines view controls are now a sticky toolbar directly above the result table.
 - The v2.6.12 receiving model, 15-column POSActive contract, 43-column Excel/CSV contracts, reference/admin features, pricing/discount audit, integrity checks and barcode-safe export handling are retained.
+
+
+### v2.6.15
+- Multiple distinct CH2 invoices can be reconciled to one POS order and exported as one merged POSActive TXT; no multi-file ZIP is produced.
+- The merged TXT preserves the original invoice number on every product row and keeps the proven 15-column positional contract.
+- POS Layout adds `POS Index` immediately before `CH2 Line` and allows click-to-sort on meaningful data columns.
+- Remaining and Completed/accounted rows have visible section headers; sorting occurs independently within those sections.
+- The footer now displays a dynamic `Found total` aligned under the Found column.
+- Unticking a receiving row is now an explicit undo: its Found quantity is cleared and the row returns to Remaining.
+- POS Layout viewport height is increased for larger receiving sessions; sticky controls/header/footer remain in place.

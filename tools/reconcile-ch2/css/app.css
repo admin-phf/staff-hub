@@ -83,7 +83,8 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 
 .table-wrap.preview-pos {
   width: 100%;
-  height: clamp(440px, 68dvh, 920px);
+  height: clamp(520px, 76dvh, 980px);
+  min-height: 520px;
   max-height: none;
   overflow: auto;
   scrollbar-gutter: stable;
@@ -127,11 +128,11 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 
 @media (max-width: 1000px) {
   .results { width: auto; max-width: none; left: auto; transform: none; }
-  .table-wrap.preview-pos { height: clamp(400px, 64dvh, 760px); }
+  .table-wrap.preview-pos { height: clamp(480px, 72dvh, 880px); min-height:480px; }
   .results .preview-pos table.pos-preview-table { font-size: 10px; }
 }
 @media (max-width: 760px) {
-  .table-wrap.preview-pos { height: 60dvh; min-height: 360px; }
+  .table-wrap.preview-pos { height: 66dvh; min-height: 420px; }
 }
 
 
@@ -327,3 +328,18 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
   .result-controls-sticky{top:4px}
   .result-controls-sticky .view-picker{margin-left:0;width:100%}
 }
+
+
+/* v2.6.15 — sortable POS layout, visible receiving sections and Found total. */
+.pos-sort-button{appearance:none;border:0;background:transparent;color:inherit;font:inherit;font-weight:800;padding:3px 2px;cursor:pointer;white-space:nowrap;width:100%;text-align:inherit}
+.pos-sort-button:hover,.pos-sort-button.active{color:var(--green)}
+.pos-sort-button:focus-visible{outline:2px solid var(--green);outline-offset:1px;border-radius:3px}
+.pos-sort-button span{font-size:9px;margin-left:2px;color:#7a7f83}
+.pos-section-row td{position:relative!important;opacity:1!important;text-decoration:none!important;padding:7px 10px!important;border-top:2px solid #c7cbd0!important;border-bottom:1px solid #d8dcdf!important;background:#f3f5f6!important;color:#36414a!important;font-weight:700!important;letter-spacing:.01em}
+.pos-section-row td strong{margin-right:10px;color:#25313a}
+.pos-section-row td span{font-size:11px;color:#6a737a;font-weight:600}
+.pos-section-complete td{border-top-color:#2E7D32!important;background:#edf6ee!important;color:#256428!important}
+.pos-section-complete td strong{color:#256428}
+.preview-pos tfoot .pos-found-total-label{background:#f3f5f6;font-weight:800;text-align:right;white-space:nowrap;color:#41515d}
+.preview-pos tfoot .pos-found-total-value{background:#eaf4ff;font-weight:900;color:#0b3e78;text-align:right;font-variant-numeric:tabular-nums}
+.preview-pos tfoot .pos-total-spacer{background:#fff}

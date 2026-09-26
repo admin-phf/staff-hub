@@ -35,7 +35,7 @@
   function docMeta(doc){const first=(doc&&doc.rows||[])[0]||{},m=(doc&&doc.meta)||{};return {number:clean(first.invoiceNumber||m.invoiceNumber),customerPo:clean(first.customerPo||m.customerPo),sourceFile:clean(doc&&doc.sourceFile)};}
   function sortedPos(posOrder){return ((posOrder&&posOrder.rows)||[]).slice().sort((a,b)=>{const ar=Number(a&&a.sourceRow),br=Number(b&&b.sourceRow);if(Number.isFinite(ar)&&Number.isFinite(br)&&ar!==br)return ar-br;return Number(a&&a.posIndex||0)-Number(b&&b.posIndex||0);});}
   function detailBySourceRow(reconciliation){const map=new Map();for(const d of (reconciliation&&reconciliation.detail)||[]){const k=String(d&&d.sourceRow!=null?d.sourceRow:'');if(k&&!map.has(k))map.set(k,d);}return map;}
-  function invoiceRowsFor(detail,group){return ((detail&&detail.invoiceRows)||[]).filter(r=>invoiceNo(r)===group.number||(group.sourceFiles.has(clean(r&&r.sourceFile))&&!invoiceNo(r)));}
+  function invoiceRowsFor(detail,group){const nums=group&&group.numbers instanceof Set?group.numbers:new Set([clean(group&&group.number)].filter(Boolean));return ((detail&&detail.invoiceRows)||[]).filter(r=>nums.has(invoiceNo(r))||(group.sourceFiles.has(clean(r&&r.sourceFile))&&!invoiceNo(r)));}
   function pushIssue(list,msg,limit=60){if(list.length<limit)list.push(msg);}
   function sum(rows,key){return round((rows||[]).reduce((a,r)=>a+(n(r&&r[key])||0),0),2);}
   function sumQty(rows){return round((rows||[]).reduce((a,r)=>a+(n(r&&r.qtySupplied)||0),0),3);}
@@ -171,7 +171,7 @@
 
   function buildInvoicePayload(group,refs,posOrder,reconciliation,options={}){
     const errors=[],warnings=[],posRows=sortedPos(posOrder),details=detailBySourceRow(reconciliation),contexts=[],invoiceToContext=new Map(),allocation=new Map(),receivingChanges=[],omittedNotSupplied=[];
-    const unmatched=((reconciliation&&reconciliation.unmatchedInvoice)||[]).filter(r=>invoiceNo(r)===group.number||group.sourceFiles.has(clean(r&&r.sourceFile)));
+    const groupNums=group&&group.numbers instanceof Set?group.numbers:new Set([clean(group&&group.number)].filter(Boolean)),unmatched=((reconciliation&&reconciliation.unmatchedInvoice)||[]).filter(r=>groupNums.has(invoiceNo(r))||group.sourceFiles.has(clean(r&&r.sourceFile)));
     if(unmatched.length)pushIssue(errors,`Invoice ${group.number}: ${unmatched.length} invoice line${unmatched.length===1?' is':'s are'} not matched to the POS order.`);
 
     for(let index=0;index<posRows.length;index++){
@@ -189,7 +189,7 @@
     }
 
     const invoiceRows=[];for(const doc of group.docs)for(const row of (doc.rows||[]))invoiceRows.push(row);
-    invoiceRows.sort((a,b)=>(n(a&&a.invoiceLine)||0)-(n(b&&b.invoiceLine)||0));
+    const invoiceRank=new Map([...groupNums].map((x,i)=>[x,i]));invoiceRows.sort((a,b)=>{const ar=invoiceRank.has(invoiceNo(a))?invoiceRank.get(invoiceNo(a)):9999,br=invoiceRank.has(invoiceNo(b))?invoiceRank.get(invoiceNo(b)):9999;if(ar!==br)return ar-br;return (n(a&&a.invoiceLine)||0)-(n(b&&b.invoiceLine)||0);});
     const sourceTotals={qty:sumQty(invoiceRows),ext:sum(invoiceRows,'extendedExGst'),gst:sum(invoiceRows,'gstAmount'),total:sum(invoiceRows,'totalIncGst')};
     const records=[];
 
@@ -217,7 +217,7 @@
       if(Math.abs(wsDiff)>0.011)pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)}: predicted POSActive WS ${predWs.toFixed(2)} differs from Normal W/S ${wsRounded.toFixed(2)} by more than 1c.`);
       else if(Math.abs(wsDiff)>0.0001)warnings.push(`Invoice line ${lineText(inv.invoiceLine)}: POSActive WS is expected to round to ${predWs.toFixed(2)} vs invoice Normal W/S ${wsRounded.toFixed(2)} (1c rounding).`);
       records.push({
-        invoiceNo:group.number,line:lineText(inv.invoiceLine),ch2Code,supplierCode,subId,description,
+        invoiceNo:invoiceNo(inv)||group.number,line:lineText(inv.invoiceLine),ch2Code,supplierCode,subId,description,
         qty:outQty,qtySupplied:outQty,normalWs:wsRounded,unitPrice:unit,rebate:0,extended:ext,gst,total,disc,
         sourceQty:originalQty,receivingAdjusted:adjusted,pos:ctx.pos
       });
@@ -296,12 +296,14 @@
 
   function buildLegacyFiles(invoiceDocs,refs,posOrder,reconciliation,options={}){
     const grouped=groupDocuments(invoiceDocs,posOrder,options);if(grouped.errors.length)return {ok:false,errors:grouped.errors,warnings:grouped.warnings||[],files:[]};
-    const files=[],errors=[],warnings=[...(grouped.warnings||[])],orderNo=clean(posOrder&&posOrder.orderNumber||reconciliation&&reconciliation.orderNumber);
-    for(const group of grouped.groups){
-      const payload=buildInvoicePayload(group,refs,posOrder,reconciliation,options),validation=validatePayload(payload);errors.push(...validation.errors);warnings.push(...validation.warnings);
-      files.push({filename:`oborne_invoice_{${safePart(group.number)}}_(${safePart(orderNo)}).txt`,...payload,validation});
-    }
-    return {ok:errors.length===0,errors,warnings,files};
+    const errors=[],warnings=[...(grouped.warnings||[])],orderNo=clean(posOrder&&posOrder.orderNumber||reconciliation&&reconciliation.orderNumber),groups=grouped.groups||[];
+    const numbers=[...new Set(groups.map(g=>clean(g&&g.number)).filter(Boolean))],primary=numbers[0]||'CURRENT',sourceFiles=new Set(),docs=[];
+    for(const g of groups){for(const f of g.sourceFiles||[])sourceFiles.add(f);for(const d of g.docs||[])docs.push(d);}
+    const mergedGroup={number:primary,numbers:new Set(numbers),sourceFiles,docs,orderLinks:groups.map(g=>g.orderLink).filter(Boolean)};
+    const payload=buildInvoicePayload(mergedGroup,refs,posOrder,reconciliation,options),validation=validatePayload(payload);errors.push(...validation.errors);warnings.push(...validation.warnings);
+    if(numbers.length>1)warnings.unshift(`MERGED POSACTIVE IMPORT — ${numbers.length} supplier invoices (${numbers.join(', ')}) are combined into one 15-column TXT for POS order ${orderNo}. Each product row retains its original supplier Invoice No.`);
+    const file={filename:`oborne_invoice_{${safePart(primary)}}_(${safePart(orderNo)}).txt`,...payload,validation,invoiceNumbers:numbers};
+    return {ok:errors.length===0,errors,warnings,files:[file],invoiceNumbers:numbers};
   }
 
   function errorMessage(errors){const list=(errors||[]),shown=list.slice(0,12),rest=Math.max(0,list.length-shown.length);return `POS import blocked — ${list.length} validation issue${list.length===1?'':'s'}:\n• ${shown.join('\n• ')}${rest?`\n• …and ${rest} more.`:''}`;}
@@ -309,11 +311,8 @@
 
   async function exportLegacyPosImport(invoiceDocs,refs,posOrder,reconciliation,options={}){
     const built=buildLegacyFiles(invoiceDocs,refs,posOrder,reconciliation,options);if(!built.ok)throw new Error(errorMessage(built.errors));
-    if(built.files.length===1){const f=built.files[0];downloadBlob(new Blob([f.text],{type:'text/plain;charset=utf-8'}),f.filename);return {filename:f.filename,files:1,rows:f.records.length,columns:15,validation:f.validation,warnings:built.warnings,receivingAdjustments:f.receivingChanges.length,totals:f.totals,sourceTotals:f.sourceTotals};}
-    if(!global.JSZip)throw new Error('ZIP export library did not load. Refresh the page and try again.');
-    const zip=new global.JSZip();for(const f of built.files)zip.file(f.filename,f.text);
-    const zipName=`POSACTIVE_IMPORT_FILES_(${safePart(posOrder&&posOrder.orderNumber||reconciliation&&reconciliation.orderNumber)}).zip`,blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});downloadBlob(blob,zipName);
-    return {filename:zipName,files:built.files.length,rows:built.files.reduce((a,f)=>a+f.records.length,0),columns:15,warnings:built.warnings,receivingAdjustments:built.files.reduce((a,f)=>a+f.receivingChanges.length,0)};
+    if(built.files.length!==1)throw new Error('POSActive export expected exactly one merged TXT file. Refresh and run the reconciliation again.');
+    const f=built.files[0];downloadBlob(new Blob([f.text],{type:'text/plain;charset=utf-8'}),f.filename);return {filename:f.filename,files:1,rows:f.records.length,columns:15,validation:f.validation,warnings:built.warnings,receivingAdjustments:f.receivingChanges.length,totals:f.totals,sourceTotals:f.sourceTotals,invoiceNumbers:f.invoiceNumbers||[]};
   }
 
   PHF.posImport={CONTRACT,groupDocuments,buildLegacyFiles,validatePayload,exportLegacyPosImport,makeTsv,parseTsv};
