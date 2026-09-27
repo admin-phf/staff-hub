@@ -1,4 +1,14 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.22
+# Prahran Health Foods — CH2 Reconciler v2.6.23
+
+## v2.6.23 — restore prior POS Layout styling
+
+- Restores the established v2.6.21 POS Layout colours, rows, headers, section bands and totals.
+- Retains v2.6.22's single compact Discount % indicator, hover details and red/blue/neutral movement states.
+- Leaves matching, alignment, calculations, receiving, the 43-column workbook and the 15-column POSActive TXT contract unchanged.
+
+Suggested commit summary:
+
+`v2.6.23: Restore prior POS Layout styling`
 
 ## v2.6.22 — compact discount indicator and POS styling
 
