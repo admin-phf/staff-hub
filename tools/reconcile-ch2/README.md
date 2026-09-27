@@ -1,4 +1,15 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.20
+# Prahran Health Foods — CH2 Reconciler v2.6.21
+
+## v2.6.21 — price-update contract and discount comparison
+
+- Locks the 15-column POSActive TXT contract: Normal WS updates AdjWSPrc; Unit Price ex GST and Disc % carry the new discounted cost for AdjCatPrc/AdjDPrc; no RRP field is exported, so AdjRRPrc remains unchanged.
+- Adds Expected Disc % and CH2 Disc % to POS Layout.
+- Colours CH2 discount red/down below expectation, blue/up when better and grey/neutral when correct.
+- Keeps the v2.6.20 POS Layout formatting and all matching, receiving and export safeguards.
+
+Suggested commit summary:
+
+`v2.6.21: Lock POSActive price updates and add discount comparison`
 
 ## v2.6.20 — streamlined POS Layout
 

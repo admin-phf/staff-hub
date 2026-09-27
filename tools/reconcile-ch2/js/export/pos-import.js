@@ -11,7 +11,11 @@
       'Qty','Qty Supplied','Normal WS','Unit Price ex GST','Rebate',
       'Extended ex GST','GST','Total inc GST','Disc %'
     ]),
-    columns:15
+    columns:15,
+    // POSActive applies Normal WS to AdjWSPrc and Unit Price/Disc % to the
+    // discounted cost fields (AdjCatPrc/AdjDPrc). There is intentionally no
+    // RRP field in this import, so AdjRRPrc remains unchanged.
+    priceUpdate:Object.freeze({adjWsp:'Normal WS',adjCat:'Unit Price ex GST',adjD:'Unit Price ex GST',adjRrp:null})
   });
 
   function clean(v){return v==null?'':String(v).replace(/\u00a0/g,' ').trim();}
