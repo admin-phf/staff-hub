@@ -764,9 +764,9 @@
     }).join('')}</tr>`;
     const sections=posPreviewSections(detailBySourceRow);
     const progress=updateChecklistUi(baseRows,detailBySourceRow);
-    const renderPosRow=(pos)=>{
+    const renderPosRow=(pos,zebraIndex=0)=>{
       const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(Math.max(0,(Number(pos&&pos.posIndex)||1)-1)),notSupplied=!detail||Number(detail.suppliedQty||0)<=0;
-      const checkKey=unpackIdentity(pos),unpackDone=state.unpackChecked.has(checkKey),rowClasses=[notSupplied?'pos-not-supplied':'',unpackDone?'unpack-checked':''].filter(Boolean).join(' ');
+      const checkKey=unpackIdentity(pos),unpackDone=state.unpackChecked.has(checkKey),rowClasses=[zebraIndex%2?'pos-row-even':'pos-row-odd',notSupplied?'pos-not-supplied':'',unpackDone?'unpack-checked':''].filter(Boolean).join(' ');
       const cells=POS_VIEW_COLUMNS.map(c=>{
         const v=posColumnValue(pos,c,detail);let html='',extraCls='',title='';
         if(c.kind==='check'){
@@ -810,9 +810,9 @@
       }).join('');
       return `<tr${rowClasses?` class="${rowClasses}"`:''}${notSupplied?' data-not-supplied="1"':''}>${cells}</tr>`;
     };
-    const sectionHtml=[];
-    if(sections.remaining.length){sectionHtml.push(`<tr class="pos-section-row pos-section-remaining"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Remaining / to check</strong><span>${sections.remaining.length} item${sections.remaining.length===1?'':'s'}</span></td></tr>`);for(const pos of sections.remaining)sectionHtml.push(renderPosRow(pos));}
-    if(sections.complete.length){sectionHtml.push(`<tr class="pos-section-row pos-section-complete"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Completed / accounted</strong><span>${sections.complete.length} item${sections.complete.length===1?'':'s'} · untick a row to clear Found and return it to Remaining</span></td></tr>`);for(const pos of sections.complete)sectionHtml.push(renderPosRow(pos));}
+    const sectionHtml=[];let zebraIndex=0;
+    if(sections.remaining.length){sectionHtml.push(`<tr class="pos-section-row pos-section-remaining"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Remaining / to check</strong><span>${sections.remaining.length} item${sections.remaining.length===1?'':'s'}</span></td></tr>`);for(const pos of sections.remaining)sectionHtml.push(renderPosRow(pos,zebraIndex++));}
+    if(sections.complete.length){sectionHtml.push(`<tr class="pos-section-row pos-section-complete"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Completed / accounted</strong><span>${sections.complete.length} item${sections.complete.length===1?'':'s'} · untick a row to clear Found and return it to Remaining</span></td></tr>`);for(const pos of sections.complete)sectionHtml.push(renderPosRow(pos,zebraIndex++));}
     els.tableBody.innerHTML=sectionHtml.length?sectionHtml.join(''):`<tr><td colspan="${POS_VIEW_COLUMNS.length}">No POS order rows available.</td></tr>`;
 
     els.tableBody.onclick=e=>{

@@ -1,4 +1,14 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.23
+# Prahran Health Foods — CH2 Reconciler v2.6.24
+
+## v2.6.24 — match POS Layout colours to Full Reconciliation
+
+- Applies the exact Full Reconciliation workbook palette to the POS Layout header, alternating product rows, grid lines and price movements.
+- Price increases use pale red/red, decreases use pale blue/blue and unchanged values use the workbook's muted grey over the alternating row colour.
+- Keeps the established receiving sections, totals, compact Discount % indicator and every matching/export rule unchanged.
+
+Suggested commit summary:
+
+`v2.6.24: Match POS Layout colours to reconciliation workbook`
 
 ## v2.6.23 — restore prior POS Layout styling
 

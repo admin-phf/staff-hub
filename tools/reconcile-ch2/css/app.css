@@ -350,3 +350,29 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .import-key-source {display:block;font-size:10px;color:#45624e;line-height:1.4;white-space:normal;}
 .import-key-source.review {color:#8a5200;font-weight:600;}
 #importKeySummary {border-left:4px solid #c48b27;line-height:1.55;}
+
+/* v2.6.24: use the exact Full Reconciliation workbook palette in POS Layout.
+   Receiving sections, controls and totals keep their established functional styling. */
+.results .preview-pos table.pos-preview-table{background:#FFFFFF;color:#1F2937}
+.results .preview-pos thead th{
+  background:#DDE6ED;
+  color:#1F2937;
+  border-right:1px solid #D9E2F3;
+  border-bottom:1px solid #D9E2F3;
+}
+.results .preview-pos thead th:last-child{border-right:0}
+.results .preview-pos tbody tr.pos-row-odd{background:#FFFFFF}
+.results .preview-pos tbody tr.pos-row-even{background:#F3F6F9}
+.results .preview-pos tbody tr:not(.pos-section-row):hover{background:#EEF4FB}
+.results .preview-pos tbody td{
+  border-right:1px solid #D9E2F3;
+  border-bottom:1px solid #D9E2F3;
+  color:#1F2937;
+}
+.results .preview-pos tbody td:last-child{border-right:0}
+.results .preview-pos .price-up{background:#FCE8E6!important;color:#C5221F!important}
+.results .preview-pos .price-down{background:#E8F0FE!important;color:#1967D2!important}
+.results .preview-pos .price-same{background:transparent!important;color:#9AA0A6!important}
+.results .preview-pos .price-up .price-arrow{color:#C5221F!important}
+.results .preview-pos .price-down .price-arrow{color:#1967D2!important}
+.results .preview-pos .price-same .price-arrow{color:#9AA0A6!important}
