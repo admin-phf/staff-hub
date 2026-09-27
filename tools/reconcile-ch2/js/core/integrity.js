@@ -105,14 +105,22 @@
 
     const posRows=(posOrder&&posOrder.rows)||[];
     const hIndex=Object.fromEntries(expected.map((h,i)=>[h,i]));
-    let sequenceOk=true,sequenceDetail='';
+    let sequenceOk=true,sequenceDetail='',barcodeTextOk=true,barcodeTextDetail='';
     for(let i=0;i<posRows.length;i++){
-      const row=matrix[i+2]||[],p=posRows[i];
-      if(!sameText(row[hIndex['POS PLU']],p.plu)||!sameBarcode(row[hIndex['POS MASTER BARCODE']],p.barcode)||!sameText(row[hIndex['POS DESCR']],p.description)){
+      const row=matrix[i+2]||[],p=posRows[i],barcodeValue=row[hIndex['POS MASTER BARCODE']];
+      if(!sameText(row[hIndex['POS PLU']],p.plu)||!sameBarcode(barcodeValue,p.barcode)||!sameText(row[hIndex['POS DESCR']],p.description)){
         sequenceOk=false;sequenceDetail=`Workbook data row ${i+3} does not match POS source row ${p.sourceRow}.`;break;
+      }
+      const expectedBarcode=digits(p&&p.barcode);
+      if(expectedBarcode){
+        const addr=global.XLSX.utils.encode_cell({r:i+2,c:hIndex['POS MASTER BARCODE']}),cell=ws[addr],actual=clean(barcodeValue);
+        if(!cell||!['s','str'].includes(cell.t)||actual!==expectedBarcode||/[Ee][+-]?\d+$/.test(actual)){
+          barcodeTextOk=false;barcodeTextDetail=`Workbook barcode at ${addr} is not preserved as exact text (${expectedBarcode}).`;break;
+        }
       }
     }
     checks.push(check('Workbook POS sequence',sequenceOk,sequenceOk?'Workbook rows preserve uploaded POS order.':sequenceDetail));
+    checks.push(check('Barcodes preserved as exact text',barcodeTextOk,barcodeTextOk?'Every populated POS MASTER BARCODE is stored as full text; leading zeroes/scientific notation are protected.':barcodeTextDetail));
 
     let unsupported=[];
     for(const sheetName of wb.SheetNames){
