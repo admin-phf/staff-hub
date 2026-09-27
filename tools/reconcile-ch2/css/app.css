@@ -344,9 +344,51 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .preview-pos tfoot .pos-found-total-value{background:#eaf4ff;font-weight:900;color:#0b3e78;text-align:right;font-variant-numeric:tabular-nums}
 .preview-pos tfoot .pos-total-spacer{background:#fff}
 
-/* v2.6.21: streamlined POS Layout, discount comparison and aligned-master review. */
+/* v2.6.22: spreadsheet-style POS Layout and compact discount comparison. */
 .pos-preview-table .pos-import-key {min-width:170px;}
 .import-key-input {box-sizing:border-box;width:100%;min-width:120px;border:1px solid #b7c3bb;border-radius:4px;padding:5px 6px;background:#fff;color:#172b21;font:inherit;}
 .import-key-source {display:block;font-size:10px;color:#45624e;line-height:1.4;white-space:normal;}
 .import-key-source.review {color:#8a5200;font-weight:600;}
 #importKeySummary {border-left:4px solid #c48b27;line-height:1.55;}
+
+/* POS Layout visual language mirrors the supplied operational spreadsheet:
+   strong grid, blue-grey bands, compact headers and colour-coded movements. */
+.results .preview-pos table.pos-preview-table{border-collapse:separate;border-spacing:0;background:#f7f9fa}
+.results .preview-pos thead th{
+  background:#e8eff3!important;
+  color:#243746!important;
+  border-right:1px solid #c9d3d9!important;
+  border-bottom:3px solid #b9c3c9!important;
+  font-weight:900!important;
+}
+.results .preview-pos thead th:last-child{border-right:0!important}
+.results .preview-pos tbody td{
+  border-right:1px solid #cfd8dd!important;
+  border-bottom:1px solid #cfd8dd!important;
+  color:#34454f;
+}
+.results .preview-pos tbody td:last-child{border-right:0!important}
+.results .preview-pos tbody tr:not(.pos-section-row):nth-child(odd) td{background:#f8f9f8}
+.results .preview-pos tbody tr:not(.pos-section-row):nth-child(even) td{background:#eaf1f5}
+.results .preview-pos tbody tr:not(.pos-section-row):hover td{background:#e1edf4!important}
+.results .preview-pos .pos-section-row td{
+  background:#103b65!important;
+  color:#ffd85a!important;
+  border-top:2px dashed #62d5e8!important;
+  border-bottom:2px solid #092a49!important;
+  text-transform:uppercase;
+}
+.results .preview-pos .pos-section-row td strong,
+.results .preview-pos .pos-section-row td span{color:#ffd85a!important}
+.results .preview-pos .price-up{background:#fce8e6!important;color:#e02b20!important;font-weight:900}
+.results .preview-pos .price-down{background:#e8f0fe!important;color:#075fcf!important;font-weight:900}
+.results .preview-pos .price-same{background:#edf1f2!important;color:#65727a!important;font-weight:800}
+.results .preview-pos .price-up .price-arrow{color:#e02b20!important}
+.results .preview-pos .price-down .price-arrow{color:#075fcf!important}
+.results .preview-pos .price-same .price-arrow{color:#7d888e!important}
+.results .preview-pos tfoot td{border-right:1px solid #355878}
+.results .preview-pos tfoot .pos-total-left,
+.results .preview-pos tfoot .pos-found-total-label,
+.results .preview-pos tfoot .pos-found-total-value,
+.results .preview-pos tfoot .pos-total-spacer,
+.results .preview-pos tfoot .pos-total-label{background:#103b65!important;color:#ffd85a!important}

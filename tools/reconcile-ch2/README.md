@@ -1,4 +1,15 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.21
+# Prahran Health Foods — CH2 Reconciler v2.6.22
+
+## v2.6.22 — compact discount indicator and POS styling
+
+- Replaces the separate Expected Disc % and CH2 Disc % columns with one compact Discount % comparison.
+- Shows the CH2 discount with a red/down, blue/up or neutral indicator; hover reveals expected discount, actual CH2 discount and variance.
+- Applies the supplied spreadsheet-inspired blue-grey grid, compact header, navy/gold section and movement colours to POS Layout only.
+- Leaves matching, pricing calculations, receiving and the POSActive TXT contract unchanged.
+
+Suggested commit summary:
+
+`v2.6.22: Combine discount comparison and refresh POS Layout styling`
 
 ## v2.6.21 — price-update contract and discount comparison
 

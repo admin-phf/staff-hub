@@ -38,8 +38,7 @@
     {key:'__unpack_total',label:'Found',kind:'qtytotal',cls:'unpack-qty-total-cell',min:56,max:74,grow:.01},
     {key:'mupc',label:'MU%',kind:'number',dp:2,min:46,max:64,grow:.015},
     {key:'gppc',label:'GP%',kind:'number',dp:2,min:46,max:62,grow:.015},
-    {key:'__expected_discount',label:'Exp Disc %',kind:'number',dp:2,min:58,max:76,grow:.015},
-    {key:'__invoice_discount',label:'CH2 Disc %',kind:'number',dp:2,min:58,max:76,grow:.015},
+    {key:'__invoice_discount',label:'Discount %',kind:'number',dp:2,min:64,max:82,grow:.015},
     {key:'adjrrprce',label:'AdjRRPrc',kind:'number',dp:2,min:62,max:92,grow:.04,stretch:.035,hardMax:118},
     {key:'adjwsprce',label:'AdjWSPrc',kind:'number',dp:2,min:62,max:92,grow:.04,stretch:.035,hardMax:118},
     {key:'adjcatprce',label:'AdjCatPrc',kind:'number',dp:2,min:62,max:92,grow:.035,stretch:.025,hardMax:112},
@@ -629,7 +628,7 @@
 
     if(total>available){
       let excess=total-available;
-      const shrinkOrder=['descr','__pos_brand','main_id','sub_id','__ch2_item_code','plu','adjrrprce','adjwsprce','adjcatprce','adjdprce','__expected_discount','__invoice_discount','__row_total_inc_gst','mupc','gppc','gst_tax_pc','qty_stk_in','or_qty','units','qty'];
+      const shrinkOrder=['descr','__pos_brand','main_id','sub_id','__ch2_item_code','plu','adjrrprce','adjwsprce','adjcatprce','adjdprce','__invoice_discount','__row_total_inc_gst','mupc','gppc','gst_tax_pc','qty_stk_in','or_qty','units','qty'];
       for(const key of shrinkOrder){
         if(excess<=.5)break;const i=POS_VIEW_COLUMNS.findIndex(c=>c.key===key);if(i<0)continue;
         const c=POS_VIEW_COLUMNS[i],room=Math.max(0,widths[i]-c.min),take=Math.min(room,excess);widths[i]-=take;excess-=take;
@@ -792,10 +791,18 @@
           if(c.key==='__row_total_inc_gst'){
             const rowQty=state.unpackCounts.has(checkKey)?unpackCountFor(pos):(numberValue(detail&&detail.suppliedQty)??numberValue(rawValue(pos,'qty'))??numberValue(pos.orderedQty)??0);
             title=`${displayUnpackCount(rowQty)} × AdjCatPrc ${fixed(discountedPosPrice(pos,detail),2) || '—'} plus GST ${fixed(rawValue(pos,'gst_tax_pc')||pos.gstPct||0,0)}%`;
+          }else if(c.key==='__invoice_discount'&&!notSupplied){
+            const actual=numberValue(v),expected=numberValue(target);
+            if(move){
+              extraCls=` price-move-cell price-${move.kind}`;
+              html=`<span class="pos-price-value">${html}</span><span class="price-arrow" aria-hidden="true">${move.symbol}</span>`;
+              const result=move.kind==='same'?'Correct':actual>expected?`Better by ${Math.abs(move.diff).toFixed(2)}%`:`Below by ${Math.abs(move.diff).toFixed(2)}%`;
+              title=`Expected discount: ${expected.toFixed(2)}% · CH2 discount: ${actual.toFixed(2)}% · ${result}`;
+            }else if(actual!=null)title=`Expected discount: no matching rule · CH2 discount: ${actual.toFixed(2)}%`;
           }else if(move&&!notSupplied){
             extraCls=` price-move-cell price-${move.kind}`;
-            const isDisc=c.key==='__invoice_discount',targetLabel=isDisc?'Expected discount':c.key==='adjrrprce'?'CH2 RRP':c.key==='adjwsprce'?'CH2 Normal W/S':'CH2 Unit Price',suffix=isDisc?'%':'';
-            title=`${targetLabel}: ${Number(move.target).toFixed(2)}${suffix} · ${move.symbol} ${Math.abs(move.diff).toFixed(2)}${suffix}`;
+            const targetLabel=c.key==='adjrrprce'?'CH2 RRP':c.key==='adjwsprce'?'CH2 Normal W/S':'CH2 Unit Price';
+            title=`${targetLabel}: ${Number(move.target).toFixed(2)} · ${move.symbol} ${Math.abs(move.diff).toFixed(2)}`;
             html=`<span class="pos-price-value">${html}</span><span class="price-arrow" aria-hidden="true">${move.symbol}</span>`;
           }
         } else {html=escapeHtml(v);if(v)title=String(v);}
