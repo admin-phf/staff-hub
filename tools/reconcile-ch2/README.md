@@ -1,4 +1,15 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.24
+# Prahran Health Foods — CH2 Reconciler v2.6.25
+
+## v2.6.25 — borderless, stable POS Layout
+
+- Removes the horizontal and vertical grid lines between POS product rows and columns.
+- Uses the Full Reconciliation navy/gold summary palette for the POS header and keeps its colour unchanged while sorting or hovering.
+- Uses the Google Sans font stack throughout POS Layout and removes width transitions and legacy completed-row overrides so product styling stays consistent when a row moves to Completed.
+- Keeps alternating row colours, price movement colours, receiving controls, matching and every export unchanged.
+
+Suggested commit summary:
+
+`v2.6.25: Refine and stabilise POS Layout styling`
 
 ## v2.6.24 — match POS Layout colours to Full Reconciliation
 

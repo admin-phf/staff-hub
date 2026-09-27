@@ -142,9 +142,6 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .results .preview-pos th.unpack-head,.results .preview-pos td.unpack-cell{text-align:center;padding-left:4px;padding-right:4px;overflow:visible}
 .unpack-check{width:18px;height:18px;border:1.5px solid #6c747c;border-radius:3px;background:#fff;display:inline-grid;place-items:center;padding:0;cursor:pointer;color:#fff;font-size:12px;font-weight:900;line-height:1;vertical-align:middle}
 .unpack-check:hover{border-color:#2E7D32;box-shadow:0 0 0 2px rgba(46,125,50,.12)}.unpack-check:focus-visible{outline:2px solid #2E7D32;outline-offset:2px}.unpack-check.checked{background:#2E7D32;border-color:#2E7D32}
-.preview-pos tbody tr.unpack-checked td:not(.unpack-cell){text-decoration-line:line-through;text-decoration-thickness:1px;text-decoration-color:rgba(35,35,35,.72)}
-.preview-pos tbody tr.unpack-checked td:not(.unpack-cell)>*{opacity:.68}.preview-pos tbody tr.unpack-checked td:not(.unpack-cell){color:#70767b}
-.preview-pos tbody tr.unpack-checked.pos-not-supplied td:not(.unpack-cell){text-decoration-color:rgba(90,95,100,.72)}
 /* Natural content is now allowed to stop before the far edge on ultrawide monitors.
    This avoids stretching Product Description or price columns just to fill space. */
 .results .preview-pos table.pos-preview-table{width:auto;max-width:none}
@@ -210,7 +207,6 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 /* Completed items are moved below the remaining POS-order block. Relative POS order
    is retained within both groups; the divider makes the hand-off obvious. */
 .preview-pos tbody tr.unpack-complete-start td{border-top:3px solid #2E7D32}
-.preview-pos tbody tr.unpack-checked td:not(.unpack-cell){opacity:.78}
 
 @media(max-width:1000px){
   .results .preview-pos table.pos-preview-table{font-size:12px}
@@ -260,7 +256,6 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
   text-decoration-color:rgba(90,95,100,.72)!important;
 }
 #removeNotSuppliedBtn{white-space:nowrap}
-.preview-pos tbody tr.unpack-checked:not(.pos-not-supplied) td:not(.unpack-cell){color:inherit!important}
 
 /* v2.5.9 — reference-file drag/drop */
 .reference-drop-card{position:relative;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease}
@@ -376,3 +371,32 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .results .preview-pos .price-up .price-arrow{color:#C5221F!important}
 .results .preview-pos .price-down .price-arrow{color:#1967D2!important}
 .results .preview-pos .price-same .price-arrow{color:#9AA0A6!important}
+
+/* v2.6.25: borderless, stable POS product rows and reconciliation-summary header. */
+.results .preview-pos,
+.results .preview-pos table,
+.results .preview-pos button,
+.results .preview-pos input{
+  font-family:"Google Sans","Google Sans Text",Arial,"Helvetica Neue",sans-serif;
+}
+.results .preview-pos th,
+.results .preview-pos td{transition:none!important}
+.results .preview-pos thead th{
+  background:#1E3A5F;
+  color:#E6CD74;
+  border:0!important;
+  box-shadow:none;
+  font-weight:700;
+}
+.results .preview-pos thead .pos-sort-button,
+.results .preview-pos thead .pos-sort-button:hover,
+.results .preview-pos thead .pos-sort-button.active{color:inherit}
+.results .preview-pos thead .pos-sort-button span{color:inherit;opacity:.65}
+.results .preview-pos tbody tr:not(.pos-section-row)>td{
+  border:0!important;
+}
+.results .preview-pos tbody tr.unpack-checked:not(.pos-not-supplied)>td,
+.results .preview-pos tbody tr.unpack-checked:not(.pos-not-supplied)>td>*{
+  text-decoration:none!important;
+  opacity:1!important;
+}
