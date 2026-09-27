@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Prahran Health Foods Staff Hub — V20 · PM1000 CONTENT-ONLY 1000x625 · SPACE FILL + CREATIVE LAYOUTS -->
+<!-- Prahran Health Foods Staff Hub — V24 · STUDIO WORKSPACE (pinned live preview) · PM1000 CONTENT-ONLY 1000x625 + ALL V23 LAYOUTS -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1976,6 +1976,117 @@
     background:linear-gradient(90deg,transparent,rgba(72,107,57,.34) 10%,rgba(72,107,57,.34) 90%,transparent);
   }
 
+  /* ============================================================
+     V24 — STUDIO WORKSPACE (editor UI only — never part of exported artwork)
+     Desktop (≥1100px): controls scroll in the left column while the live
+     slide stays pinned on the right, scaled to fit the available space.
+     Tablet: the preview is pinned to the top of the screen while editing.
+     Phone: the preview sits first, then the controls.
+     The PNG/ZIP export renders an unscaled clone, so preview scaling can
+     never change the exported pixels.
+     ============================================================ */
+  .slide{transform-origin:0 0}
+  .vtag{font-size:10px;font-weight:800;color:#2E7D32;letter-spacing:.04em;margin-left:8px}
+  .btn-sm{padding:6px 10px;font-size:12.5px;border-radius:8px}
+
+  .studio{display:flex;flex-direction:column;gap:18px}
+  .studio-controls{min-width:0}
+  .studio-controls .panel{margin-bottom:16px}
+  .studio-controls .image-health-panel{margin:0}
+  .studio-preview{min-width:0}
+
+  /* Data source: status + refresh always visible, everything else tucked away */
+  .srcrow{display:flex;gap:10px;align-items:stretch}
+  .srcrow .status{flex:1;margin:0;min-width:0}
+  .srcdetails{margin-top:10px}
+  .srcdetails>summary{cursor:pointer;font-size:12.5px;font-weight:700;color:var(--green);padding:3px 0;list-style:none;user-select:none}
+  .srcdetails>summary::-webkit-details-marker{display:none}
+  .srcdetails>summary::before{content:"▸";display:inline-block;width:14px;transition:transform .15s}
+  .srcdetails[open]>summary::before{transform:rotate(90deg)}
+  .srcdetails[open]>summary{margin-bottom:10px}
+
+  /* Layout picker: one labelled row per group instead of one long wrap */
+  .layout-groups{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+  .lgroup{display:grid;grid-template-columns:112px minmax(0,1fr);gap:8px;align-items:start}
+  #layoutBtns .lgroup .lblgrp{margin:0;padding-top:7px;line-height:1.25;font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+  .lbtns{display:flex;flex-wrap:wrap;gap:6px}
+  .lbtns .btn{padding:6px 11px;font-size:12.5px}
+  .layout-groups + .layout-advice{margin:0 0 12px}
+
+  /* Product editor adapts to whatever width the controls column has */
+  .prodhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+  .prod-page{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.03em;text-transform:none;margin-left:4px}
+  .grid-inputs{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+  .card-input input[type=file]{max-width:100%;font-size:11.5px}
+
+  /* Live preview card */
+  .preview-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px 10px;display:flex;flex-direction:column;min-height:0;min-width:0}
+  .preview-head{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;flex-wrap:wrap;margin-bottom:8px}
+  .ph-left{min-width:0}
+  .ph-kicker{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+  .ph-title{font-size:15px;font-weight:800;color:var(--ink);line-height:1.25}
+  .ph-channel{font-size:11.5px;font-weight:700;color:var(--green);margin-left:4px}
+  .ph-channel.warn{color:#8a6100}
+  .ph-channel.secondary{color:var(--muted)}
+  .ph-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .preview-head .dims{margin:0;text-align:right;font-size:11.5px}
+  .zoomseg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .zoomseg .btn{border:none;border-radius:0}
+  .zoomseg .btn+.btn{border-left:1px solid var(--line)}
+  .zoomlabel{font-size:11.5px;color:var(--muted);font-weight:700;min-width:34px;text-align:right;font-variant-numeric:tabular-nums}
+  .preview-card .validationbar{margin:0 0 8px;padding:7px 11px;font-size:12px}
+
+  /* min-width:0 stops the full-size slide or a long chip strip from widening the preview column */
+  .stage{display:flex;margin:0;padding:16px;border-radius:10px;background:#e3e6e8;box-shadow:inset 0 0 0 1px rgba(0,0,0,.04);overflow:hidden;position:relative;min-width:0}
+  .stage.actual{overflow:auto}
+  .frame{position:relative;flex:none;margin:auto;overflow:hidden;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08),0 10px 30px rgba(0,0,0,.10)}
+
+  .preview-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:10px}
+  .preview-foot .pager{margin:0;gap:8px;justify-content:flex-start}
+  .preview-foot .pageinfo{min-width:96px}
+  .dl-row{display:flex;gap:8px;flex-wrap:wrap}
+  .pagechips{display:flex;gap:5px;overflow-x:auto;padding:8px 4px 4px 1px;margin-top:4px;scrollbar-width:thin}
+  .pagechips[hidden]{display:none}
+  .pchip{flex:none;min-width:30px;height:28px;padding:0 8px;border:1px solid var(--line);border-radius:7px;background:#fff;font-size:12px;font-weight:700;color:var(--ink);cursor:pointer;position:relative;font-variant-numeric:tabular-nums}
+  .pchip:hover{border-color:var(--grey)}
+  .pchip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .pchip.warn::after,.pchip.err::after{content:"";position:absolute;top:-4px;right:-4px;width:9px;height:9px;border-radius:50%;border:1.5px solid #fff}
+  .pchip.warn::after{background:#d19a00}
+  .pchip.err::after{background:var(--red)}
+  .preview-note{font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.4}
+  .preview-note kbd{font-family:inherit;font-size:10.5px;font-weight:700;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;background:#fafafa;color:var(--ink)}
+
+  .preview-card:fullscreen{border:none;border-radius:0;padding:14px 18px 10px;width:100vw;height:100vh}
+  .preview-card:fullscreen .stage{flex:1 1 0;min-height:0}
+
+  /* Desktop studio: two panes, only the controls column scrolls. */
+  @media (min-width:1100px){
+    body.studio-mode .wrap{max-width:1880px;height:100vh;height:100dvh;display:flex;flex-direction:column;padding:10px 22px 14px}
+    body.studio-mode .topbar{padding:4px 0 10px;margin-bottom:12px;flex:none}
+    body.studio-mode .topbar img.logo{height:32px}
+    body.studio-mode .module.on{flex:1 1 auto;min-height:0}
+    body.studio-mode .studio{display:grid;grid-template-columns:minmax(440px,38%) minmax(0,1fr);gap:18px;height:100%;min-height:0}
+    body.studio-mode .studio-controls{overflow-y:auto;min-height:0;padding-right:8px;scrollbar-gutter:stable;overscroll-behavior:contain}
+    body.studio-mode .studio-preview{min-height:0;display:flex}
+    body.studio-mode .preview-card{flex:1;min-height:0}
+    body.studio-mode .stage{flex:1 1 0;min-height:0}
+  }
+  /* Tablet / small laptop: preview first and pinned while editing below it. */
+  @media (max-width:1099.98px){
+    .studio-preview{order:-1}
+    .stage.actual{max-height:60vh}
+    .preview-card:fullscreen .stage.actual{max-height:none}
+  }
+  @media (max-width:700px){
+    .topbar img.logo{height:auto;max-width:64vw}
+    .stage{padding:8px}
+  }
+  @media (min-width:701px) and (max-width:1099.98px){
+    .studio-preview{position:sticky;top:0;z-index:30;padding-top:8px;background:var(--bg)}
+    .preview-card{box-shadow:0 6px 18px rgba(0,0,0,.08)}
+    .preview-note{display:none}
+  }
+
 </style>
 </head>
 <body>
@@ -2014,52 +2125,66 @@
 
   <!-- ============ SPECIALS MODULE ============ -->
   <div class="module" id="mod-specials">
+   <div class="studio">
+
+    <!-- LEFT: controls. On desktop this column scrolls on its own. -->
+    <div class="studio-controls" id="studioControls">
 
     <div class="panel">
-      <h2>Pricing sheet <span style="font-size:10px;font-weight:800;color:#2E7D32;letter-spacing:.04em;margin-left:8px">CONTENT ONLY · V23 MULTI-CHANNEL + ALL V20 LAYOUTS</span></h2>
-      <div id="loadStatus" class="status warn">Loader V3 active — connecting to the Specials feed…</div>
-      <div class="sheetbox">
+      <h2>Pricing sheet <span class="vtag">CONTENT ONLY · V24 STUDIO PREVIEW + ALL V23 LAYOUTS</span></h2>
+      <div class="srcrow">
+        <div id="loadStatus" class="status warn">Loader V3 active — connecting to the Specials feed…</div>
+        <button class="btn ghost" id="reloadBtn" title="Reload the current data source">↻ Refresh</button>
+      </div>
+      <details class="srcdetails" id="sourceDetails">
+        <summary>Data source · sample data · local CSV backup</summary>
+        <div class="sheetbox">
         <div class="field"><label>Specials data source (Apps Script feed, Google Sheet or CSV)</label>
           <input type="text" id="sheetUrl" placeholder="https://script.google.com/macros/s/…/exec or Google Sheet / CSV URL"></div>
-        <button class="btn primary" id="loadBtn">Load sheet</button>
-        <button class="btn ghost" id="reloadBtn">Refresh</button>
-        <button class="btn ghost" id="sampleBtn">Use sample data</button>
-      </div>
-      <div class="exportnote" style="text-align:left;margin-top:10px">
+          <button class="btn primary" id="loadBtn">Load sheet</button>
+          <button class="btn ghost" id="sampleBtn">Use sample data</button>
+        </div>
+        <div class="exportnote" style="text-align:left;margin-top:10px">
         Preferred: paste the <b>PHF Specials Apps Script web-app /exec URL</b>. Google Sheet and CSV links remain available as fallbacks. The last successful live data is cached on this device for outage recovery.
       </div>
-      <div class="row" style="margin-top:10px;margin-bottom:0"><input type="file" id="localCsvFile" accept=".csv,text/csv" style="display:none"><button class="btn ghost" id="localCsvBtn">Load local CSV backup</button></div>
-      <div class="security-note"><b>Specials-only:</b> the recommended Apps Script endpoint exposes only the customer-safe Specials columns. Keep customer orders and other private data on a separate authenticated backend later.</div>
+        <div class="row" style="margin-top:10px;margin-bottom:0"><input type="file" id="localCsvFile" accept=".csv,text/csv" style="display:none"><button class="btn ghost" id="localCsvBtn">Load local CSV backup</button></div>
+        <div class="security-note"><b>Specials-only:</b> the recommended Apps Script endpoint exposes only the customer-safe Specials columns. Keep customer orders and other private data on a separate authenticated backend later.</div>
+      </details>
     </div>
 
     <div class="panel">
       <h2>Layout</h2>
-      <div class="row"><div class="seg" id="layoutBtns">
-        <span class="lblgrp">POS — Recommended</span>
-        <button class="btn" data-layout="single">Single hero</button>
-        <button class="btn active" data-layout="two">2-Product</button>
-        <span class="lblgrp">Email — Recommended</span>
-        <button class="btn" data-layout="herosplit">Hero + pick</button>
-        <button class="btn" data-layout="feature">2×2 Feature</button>
-        <span class="lblgrp">Secondary / Catalogue</span>
-        <button class="btn" data-layout="four">4-Product</button>
-        <button class="btn" data-layout="gridcards">Grid Cards</button>
-        <button class="btn" data-layout="promo">Specials banner</button>
-        <button class="btn" data-layout="six">6-Grid</button>
-        <button class="btn" data-layout="sixsplit">6-Grid Split</button>
-        <span class="lblgrp">Creative / botanical</span>
-        <button class="btn" data-layout="botanicalsingle">Botanical Hero 4:5</button>
-        <button class="btn" data-layout="botanicaltwo">Botanical 2-Up 7:5</button>
-        <button class="btn" data-layout="botanicalfour">Botanical 4-Up 7:5</button>
-        <button class="btn" data-layout="botanicalsquare">Botanical Square 1:1</button>
-        <span class="lblgrp">NEW — PHF Retail / multi-channel</span>
-        <button class="btn" data-layout="retailfour">Retail Cards 4-Up · POS</button>
-        <button class="btn" data-layout="retailhero2">Retail Hero + 2 · POS</button>
-        <button class="btn" data-layout="retailbanner2">Retail 2-Up Banner</button>
-        <button class="btn" data-layout="retailportrait">Retail 4-Up Portrait TV</button>
-        <button class="btn" data-layout="retailsquare4">Retail 4-Up Square</button>
-        <button class="btn" data-layout="retailsquarehero">Retail Hero Square 800</button>
-      </div></div>
+      <div id="layoutBtns" class="layout-groups">
+        <div class="lgroup"><span class="lblgrp">POS — Recommended</span><div class="lbtns">
+          <button class="btn" data-layout="single">Single hero</button>
+          <button class="btn active" data-layout="two">2-Product</button>
+        </div></div>
+        <div class="lgroup"><span class="lblgrp">Email — Recommended</span><div class="lbtns">
+          <button class="btn" data-layout="herosplit">Hero + pick</button>
+          <button class="btn" data-layout="feature">2×2 Feature</button>
+        </div></div>
+        <div class="lgroup"><span class="lblgrp">Secondary / Catalogue</span><div class="lbtns">
+          <button class="btn" data-layout="four">4-Product</button>
+          <button class="btn" data-layout="gridcards">Grid Cards</button>
+          <button class="btn" data-layout="promo">Specials banner</button>
+          <button class="btn" data-layout="six">6-Grid</button>
+          <button class="btn" data-layout="sixsplit">6-Grid Split</button>
+        </div></div>
+        <div class="lgroup"><span class="lblgrp">Creative / botanical</span><div class="lbtns">
+          <button class="btn" data-layout="botanicalsingle">Botanical Hero 4:5</button>
+          <button class="btn" data-layout="botanicaltwo">Botanical 2-Up 7:5</button>
+          <button class="btn" data-layout="botanicalfour">Botanical 4-Up 7:5</button>
+          <button class="btn" data-layout="botanicalsquare">Botanical Square 1:1</button>
+        </div></div>
+        <div class="lgroup"><span class="lblgrp">NEW — PHF Retail / multi-channel</span><div class="lbtns">
+          <button class="btn" data-layout="retailfour">Retail Cards 4-Up · POS</button>
+          <button class="btn" data-layout="retailhero2">Retail Hero + 2 · POS</button>
+          <button class="btn" data-layout="retailbanner2">Retail 2-Up Banner</button>
+          <button class="btn" data-layout="retailportrait">Retail 4-Up Portrait TV</button>
+          <button class="btn" data-layout="retailsquare4">Retail 4-Up Square</button>
+          <button class="btn" data-layout="retailsquarehero">Retail Hero Square 800</button>
+        </div></div>
+      </div>
       <div id="layoutAdvice" class="layout-advice" aria-live="polite"></div>
       <div class="row">
         <div class="field"><label>Title</label><input type="text" id="f_title" value=""></div>
@@ -2069,8 +2194,8 @@
     </div>
 
     <div class="panel">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-        <h2 style="margin:0">Products on this page <span id="editFlag" style="display:none;color:var(--red);font-weight:700;text-transform:none;letter-spacing:0;font-size:11px">● Edited — not saved to sheet</span></h2>
+      <div class="prodhead">
+        <h2 style="margin:0">Products on this page<span class="prod-page" id="prodPageLabel"></span> <span id="editFlag" style="display:none;color:var(--red);font-weight:700;text-transform:none;letter-spacing:0;font-size:11px">● Edited — not saved to sheet</span></h2>
         <div class="seg">
           <label class="auto-balance-toggle" title="Automatically enlarge or reduce product pack shots by detecting surrounding white/transparent space">
             <input type="checkbox" id="autoBalanceToggle" checked>
@@ -2083,10 +2208,6 @@
       <div class="auto-balance-help"><b>Safe Smart Fit:</b> detects the visible pack shot, removes excess white/transparent padding, recentres uneven sources and equalises visual mass — but now keeps a protected edge margin so lids, boxes and labels are not clipped. The slider remains a fine-tune control. Local <code>images/</code> files are preferred, with <code>Pictures/</code> retained as a safety-net folder.</div>
       <div class="grid-inputs" id="prodInputs"></div>
       <div class="exportnote" style="text-align:left">Edits here change the slide right now but don't write back to the sheet — refresh or revert to pull sheet data again. Keep permanent changes in the sheet. Optional: add an image_scale column (70–200) for permanent fine-tuning. At 100%, Smart Auto-Balance does the sizing automatically.</div>
-    </div>
-
-    <div id="validationBar" class="validationbar warn" aria-live="polite">
-      <div><span class="vmain">Checking products…</span></div>
     </div>
 
     <div id="imageHealthPanel" class="image-health-panel" aria-live="polite">
@@ -2102,22 +2223,51 @@
       <div class="exportnote" style="text-align:left;margin-top:8px">Yellow does not mean the image is missing — it means the preview works but PNG export may not be guaranteed. Red means every available source failed. The published Google Sheet is read-only here, so V18 cannot colour/write back into it directly; the image audit CSV now includes the expected local filename/path so problems are easy to identify.</div>
     </div>
 
-    <div class="stage"><div class="frame"><div class="slide l-two" id="slide"></div></div></div>
-
-    <div class="pager">
-      <button class="btn" id="prevPage">‹ Prev</button>
-      <div class="pageinfo" id="pageInfo">Page 1</div>
-      <button class="btn" id="nextPage">Next ›</button>
     </div>
 
-    <div class="row" style="justify-content:center;margin-top:10px">
-      <button class="btn primary" id="downloadBtn">Download this slide</button>
-      <button class="btn ghost" id="downloadAll">Download all (.zip)</button>
+    <!-- RIGHT: live preview. Pinned on desktop so the generated slide is always visible. -->
+    <aside class="studio-preview" aria-label="Live slide preview">
+      <div class="preview-card" id="previewCard">
+        <div class="preview-head">
+          <div class="ph-left">
+            <div class="ph-kicker">Live preview</div>
+            <div class="ph-title"><span id="previewLayoutName">2-Product</span><span class="ph-channel" id="previewChannel"></span></div>
+          </div>
+          <div class="ph-right">
+            <span class="dims" id="dimsNote">1000 × 625 canvas · PNG 2000 × 1250</span>
+            <div class="zoomseg" role="group" aria-label="Preview zoom">
+              <button class="btn btn-sm active" data-zoom="fit" title="Scale the slide to fit this panel">Fit</button>
+              <button class="btn btn-sm" data-zoom="actual" title="Show the slide at its real canvas size">100%</button>
+            </div>
+            <span class="zoomlabel" id="zoomLabel"></span>
+            <button class="btn btn-sm" id="fullscreenBtn" title="Full-screen preview (Esc to exit)" aria-label="Full-screen preview">⤢</button>
+          </div>
+        </div>
+
+        <div id="validationBar" class="validationbar warn" aria-live="polite">
+      <div><span class="vmain">Checking products…</span></div>
     </div>
-    <div class="dims" id="dimsNote">Canvas 1000 × 625 · PNG export 2000 × 1250 px</div>
-    <div class="exportnote">Active products from the sheet are split across pages automatically (4 per page for checkout, 6 for grid).</div>
+
+        <div class="stage" id="stage"><div class="frame" id="frame"><div class="slide l-two" id="slide"></div></div></div>
+
+        <div class="preview-foot">
+          <div class="pager">
+            <button class="btn" id="prevPage" title="Previous page (← key)">‹ Prev</button>
+            <div class="pageinfo" id="pageInfo">Page 1</div>
+            <button class="btn" id="nextPage" title="Next page (→ key)">Next ›</button>
+          </div>
+          <div class="dl-row">
+            <button class="btn primary" id="downloadBtn">Download this slide</button>
+            <button class="btn ghost" id="downloadAll">Download all (.zip)</button>
+          </div>
+        </div>
+        <div class="pagechips" id="pageChips" aria-label="Jump to page" hidden></div>
+        <div class="preview-note" id="previewSummary"></div>
+      </div>
+    </aside>
+
+   </div>
   </div>
-
 </div>
 
 <script>
@@ -2135,7 +2285,9 @@ function openModule(id){
   document.getElementById('mod-'+id).classList.add('on');
   crumbs.innerHTML=`<a id="homeLink">Staff Hub</a> › <span class="hubname">${id==='specials'?'Update Specials':id}</span>`;
   document.getElementById('homeLink').onclick=goHome;
+  document.body.classList.toggle('studio-mode',id==='specials');
   window.scrollTo(0,0);
+  if(id==='specials')requestAnimationFrame(()=>{fit();scheduleAutoBalance(document.getElementById('slide'));});
 }
 function goHome(){
   window.location.href='../../index.html';
@@ -2195,7 +2347,8 @@ const S={layout:'two', page:0, title:'',
   edited:false,
   autoBalance:true,
   source:'sample',
-  lastLoaded:null};
+  lastLoaded:null,
+  zoom:'fit'};   // preview only: 'fit' scales to the panel, 'actual' shows real canvas pixels
 
 const SAMPLE=[
   {brand:'MELROSE',name:'Essential Greens 200g',now:'24.95',disc:'was',dv:'29.95',rrp:'29.95',img:'',scale:'100'},
@@ -2909,6 +3062,7 @@ function renderImageHealthPanel(){
       card.classList.toggle('image-warning',!!health&&(health.status==='risk'||health.status==='fallback'));
     }
   });
+  renderPageChips();
 }
 function updateValidation(){
   const el=document.getElementById('validationBar');if(!el)return;
@@ -3007,7 +3161,7 @@ function buildInputs(){
   const box=document.getElementById('prodInputs');
   const per=LAYOUTS[S.layout].per,st=pageStart(),rows=activeRows();
   const idxs=[];for(let i=0;i<per;i++){if(st+i<rows.length)idxs.push(st+i);}
-  box.style.gridTemplateColumns=per<=1?'1fr':(per<=2?'1fr 1fr':(per<=4?'1fr 1fr':'1fr 1fr 1fr'));
+  box.style.gridTemplateColumns=''; // column count now adapts to the controls column width (CSS auto-fill)
   box.innerHTML='';
   const discOpts=[['was','WAS price'],['save$','SAVE $'],['save%','SAVE %'],['deal','Deal line'],['none','No discount']];
   idxs.forEach(gi=>{
@@ -3127,7 +3281,7 @@ function render(rebuildInputs=true){
   // then merely captured at a different size, causing clipping and distortion.
   s.style.width=L.w+'px';
   s.style.height=L.h+'px';
-  document.getElementById('dimsNote').textContent=`Canvas ${L.w} × ${L.h} · PNG export ${L.w*EXPORT_SCALE} × ${L.h*EXPORT_SCALE} px`;
+  document.getElementById('dimsNote').textContent=`${L.w} × ${L.h} canvas · PNG ${L.w*EXPORT_SCALE} × ${L.h*EXPORT_SCALE}`;
   if(S.page>=pageCount())S.page=0;
   const P=pageRows();let html='';
   if(S.layout==='single'){
@@ -3221,14 +3375,117 @@ function render(rebuildInputs=true){
   s.innerHTML=html;
   document.getElementById('pageInfo').textContent=`Page ${S.page+1} of ${pageCount()}`;
   if(rebuildInputs)buildInputs();
-  fit();updateLayoutAdvice();updateValidation();
+  fit();updateLayoutAdvice();updatePreviewHead();updateValidation();
   scheduleAutoBalance(s);
 }
+/* ---------- studio preview: scale-to-fit, zoom, page chips, full screen ---------- */
+const STUDIO_MQ=window.matchMedia('(min-width:1100px)');
+const PINNED_TOP_MQ=window.matchMedia('(min-width:701px)');
+const PREVIEW_MAX_SCALE=1.6;
 function fit(){
   const s=document.getElementById('slide'),L=LAYOUTS[S.layout];
-  const avail=Math.min(L.w,document.querySelector('.wrap').clientWidth),sc=avail/L.w;
-  s.style.transform=sc<1?`scale(${sc})`:'none';
-  document.querySelector('.stage').style.height=(L.h*Math.min(sc,1))+'px';
+  const stage=document.getElementById('stage'),frame=document.getElementById('frame');
+  if(!s||!stage||!frame)return;
+  const cs=getComputedStyle(stage);
+  const availW=stage.clientWidth-parseFloat(cs.paddingLeft||0)-parseFloat(cs.paddingRight||0);
+  if(availW<=0)return; // module still hidden — the ResizeObserver refits once it is visible
+  // Desktop studio and full screen give the stage a fixed height to fill.
+  // On narrower screens the preview is kept to a share of the window height.
+  const pinned=STUDIO_MQ.matches||!!document.fullscreenElement;
+  const availH=pinned
+    ? stage.clientHeight-parseFloat(cs.paddingTop||0)-parseFloat(cs.paddingBottom||0)
+    : Math.round(window.innerHeight*(PINNED_TOP_MQ.matches?.40:.62));
+  let sc=S.zoom==='actual'?1:Math.min(availW/L.w,Math.max(60,availH)/L.h,PREVIEW_MAX_SCALE);
+  sc=Math.max(.05,sc);
+  s.style.transformOrigin='0 0';
+  s.style.transform=sc===1?'none':`scale(${sc})`;
+  frame.style.width=Math.round(L.w*sc)+'px';
+  frame.style.height=Math.round(L.h*sc)+'px';
+  stage.classList.toggle('actual',S.zoom==='actual');
+  const zl=document.getElementById('zoomLabel');if(zl)zl.textContent=Math.round(sc*100)+'%';
+}
+function updatePreviewHead(){
+  const btn=document.querySelector(`#layoutBtns .btn[data-layout="${S.layout}"]`);
+  const m=LAYOUT_META[S.layout]||{};
+  const name=document.getElementById('previewLayoutName'),ch=document.getElementById('previewChannel');
+  if(name)name.textContent=btn?btn.textContent.trim():S.layout;
+  if(ch){ch.textContent=m.channel?` · ${m.channel}`:'';ch.className='ph-channel'+(m.kind==='warn'?' warn':(m.kind==='secondary'?' secondary':''));}
+  const n=activeRows().length,per=LAYOUTS[S.layout].per,pc=pageCount();
+  const sum=document.getElementById('previewSummary');
+  if(sum)sum.innerHTML=`${n} product${n===1?'':'s'} · ${per} per page · ${pc} page${pc===1?'':'s'} · <kbd>←</kbd> <kbd>→</kbd> flip pages · page chips with a dot need attention`;
+  const pl=document.getElementById('prodPageLabel');
+  if(pl)pl.textContent=pc>1?` · page ${S.page+1} of ${pc}`:'';
+}
+function pageHealthFlag(items){
+  let flag='';
+  for(const p of items){
+    const hl=IMAGE_HEALTH.get(productKey(p));
+    const noPrice=!hasPrice(p.now)&&!(p.disc==='deal'&&String(p.dv||'').trim());
+    if(noPrice||!imageCandidates(p).length||(hl&&hl.status==='failed'))return 'err';
+    if(hl&&hl.status==='risk')flag='warn';
+  }
+  return flag;
+}
+function renderPageChips(){
+  const el=document.getElementById('pageChips');if(!el)return;
+  const n=pageCount(),per=LAYOUTS[S.layout].per,rows=activeRows();
+  if(n<=1){el.innerHTML='';el.hidden=true;el.dataset.page='';return;}
+  el.hidden=false;
+  let html='';
+  for(let i=0;i<n;i++){
+    const items=rows.slice(i*per,i*per+per);
+    const names=items.map(p=>`${String(p.brand||'').trim()} ${String(p.name||'').trim()}`.trim()).join(' · ');
+    const flag=pageHealthFlag(items);
+    html+=`<button type="button" class="pchip${i===S.page?' on':''}${flag?' '+flag:''}" data-page="${i}" aria-current="${i===S.page?'page':'false'}" title="Page ${i+1}: ${ha(names)}">${i+1}</button>`;
+  }
+  el.innerHTML=html;
+  // Keep the current page chip in view, but only when the page changes so a
+  // user scrolling the chip strip is not pulled back on every image check.
+  if(el.dataset.page!==String(S.page)+'|'+S.layout){
+    el.dataset.page=String(S.page)+'|'+S.layout;
+    const on=el.querySelector('.pchip.on');
+    if(on)el.scrollLeft=Math.max(0,on.offsetLeft-el.clientWidth/2+on.offsetWidth/2);
+  }
+}
+function goPage(i){
+  const n=pageCount();
+  S.page=((i%n)+n)%n;
+  render(true);
+}
+document.getElementById('pageChips').addEventListener('click',e=>{
+  const b=e.target.closest('.pchip');if(b)goPage(+b.dataset.page);
+});
+document.querySelectorAll('[data-zoom]').forEach(b=>b.onclick=()=>{
+  S.zoom=b.dataset.zoom==='actual'?'actual':'fit';
+  document.querySelectorAll('[data-zoom]').forEach(x=>x.classList.toggle('active',x===b));
+  try{localStorage.setItem('phf_preview_zoom',S.zoom);}catch(err){}
+  fit();
+});
+(function(){
+  const btn=document.getElementById('fullscreenBtn'),card=document.getElementById('previewCard');
+  if(!card.requestFullscreen){btn.style.display='none';return;}
+  btn.onclick=()=>{
+    if(document.fullscreenElement){document.exitFullscreen().catch(()=>{});}
+    else card.requestFullscreen().catch(()=>{});
+  };
+  document.addEventListener('fullscreenchange',()=>{
+    const on=document.fullscreenElement===card;
+    btn.textContent=on?'✕':'⤢';
+    btn.title=on?'Exit full screen (Esc)':'Full-screen preview (Esc to exit)';
+    requestAnimationFrame(fit);
+  });
+})();
+// ← / → change page whenever the cursor is not in a text box, dropdown or slider.
+document.addEventListener('keydown',e=>{
+  if(!document.getElementById('mod-specials').classList.contains('on'))return;
+  if(e.altKey||e.ctrlKey||e.metaKey||e.shiftKey)return;
+  const t=e.target,tag=t&&t.tagName?t.tagName:'';
+  if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'||(t&&t.isContentEditable))return;
+  if(e.key==='ArrowRight'){e.preventDefault();goPage(S.page+1);}
+  else if(e.key==='ArrowLeft'){e.preventDefault();goPage(S.page-1);}
+});
+if('ResizeObserver' in window){
+  new ResizeObserver(()=>requestAnimationFrame(fit)).observe(document.getElementById('stage'));
 }
 window.addEventListener('resize',()=>{fit();scheduleAutoBalance(document.getElementById('slide'));});
 
@@ -3238,8 +3495,8 @@ document.querySelectorAll('#layoutBtns .btn').forEach(b=>b.onclick=()=>{
   b.classList.add('active');S.layout=b.dataset.layout;S.page=0;render(true);
 });
 ['title','kick','foot'].forEach(k=>document.getElementById('f_'+k).addEventListener('input',e=>{S[k]=e.target.value;render(false);}));
-document.getElementById('prevPage').onclick=()=>{S.page=(S.page-1+pageCount())%pageCount();render(true);};
-document.getElementById('nextPage').onclick=()=>{S.page=(S.page+1)%pageCount();render(true);};
+document.getElementById('prevPage').onclick=()=>goPage(S.page-1);
+document.getElementById('nextPage').onclick=()=>goPage(S.page+1);
 document.getElementById('autoBalanceToggle').addEventListener('change',e=>{
   S.autoBalance=!!e.target.checked;
   try{localStorage.setItem('phf_auto_balance',S.autoBalance?'on':'off');}catch(err){}
@@ -3247,7 +3504,11 @@ document.getElementById('autoBalanceToggle').addEventListener('change',e=>{
 });
 
 /* ---------- sheet loading ---------- */
-function setStatus(cls,msg){const el=document.getElementById('loadStatus');el.className='status '+cls;el.innerHTML=msg;}
+function setStatus(cls,msg){
+  const el=document.getElementById('loadStatus');el.className='status '+cls;el.innerHTML=msg;
+  // Problems open the data-source options automatically; a healthy load keeps them tucked away.
+  const d=document.getElementById('sourceDetails');if(d&&cls==='err')d.open=true;
+}
 
 /*
   SPECIALS FEED LOADER V3
@@ -3558,12 +3819,20 @@ function waitForImages(root){
   const imgs=[...root.querySelectorAll('img')];
   return Promise.all(imgs.map(im=>im.complete?Promise.resolve():new Promise(resolve=>{im.addEventListener('load',resolve,{once:true});im.addEventListener('error',resolve,{once:true});setTimeout(resolve,3000);})));}
 async function captureCurrentPage(){
-  const s=document.getElementById('slide'),L=LAYOUTS[S.layout],t=s.style.transform;
-  s.style.transform='none';
+  const s=document.getElementById('slide'),L=LAYOUTS[S.layout];
   await waitForImages(s);
   await applyAutoBalance(s);
-  const canvas=await html2canvas(s,{width:L.w,height:L.h,scale:EXPORT_SCALE,backgroundColor:'#ffffff',useCORS:true,logging:false});
-  s.style.transform=t;
+  // Export from html2canvas' private copy of the page: the copied slide is
+  // un-scaled and lifted out of the preview frame, so the on-screen zoom,
+  // pinned layout and scroll position can never clip or shrink the PNG.
+  const canvas=await html2canvas(s,{width:L.w,height:L.h,scale:EXPORT_SCALE,backgroundColor:'#ffffff',useCORS:true,logging:false,
+    onclone:(doc,clone)=>{
+      const c=clone||doc.getElementById('slide');if(!c)return;
+      c.style.transform='none';
+      const host=doc.createElement('div');
+      host.style.cssText=`position:absolute;left:0;top:0;width:${L.w}px;height:${L.h}px;margin:0;padding:0;z-index:2147483647`;
+      doc.body.appendChild(host);host.appendChild(c);
+    }});
   return canvas;
 }
 function canvasBlob(canvas){return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('PNG creation failed')),'image/png'));}
@@ -3628,6 +3897,9 @@ document.getElementById('downloadAll').onclick=async()=>{
   }
   S.autoBalance=autoPref!=='off';
   document.getElementById('autoBalanceToggle').checked=S.autoBalance;
+  let zoomPref=null;try{zoomPref=localStorage.getItem('phf_preview_zoom');}catch(e){}
+  S.zoom=zoomPref==='actual'?'actual':'fit';
+  document.querySelectorAll('[data-zoom]').forEach(x=>x.classList.toggle('active',x.dataset.zoom===S.zoom));
   S.source='sample';syncWork();
   document.getElementById('sheetUrl').value=saved;
   loadSheet(saved,true);
