@@ -11,6 +11,30 @@
   function border(){const c={argb:argb(PHF.schema.VISUAL.border)};return {top:{style:'thin',color:c},left:{style:'thin',color:c},bottom:{style:'thin',color:c},right:{style:'thin',color:c}};}
   function setFormula(cell,formula,result){cell.value={formula,result};}
   function downloadBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);}
+
+  const REPORT_CODE_KEYS=new Set(['Invoice Number','Your Ref','Line Count','POS PLU','CH2 SUPPLIER SKU','CH2 PRODUCT CODE']);
+  function cleanReportCode(v){return clean(v).replace(/[−–—]/g,'-').replace(/[\t\r\n"]/g,' ').replace(/[$%]/g,'').replace(/\s+/g,' ').trim();}
+  function normalizeBarcode(v){return clean(v).replace(/\.0+$/,'').replace(/\D+/g,'');}
+  function exportCellValue(col,value){
+    if(col.key==='POS MASTER BARCODE')return normalizeBarcode(value);
+    if(col.type==='text')return REPORT_CODE_KEYS.has(col.key)?cleanReportCode(value):String(value??'');
+    return value??'';
+  }
+  function csvEscape(value){
+    const s=String(value??'');return /[",\r\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s;
+  }
+  function csvCellValue(col,value){
+    const v=exportCellValue(col,value);
+    if(col.key==='POS MASTER BARCODE'){
+      const b=normalizeBarcode(v);return b?`="${b}"`:'';
+    }
+    return v;
+  }
+  function buildCsvText(output){
+    const {COLUMNS,HEADERS}=PHF.schema,lines=[HEADERS.map(csvEscape).join(',')];
+    for(const row of (output&&output.rows)||[])lines.push(COLUMNS.map(c=>csvEscape(csvCellValue(c,row[c.key]))).join(','));
+    return '\uFEFF'+lines.join('\r\n')+'\r\n';
+  }
   function applyState(cell,state){
     const V=PHF.schema.VISUAL;
     if(state==='good'){cell.fill=fill(V.goodFill);cell.font=font(V.goodText,true);}
@@ -79,7 +103,7 @@
     COLUMNS.forEach((c,i)=>{ws.getColumn(i+1).width=c.width;});
     const dataStart=3,dataEnd=dataStart+rows.length-1,totalsRow=dataEnd+1;
     ws.addRow(new Array(HEADERS.length).fill(''));ws.addRow(HEADERS);
-    rows.forEach(r=>ws.addRow(COLUMNS.map(c=>r[c.key]??'')));
+    rows.forEach(r=>ws.addRow(COLUMNS.map(c=>exportCellValue(c,r[c.key]))));
     ws.addRow(new Array(HEADERS.length).fill(''));ws.getCell(totalsRow,1).value='SUM TOTALS';
 
     const idx=Object.fromEntries(HEADERS.map((h,i)=>[h,i+1])),invoiceCount=new Set(rows.map(r=>clean(r['Invoice Number'])).filter(Boolean)).size,refCount=new Set(rows.map(r=>clean(r['Your Ref'])).filter(Boolean)).size;
@@ -161,6 +185,56 @@
     const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'}),stamp=new Date().toLocaleDateString('en-AU').replace(/\//g,'.');downloadBlob(blob,`CH2_CURRENT_RECONCILIATIONS_${stamp}.zip`);return outputs;
   }
 
-  PHF.report={buildWorkbook,buildValidatedBuffer,enforceExactPackage};
+  async function exportReferenceCsv(invoiceDocs,refs,posOrder,reconciliation){
+    const outputs=PHF.linkedPos.buildReferenceOutputs(invoiceDocs,refs,posOrder,reconciliation);if(!outputs.length)throw new Error('No supplier invoice output could be created.');
+    if(outputs.length===1){const out=outputs[0],name=out.filename.replace(/\.xlsx$/i,'.csv');downloadBlob(new Blob([buildCsvText(out)],{type:'text/csv;charset=utf-8'}),name);return outputs;}
+    if(!global.JSZip)throw new Error('ZIP export library did not load. Refresh the page and try again.');
+    const zip=new global.JSZip();for(const out of outputs)zip.file(out.filename.replace(/\.xlsx$/i,'.csv'),buildCsvText(out));
+    const stamp=new Date().toLocaleDateString('en-AU').replace(/\//g,'.'),blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});downloadBlob(blob,`CH2_CURRENT_RECONCILIATIONS_CSV_${stamp}.zip`);return outputs;
+  }
+
+
+  function safePart(v){return clean(v).trim().replace(/[^A-Za-z0-9._-]+/g,'_').replace(/^_+|_+$/g,'')||'CURRENT';}
+  function n(v){const x=Number(v);return Number.isFinite(x)?x:null;}
+  function sumInvoiceRows(rows,key){return Math.round((rows||[]).reduce((a,r)=>a+(n(r&&r[key])||0),0)*100)/100;}
+  function weightedInvoice(rows,key){let total=0,weight=0;for(const r of rows||[]){const value=n(r&&r[key]),w=n(r&&r.qtySupplied);if(value!=null&&w!=null&&w>0){total+=value*w;weight+=w;}}return weight?total/weight:null;}
+  async function downloadWorkbook(wb,filename){const buffer=await wb.xlsx.writeBuffer();downloadBlob(new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),filename);return filename;}
+  function styleSimpleSheet(ws,headers,widths){
+    const V=PHF.schema.VISUAL,header=ws.getRow(1);header.height=24;
+    headers.forEach((h,i)=>{const cell=ws.getCell(1,i+1);cell.fill=fill(V.headerFill);cell.font=font(V.text,true);cell.border=border();cell.alignment={horizontal:'center',vertical:'middle',wrapText:true};ws.getColumn(i+1).width=widths[i]||14;});
+    const last=ws.rowCount;
+    for(let r=2;r<=last;r++){ws.getRow(r).height=20;for(let c=1;c<=headers.length;c++){const cell=ws.getCell(r,c);cell.fill=fill((r%2===0)?V.oddFill:V.evenFill);cell.font=font(V.text,false);cell.border=border();cell.alignment={vertical:'middle',wrapText:false};}}
+    if(last>=2)ws.autoFilter={from:{row:1,column:1},to:{row:last,column:headers.length}};
+    ws.views=[{state:'frozen',ySplit:1,topLeftCell:'A2',showGridLines:false}];ws.pageSetup={orientation:'landscape',fitToWidth:1};
+  }
+  async function exportExceptions(reconciliation){
+    if(!global.ExcelJS)throw new Error('Excel export library did not load. Refresh the page and try again.');
+    const wb=new global.ExcelJS.Workbook();wb.creator='Prahran Health Foods Staff Hub';
+    const ws=wb.addWorksheet('Exceptions');
+    const headers=['STATUS','POS PRODUCT','ORDERED','SUPPLIED','EXPECTED UNIT','INVOICE UNIT','VARIANCE','MISSED $','MATCH'];
+    const rows=(reconciliation.detail||[]).filter(x=>x.hasException||x.matchConfidence==='LOW').map(x=>[x.status,x.posDescription,x.orderedQty,x.suppliedQty,x.expectedUnit,x.actualUnit,x.unitVariance,x.missedTotal,x.matchConfidence||'']);
+    for(const x of reconciliation.unmatchedInvoice||[])rows.push(['NOT ORDERED / UNMATCHED',x.description,'',x.qtySupplied,'',x.unitPriceExGst,'',0,'']);
+    ws.addRow(headers);rows.forEach(r=>ws.addRow(r));styleSimpleSheet(ws,headers,[26,48,12,12,15,15,14,13,12]);
+    for(let r=2;r<=ws.rowCount;r++){
+      applyState(ws.getCell(r,1),stateFor(ws.getCell(r,1).value,'matchStatus'));
+      applyState(ws.getCell(r,9),stateFor(ws.getCell(r,9).value,'confidence'));
+      ws.getCell(r,2).alignment={vertical:'middle',horizontal:'left'};
+      for(let c=3;c<=8;c++){ws.getCell(r,c).alignment={vertical:'middle',horizontal:'right'};ws.getCell(r,c).numFmt=c<=4?'0.###':'$#,##0.00';}
+    }
+    const filename=`CH2_PO_${safePart(reconciliation.orderNumber)}_EXCEPTIONS.xlsx`;return downloadWorkbook(wb,filename);
+  }
+  async function exportPosLayout(invoiceDocs,refs,posOrder,reconciliation,options={}){
+    if(!PHF.posImport||typeof PHF.posImport.exportLegacyPosImport!=='function')throw new Error('POS import exporter did not load. Refresh the page and try again.');
+    return PHF.posImport.exportLegacyPosImport(invoiceDocs,refs,posOrder,reconciliation,options);
+  }
+  async function exportView(view,invoiceDocs,refs,posOrder,reconciliation,options={}){
+    if(view==='exceptions')return exportExceptions(reconciliation);
+    if(view==='pos')return exportPosLayout(invoiceDocs,refs,posOrder,reconciliation,options);
+    return exportReference(invoiceDocs,refs,posOrder,reconciliation);
+  }
+
+  PHF.report={buildWorkbook,buildValidatedBuffer,enforceExactPackage,buildCsvText};
   PHF.exportReference=exportReference;
+  PHF.exportReferenceCsv=exportReferenceCsv;
+  PHF.exportView=exportView;
 })(window);

@@ -6,6 +6,10 @@
   function clean(v){return v==null?'':String(v).trim();}
   function normText(v){return clean(v).toUpperCase().replace(/[^A-Z0-9]+/g,' ').replace(/\s+/g,' ').trim();}
   function digits(v){return clean(v).replace(/\.0+$/,'').replace(/\D+/g,'');}
+  function numericCodeOnly(v){
+    let s=clean(v);if(/^\d+\.0+$/.test(s))s=s.split('.')[0];
+    return /^\d+$/.test(s)?s:'';
+  }
   function round(v,n=2){if(v==null||!Number.isFinite(Number(v)))return null;const p=10**n;return Math.round((Number(v)+Number.EPSILON)*p)/p;}
   function tokenDice(a,b){const A=[...new Set(normText(a).split(' ').filter(Boolean))],B=[...new Set(normText(b).split(' ').filter(Boolean))];if(!A.length||!B.length)return 0;const setB=new Set(B);let common=0;A.forEach(x=>{if(setB.has(x))common++;});return 2*common/(A.length+B.length)*100;}
   function levenshteinRatio(a,b){a=normText(a);b=normText(b);if(a===b)return a?100:0;if(!a||!b)return 0;if(a.length>b.length){const t=a;a=b;b=t;}let prev=Array.from({length:a.length+1},(_,i)=>i),cur=new Array(a.length+1);for(let j=1;j<=b.length;j++){cur[0]=j;for(let i=1;i<=a.length;i++)cur[i]=Math.min(cur[i-1]+1,prev[i]+1,prev[i-1]+(a[i-1]===b[j-1]?0:1));const t=prev;prev=cur;cur=t;}const d=prev[a.length],mx=Math.max(a.length,b.length);return mx?((mx-d)/mx)*100:100;}
@@ -23,7 +27,7 @@
 
   function candidate(inv,pos,refs){
     const bridge=bridgeForInvoice(inv,refs),rec=bridge.rec||{},sup=bridge.supplier||{};
-    const posBarcode=digits(pos.barcode),posPlu=digits(pos.plu),posSub=digits(pos.subId),invCode=digits(inv.productCode),bridgeBarcode=digits(rec.POS_MASTER_BARCODE),bridgePlu=digits(rec.POS_PLU),supBarcode=digits(sup.SUP_BARCODE);
+    const posBarcode=digits(pos.barcode),posPlu=digits(pos.plu),posSub=numericCodeOnly(pos.subId),invCode=digits(inv.productCode),bridgeBarcode=digits(rec.POS_MASTER_BARCODE),bridgePlu=digits(rec.POS_PLU),supBarcode=digits(sup.SUP_BARCODE);
     let score=0,method='',confidence='LOW',exact=false;
     if(bridgeBarcode&&posBarcode&&bridgeBarcode===posBarcode){score+=7000;method=`${bridge.via||'CH2_CODE'}→BARCODE→POS_ORDER`;confidence='HIGH';exact=true;}
     else if(bridgePlu&&posPlu&&bridgePlu===posPlu){score+=6500;method=`${bridge.via||'CH2_CODE'}→PLU→POS_ORDER`;confidence='HIGH';exact=true;}
