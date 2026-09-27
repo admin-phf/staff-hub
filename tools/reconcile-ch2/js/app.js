@@ -1,10 +1,10 @@
 (function(global){
   'use strict';
   const PHF=global.PHFReconcile||{};
-  const state={pos:null,invoices:[],result:null,previewView:'pos',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackManualChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null,receivingMigratedFrom266:false,orderOverrides:new Map(),posSortKey:'__pos_order_index',posSortDir:'asc'};
+  const state={pos:null,invoices:[],result:null,previewView:'pos',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackManualChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null,receivingMigratedFrom266:false,orderOverrides:new Map(),importKeys:new Map(),importKeyReviews:new Map(),posSortKey:'__pos_order_index',posSortDir:'asc'};
   const els={
     referenceReady:document.querySelector('#referenceReady'),referenceDot:document.querySelector('#referenceDot'),buildLabel:document.querySelector('#buildLabel'),
-    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),orderOverrideBox:document.querySelector('#orderOverrideBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),fullDownloadBtn:document.querySelector('#fullDownloadBtn'),fullCsvDownloadBtn:document.querySelector('#fullCsvDownloadBtn'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn')
+    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),orderOverrideBox:document.querySelector('#orderOverrideBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),fullDownloadBtn:document.querySelector('#fullDownloadBtn'),fullCsvDownloadBtn:document.querySelector('#fullCsvDownloadBtn'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),keyReviewBtn:document.querySelector('#keyReviewBtn'),importKeySummary:document.querySelector('#importKeySummary'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn')
   };
 
   const RECON_COLUMNS=[
@@ -30,6 +30,7 @@
     {key:'plu',label:'POS PLU',kind:'text',cls:'pos-code',min:58,max:96,grow:.05,stretch:.06,hardMax:140},
     {key:'sub_id',label:'POS Sub ID',kind:'text',cls:'pos-code',min:74,max:155,grow:.06,stretch:.08,hardMax:240},
     {key:'__ch2_item_code',label:'CH2 ITEM CODE',kind:'text',cls:'pos-code pos-ch2-item-code',min:78,max:132,grow:.05,stretch:.06,hardMax:180},
+    {key:'__import_sub_id',label:'Import Sub ID',kind:'importkey',cls:'pos-import-key',min:170,max:230,grow:.08,hardMax:300},
     {key:'descr',label:'Product Description',kind:'text',cls:'pos-desc',min:220,max:520,grow:.30,stretch:.38,hardMax:940},
     {key:'gst_tax_pc',label:'GST %',kind:'number',dp:2,min:44,max:60,grow:.01},
     {key:'units',label:'Units',kind:'number',dp:2,min:40,max:54,grow:.01},
@@ -84,7 +85,7 @@
       else if(selected)receivingBySourceRow[sourceKey]=expected;
       else receivingBySourceRow[sourceKey]=0;
     }
-    return {orderOverrides:Object.fromEntries(state.orderOverrides),autoLinkPosOrder:true,receivingBySourceRow,selectedBySourceRow,uncheckedMeansNotSupplied:true};
+    return {importKeysBySourceRow:Object.fromEntries(state.importKeys),orderOverrides:Object.fromEntries(state.orderOverrides),autoLinkPosOrder:true,receivingBySourceRow,selectedBySourceRow,uncheckedMeansNotSupplied:true};
   }
   function renderOrderOverrideUi(){
     const box=els.orderOverrideBox;if(!box)return;const mismatches=orderLinkMismatches();
@@ -152,6 +153,27 @@
     }
     return codes.join(', ');
   }
+  function importIdentityFor(pos,detail){
+    return state.importKeyReviews.get(String(pos.sourceRow))||PHF.posImport.resolveImportIdentity(pos,state.refs,detail&&detail.invoiceRows||[],{importKeysBySourceRow:state.importKeys});
+  }
+  function refreshImportKeyReview(){
+    const rows=state.result&&state.posParsed?PHF.posImport.reviewImportKeys(state.refs,state.posParsed,state.result,{importKeysBySourceRow:state.importKeys}):[];
+    state.importKeyReviews=new Map(rows.map(x=>[String(x.pos.sourceRow),x.identity]));
+    if(!els.importKeySummary)return;
+    els.importKeySummary.classList.toggle('hidden',!rows.length);
+    const blank=rows.filter(x=>!x.identity.orderSubId),review=rows.filter(x=>x.identity.status==='REVIEW');
+    els.importKeySummary.innerHTML=`<strong>POSActive import keys: ${review.length} to review</strong><br>${blank.length?`${blank.length} invoiced products have a blank Sub ID in the uploaded POS order. `:''}Product matches and POSActive keys are checked separately. The Import Sub ID column shows the exact export key and its source. Hover for aligned-master candidates, or download the key review CSV. Enter a replacement only after confirming that key exists in POSActive. Edits here change the TXT only, last for this run, and never update POSActive. Review warnings do not block download.`;
+    if(els.keyReviewBtn)els.keyReviewBtn.disabled=!rows.length;
+  }
+  function commitImportKey(input){
+    if(!input)return;
+    const key=input.dataset.importKeyRow,value=String(input.value||'').trim(),old=state.importKeys.get(key)||'';
+    if(value===input.dataset.currentKey)return;
+    if(value)state.importKeys.set(key,value);else state.importKeys.delete(key);
+    if((state.importKeys.get(key)||'')===old){input.value=input.dataset.currentKey||'';return;}
+    refreshImportKeyReview();renderPosTable();
+    setStatus('Import key updated for this run. Confirm the same supplier key exists in POSActive. Download remains available.','warn');
+  }
   function posSubIdReviewNotes(){
     if(!state.result||!state.posParsed)return [];
     const notes=[],rows=sortedPosRows(),details=posDetailMap();
@@ -170,6 +192,7 @@
   }
   function posColumnValue(pos,c,detail=null){
     if(!pos||!c)return '';
+    if(c.key==='__import_sub_id')return importIdentityFor(pos,detail).importSubId;
     if(c.key==='__pos_order_index')return Number(pos.posIndex||0)||'';
     if(c.key==='__invoice_line')return invoiceLineDisplay(detail);
     if(c.key==='__ch2_item_code')return ch2ItemCodeDisplay(detail);
@@ -295,6 +318,7 @@
   function resetReceivingState({clearStorage=true,orderId=''}={}){
     clearTimeout(posReceivingRenderTimer);posReceivingRenderTimer=0;
     if(clearStorage)clearStoredReceivingState(orderId);
+    state.importKeys=new Map();state.importKeyReviews=new Map();
     state.unpackChecked=new Set();
     state.unpackManualChecked=new Set();
     state.unpackCounts=new Map();
@@ -663,6 +687,7 @@
       els.fullCsvDownloadBtn.disabled=!ready;
       els.fullCsvDownloadBtn.title=ready?'Download the same 43-column reconciliation as an Excel-safe UTF-8 CSV. Barcodes use a text formula so leading zeroes remain visible when opened directly in Excel.':'CSV export is blocked until all integrity checks pass.';
     }
+    if(els.keyReviewBtn)els.keyReviewBtn.disabled=!state.result;
     if(!els.downloadBtn)return;
     const orderMismatches=orderLinkMismatches(),orderLinkReady=true;
     const labels={exceptions:'Download Exceptions.xlsx',pos:'Download POSActive Import.txt'};
@@ -691,6 +716,7 @@
     els.tableBody.innerHTML=rows.length?rows.map(x=>`<tr><td>${pill(x.status)}</td><td>${escapeHtml(x.posDescription)}</td><td class="num">${qty(x.orderedQty)}</td><td class="num">${qty(x.suppliedQty)}</td><td class="num">${money(x.expectedUnit)}</td><td class="num">${money(x.actualUnit,4)}</td><td class="num">${money(x.unitVariance,4)}</td><td class="num">${money(x.missedTotal)}</td><td class="center">${x.matchConfidence?escapeHtml(x.matchConfidence):'<span class="muted">—</span>'}</td></tr>`).join(''):'<tr><td colspan="9">No exceptions found.</td></tr>';
   }
   function renderPosTable(){
+    refreshImportKeyReview();
     if(els.posTools)els.posTools.classList.remove('hidden');
     els.tableWrap.classList.add('preview-pos');els.table.classList.add('pos-preview-table');
     const baseRows=sortedPosRows();const detailBySourceRow=posDetailMap();
@@ -730,6 +756,13 @@
         if(c.kind==='check'){
           html=`<button type="button" class="unpack-check ${unpackDone?'checked':''}" data-unpack-key="${escapeHtml(encodeURIComponent(checkKey))}" aria-pressed="${unpackDone?'true':'false'}" title="${unpackDone?'Untick — clear Found and return this row to Remaining':'Tick — manually accept/account for this row'}"><span aria-hidden="true">${unpackDone?'✓':''}</span></button>`;
           extraCls=' unpack-cell';
+        }else if(c.kind==='importkey'){
+          if(!detail||!detail.invoiceRows||!detail.invoiceRows.length)html='';
+          else{
+            const id=importIdentityFor(pos,detail),listId=`import-key-options-${pos.sourceRow}`,opts=[...new Set([id.orderSubId,...id.masterSubIds,...id.invoiceCodes].filter(Boolean))];
+            title=`Order Sub ID: ${id.orderSubId||'(blank)'} | Master Sub IDs for this product: ${id.masterSubIds.join(', ')||'(blank / no exact reference)'} | Source: ${id.source}. ${id.issues.join(' ')}`;
+            html=`<input type="text" class="import-key-input" data-import-key-row="${escapeHtml(pos.sourceRow)}" data-current-key="${escapeHtml(id.importSubId)}" value="${escapeHtml(id.importSubId)}" list="${escapeHtml(listId)}" aria-label="Import Sub ID for ${escapeHtml(pos.description)}" autocomplete="off"><datalist id="${escapeHtml(listId)}">${opts.map(v=>`<option value="${escapeHtml(v)}"></option>`).join('')}</datalist><span class="import-key-source ${id.status==='REVIEW'?'review':''}">${escapeHtml(id.source)}${id.status==='REVIEW'?' · REVIEW':''}</span>`;
+          }
         }else if(c.kind==='qtyinput'){
           const item=String(pos.description||pos.barcode||'this product'),expectedQty=unpackExpectedQty(pos,detail);
           html=`<input class="unpack-qty-input" type="number" step="any" inputmode="decimal" autocomplete="off" data-unpack-qty-key="${escapeHtml(encodeURIComponent(checkKey))}" data-unpack-expected="${escapeHtml(expectedQty)}" aria-label="Add unpacked quantity for ${escapeHtml(item)}" title="Expected in delivery: ${escapeHtml(displayUnpackCount(expectedQty))}. Enter a quantity; Enter, Tab, clicking elsewhere, switching window/tab or leaving the page will save it. Negative values subtract. Partial and over counts stay in Remaining. An exact count completes automatically. Enter 0 to clear Found, mark this row accounted as not supplied, and exclude its zero quantity from the POSActive import.">`;
@@ -795,6 +828,7 @@
       }
     };
     els.tableBody.onkeydown=e=>{
+      const importKey=e.target.closest('.import-key-input');if(importKey&&e.key==='Enter'){e.preventDefault();commitImportKey(importKey);return;}
       const add=e.target.closest('.unpack-qty-input'),found=e.target.closest('.unpack-qty-total');
       if(e.key==='Enter'&&(add||found)){
         e.preventDefault();
@@ -806,7 +840,7 @@
       }
     };
     els.tableBody.onfocusout=e=>{const add=e.target.closest('.unpack-qty-input'),found=e.target.closest('.unpack-qty-total');if(add)commitQtyInput(add);else if(found)commitFoundInput(found);};
-    els.tableBody.onchange=e=>{const add=e.target.closest('.unpack-qty-input'),found=e.target.closest('.unpack-qty-total');if(add)commitQtyInput(add);else if(found)commitFoundInput(found);};
+    els.tableBody.onchange=e=>{const importKey=e.target.closest('.import-key-input');if(importKey){commitImportKey(importKey);return;}const add=e.target.closest('.unpack-qty-input'),found=e.target.closest('.unpack-qty-total');if(add)commitQtyInput(add);else if(found)commitFoundInput(found);};
 
     if(els.tableFoot){
       if(baseRows.length){
@@ -869,7 +903,13 @@
     catch(err){console.error(err);setStatus(err&&err.message?err.message:String(err),'warn');}
     finally{updateDownloadButton();}
   };
+  if(els.keyReviewBtn)els.keyReviewBtn.onclick=()=>{
+    if(!state.result||!state.posParsed)return;
+    const out=PHF.posImport.exportKeyReview(state.refs,state.posParsed,state.result,{importKeysBySourceRow:state.importKeys});
+    setStatus(`POS key review downloaded: ${out.rows} invoiced products, ${out.review} to review. Import barcode columns as Text when opening this CSV in Excel.`,'info');
+  };
   els.downloadBtn.onclick=async()=>{
+    const activeKey=document.activeElement;if(activeKey&&activeKey.matches('.import-key-input'))commitImportKey(activeKey);
     commitActiveReceivingInput();
     if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok||state.previewView==='all')return;
     els.downloadBtn.disabled=true;els.downloadBtn.textContent=state.previewView==='pos'?'Building merged TXT…':'Building Excel…';

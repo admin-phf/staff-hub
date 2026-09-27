@@ -343,3 +343,10 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .preview-pos tfoot .pos-found-total-label{background:#f3f5f6;font-weight:800;text-align:right;white-space:nowrap;color:#41515d}
 .preview-pos tfoot .pos-found-total-value{background:#eaf4ff;font-weight:900;color:#0b3e78;text-align:right;font-variant-numeric:tabular-nums}
 .preview-pos tfoot .pos-total-spacer{background:#fff}
+
+/* v2.6.17: literal export key, source and aligned-master review. */
+.pos-preview-table .pos-import-key {min-width:170px;}
+.import-key-input {box-sizing:border-box;width:100%;min-width:120px;border:1px solid #b7c3bb;border-radius:4px;padding:5px 6px;background:#fff;color:#172b21;font:inherit;}
+.import-key-source {display:block;font-size:10px;color:#45624e;line-height:1.4;white-space:normal;}
+.import-key-source.review {color:#8a5200;font-weight:600;}
+#importKeySummary {border-left:4px solid #c48b27;line-height:1.55;}

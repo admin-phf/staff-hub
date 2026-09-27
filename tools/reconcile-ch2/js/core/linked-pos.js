@@ -93,9 +93,9 @@
   }
   function canonicalPosSubId(pos,refs){
     const rec=posReference(pos,refs)||{},orderSub=clean(pos&&pos.subId),masterSub=clean(rec.POS_SUB_ID);
-    // The linked POS/master is the canonical source for the supplier Sub ID used by
-    // the legacy invoice-import screen. Fall back to the uploaded order when unavailable.
-    return masterSub||orderSub;
+    // The uploaded order is the authority for its supplier key.
+    // Master values are review candidates, never silent replacements.
+    return orderSub;
   }
 
   function lineCount(v){const n=num(v);if(n==null)return clean(v);return Number.isInteger(n)?String(n):String(n).replace(/0+$/,'').replace(/\.$/,'');}

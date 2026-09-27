@@ -49,9 +49,62 @@
   function canonicalIdentity(pos,refs){
     const rec=masterRecordForPos(pos,refs)||{};
     return {
-      orderSubId:code(pos&&pos.subId),masterSubId:code(rec.POS_SUB_ID),barcode:digits(pos&&pos.barcode)||digits(rec.POS_MASTER_BARCODE),
+      orderSubId:clean(pos&&pos.subId),masterSubId:clean(rec.POS_SUB_ID),barcode:digits(pos&&pos.barcode)||digits(rec.POS_MASTER_BARCODE),
       plu:code(pos&&pos.plu)||code(rec.POS_PLU),description:clean(pos&&pos.description)||clean(rec.POS_DESCR),record:rec
     };
+  }
+
+  // The uploaded order owns the POSActive key. A master barcode match identifies
+  // the product, but does not prove that a different Sub ID exists on that order.
+  function resolveImportIdentity(pos,refs,invoiceRows=[],options={}){
+    const master=refs&&refs.master||{},barcode=digits(pos&&pos.barcode),plu=digits(pos&&pos.plu);
+    const codes=[...new Set(invoiceRows.map(r=>digits(r.productCode)).filter(Boolean))];
+    const pool=new Set();
+    for(const pc of codes)for(const r of (master.byCodeAll&&master.byCodeAll.get(pc))||[])pool.add(r);
+    for(const [all,single,key] of [[master.byPluAll,master.byPlu,plu],[master.byBarcodeAll,master.byBarcode,barcode]]){
+      if(!key)continue;for(const r of (all&&all.get(key))||[])pool.add(r);if(single&&single.has(key))pool.add(single.get(key));
+    }
+    const candidates=[...pool].filter(r=>{
+      const rp=digits(r.POS_PLU),rb=digits(r.POS_MASTER_BARCODE);
+      // A shared barcode must never borrow a supplier key from another PLU.
+      if(plu&&rp)return plu===rp&&(!barcode||!rb||barcode===rb);
+      return !!(barcode&&rb===barcode);
+    });
+    const masterSubIds=[...new Set(candidates.map(r=>clean(r.POS_SUB_ID)).filter(Boolean))];
+    const orderSubId=clean(pos&&pos.subId),overrides=options.importKeysBySourceRow||{},key=sourceRowKey(pos);
+    const manual=clean(overrides instanceof Map?overrides.get(key):overrides[key]);
+    const importSubId=manual||orderSubId||(codes.length===1?codes[0]:''),source=manual?'USER':orderSubId?'POS ORDER':importSubId?'CH2 FALLBACK':'MISSING';
+    const issues=[];
+    if(!orderSubId)issues.push('Order Sub ID is blank. The exported key is not verified against POSActive. Update the supplier key in POSActive or confirm a working key here.');
+    if(manual&&manual!==orderSubId)issues.push('User-selected key differs from the uploaded order. Confirm this key exists in POSActive; editing this field only changes the TXT.');
+    if(masterSubIds.length>1)issues.push('Aligned master has multiple Sub IDs for this product; no alternative was selected automatically.');
+    else if(masterSubIds.length===1&&orderSubId&&masterSubIds[0]!==orderSubId)issues.push('Aligned master Sub ID differs from the order. The order key is retained unless you enter an override.');
+    if(/["$%]/.test(importSubId))issues.push('Special characters are preserved literally and do not block export.');
+    if(!importSubId)issues.push('No single import key could be resolved.');
+    return {barcode,plu,orderSubId,masterSubIds,masterCandidates:candidates,invoiceCodes:codes,importSubId,source,issues,status:issues.length?'REVIEW':'ORDER KEY',masterLinked:candidates.length>0};
+  }
+
+  function reviewImportKeys(refs,posOrder,reconciliation,options={}){
+    const details=detailBySourceRow(reconciliation);
+    const review=sortedPos(posOrder).flatMap((pos,index)=>{
+      const detail=details.get(sourceRowKey(pos))||(reconciliation&&reconciliation.detail||[])[index];
+      if(!detail||!detail.invoiceRows||!detail.invoiceRows.length)return [];
+      const identity=resolveImportIdentity(pos,refs,detail.invoiceRows,options);
+      return [{pos,detail,identity}];
+    });
+    const counts=new Map();for(const {identity} of review)if(identity.importSubId)counts.set(identity.importSubId,(counts.get(identity.importSubId)||0)+1);
+    for(const {identity} of review)if((counts.get(identity.importSubId)||0)>1){identity.issues.push('This import Sub ID is shared by multiple invoiced order rows. Check which product POSActive selects.');identity.status='REVIEW';}
+    return review;
+  }
+
+  function exportKeyReview(refs,posOrder,reconciliation,options={}){
+    const review=reviewImportKeys(refs,posOrder,reconciliation,options);
+    const headers=['POS ORDER','POS INDEX','BARCODE','POS PLU','DESCRIPTION','INVOICE NO','CH2 ITEM CODE','ORDER SUB ID','MASTER SUB IDS','IMPORT SUB ID','KEY SOURCE','PRODUCT MATCH','KEY STATUS','REVIEW NOTE'];
+    const rows=[headers,...review.map(({pos,detail,identity:id})=>[posOrder.orderNumber,pos.posIndex,id.barcode,id.plu,pos.description,detail.invoiceNumbers,id.invoiceCodes.join(' | '),id.orderSubId,id.masterSubIds.join(' | '),id.importSubId,id.source,detail.matchConfidence,id.status,id.issues.join(' ')])];
+    const text='\uFEFF'+rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n')+'\r\n';
+    const filename=`POS_Key_Review_(${safePart(posOrder.orderNumber)}).csv`;
+    downloadBlob(new Blob([text],{type:'text/csv;charset=utf-8'}),filename);
+    return {filename,rows:review.length,review:review.filter(x=>x.identity.status==='REVIEW').length};
   }
   function masterCandidatesForInvoiceRow(inv,refs){
     const master=refs&&refs.master,pc=digits(inv&&inv.productCode);if(!master||!pc)return [];
@@ -202,7 +255,9 @@
       const outQty=allocation.has(key)?allocation.get(key):originalQty;
       if(outQty<=0){omittedNotSupplied.push({inv,ctx,selected:selectedOverride(options,ctx.pos)});continue;}
       const adjusted=Math.abs(outQty-originalQty)>0.0005,ext=adjusted?round(unit*outQty,2):round(inv.extendedExGst,2),gstRate=n(inv.gstPct)!=null?n(inv.gstPct):((n(inv.gstAmount)||0)>0?10:0),gst=adjusted?round(ext*gstRate/100,2):round(inv.gstAmount,2),total=adjusted?round(ext+gst,2):round(inv.totalIncGst,2);
-      const ch2Code=digits(inv.productCode),subId=code(ctx.identity.orderSubId)||ch2Code,rawSupplierCode=clean(inv.supplierSku),rawDescription=clean(inv.description),supplierCode=sanitizeDataText(rawSupplierCode),description=sanitizeDataText(rawDescription);
+      const importIdentity=resolveImportIdentity(ctx.pos,refs,ctx.invRows,options);
+      const ch2Code=digits(inv.productCode),subId=importIdentity.importSubId,rawSupplierCode=clean(inv.supplierSku),rawDescription=clean(inv.description),supplierCode=sanitizeDataText(rawSupplierCode),description=sanitizeDataText(rawDescription);
+      for(const issue of importIdentity.issues)pushIssue(warnings,`Invoice line ${lineText(inv.invoiceLine)} · ${lineLabel(ctx.pos,ctx.index)} · Import Sub ID "${subId}" (${importIdentity.source}): ${issue}`);
       if(/["$%]/.test(rawSupplierCode))warnings.push(`Invoice line ${lineText(inv.invoiceLine)}: POSActive-forbidden quote / dollar / percent character removed from Supplier Code for import only; reconciliation data is unchanged.`);
       if(/["$%]/.test(rawDescription))warnings.push(`Invoice line ${lineText(inv.invoiceLine)}: POSActive-forbidden quote / dollar / percent character removed from Description for import only; reconciliation data is unchanged.`);
       if(/[\t\r\n]/.test(subId))pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)} · ${lineLabel(ctx.pos,ctx.index)}: Sub ID contains a TAB or line break, which would corrupt the 15-column POSActive file. Correct the POS Sub ID before export.`);
@@ -212,14 +267,14 @@
       }
       if(/[A-Za-z]/.test(subId)&&/\s/.test(subId)&&/\b(?:ORDER|PER|SKU|PROMO|SPECIAL|FREE|OFF|DEAL|BUY|SAVE)\b/i.test(subId))warnings.push(`Invoice line ${lineText(inv.invoiceLine)} · ${lineLabel(ctx.pos,ctx.index)}: REVIEW SUB ID "${subId}" — it resembles ordering/promotion text rather than a stable supplier product code.`);
       if(!subId)pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)}: Sub ID cannot be resolved from the POS order or CH2 product code.`);
-      if(ctx.identity.orderSubId&&normCode(ctx.identity.orderSubId)!==normCode(ch2Code))warnings.push(`SUB ID OVERRIDE — CH2 ${ch2Code} uses POS order Sub ID ${ctx.identity.orderSubId} for ${description}.`);
+      if(subId&&subId!==ch2Code)warnings.push(`IMPORT SUB ID — CH2 ${ch2Code} uses ${importIdentity.source} key ${subId} for ${description}.`);
       const predWs=round(round(ext/outQty,2)/(1-disc/100),2),wsRounded=round(normalWs,2),wsDiff=round(predWs-wsRounded,2);
       if(Math.abs(wsDiff)>0.011)pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)}: predicted POSActive WS ${predWs.toFixed(2)} differs from Normal W/S ${wsRounded.toFixed(2)} by more than 1c.`);
       else if(Math.abs(wsDiff)>0.0001)warnings.push(`Invoice line ${lineText(inv.invoiceLine)}: POSActive WS is expected to round to ${predWs.toFixed(2)} vs invoice Normal W/S ${wsRounded.toFixed(2)} (1c rounding).`);
       records.push({
         invoiceNo:invoiceNo(inv)||group.number,line:lineText(inv.invoiceLine),ch2Code,supplierCode,subId,description,
         qty:outQty,qtySupplied:outQty,normalWs:wsRounded,unitPrice:unit,rebate:0,extended:ext,gst,total,disc,
-        sourceQty:originalQty,receivingAdjusted:adjusted,pos:ctx.pos
+        sourceQty:originalQty,receivingAdjusted:adjusted,pos:ctx.pos,importIdentity
       });
     }
 
@@ -258,7 +313,7 @@
       // valid literal Sub ID data and are preserved; they are review warnings only.
       return row.map((v,colIndex)=>{
         if(rowIndex===0)return clean(v);
-        if(colIndex===4){const x=code(v);if(/[\t\r\n]/.test(x))throw new Error(`POSActive Sub ID in logical row ${rowIndex+1} contains a TAB or line break.`);return x;}
+        if(colIndex===4){const x=clean(v);if(/[\t\r\n]/.test(x))throw new Error(`POSActive Sub ID in logical row ${rowIndex+1} contains a TAB or line break.`);return x;}
         return sanitizeDataText(v);
       }).join('\t');
     }).join('\r\n')+'\r\n';
@@ -301,6 +356,8 @@
     for(const g of groups){for(const f of g.sourceFiles||[])sourceFiles.add(f);for(const d of g.docs||[])docs.push(d);}
     const mergedGroup={number:primary,numbers:new Set(numbers),sourceFiles,docs,orderLinks:groups.map(g=>g.orderLink).filter(Boolean)};
     const payload=buildInvoicePayload(mergedGroup,refs,posOrder,reconciliation,options),validation=validatePayload(payload);errors.push(...validation.errors);warnings.push(...validation.warnings);
+    const keyRows=new Map();for(const r of payload.records){if(!keyRows.has(r.subId))keyRows.set(r.subId,new Set());keyRows.get(r.subId).add(sourceRowKey(r.pos));}
+    for(const [key,rows] of keyRows)if(rows.size>1)warnings.push(`DUPLICATE IMPORT KEY "${key}" is used by ${rows.size} different POS order rows. Review the selected keys; export remains available.`);
     if(numbers.length>1)warnings.unshift(`MERGED POSACTIVE IMPORT — ${numbers.length} supplier invoices (${numbers.join(', ')}) are combined into one 15-column TXT for POS order ${orderNo}. Each product row retains its original supplier Invoice No.`);
     const file={filename:`oborne_invoice_{${safePart(primary)}}_(${safePart(orderNo)}).txt`,...payload,validation,invoiceNumbers:numbers};
     return {ok:errors.length===0,errors,warnings,files:[file],invoiceNumbers:numbers};
@@ -315,5 +372,5 @@
     const f=built.files[0];downloadBlob(new Blob([f.text],{type:'text/plain;charset=utf-8'}),f.filename);return {filename:f.filename,files:1,rows:f.records.length,columns:15,validation:f.validation,warnings:built.warnings,receivingAdjustments:f.receivingChanges.length,totals:f.totals,sourceTotals:f.sourceTotals,invoiceNumbers:f.invoiceNumbers||[]};
   }
 
-  PHF.posImport={CONTRACT,groupDocuments,buildLegacyFiles,validatePayload,exportLegacyPosImport,makeTsv,parseTsv};
+  PHF.posImport={CONTRACT,groupDocuments,buildLegacyFiles,validatePayload,exportLegacyPosImport,makeTsv,parseTsv,resolveImportIdentity,reviewImportKeys,exportKeyReview};
 })(window);

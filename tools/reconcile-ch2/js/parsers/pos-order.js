@@ -89,7 +89,7 @@
       const raw=chosen.matrix[r]||[],display=(chosen.displayMatrix&&chosen.displayMatrix[r])||[];
       const description=clean(valueAt(display,hm.description)||valueAt(raw,hm.description));
       const barcode=barcodeCode(valueAt(raw,hm.barcode),valueAt(display,hm.barcode));
-      const subId=displayCode(valueAt(raw,hm.subId),valueAt(display,hm.subId));
+      const subId=clean(valueAt(display,hm.subId)||valueAt(raw,hm.subId));
       const plu=displayCode(valueAt(raw,hm.plu),valueAt(display,hm.plu));
       const orderedQty=toNumber(valueAt(raw,hm.orderedQty))??toNumber(valueAt(raw,hm.qty));
       if(!description&&!barcode&&!subId&&!plu)continue;

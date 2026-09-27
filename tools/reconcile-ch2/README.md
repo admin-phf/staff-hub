@@ -1,4 +1,19 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.16
+# Prahran Health Foods — CH2 Reconciler v2.6.17
+
+## v2.6.17 — POSActive key review
+
+- Keeps the uploaded order Sub ID as the default import key, including literal special characters, internal dashes and text suffixes.
+- Adds an editable Import Sub ID column with key source and review status. Blank input resets an override. Overrides last for the current run; uploading files, clearing or running again resets them.
+- Shows blank order keys before export. The existing CH2 fallback remains downloadable but is explicitly unverified; product alignment does not establish POSActive supplier-key validity.
+- Uses every exact master candidate for the product, preserving source sheet/row. A shared barcode cannot supply another PLU's key. Master alternatives are suggestions only.
+- Adds POS key review CSV for all invoiced products (independent of receiving ticks), including barcode, PLU, order/master/import keys, source, match confidence and reasons for review. Import identifiers as Text in Excel to preserve leading zeros.
+- Reuses parsed references on subsequent runs in the same page when the saved references have not changed.
+- Retains replicated-order routing, one merged 15-column TXT, receiving quantities and the existing 43-column reconciliation export.
+
+Known limitation: changing a key here changes the exported TXT only. It cannot write supplier keys into POSActive. Blank keys need correction/confirmation in POSActive before a matching import can be guaranteed. No working alternative is invented.
+
+Suggested GitHub commit summary:
+`v2.6.17: Add master-backed POS import key review and editable export keys`
 
 ## v2.6.16
 
