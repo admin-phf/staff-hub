@@ -356,8 +356,8 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
   border-bottom:1px solid #D9E2F3;
 }
 .results .preview-pos thead th:last-child{border-right:0}
-.results .preview-pos tbody tr.pos-row-odd{background:#FFFFFF}
-.results .preview-pos tbody tr.pos-row-even{background:#F3F6F9}
+.results .preview-pos tbody tr.pos-row-odd{background:#E9F0F5}
+.results .preview-pos tbody tr.pos-row-even{background:#F5F5F5}
 .results .preview-pos tbody tr:not(.pos-section-row):hover{background:#EEF4FB}
 .results .preview-pos tbody td{
   border-right:1px solid #D9E2F3;
@@ -399,4 +399,18 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .results .preview-pos tbody tr.unpack-checked:not(.pos-not-supplied)>td>*{
   text-decoration:none!important;
   opacity:1!important;
+}
+
+/* v2.6.26: section headers and requested alternating row colours. */
+.results .preview-pos .pos-section-row>td,
+.results .preview-pos .pos-section-complete>td{
+  background:#1E3A5F!important;
+  color:#E6CD74!important;
+  border:0!important;
+}
+.results .preview-pos .pos-section-row>td strong,
+.results .preview-pos .pos-section-row>td span,
+.results .preview-pos .pos-section-complete>td strong,
+.results .preview-pos .pos-section-complete>td span{
+  color:#E6CD74!important;
 }

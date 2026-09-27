@@ -1,4 +1,14 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.25
+# Prahran Health Foods — CH2 Reconciler v2.6.26
+
+## v2.6.26 — align section and alternating colours
+
+- Applies the navy/yellow reconciliation header styling to both Remaining and Completed POS section rows.
+- Sets alternating product rows to the requested `#E9F0F5` and `#F5F5F5` colours.
+- Keeps the borderless layout, Google Sans, stable completed-row styling and all application logic unchanged.
+
+Suggested commit summary:
+
+`v2.6.26: Align POS section and alternating row colours`
 
 ## v2.6.25 — borderless, stable POS Layout
 
