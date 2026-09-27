@@ -1,4 +1,15 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.19
+# Prahran Health Foods — CH2 Reconciler v2.6.20
+
+## v2.6.20 — streamlined POS Layout
+
+- Removes the redundant Import Sub ID column from the POS Layout screen; complete key diagnostics remain available in the POS key review CSV.
+- Centres POS Index and CH2 Line consistently.
+- Displays GST, Units, Qty and Adj Qty without trailing decimals in POS Layout only.
+- Does not change matching, calculations, source precision, reconciliation reports or POSActive TXT output.
+
+Suggested commit summary:
+
+`v2.6.20: Streamline POS Layout columns and number formatting`
 
 ## v2.6.19 — invoice supplier-code fallback
 

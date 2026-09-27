@@ -23,18 +23,17 @@
   // allowed to absorb spare viewport width or give it back first on a smaller window.
   const POS_VIEW_COLUMNS=[
     {key:'__unpack',label:'✓',kind:'check',cls:'unpack-cell',min:48,max:58,sortable:false},
-    {key:'__pos_order_index',label:'POS Index',kind:'number',dp:0,cls:'pos-code pos-order-index',min:58,max:76,grow:.01,stretch:.01,hardMax:96},
-    {key:'__invoice_line',label:'CH2 Line',kind:'text',cls:'pos-code pos-invoice-line',min:50,max:78,grow:.01,stretch:.01,hardMax:100},
+    {key:'__pos_order_index',label:'POS Index',kind:'number',dp:0,align:'center',cls:'pos-code pos-order-index',min:58,max:76,grow:.01,stretch:.01,hardMax:96},
+    {key:'__invoice_line',label:'CH2 Line',kind:'text',align:'center',cls:'pos-code pos-invoice-line',min:50,max:78,grow:.01,stretch:.01,hardMax:100},
     {key:'main_id',label:'Product #',kind:'text',cls:'pos-code',min:112,max:185,grow:.10,stretch:.11,hardMax:260},
     {key:'__pos_brand',label:'POS Brand',kind:'text',cls:'pos-brand',min:78,max:170,grow:.12,stretch:.15,hardMax:280},
     {key:'plu',label:'POS PLU',kind:'text',cls:'pos-code',min:58,max:96,grow:.05,stretch:.06,hardMax:140},
     {key:'sub_id',label:'POS Sub ID',kind:'text',cls:'pos-code',min:74,max:155,grow:.06,stretch:.08,hardMax:240},
     {key:'__ch2_item_code',label:'CH2 ITEM CODE',kind:'text',cls:'pos-code pos-ch2-item-code',min:78,max:132,grow:.05,stretch:.06,hardMax:180},
-    {key:'__import_sub_id',label:'Import Sub ID',kind:'importkey',cls:'pos-import-key',min:170,max:230,grow:.08,hardMax:300},
     {key:'descr',label:'Product Description',kind:'text',cls:'pos-desc',min:220,max:520,grow:.30,stretch:.38,hardMax:940},
-    {key:'gst_tax_pc',label:'GST %',kind:'number',dp:2,min:44,max:60,grow:.01},
-    {key:'units',label:'Units',kind:'number',dp:2,min:40,max:54,grow:.01},
-    {key:'qty',label:'Qty',kind:'number',dp:2,min:40,max:54,grow:.01},
+    {key:'gst_tax_pc',label:'GST %',kind:'number',dp:0,min:44,max:60,grow:.01},
+    {key:'units',label:'Units',kind:'number',dp:0,min:40,max:54,grow:.01},
+    {key:'qty',label:'Qty',kind:'number',dp:0,min:40,max:54,grow:.01},
     {key:'__unpack_add',label:'Add Qty',kind:'qtyinput',cls:'unpack-qty-entry-cell',min:72,max:92,grow:.01,sortable:false},
     {key:'__unpack_total',label:'Found',kind:'qtytotal',cls:'unpack-qty-total-cell',min:56,max:74,grow:.01},
     {key:'mupc',label:'MU%',kind:'number',dp:2,min:46,max:64,grow:.015},
@@ -43,7 +42,7 @@
     {key:'adjwsprce',label:'AdjWSPrc',kind:'number',dp:2,min:62,max:92,grow:.04,stretch:.035,hardMax:118},
     {key:'adjcatprce',label:'AdjCatPrc',kind:'number',dp:2,min:62,max:92,grow:.035,stretch:.025,hardMax:112},
     {key:'adjdprce',label:'AdjDPrc',kind:'number',dp:2,min:62,max:92,grow:.04,stretch:.035,hardMax:118},
-    {key:'or_qty',label:'Adj Qty',kind:'number',dp:3,min:50,max:70,grow:.01},
+    {key:'or_qty',label:'Adj Qty',kind:'number',dp:0,min:50,max:70,grow:.01},
     {key:'__row_total_inc_gst',label:'Total inc GST',kind:'number',dp:2,min:78,max:110,grow:.025,stretch:.02,hardMax:135}
   ];
 
@@ -162,7 +161,7 @@
     if(!els.importKeySummary)return;
     els.importKeySummary.classList.toggle('hidden',!rows.length);
     const blank=rows.filter(x=>!x.identity.orderSubId),review=rows.filter(x=>x.identity.status==='REVIEW');
-    els.importKeySummary.innerHTML=`<strong>POSActive import keys: ${review.length} to review</strong><br>${blank.length?`${blank.length} invoiced products have a blank Sub ID in the uploaded POS order. `:''}Product matches and POSActive keys are checked separately. The Import Sub ID column shows the exact export key and its source. Hover for aligned-master candidates, or download the key review CSV. Enter a replacement only after confirming that key exists in POSActive. Edits here change the TXT only, last for this run, and never update POSActive. Review warnings do not block download.`;
+    els.importKeySummary.innerHTML=`<strong>POSActive import keys: ${review.length} to review</strong><br>${blank.length?`${blank.length} invoiced products have a blank Sub ID in the uploaded POS order. `:''}Product matches and POSActive keys are checked separately. Download the POS key review CSV for the exact export key, source and aligned-master candidates. Review warnings do not block download.`;
     if(els.keyReviewBtn)els.keyReviewBtn.disabled=!rows.length;
   }
   function commitImportKey(input){
@@ -740,7 +739,7 @@
     if(stateChanged){saveUnpackCounts();saveUnpackChecklist();}
     const selectedCount=baseRows.reduce((n,pos)=>n+(state.unpackChecked.has(unpackIdentity(pos))?1:0),0),allSelected=baseRows.length>0&&selectedCount===baseRows.length,partSelected=selectedCount>0&&!allSelected;
     els.tableHead.innerHTML=`<tr>${POS_VIEW_COLUMNS.map(c=>{
-      const cls=[c.kind==='check'?'unpack-head':'',c.kind==='bool'?'pos-bool-head':'',(['number','qtyinput','qtytotal'].includes(c.kind))?'num':'',(c.kind==='bool'||c.kind==='check')?'center':''].filter(Boolean).join(' ');
+      const cls=[c.kind==='check'?'unpack-head':'',c.kind==='bool'?'pos-bool-head':'',(['number','qtyinput','qtytotal'].includes(c.kind))?'num':'',(c.kind==='bool'||c.kind==='check'||c.align==='center')?'center':''].filter(Boolean).join(' ');
       if(c.kind==='check')return `<th class="${cls}" title="Tick all / untick all POS rows for the POSActive download"><div class="pos-header-stack"><button type="button" class="unpack-check unpack-check-all ${allSelected?'checked':''} ${partSelected?'partial':''}" data-toggle-all aria-pressed="${allSelected?'true':'false'}" title="${allSelected?'Untick all — clear all Found quantities and return rows to Remaining':'Tick all — untouched rows use expected CH2 supplied qty'}"><span aria-hidden="true">${allSelected?'✓':partSelected?'−':''}</span></button><span class="pos-header-mini-label">All</span></div></th>`;
       if(c.kind==='qtyinput')return `<th class="${cls}"><div class="pos-header-stack"><span>${escapeHtml(c.label)}</span><button type="button" class="pos-header-action" data-clear-qty title="Clear all Found quantities and receiving selections">Clear qty</button></div></th>`;
       const sortable=c.sortable!==false,active=sortable&&state.posSortKey===c.key,arrow=active?(state.posSortDir==='desc'?'▼':'▲'):'↕';
@@ -774,10 +773,10 @@
           html=escapeHtml(fixed(v,c.dp??2));const target=comparisonTarget(detail,c.key),move=priceMove(v,target);
           if(c.key==='__row_total_inc_gst'){
             const rowQty=state.unpackCounts.has(checkKey)?unpackCountFor(pos):(numberValue(detail&&detail.suppliedQty)??numberValue(rawValue(pos,'qty'))??numberValue(pos.orderedQty)??0);
-            title=`${displayUnpackCount(rowQty)} × AdjCatPrc ${fixed(discountedPosPrice(pos,detail),2) || '—'} plus GST ${fixed(rawValue(pos,'gst_tax_pc')||pos.gstPct||0,2)}%`;
+            title=`${displayUnpackCount(rowQty)} × AdjCatPrc ${fixed(discountedPosPrice(pos,detail),2) || '—'} plus GST ${fixed(rawValue(pos,'gst_tax_pc')||pos.gstPct||0,0)}%`;
           }else if(move&&!notSupplied){extraCls=` price-move-cell price-${move.kind}`;const targetLabel=c.key==='adjrrprce'?'CH2 RRP':c.key==='adjwsprce'?'CH2 Normal W/S':'CH2 Unit Price';title=`${targetLabel}: ${Number(move.target).toFixed(2)} · ${move.symbol} ${Math.abs(move.diff).toFixed(2)}`;html=`<span class="pos-price-value">${html}</span><span class="price-arrow" aria-hidden="true">${move.symbol}</span>`;}
         } else {html=escapeHtml(v);if(v)title=String(v);}
-        const cls=[c.cls||'',c.kind==='number'?'num':'',c.kind==='bool'?'pos-bool-cell center':'',extraCls].filter(Boolean).join(' ');return `<td${cls?` class="${cls}"`:''}${title?` title="${escapeHtml(title)}"`:''}>${html}</td>`;
+        const cls=[c.cls||'',c.kind==='number'?'num':'',c.kind==='bool'?'pos-bool-cell center':'',c.align==='center'?'center':'',extraCls].filter(Boolean).join(' ');return `<td${cls?` class="${cls}"`:''}${title?` title="${escapeHtml(title)}"`:''}>${html}</td>`;
       }).join('');
       return `<tr${rowClasses?` class="${rowClasses}"`:''}${notSupplied?' data-not-supplied="1"':''}>${cells}</tr>`;
     };
