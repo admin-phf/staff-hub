@@ -20,28 +20,27 @@
   const MASTER_ALIASES={
     code:['CH2_CH2_ITEM_CODE','CH2 CH2 ITEM CODE','CH2_ITEM_CODE','CH2 ITEM CODE','CH2_PGC_ITEM_CODE','CH2 PGC ITEM CODE','PGC_ITEM_CODE','PGC ITEM CODE','CH2_PRODUCT_CODE','CH2 PRODUCT CODE','SUP_SUB_ID','SUP SUB ID','CH2_SUB_ID','CH2 SUB ID','PRODUCT_CODE','PRODUCT CODE'],
     supplier:['POS_SUPPLIER','POS SUPPLIER','SUPPLIER'],supplierName:['POS_SUPPLIER_NAME','POS SUPPLIER NAME','SUPPLIER_NAME','SUPPLIER NAME'],supplierNumber:['POS_SUPPLIER_NUMBER','POS SUPPLIER NUMBER','SUPPLIER_NUMBER','SUPPLIER NUMBER'],
-    barcode:['POS_MASTER_BARCODE','POS MASTER BARCODE','MASTER_BARCODE','MASTER BARCODE','POS_MAIN_ID','POS MAIN ID','BARCODE'],plu:['POS_PLU','POS PLU','PLU'],posSubId:['POS_SUB_ID','POS SUB ID','POS_SUPPLIER_CODE','POS SUPPLIER CODE','SUB_ID','SUB ID'],
+    barcode:['POS_MASTER_BARCODE','POS MASTER BARCODE','MASTER_BARCODE','MASTER BARCODE','POS_MAIN_ID','POS MAIN ID','BARCODE'],plu:['POS_PLU','POS PLU','PLU'],
     brand:['POS_MASTER_BRAND','POS MASTER BRAND','POS_BRAND','POS BRAND','MASTER_BRAND','MASTER BRAND','BRAND'],descr:['POS_DESCR','POS DESCR','POS_DESCRIPTION','POS DESCRIPTION','DESCRIPTION','DESCR'],
     wsp:['POS_WSP_EXCGST','POS WSP EXCGST','WSP_EXCGST','WSP EXCGST','WHOLESALE EX GST'],ch2Wholesale:['CH2_WHOLESALE_EX_GST','CH2 WHOLESALE EX GST','CH2_WHOLESALE','CH2 WHOLESALE','PGC_WHOLESALE_EX_GST','PGC WHOLESALE EX GST','RAW WHOLESALE','CH2 RAW WHOLESALE'],
     last:['POS_LAST_PRICE','POS LAST PRICE','LAST_PRICE','LAST PRICE'],gst:['POS_GST_TAX_PC','POS GST TAX PC','GST_TAX_PC','GST TAX PC','GST_PC','GST PC','GST %'],rrp:['POS_RRP_INCGST','POS RRP INCGST','POS_RRP','POS RRP','RRP_INCGST','RRP INCGST','CURRENT RRP','RRP']
   };
-  function recordQuality(r){return ['POS_MASTER_BARCODE','POS_PLU','POS_SUB_ID','POS_BRAND','POS_DESCR','POS_WSP_EXCGST','POS_LAST_PRICE','POS_RRP_INCGST','POS_CH2_WHOLESALE_EX_GST'].reduce((a,k)=>a+(clean(r[k])?1:0),0);}
+  function recordQuality(r){return ['POS_MASTER_BARCODE','POS_PLU','POS_BRAND','POS_DESCR','POS_WSP_EXCGST','POS_LAST_PRICE','POS_RRP_INCGST','POS_CH2_WHOLESALE_EX_GST'].reduce((a,k)=>a+(clean(r[k])?1:0),0);}
 
   async function parsePosMaster(blob){
     const wb=await readWorkbook(blob);let chosen=null;
     for(const name of wb.SheetNames){const matrix=matrixFor(wb,name),h=findHeader(matrix,[MASTER_ALIASES.code],100);if(!h)continue;const core=['barcode','plu','brand','descr','last','rrp'].reduce((n,k)=>n+(aliasCol(h.map,MASTER_ALIASES[k])>=0?1:0),0),score=100+core*10;if(!chosen||score>chosen.score)chosen={name,matrix,h,score};}
     if(!chosen)throw new Error('Could not find a CH2 product-code column in the merged POS/master workbook.');
     const cols={};for(const [k,names] of Object.entries(MASTER_ALIASES))cols[k]=aliasCol(chosen.h.map,names);
-    const byCode=new Map(),byCodeAll=new Map(),byBarcode=new Map(),byPlu=new Map(),byPosSubId=new Map();let duplicates=0;
+    const byCode=new Map(),byBarcode=new Map(),byPlu=new Map();let duplicates=0;
     for(let r=chosen.h.row+1;r<chosen.matrix.length;r++){
       const row=chosen.matrix[r]||[],code=digits(valueAt(row,cols.code));if(!code)continue;
-      const record={MASTER_CODE:code,POS_SUPPLIER_RAW:clean(valueAt(row,cols.supplier)),POS_SUPPLIER_NAME:clean(valueAt(row,cols.supplierName)),POS_SUPPLIER_NUMBER:digits(valueAt(row,cols.supplierNumber)),POS_MASTER_BARCODE:barcode(valueAt(row,cols.barcode)),POS_PLU:clean(valueAt(row,cols.plu)).replace(/\.0+$/,''),POS_SUB_ID:clean(valueAt(row,cols.posSubId)).replace(/\.0+$/,''),POS_BRAND:clean(valueAt(row,cols.brand)),POS_DESCR:clean(valueAt(row,cols.descr)),POS_WSP_EXCGST:num(valueAt(row,cols.wsp)),POS_CH2_WHOLESALE_EX_GST:num(valueAt(row,cols.ch2Wholesale)),POS_LAST_PRICE:num(valueAt(row,cols.last)),POS_GST_TAX_PC:num(valueAt(row,cols.gst)),POS_RRP_INCGST:num(valueAt(row,cols.rrp))};
-      if(!byCodeAll.has(code))byCodeAll.set(code,[]);byCodeAll.get(code).push(record);
+      const record={MASTER_CODE:code,POS_SUPPLIER_RAW:clean(valueAt(row,cols.supplier)),POS_SUPPLIER_NAME:clean(valueAt(row,cols.supplierName)),POS_SUPPLIER_NUMBER:digits(valueAt(row,cols.supplierNumber)),POS_MASTER_BARCODE:barcode(valueAt(row,cols.barcode)),POS_PLU:clean(valueAt(row,cols.plu)).replace(/\.0+$/,''),POS_BRAND:clean(valueAt(row,cols.brand)),POS_DESCR:clean(valueAt(row,cols.descr)),POS_WSP_EXCGST:num(valueAt(row,cols.wsp)),POS_CH2_WHOLESALE_EX_GST:num(valueAt(row,cols.ch2Wholesale)),POS_LAST_PRICE:num(valueAt(row,cols.last)),POS_GST_TAX_PC:num(valueAt(row,cols.gst)),POS_RRP_INCGST:num(valueAt(row,cols.rrp))};
       if(byCode.has(code)){duplicates++;if(recordQuality(record)>recordQuality(byCode.get(code)))byCode.set(code,record);}else byCode.set(code,record);
-      const bc=record.POS_MASTER_BARCODE;if(bc&&!byBarcode.has(bc))byBarcode.set(bc,record);const plu=digits(record.POS_PLU);if(plu&&!byPlu.has(plu))byPlu.set(plu,record);const sid=clean(record.POS_SUB_ID).toUpperCase();if(sid){if(!byPosSubId.has(sid))byPosSubId.set(sid,[]);byPosSubId.get(sid).push(record);}
+      const bc=record.POS_MASTER_BARCODE;if(bc&&!byBarcode.has(bc))byBarcode.set(bc,record);const plu=digits(record.POS_PLU);if(plu&&!byPlu.has(plu))byPlu.set(plu,record);
     }
     const fuzzy=[];for(const rec of byCode.values())if(clean(rec.POS_DESCR))fuzzy.push(rec);
-    return {byCode,byCodeAll,byBarcode,byPlu,byPosSubId,fuzzy,info:{sheet:chosen.name,headerRow:chosen.h.row+1,records:byCode.size,duplicates}};
+    return {byCode,byBarcode,byPlu,fuzzy,info:{sheet:chosen.name,headerRow:chosen.h.row+1,records:byCode.size,duplicates}};
   }
 
   function locateSheet(wb,requirements,preferredNames=[]){const ordered=[...preferredNames.filter(n=>wb.SheetNames.includes(n)),...wb.SheetNames.filter(n=>!preferredNames.includes(n))];for(const name of ordered){const matrix=matrixFor(wb,name),h=findHeader(matrix,requirements,40);if(h)return {name,matrix,h};}return null;}
