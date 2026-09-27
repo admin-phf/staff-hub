@@ -77,15 +77,21 @@
   }
 
   function openDb(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE,{keyPath:'kind'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
-  async function save(kind,file){parsedCache=null;const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put({kind,name:file.name,size:file.size,lastModified:file.lastModified||0,savedAt:new Date().toISOString(),blob:file});tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
+  async function save(kind,file){parsedCache=null;const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);store.delete('parsedReferenceCache');store.put({kind,name:file.name,size:file.size,lastModified:file.lastModified||0,savedAt:new Date().toISOString(),blob:file});tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
   async function load(kind){const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly'),req=tx.objectStore(STORE).get(kind);req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error);});}
-  async function clear(kind){parsedCache=null;const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');if(kind)tx.objectStore(STORE).delete(kind);else tx.objectStore(STORE).clear();tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
+  async function clear(kind){parsedCache=null;const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);if(kind){store.delete(kind);store.delete('parsedReferenceCache');}else store.clear();tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
+  async function saveParsedCache(cacheKey,master,supplier){
+    try{const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put({kind:'parsedReferenceCache',cacheKey,master,supplier,savedAt:new Date().toISOString()});tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});return true;}
+    catch(err){console.warn('Parsed reference cache could not be saved; current run remains valid.',err);return false;}
+  }
   async function status(){const [master,supplier]=await Promise.all([load('posMaster'),load('supplierMerge')]);return {master,supplier};}
   async function parseStored(){
     const st=await status();if(!st.master)throw new Error('POS/master reference data is not loaded on this computer. Open Admin and load the latest merged_alligned_pos_supplier_uhp_full workbook.');if(!st.supplier)throw new Error('Supplier/discount reference data is not loaded on this computer. Open Admin and load the POS DB & SUPPLIER MERGE workbook or the SRC_POS_ONGOING_DISCOUNTS CSV.');
     const cacheKey=JSON.stringify([st.master.name,st.master.size,st.master.savedAt,st.supplier.name,st.supplier.size,st.supplier.savedAt]);
     if(parsedCache&&parsedCache.key===cacheKey)return parsedCache.value;
-    const [master,supplier]=await Promise.all([parsePosMaster(st.master.blob),parseSupplierMerge(st.supplier.blob)]);const value={master,supplier,meta:st};parsedCache={key:cacheKey,value};return value;
+    const stored=await load('parsedReferenceCache');
+    if(stored&&stored.cacheKey===cacheKey&&stored.master&&stored.supplier){const value={master:stored.master,supplier:stored.supplier,meta:st};parsedCache={key:cacheKey,value};return value;}
+    const [master,supplier]=await Promise.all([parsePosMaster(st.master.blob),parseSupplierMerge(st.supplier.blob)]);const value={master,supplier,meta:st};parsedCache={key:cacheKey,value};await saveParsedCache(cacheKey,master,supplier);return value;
   }
   PHF.referenceStore={save,load,clear,status,parseStored,parsePosMaster,parseSupplierMerge};
 })(window);

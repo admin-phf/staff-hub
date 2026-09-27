@@ -216,16 +216,19 @@
     const competing=[];
     for(let oi=0;oi<posRows.length;oi++){if(oi===index)continue;const otherId=rawOrderIdentity(posRows[oi]);if(anchored.some(rec=>candidateMatchesIdentity(rec,otherId)))competing.push({index:oi,pos:posRows[oi]});}
     const examples=anchored.slice(0,3).map(candidateSummary).filter(Boolean).join(', ');
-    if(competing.length){const c=competing[0];pushIssue(errors,`${lineLabel(pos,index)}: MASTER IDENTITY CONFLICT — CH2 product ${pc} maps to another row in this POS order, POS row ${c.index+1}${clean(c.pos&&c.pos.description)?` (${clean(c.pos.description)})`:''}${examples?` [master ${examples}]`:''}.`);return;}
+    if(competing.length){const c=competing[0];pushIssue(warnings,`${lineLabel(pos,index)}: MASTER IDENTITY REVIEW — CH2 product ${pc} also maps to POS row ${c.index+1}${clean(c.pos&&c.pos.description)?` (${clean(c.pos.description)})`:''}${examples?` [master ${examples}]`:''}. The current reconciliation match is retained and export remains available.`);return;}
     const evidence=strongIndependentEvidence(inv,pos,anchored);
     if(evidence.ok)warnings.push(`${lineLabel(pos,index)}: MASTER IDENTITY DIFFERENCE — CH2 product ${pc} has different/newer master identifiers${examples?` (${examples})`:''}, but no competing order row owns them and invoice/order evidence is strong.`);
-    else pushIssue(errors,`${lineLabel(pos,index)}: MASTER IDENTITY CONFLICT — CH2 product ${pc} does not match this order row's current identifiers and independent evidence is not strong enough.`);
+    else pushIssue(warnings,`${lineLabel(pos,index)}: MASTER IDENTITY REVIEW — CH2 product ${pc} differs from this order row's current master identifiers and independent evidence is limited. Review this row; export remains available.`);
   }
 
   function buildInvoicePayload(group,refs,posOrder,reconciliation,options={}){
     const errors=[],warnings=[],posRows=sortedPos(posOrder),details=detailBySourceRow(reconciliation),contexts=[],invoiceToContext=new Map(),allocation=new Map(),receivingChanges=[],omittedNotSupplied=[];
     const groupNums=group&&group.numbers instanceof Set?group.numbers:new Set([clean(group&&group.number)].filter(Boolean)),unmatched=((reconciliation&&reconciliation.unmatchedInvoice)||[]).filter(r=>groupNums.has(invoiceNo(r))||group.sourceFiles.has(clean(r&&r.sourceFile)));
-    if(unmatched.length)pushIssue(errors,`Invoice ${group.number}: ${unmatched.length} invoice line${unmatched.length===1?' is':'s are'} not matched to the POS order.`);
+    if(unmatched.length){
+      pushIssue(warnings,`INVOICE-ONLY REVIEW — Invoice ${group.number}: ${unmatched.length} billed line${unmatched.length===1?' is':'s are'} not present in the uploaded POS order and will be omitted from the POSActive TXT. Export remains available; review or receive these lines manually.`);
+      for(const inv of unmatched.slice(0,12))pushIssue(warnings,`Omitted invoice ${invoiceNo(inv)||group.number} line ${lineText(inv&&inv.invoiceLine)||'?'} · CH2 ${digits(inv&&inv.productCode)||'no code'} · ${sanitizeText(inv&&inv.description)||'no description'}.`);
+    }
 
     for(let index=0;index<posRows.length;index++){
       const pos=posRows[index],detail=details.get(sourceRowKey(pos))||(reconciliation&&reconciliation.detail||[])[index]||{},identity=canonicalIdentity(pos,refs),invRows=invoiceRowsFor(detail,group).slice().sort((a,b)=>(n(a&&a.invoiceLine)||0)-(n(b&&b.invoiceLine)||0));
@@ -247,7 +250,7 @@
     const records=[];
 
     for(const inv of invoiceRows){
-      const key=invoiceKey(inv),ctx=invoiceToContext.get(key);if(!ctx){pushIssue(errors,`Invoice line ${lineText(inv&&inv.invoiceLine)||'?'} (${digits(inv&&inv.productCode)||'no CH2 code'}) is not linked to a POS row.`);continue;}
+      const key=invoiceKey(inv),ctx=invoiceToContext.get(key);if(!ctx)continue;
       const originalQty=Math.max(0,n(inv&&inv.qtySupplied)||0),unit=n(inv&&inv.unitPriceExGst),disc=n(inv&&inv.discountPct),normalWs=n(inv&&inv.normalWholesale);
       if(originalQty<=0||unit==null||unit===0)continue;
       if(disc==null){pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)}: Disc % is missing; POSActive cannot derive WS Price safely.`);continue;}
@@ -289,7 +292,10 @@
     const totals={qty:round(records.reduce((a,r)=>a+r.qtySupplied,0),3),ext:round(records.reduce((a,r)=>a+r.extended,0),2),gst:round(records.reduce((a,r)=>a+r.gst,0),2),total:round(records.reduce((a,r)=>a+r.total,0),2)};
     if(Math.abs(round(totals.ext+totals.gst-totals.total,2))>0.02)pushIssue(errors,`Invoice ${group.number}: POSActive import totals do not balance (${totals.ext.toFixed(2)} + GST ${totals.gst.toFixed(2)} ≠ ${totals.total.toFixed(2)}).`);
     if(!receivingChanges.length){
-      if(Math.abs(totals.qty-sourceTotals.qty)>0.001||Math.abs(totals.ext-sourceTotals.ext)>0.02||Math.abs(totals.gst-sourceTotals.gst)>0.02||Math.abs(totals.total-sourceTotals.total)>0.02)pushIssue(errors,`Invoice ${group.number}: generated file totals do not equal the parsed invoice totals.`);
+      if(Math.abs(totals.qty-sourceTotals.qty)>0.001||Math.abs(totals.ext-sourceTotals.ext)>0.02||Math.abs(totals.gst-sourceTotals.gst)>0.02||Math.abs(totals.total-sourceTotals.total)>0.02){
+        const msg=`Invoice ${group.number}: generated file totals do not equal the parsed invoice totals.`;
+        if(unmatched.length)pushIssue(warnings,`${msg} This is expected because ${unmatched.length} invoice-only line${unmatched.length===1?' was':'s were'} omitted.`);else pushIssue(errors,msg);
+      }
     }else{
       warnings.push(`POS LAYOUT RECEIVING APPLIED — ${receivingChanges.length} product${receivingChanges.length===1?'':'s'} use Found quantities instead of CH2 supplied quantities. POSActive import total becomes ${totals.total.toFixed(2)} vs supplier invoice ${sourceTotals.total.toFixed(2)}; the full reconciliation workbook remains unchanged and preserves the original invoice.`);
       for(const x of receivingChanges.slice(0,12))warnings.push(`${lineLabel(x.pos,x.index)}: CH2 supplied ${qtyText(x.invoiceQty)} → POS Layout Found ${qtyText(x.found)}.`);
@@ -359,7 +365,8 @@
     const keyRows=new Map();for(const r of payload.records){if(!keyRows.has(r.subId))keyRows.set(r.subId,new Set());keyRows.get(r.subId).add(sourceRowKey(r.pos));}
     for(const [key,rows] of keyRows)if(rows.size>1)warnings.push(`DUPLICATE IMPORT KEY "${key}" is used by ${rows.size} different POS order rows. Review the selected keys; export remains available.`);
     if(numbers.length>1)warnings.unshift(`MERGED POSACTIVE IMPORT — ${numbers.length} supplier invoices (${numbers.join(', ')}) are combined into one 15-column TXT for POS order ${orderNo}. Each product row retains its original supplier Invoice No.`);
-    const file={filename:`oborne_invoice_{${safePart(primary)}}_(${safePart(orderNo)}).txt`,...payload,validation,invoiceNumbers:numbers};
+    const invoicePart=numbers.length>1?numbers.map(safePart).join('+'):safePart(primary);
+    const file={filename:`oborne_invoice${numbers.length>1?'s':''}_{${invoicePart}}_(${safePart(orderNo)}).txt`,...payload,validation,invoiceNumbers:numbers};
     return {ok:errors.length===0,errors,warnings,files:[file],invoiceNumbers:numbers};
   }
 

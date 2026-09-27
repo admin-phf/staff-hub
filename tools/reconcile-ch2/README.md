@@ -1,4 +1,17 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.17
+# Prahran Health Foods — CH2 Reconciler v2.6.18
+
+## v2.6.18 — identifier restoration and complete matching review
+
+- Recognises alternate POS export headers including `PLU / SKU` and `Supplier Number`.
+- Restores a missing barcode or Sub ID only when the aligned master contains one unambiguous value for the exact POS PLU.
+- Reports how many POS rows were restored and leaves conflicting candidates for review.
+- Keeps product matching evidence separate from the POSActive import key.
+- Invoice-only lines remain visible in reconciliation and are omitted from the POSActive TXT with a non-blocking warning.
+- Multiple supplier invoices produce one clearly named TXT containing every source invoice number in its filename and in its rows.
+- Retains the v2.6.17 editable import-key review, multi-invoice receiving, 43-column reports and 15-column POSActive format.
+
+Suggested GitHub commit summary:
+`v2.6.18: Restore POS identifiers from aligned master and strengthen matching`
 
 ## v2.6.17 — POSActive key review
 

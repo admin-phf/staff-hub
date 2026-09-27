@@ -5,7 +5,7 @@
   const REQUIRED_HINTS=['descr','or_qty','adjwsprce','adjdprce'];
   const ALIASES={
     orderNumber:['orderno','order_no','order number','order number/ref','order ref'],
-    plu:['plu','pos_plu'],
+    plu:['plu','pos_plu','plu / sku','plu sku'],
     barcode:['main_id','main id','barcode','master_barcode','pos_master_barcode','pos main id'],
     subId:['sub_id','sub id','supplier code','supplier_code','product code','product_code'],
     description:['descr','description','pos_descr','product description','pos description'],
@@ -68,7 +68,31 @@
   function valueAt(row,idx){return idx>=0&&idx<row.length?row[idx]:'';}
   function identity(row){return [row.sourceRow,row.plu,row.barcode,row.description].map(clean).join('|');}
 
-  async function parsePosOrder(file){
+  function uniqueMasterValue(records,key,normalizer=textCode){
+    const values=[...new Set((records||[]).map(r=>normalizer(r&&r[key])).filter(Boolean))];
+    return values.length===1?values[0]:'';
+  }
+  function enrichFromMaster(row,refs){
+    const master=refs&&refs.master;if(!master)return {row,enriched:false,ambiguous:false};
+    const plu=String(row.plu||'').replace(/\D+/g,''),barcode=row.barcode;
+    let records=[];
+    if(plu&&master.byPluAll&&master.byPluAll.has(plu))records=master.byPluAll.get(plu).slice();
+    else if(plu&&master.byPlu&&master.byPlu.has(plu))records=[master.byPlu.get(plu)];
+    else if(barcode&&master.byBarcodeAll&&master.byBarcodeAll.has(barcode))records=master.byBarcodeAll.get(barcode).slice();
+    else if(barcode&&master.byBarcode&&master.byBarcode.has(barcode))records=[master.byBarcode.get(barcode)];
+    if(!records.length)return {row,enriched:false,ambiguous:false};
+    const masterBarcode=uniqueMasterValue(records,'POS_MASTER_BARCODE',v=>clean(v).replace(/\.0+$/,'').replace(/\D+/g,''));
+    const masterPlu=uniqueMasterValue(records,'POS_PLU');
+    const masterSubId=uniqueMasterValue(records,'POS_SUB_ID',v=>clean(v));
+    const next={...row};let enriched=false;
+    if(!next.barcode&&masterBarcode){next.barcode=masterBarcode;enriched=true;}
+    if(!next.plu&&masterPlu){next.plu=masterPlu;enriched=true;}
+    if(!next.subId&&masterSubId){next.subId=masterSubId;enriched=true;}
+    const ambiguous=(!next.barcode&&records.some(r=>clean(r&&r.POS_MASTER_BARCODE)))||(!next.subId&&records.some(r=>clean(r&&r.POS_SUB_ID)));
+    return {row:next,enriched,ambiguous,candidates:records.length};
+  }
+
+  async function parsePosOrder(file,refs=null){
     if(!global.XLSX)throw new Error('Spreadsheet reader did not load. Check your internet connection and refresh the page.');
     const wb=global.XLSX.read(await file.arrayBuffer(),{type:'array',cellDates:true,raw:true});
     if(!wb.SheetNames.length)throw new Error('The POS order workbook contains no sheets.');
@@ -84,7 +108,7 @@
     if(!chosen)throw new Error('Could not recognise the POS back-end order columns. Expected fields such as descr, or_qty, adjwsprce and adjdprce.');
 
     const headerSource=(chosen.displayMatrix&&chosen.displayMatrix[chosen.headerRow])||chosen.matrix[chosen.headerRow]||[];
-    const headers=headerSource.map(clean),hm=makeHeaderMap(headers),rows=[];
+    const headers=headerSource.map(clean),hm=makeHeaderMap(headers),rows=[];let enrichedRows=0,ambiguousMasterRows=0;
     for(let r=chosen.headerRow+1;r<chosen.matrix.length;r++){
       const raw=chosen.matrix[r]||[],display=(chosen.displayMatrix&&chosen.displayMatrix[r])||[];
       const description=clean(valueAt(display,hm.description)||valueAt(raw,hm.description));
@@ -110,14 +134,16 @@
         supplier:displayCode(valueAt(raw,hm.supplier),valueAt(display,hm.supplier)),company:clean(valueAt(display,hm.company)||valueAt(raw,hm.company)),
         itemSize:clean(valueAt(display,hm.itemSize)||valueAt(raw,hm.itemSize)),stockOnHand:toNumber(valueAt(raw,hm.stockOnHand)),raw:objectRaw
       };
-      row.identity=identity(row);rows.push(row);
+      const enriched=enrichFromMaster(row,refs),finalRow=enriched.row;
+      if(enriched.enriched)enrichedRows++;if(enriched.ambiguous)ambiguousMasterRows++;
+      finalRow.identity=identity(finalRow);rows.push(finalRow);
     }
     if(!rows.length)throw new Error('The POS order was recognised, but no ordered product lines were found.');
     const orderNumbers=[...new Set(rows.map(x=>x.orderNumber).filter(Boolean))];
     return {
       type:'POS_ORDER',sourceFile:file.name,sheetName:chosen.sheetName,headerRow:chosen.headerRow+1,
       orderNumber:orderNumbers.length===1?orderNumbers[0]:orderNumbers.join(', '),rows,
-      diagnostics:{rows:rows.length,headers,firstSourceRow:rows[0].sourceRow,lastSourceRow:rows[rows.length-1].sourceRow}
+      diagnostics:{rows:rows.length,headers,firstSourceRow:rows[0].sourceRow,lastSourceRow:rows[rows.length-1].sourceRow,enrichedRows,ambiguousMasterRows}
     };
   }
 
