@@ -1,4 +1,8 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.15
+# Prahran Health Foods — CH2 Reconciler v2.6.16
+
+## v2.6.16
+
+LOW invoice match confidence is a visible review warning and does not block the POSActive TXT download. Structural and missing-data validation remains in place.
 
 Complete staff-facing browser application for reconciling a POS back-end order against one or more CH2 supplier invoices.
 

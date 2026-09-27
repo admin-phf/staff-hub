@@ -177,7 +177,7 @@
     for(let index=0;index<posRows.length;index++){
       const pos=posRows[index],detail=details.get(sourceRowKey(pos))||(reconciliation&&reconciliation.detail||[])[index]||{},identity=canonicalIdentity(pos,refs),invRows=invoiceRowsFor(detail,group).slice().sort((a,b)=>(n(a&&a.invoiceLine)||0)-(n(b&&b.invoiceLine)||0));
       const ctx={pos,index,detail,identity,invRows};contexts.push(ctx);for(const inv of invRows)invoiceToContext.set(invoiceKey(inv),ctx);
-      if(invRows.length&&clean(detail.matchConfidence).toUpperCase()==='LOW')pushIssue(errors,`${lineLabel(pos,index)}: invoice match confidence is LOW; review before POS import.`);
+      if(invRows.length&&clean(detail.matchConfidence).toUpperCase()==='LOW')pushIssue(warnings,`${lineLabel(pos,index)}: invoice match confidence is LOW; review the aligned product before POS import. Export remains available.`);
       for(const inv of invRows){validateSourceInvoiceRow(inv,errors,warnings);validateMasterForContext(ctx,inv,refs,posRows,errors,warnings);}
 
       const recv=receivingOverride(options,pos),invoiceQty=round(invRows.reduce((a,r)=>a+(n(r&&r.qtySupplied)||0),0),3);
