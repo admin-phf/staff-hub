@@ -2267,6 +2267,10 @@
   /* Grid Cards: the pill sits above the price, as on every other layout, so pills line up across cards */
   .l-gridcards .gprice-row{flex-direction:column!important;align-items:center!important;gap:2px!important}
 
+  /* ---------- v39 ---------- */
+  .slide .po-rule{margin-bottom:.11em}   /* was .18em: the WAS / RRP line sits a little closer to the green line */
+  .slide .po-sub{line-height:1.04}       /* was 1.12: a little less space around the WAS / RRP line */
+
   /* ---------- v26 channel picker (editor UI) ---------- */
   .chan-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:0 0 12px}
   .chan{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 5px 7px;font:inherit;font-weight:800;font-size:12.5px;color:var(--ink);cursor:pointer;text-align:center;line-height:1.15;min-width:0}
@@ -2524,7 +2528,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='38';
+const APP_VERSION='39';
 const APP_DATE='2026-09-28';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -3519,7 +3523,8 @@ async function settlePop(root){
    is limited by the photo column instead and sits centred on the text. Every card of the same size
    has the same text height, so their pack shots are the same height too. A Fine-tune setting still
    scales on top. Cards with the pack shot above the text keep the fit-to-space rule. */
-const TEXT_MATCH_WFILL=1;     // a wide product may use the full photo column
+const TEXT_MATCH_WFILL=1;     // a wide product may use the full photo column …
+const TEXT_MATCH_GAP=.045;    // … less a small breathing space on the text side (4.5% of the column, at least 6px)
 // Classic 2×2 Feature: pack shot = text height. The hero layouts (Single, 2-Product, Hero + pick) and the small
 // 6-Grid Split cells keep the pack shot filling its space, because their text is much shorter than the photo area.
 const CLASSIC_SIDE='.l-feature .fcell';
@@ -3547,16 +3552,17 @@ function textMatchPackShot(img,raw,g){
   if(!(g.textH>0))return false;
   const rawW=Math.max(1,g.baseW*raw.w),rawH=Math.max(1,g.baseH*raw.h);
   const targetH=Math.min(g.textH,g.availH);
-  const sH=targetH/rawH,sW=g.availW*TEXT_MATCH_WFILL/rawW;
+  const gap=Math.max(6,g.availW*TEXT_MATCH_GAP),useW=g.availW*TEXT_MATCH_WFILL-gap;   // v39
+  const sH=targetH/rawH,sW=useW/rawW;
   const manual=clamp(parseFloat(img.dataset.manualScale||'1')||1,.70,2);
   const want=Math.min(sH,sW)*manual,s=clamp(want,.3,g.maxS);
   // Centre the product on the text block (up/down) and in the photo column (left/right) …
   const textMid=g.textTop+g.textH/2-g.availH/2;
-  let sx=-(raw.cx-.5)*g.baseW*s,sy=textMid-(raw.cy-.5)*g.baseH*s;
+  let sx=-(raw.cx-.5)*g.baseW*s-gap/2,sy=textMid-(raw.cy-.5)*g.baseH*s;   // v39: centred in the column less the gap
   // … and never outside its space.
   const l=(raw.x-.5)*g.baseW*s,r=(raw.x+raw.w-.5)*g.baseW*s,t=(raw.y-.5)*g.baseH*s,b=(raw.y+raw.h-.5)*g.baseH*s;
   const keep=(v,lo,hi)=>lo<=hi?clamp(v,lo,hi):(lo+hi)/2;
-  sx=keep(sx,-g.availW/2-l,g.availW/2-r);sy=keep(sy,-g.availH/2-t,g.availH/2-b);
+  sx=keep(sx,-g.availW/2-l,g.availW/2-gap-r);sy=keep(sy,-g.availH/2-t,g.availH/2-b);
   img.style.setProperty('--img-scale',s.toFixed(4));
   img.style.setProperty('--img-shift-x',sx.toFixed(2)+'px');
   img.style.setProperty('--img-shift-y',sy.toFixed(2)+'px');

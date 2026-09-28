@@ -16,7 +16,7 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 
 1. In GitHub Desktop, check that **Current branch** says **main**, then click **Fetch origin** / **Pull origin**.
 2. Copy the new `index.html` and `CHANGELOG.md` into `tools/update-specials/`, replacing the old ones.
-3. Type the summary (e.g. `v38 – balanced classic layouts + brand letters`), click **Commit to main**, then **Push origin**.
+3. Type the summary (e.g. `v39 – image/text spacing + tighter WAS line`), click **Commit to main**, then **Push origin**.
 4. After 1–2 minutes, open the tool and press **Ctrl+Shift+R**. The top right shows the new version.
    Screens already open show *"Version x is now live… Refresh"* within about 20 minutes.
 5. **Need an old version back?** On GitHub, open `tools/update-specials/index.html` → **History**,
@@ -27,6 +27,17 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 It isn't needed day to day.)
 
 ---
+
+## v39 — 29 Sep 2026
+Fine spacing on the side-by-side cards (clean cards and 2×2 Feature). Structure, alignment and
+pack-shot heights are unchanged.
+- **A little more space between the pack shot and the text.** Pack shots keep a small gap on the text
+  side (4.5% of the photo column, at least 6px).
+  - Wide products that fill the column (double boxes, bags, groups of bottles) now sit about 9px further
+    from the text on POS: 23px instead of 14px. The card's left margin is unchanged.
+  - Tall products keep their size and move over by only a few pixels.
+- **The WAS / RRP line sits a little closer to the green line:** about 6px instead of 10px on POS, with
+  less space around the line itself.
 
 ## v38 — 29 Sep 2026
 The classic white layouts now get the same balance as the clean cards. Their look is kept: capitals
