@@ -16,7 +16,7 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 
 1. In GitHub Desktop, check that **Current branch** says **main**, then click **Fetch origin** / **Pull origin**.
 2. Copy the new `index.html` and `CHANGELOG.md` into `tools/update-specials/`, replacing the old ones.
-3. Type the summary (e.g. `v30 – clean 6-Up`), click **Commit to main**, then **Push origin**.
+3. Type the summary (e.g. `v30.1 – slider under photo`), click **Commit to main**, then **Push origin**.
 4. After 1–2 minutes, open the tool and press **Ctrl+Shift+R**. The top right shows the new version.
    Screens already open show *"Version x is now live… Refresh"* within about 20 minutes.
 5. **Need an old version back?** On GitHub, open `tools/update-specials/index.html` → **History**,
@@ -27,6 +27,11 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 It isn't needed day to day.)
 
 ---
+
+## v30.1 — 28 Sep 2026
+Editor only. Exported slides are unchanged.
+- Product cards: the **Image fine-tune** slider now sits underneath **Photo file**, full width,
+  instead of beside it where it got cut off in narrow cards.
 
 ## v30 — 28 Sep 2026
 Two classic layouts brought across to clean cards. The classic versions are unchanged.
