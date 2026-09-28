@@ -2461,6 +2461,7 @@
             <button class="btn primary" id="downloadBtn">Download this slide</button>
             <button class="btn ghost" id="downloadAll" title="All pages as PNGs, plus email text and an advertising record (.csv)">Download all (.zip)</button>
             <button class="btn ghost" id="copyTextBtn" title="Copy this slide's product text and image alt text (for Mailchimp)">Copy text</button>
+            <button class="btn ghost" id="reviewBtn" title="One PDF with page 1 of every layout, using the current specials: for design sign-off">Design review (PDF)</button>
           </div>
         </div>
         <div class="pagechips" id="pageChips" aria-label="Jump to page" hidden></div>
@@ -2484,7 +2485,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='33';
+const APP_VERSION='33.1';
 const APP_DATE='2026-09-28';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -4501,7 +4502,7 @@ document.getElementById('imageAuditBtn').onclick=async()=>{
 function waitForImages(root){
   const imgs=[...root.querySelectorAll('img')];
   return Promise.all(imgs.map(im=>im.complete?Promise.resolve():new Promise(resolve=>{im.addEventListener('load',resolve,{once:true});im.addEventListener('error',resolve,{once:true});setTimeout(resolve,3000);})));}
-async function captureCurrentPage(){
+async function captureCurrentPage(scale=EXPORT_SCALE){
   const s=document.getElementById('slide'),L=LAYOUTS[S.layout];
   await waitForImages(s);
   if(document.fonts&&document.fonts.ready){try{await document.fonts.ready;}catch(e){}}
@@ -4510,7 +4511,7 @@ async function captureCurrentPage(){
   // Export from html2canvas' private copy of the page: the copied slide is
   // un-scaled and lifted out of the preview frame, so the on-screen zoom,
   // pinned layout and scroll position can never clip or shrink the PNG.
-  const canvas=await html2canvas(s,{width:L.w,height:L.h,scale:EXPORT_SCALE,backgroundColor:'#ffffff',useCORS:true,logging:false,
+  const canvas=await html2canvas(s,{width:L.w,height:L.h,scale:scale,backgroundColor:'#ffffff',useCORS:true,logging:false,
     onclone:(doc,clone)=>{
       const c=clone||doc.getElementById('slide');if(!c)return;
       c.style.transform='none';
@@ -4628,6 +4629,116 @@ document.getElementById('downloadAll').onclick=async()=>{
     S.page=Math.min(originalPage,pageCount()-1);render(true);btn.disabled=false;btn.textContent='Download all (.zip)';
   }
 };
+
+/* ---------- v33.1 design review PDF ----------
+   One click → one PDF: a cover page with numbered thumbnails of every layout, then one page per
+   layout (channel, name, size, what it's for) with an "Approved / Changes needed / Notes" line.
+   Uses page 1 of each layout with the specials currently loaded. The PDF maker (jsPDF) is only
+   downloaded when the button is used; if it can't load, a ZIP of the same images is made instead. */
+const JSPDF_URL='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+function loadScriptOnce(src){
+  return new Promise((resolve,reject)=>{
+    if(window.jspdf&&window.jspdf.jsPDF)return resolve();
+    const s=document.createElement('script');s.src=src;s.async=true;
+    s.onload=()=>window.jspdf&&window.jspdf.jsPDF?resolve():reject(new Error('jsPDF missing'));
+    s.onerror=()=>reject(new Error('jsPDF could not be loaded'));
+    document.head.appendChild(s);
+  });
+}
+function reviewLayoutList(){
+  // Every layout once, in picker order (channel → Clean cards → Classic white).
+  const seen=new Set(),out=[];
+  document.querySelectorAll('#channelTabs .chan').forEach(tab=>{
+    const ch=tab.dataset.channel,chName=tab.firstChild.textContent.trim();
+    document.querySelectorAll(`#layoutBtns .lgroup[data-channel="${ch}"]`).forEach(g=>{
+      const grp=(g.querySelector('.lblgrp')||{}).textContent||'';
+      g.querySelectorAll('.btn[data-layout]').forEach(b=>{
+        const k=b.dataset.layout;if(seen.has(k)||!LAYOUTS[k])return;seen.add(k);
+        out.push({key:k,channel:ch,chName,group:grp.trim(),name:b.textContent.trim()});
+      });
+    });
+  });
+  return out;
+}
+async function buildDesignReview(){
+  const btn=document.getElementById('reviewBtn');
+  const prev={channel:S.channel,layout:S.layout,page:S.page};
+  const list=reviewLayoutList(),shots=[];
+  if(!activeRows().length){alert('Load the specials first. The review uses page 1 of each layout with your current products.');return;}
+  btn.disabled=true;
+  try{
+    let pdfOK=true;
+    btn.textContent='Preparing…';
+    try{await loadScriptOnce(JSPDF_URL);}catch(e){pdfOK=false;}
+    for(let i=0;i<list.length;i++){
+      const it=list[i];
+      btn.textContent=`Building review ${i+1}/${list.length}…`;
+      S.channel=it.channel;S.layout=it.key;S.page=0;render(true);
+      await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+      const canvas=await captureCurrentPage(1.5);
+      shots.push({...it,w:LAYOUTS[it.key].w,h:LAYOUTS[it.key].h,jpg:canvas.toDataURL('image/jpeg',0.86),canvas});
+    }
+    const d=new Date(),ds=isoDay(d),stem=`phf_design-review_v${APP_VERSION}_${ds}`;
+    if(pdfOK){
+      btn.textContent='Making PDF…';
+      const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
+      const W=297,H=210,M=12;
+      const fitBox=(w,h,bw,bh)=>{const r=Math.min(bw/w,bh/h);return {w:w*r,h:h*r};};
+      // Cover: numbered thumbnails of every layout
+      doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(28,35,45);
+      doc.text('Prahran Health Foods - Update Specials design review',M,M+7);
+      doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(90,96,100);
+      doc.text(`${appVersionLabel()}  ·  ${list.length} layouts  ·  page 1 of each layout with the current specials  ·  created ${d.toLocaleString('en-AU')}`,M,M+13);
+      const cols=7,gap=4,top=M+19,cw=(W-2*M-(cols-1)*gap)/cols,rows=Math.ceil(shots.length/cols),chh=Math.min(46,(H-top-M)/rows);
+      shots.forEach((sh,i)=>{
+        const cx=M+(i%cols)*(cw+gap),cy=top+Math.floor(i/cols)*chh,bh=chh-9;
+        const f=fitBox(sh.w,sh.h,cw,bh);
+        doc.setDrawColor(222,224,221);doc.rect(cx+(cw-f.w)/2,cy+(bh-f.h)/2,f.w,f.h);
+        doc.addImage(sh.jpg,'JPEG',cx+(cw-f.w)/2,cy+(bh-f.h)/2,f.w,f.h,'L'+i,'FAST');
+        doc.setFontSize(6.8);doc.setTextColor(28,35,45);
+        doc.text(doc.splitTextToSize(`${i+1}. ${sh.chName} · ${sh.name}`,cw),cx,cy+bh+3.2);
+      });
+      // One page per layout
+      shots.forEach((sh,i)=>{
+        doc.addPage();
+        doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(28,35,45);
+        doc.text(`${i+1} / ${shots.length}   ${sh.chName} - ${sh.name}`,M,M+5);
+        doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(90,96,100);
+        doc.text(`${sh.group}  ·  ${sh.w} × ${sh.h} canvas  ·  exports at ${sh.w*EXPORT_SCALE} × ${sh.h*EXPORT_SCALE} px`,M,M+10.5);
+        const note=(LAYOUT_META[sh.key]||{}).note||'';
+        if(note)doc.text(doc.splitTextToSize(note,W-2*M),M,M+15);
+        const ay=M+21,ah=H-ay-M-9,f=fitBox(sh.w,sh.h,W-2*M,ah),x=M+(W-2*M-f.w)/2;
+        doc.setDrawColor(210,212,209);doc.rect(x,ay,f.w,f.h);
+        doc.addImage(sh.jpg,'JPEG',x,ay,f.w,f.h,'L'+i,'FAST');
+        doc.setFontSize(10.5);doc.setTextColor(28,35,45);
+        doc.text('Approved  [   ]        Changes needed  [   ]        Notes: ____________________________________________________________',M,H-M+1);
+      });
+      doc.save(`${stem}.pdf`);
+    }else{
+      btn.textContent='Making ZIP…';
+      if(typeof JSZip==='undefined')throw new Error('no zip');
+      const zip=new JSZip();
+      for(let i=0;i<shots.length;i++){
+        const sh=shots[i],blob=await canvasBlob(sh.canvas);
+        zip.file(`${String(i+1).padStart(2,'0')}_${sh.channel}_${sh.name.toLowerCase().replace(/×/g,'x').replace(/\+/g,'plus').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}.png`,blob);
+      }
+      downloadBlob(await zip.generateAsync({type:'blob'}),`${stem}.zip`);
+      alert('The PDF maker could not be loaded, so the review was saved as a ZIP of images instead.');
+    }
+  }catch(e){
+    alert('The design review could not be created. Check the Image safety net panel, then try again.');
+  }finally{
+    // Back to exactly where you were.
+    S.channel=prev.channel;
+    document.querySelectorAll('#channelTabs .chan').forEach(t=>{const on=t.dataset.channel===prev.channel;t.classList.toggle('active',on);t.setAttribute('aria-selected',on?'true':'false');});
+    document.querySelectorAll('#layoutBtns .lgroup').forEach(g=>{g.hidden=g.dataset.channel!==prev.channel;});
+    document.querySelectorAll('#layoutBtns .btn').forEach(x=>x.classList.remove('active'));
+    const b=layoutButtonFor(prev.layout);if(b)b.classList.add('active');
+    S.layout=prev.layout;S.page=Math.min(prev.page,Math.max(0,pageCount()-1));render(true);
+    btn.disabled=false;btn.textContent='Design review (PDF)';
+  }
+}
+document.getElementById('reviewBtn').onclick=buildDesignReview;
 
 /* boot: restore the last successful source URL. Keep a valid Apps Script feed
    if one is deliberately configured, otherwise normalise the known PHF Sheet

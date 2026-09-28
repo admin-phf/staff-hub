@@ -16,7 +16,7 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 
 1. In GitHub Desktop, check that **Current branch** says **main**, then click **Fetch origin** / **Pull origin**.
 2. Copy the new `index.html` and `CHANGELOG.md` into `tools/update-specials/`, replacing the old ones.
-3. Type the summary (e.g. `v33 – thinner rule, no divider`), click **Commit to main**, then **Push origin**.
+3. Type the summary (e.g. `v33.1 – design review PDF`), click **Commit to main**, then **Push origin**.
 4. After 1–2 minutes, open the tool and press **Ctrl+Shift+R**. The top right shows the new version.
    Screens already open show *"Version x is now live… Refresh"* within about 20 minutes.
 5. **Need an old version back?** On GitHub, open `tools/update-specials/index.html` → **History**,
@@ -27,6 +27,16 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 It isn't needed day to day.)
 
 ---
+
+## v33.1 — 28 Sep 2026
+Tooling only. Exported slides are unchanged.
+- **Design review (PDF)** button (next to Copy text): one PDF for sign-off, built from page 1 of
+  every layout with the specials currently loaded (25 layouts, about 10 seconds).
+  - Page 1: numbered thumbnails of every layout, grouped by channel.
+  - Then one page per layout: channel, name, size, what it's for, and an
+    "Approved [ ]  Changes needed [ ]  Notes" line.
+  - Saved as `phf_design-review_v33.1_<date>.pdf`. The tool returns to the layout you were on.
+  - If the PDF maker can't load (no internet), you get a ZIP of the same images instead.
 
 ## v33 — 28 Sep 2026
 Lighter clean cards. Classic white layouts are unchanged.
