@@ -28,6 +28,16 @@ It isn't needed day to day.)
 
 ---
 
+## v43 — 29 Sep 2026
+Product-detail data from the Specials sheet is now carried through the generator and used where it improves the artwork without overcrowding dense layouts.
+- **Five new sheet columns are supported end-to-end:** `product_form`, `feature_heading`, `key_ingredients`, `key_benefits`, and `promo_display`. They are read from published CSV, Google Visualization, Apps Script feed matrices, local CSV backups and last-good cached rows.
+- **Product editor:** every product card now exposes Product form, Feature heading, Key ingredients, Key benefits and Promo display, so imported values can be checked or adjusted in the live preview. Edits remain preview-only, exactly like the existing price/image fields.
+- **Hero layouts use the richer copy automatically:** POS Hero, Portrait TV Hero, Social Hero 4:5 and Hero Square 800 can show the feature heading, product form, key ingredients and key benefits. The hero card in Email/POS Hero + 2 uses the shorter feature heading + product form treatment. Dense multi-product cards deliberately remain price-led.
+- **`promo_display` is display-aware:** it fills the existing reference line only when it adds something useful (for example `BUY 2 FOR $145` can show `$72.50 EA`). It is suppressed when it would simply duplicate the main price, deal wording or SAVE badge.
+- **Copy text / email text** now carries the feature heading, product form, key ingredients and key benefits underneath each product line.
+- **Advertising record CSV** now includes all five new fields so the exported record preserves the exact richer product information used by the campaign.
+- If your Apps Script feed publishes a fixed whitelist of columns, add these five column names there as well. Published-sheet CSV and normal Google Sheet table feeds pick them up automatically.
+
 ## v42 — 29 Sep 2026
 Visual hierarchy, baseline synchronization, and layout cohesion overhaul across all product cards and templates (upgraded from v41).
 - **Synchronized Row Baselines:** Enforced deterministic brand and product title heights (`min-height` / line-clamp locks) across multi-product grids (4-Up, 2×2 Feature, 6-Grid, etc.), eliminating staggered price pills and baseline stepping across rows.

@@ -56,8 +56,9 @@
   .seg .lblgrp{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:0 2px}
   .field{flex:1;min-width:190px}
   label{display:block;font-size:11.5px;color:var(--muted);margin:0 0 4px;font-weight:600}
-  input[type=text],select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;color:var(--ink);background:#fff}
-  input:focus,select:focus{outline:none;border-color:var(--grey)}
+  input[type=text],select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;color:var(--ink);background:#fff;font-family:inherit}
+  textarea{resize:vertical;min-height:64px;line-height:1.35}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--grey)}
 
   .grid-inputs{display:grid;gap:12px}
   .card-input{border:1px solid var(--line);border-radius:11px;padding:12px;background:#fcfcfc;position:relative}
@@ -66,6 +67,9 @@
   .card-input .del:hover{background:#f3dede;color:var(--red)}
   .mini{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .discwrap{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
+  .detailwrap{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+  .detailwrap .detailtitle{font-size:10.5px;color:var(--green);font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}
+  .detailgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .status{font-size:13px;padding:10px 14px;border-radius:9px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
   .status.ok{background:#eef7ee;color:#256428;border:1px solid #cfe6cf}
   .status.warn{background:#fff6e6;color:#8a6100;border:1px solid #f0e0b8}
@@ -2430,6 +2434,23 @@
   .update-note .btn{background:#fff;color:#1f2a22;border-color:#fff;padding:6px 12px;font-size:12.5px}
   .update-note .x{background:transparent;border:none;color:#cfd8d1;font-size:17px;cursor:pointer;padding:2px 4px}
 
+
+
+  /* ---------- v43 richer product information ----------
+     The sheet can now carry product_form, feature_heading, key_ingredients,
+     key_benefits and promo_display. Dense multi-product cards stay price-led;
+     richer copy is used only on spacious clean hero cards. */
+  .slide .po-extra{font-family:Arial,Helvetica,sans-serif;font-size:1em;line-height:1.2;color:#4f5a53;margin:0 0 .28em}
+  .slide .po-feature{font-size:.29em;line-height:1.15;font-weight:800;color:var(--po-green);letter-spacing:.005em;margin:0 0 .18em;text-wrap:balance}
+  .slide .po-meta-row{display:flex;align-items:center;gap:.28em;flex-wrap:wrap;margin:0 0 .18em}
+  .slide .po-form{display:inline-flex;align-items:center;width:fit-content;font-size:.19em;line-height:1;font-weight:800;letter-spacing:.055em;text-transform:uppercase;color:#5f6862;background:#f0f3f0;border-radius:999px;padding:.34em .58em}
+  .slide .po-detail-line{font-size:.20em;line-height:1.28;color:#515b55;margin:.16em 0 0;overflow-wrap:anywhere}
+  .slide .po-detail-label{font-weight:800;color:#39413c}
+  .slide .po-promo-display{color:var(--po-green)!important}
+  .l-retailhero2 .cl-hero .po-feature{font-size:.25em}
+  .l-retailhero2 .cl-hero .po-form{font-size:.17em}
+  .l-poshero .po-detail-line,.l-retailsquarehero .po-detail-line,.l-botanicalsingle .po-detail-line,.l-tvhero .po-detail-line{display:block}
+
 </style>
 </head>
 <body>
@@ -2590,7 +2611,7 @@
       </div>
       <div class="auto-balance-help"><b>Safe Smart Fit:</b> detects the visible pack shot, removes excess white/transparent padding, recentres uneven sources and equalises visual mass — but now keeps a protected edge margin so lids, boxes and labels are not clipped. The slider remains a fine-tune control. Local <code>images/</code> files are preferred, with <code>Pictures/</code> retained as a safety-net folder.</div>
       <div class="grid-inputs" id="prodInputs"></div>
-      <div class="exportnote" style="text-align:left">Edits here change the slide right now but don't write back to the sheet — refresh or revert to pull sheet data again. Keep permanent changes in the sheet. Optional: add an image_scale column (70–200) for permanent fine-tuning. At 100%, Smart Auto-Balance does the sizing automatically.</div>
+      <div class="exportnote" style="text-align:left">Edits here change the slide right now but don't write back to the sheet — refresh or revert to pull sheet data again. Keep permanent changes in the sheet. Permanent product-detail columns supported: product_form, feature_heading, key_ingredients, key_benefits and promo_display. Optional: add an image_scale column (70–200) for permanent fine-tuning. At 100%, Smart Auto-Balance does the sizing automatically.</div>
     </div>
 
     <div id="imageHealthPanel" class="image-health-panel" aria-live="polite">
@@ -2667,7 +2688,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='42';
+const APP_VERSION='43';
 const APP_DATE='2026-09-29';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -2939,6 +2960,8 @@ function normaliseProductRow(r){
   const row=tidyRowBrand(r),rawName=String(row.name==null?'':row.name).trim();
   const cleaned=displayName({...row,name:rawName,_cleanName:'',_cleanNameSource:''});
   return {...row,name:rawName,nameRaw:String(row.nameRaw||rawName),_cleanName:cleaned,_cleanNameSource:rawName,
+    form:String(row.form||'').trim(),feature:String(row.feature||'').trim(),ingredients:String(row.ingredients||'').trim(),
+    benefits:String(row.benefits||'').trim(),promoDisplay:String(row.promoDisplay||'').trim(),
     dv:row.disc==='deal'?normaliseDeal(row.dv):row.dv};
 }
 /* Resolve an image cell from the sheet. Accepts, in order:
@@ -3014,6 +3037,9 @@ function rowsFromMatrix(matrix){
       end:pick('end_date','end','ends','valid_to','valid_until','until','expiry','expires'),
       short:pick('short_name','display_name','pos_name','slide_name'),
       brandShow:pick('brand_on_slide','slide_brand','brand_display','display_brand','short_brand'),
+      form:pick('product_form','form'),feature:pick('feature_heading','feature','headline'),
+      ingredients:pick('key_ingredients','ingredients'),benefits:pick('key_benefits','benefits'),
+      promoDisplay:pick('promo_display','promo','display_promo'),
       _rowId:'sheet-'+i}));
   }
   return out;
@@ -3852,9 +3878,9 @@ function imgStamped(p){
    slide has the same text height and the pills, prices and pack shots sit level (4-Product, Grid Cards,
    2×2 Feature, 6-Grid Split). */
 const REF_EMPTY_CLASS='ref-empty';
-function refLine(p,reserve){   // v38: WAS, else RRP (… EACH on a multi-buy)
-  const d=priceData(p);
-  const t=d.was?`WAS $${h(d.was)}`:(d.rrp&&S.optRRP?`RRP $${h(d.rrp)}${!d.has&&d.deal?' EACH':''}`:'');
+function refLine(p,reserve){   // v38: WAS, else RRP (… EACH on a multi-buy); v43: useful promo_display may fill the same row
+  const d=priceData(p),promo=promoDisplayText(p);
+  const t=d.was?`WAS $${h(d.was)}`:(d.rrp&&S.optRRP?`RRP $${h(d.rrp)}${!d.has&&d.deal?' EACH':''}`:(promo?h(promo):''));
   return t?`<div class="refline">${t}</div>`:(reserve?`<div class="refline ${REF_EMPTY_CLASS}" aria-hidden="true">&nbsp;</div>`:'');
 }
 /* v38: a deal on a classic layout reads like a price, as on the clean cards —
@@ -3869,14 +3895,14 @@ function classicPercentHTML(cd,kind='dealhero'){return `<span class="${kind} dea
 function pblock(p,reserve){
   const d=priceData(p),empty=reserve?`<div class="was ${REF_EMPTY_CLASS}" aria-hidden="true">&nbsp;</div>`:'';
   if(!d.has){
-    const cd=classicDeal(p),ref=d.rrp&&S.optRRP?`<div class="was">RRP $${h(d.rrp)} EACH</div>`:empty;
+    const cd=classicDeal(p),promo=promoDisplayText(p),ref=d.rrp&&S.optRRP?`<div class="was">RRP $${h(d.rrp)} EACH</div>`:(promo?`<div class="was">${h(promo)}</div>`:empty);
     const anchor=cd.amount?`<span class="price">${priceHTML(cd.amount)}${perHTML(cd)}</span>`:(cd.percent?classicPercentHTML(cd):`<span class="dealhero dealbig">${h(cd.text)}</span>`);
     return `<div class="pricerow"><span class="nowlbl">${h(cd.lead)}</span><div class="classic-anchor">${anchor}</div><div class="classic-offer-rule"></div>${ref}</div>`;
   }
   let ref='';
   if(d.was)ref=`<div class="was">WAS $${h(d.was)}</div>`;
   else if(d.rrp&&S.optRRP)ref=`<div class="was">RRP $${h(d.rrp)}</div>`;
-  else ref=empty;
+  else {const promo=promoDisplayText(p);ref=promo?`<div class="was">${h(promo)}</div>`:empty;}
   const extra=d.deal?`<div class="deal">${h(d.deal)}</div>`:'';
   return `<div class="pricerow"><span class="nowlbl">NOW</span><div class="classic-anchor"><span class="price">${priceHTML(p.now)}</span></div><div class="classic-offer-rule"></div>${ref}${extra}</div>`;
 }
@@ -4216,6 +4242,16 @@ function buildInputs(){
         </select></div>
         <div><label>Discount value</label><input type="text" data-gi="${gi}" data-k="dv" value="${ha(p.dv)}"></div>
       </div></div>
+      <div class="detailwrap">
+        <div class="detailtitle">Product details from sheet</div>
+        <div class="detailgrid">
+          <div><label>Product form</label><input type="text" data-gi="${gi}" data-k="form" value="${ha(p.form||'')}" placeholder="e.g. Capsules, Powder, Liquid"></div>
+          <div><label>Promo display</label><input type="text" data-gi="${gi}" data-k="promoDisplay" value="${ha(p.promoDisplay||'')}" placeholder="e.g. $72.50 ea"></div>
+        </div>
+        <label style="margin-top:7px">Feature heading</label><input type="text" data-gi="${gi}" data-k="feature" value="${ha(p.feature||'')}" placeholder="Short customer-facing feature line">
+        <label style="margin-top:7px">Key ingredients</label><textarea data-gi="${gi}" data-k="ingredients" placeholder="Ingredient / formulation summary">${h(p.ingredients||'')}</textarea>
+        <label style="margin-top:7px">Key benefits</label><textarea data-gi="${gi}" data-k="benefits" placeholder="Concise benefit summary">${h(p.benefits||'')}</textarea>
+      </div>
       <div class="mini photo-stack" style="margin-top:8px">
         <div><label>Photo file</label><input type="file" accept="image/*" data-gi="${gi}" data-k="imgfile"></div>
         <div><label>Image fine-tune (70–200%)</label><div class="scale-control">
@@ -4229,7 +4265,7 @@ function buildInputs(){
     box.appendChild(d);
   });
   renderImageHealthPanel();
-  box.querySelectorAll('input[type=text],input[type=range],select').forEach(inp=>{
+  box.querySelectorAll('input[type=text],input[type=range],select,textarea').forEach(inp=>{
     const ev=inp.tagName==='SELECT'?'change':'input';
     inp.addEventListener(ev,e=>{
       const gi=+e.target.dataset.gi,k=e.target.dataset.k;
@@ -4326,6 +4362,14 @@ function offerPrice(now){
   const n=numberFrom(now);if(!Number.isFinite(n))return '';
   return '$'+n.toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
+function promoDisplayText(p){
+  const raw=String(p&&p.promoDisplay||'').trim();if(!raw)return '';
+  const norm=v=>String(v||'').toLowerCase().replace(/each/g,'ea').replace(/[^a-z0-9]+/g,'');
+  const d=priceData(p),save=retailSaveLabel(p);
+  const existing=[d.deal,d.has?offerPrice(p.now):'',save,d.was?`WAS $${d.was}`:'',d.rrp?`RRP $${d.rrp}`:''];
+  if(existing.some(v=>v&&norm(v)===norm(raw)))return '';
+  return raw;
+}
 function offerSubLines(p,opts={}){
   const d=priceData(p),lines=[];
   if(d.has&&d.deal)lines.push(h(d.deal));
@@ -4334,6 +4378,9 @@ function offerSubLines(p,opts={}){
   if(!opts.noSave&&p.disc==='save$'){const v=numberFrom(p.dv);if(Number.isFinite(v)&&v>0)save=`SAVE $${h(savingText(v))}`;}
   if(!opts.noSave&&p.disc==='save%'){const v=numberFrom(p.dv);if(Number.isFinite(v)&&v>0)save=`SAVE ${h(savingText(v))}%`;}
   if(ref&&save)lines.push(`${ref} · ${save}`);else if(ref||save)lines.push(ref||save);
+  // v43: promo_display fills the otherwise-empty reference row (e.g. BUY 2 FOR $145 -> $72.50 EA)
+  // but is suppressed when it merely repeats the price, deal or SAVE wording already on the card.
+  const promo=promoDisplayText(p);if(!lines.length&&promo)lines.push(`<span class="po-promo-display">${h(promo)}</span>`);
   return lines;
 }
 /* v37: Brand on slide (editor field or sheet column brand_on_slide) is shown exactly as typed —
@@ -4355,6 +4402,19 @@ function slideBrand(p){
   return brandCaseText(p?p.brand:'',m,true);
 }
 function classicBrand(p){const o=String(p&&p.brandShow||'').trim();return h(brandCaseText(o||(p?p.brand:''),S.brandCase||'std',false));}
+function productExtraHTML(p,mode=''){
+  if(!p||!mode)return '';
+  const feature=String(p.feature||'').trim(),form=String(p.form||'').trim();
+  const ingredients=String(p.ingredients||'').trim(),benefits=String(p.benefits||'').trim();
+  const bits=[];
+  if(feature)bits.push(`<div class="po-feature">${h(feature)}</div>`);
+  if(form)bits.push(`<div class="po-meta-row"><span class="po-form">${h(form)}</span></div>`);
+  if(mode==='full'){
+    if(ingredients)bits.push(`<div class="po-detail-line"><span class="po-detail-label">Key ingredients:</span> ${h(ingredients)}</div>`);
+    if(benefits)bits.push(`<div class="po-detail-line"><span class="po-detail-label">Key benefits:</span> ${h(benefits)}</div>`);
+  }
+  return bits.join('');
+}
 function offerBlock(p,opts={}){
   const d=priceData(p);
   const cls=['po'],pkey=productKey(p);
@@ -4383,7 +4443,7 @@ function offerBlock(p,opts={}){
 const PO_CELLS='.cl-card';
 function offerOverflows(po){
   const w=po.clientWidth;if(!w)return false;
-  for(const el of po.querySelectorAll('.po-price,.po-sub,.po-pill,.po-deal,.po-name')){
+  for(const el of po.querySelectorAll('.po-price,.po-sub,.po-pill,.po-deal,.po-name,.po-extra,.po-feature,.po-detail-line')){
     if(el.scrollWidth>el.clientWidth+1||el.getBoundingClientRect().width>po.getBoundingClientRect().width+1)return true;
   }
   const dl=po.querySelector('.po-deal');
@@ -4679,19 +4739,19 @@ if(document.fonts&&document.fonts.load){
    saved preferences, file names and page counts are unchanged. */
 const CLEAN_LAYOUTS={
   retailfour:{grid:'g22',slots:4,pos:true},
-  retailhero2:{grid:'ghero',slots:3,pos:true,hero:true},
+  retailhero2:{grid:'ghero',slots:3,pos:true,hero:true,heroDetails:'summary'},
   retailbanner2:{grid:'g21',slots:2,row:true},
   retailportrait:{grid:'g14',slots:4},
   retailsquare4:{grid:'g22',slots:4},
-  retailsquarehero:{grid:'g11',slots:1},
-  botanicalsingle:{grid:'g11',slots:1},
+  retailsquarehero:{grid:'g11',slots:1,details:'full'},
+  botanicalsingle:{grid:'g11',slots:1,details:'full'},
   botanicaltwo:{grid:'g21',slots:2},
   botanicalfour:{grid:'g22',slots:4},
   botanicalsquare:{grid:'g22',slots:4},
-  poshero:{grid:'g11',slots:1,pos:true},
+  poshero:{grid:'g11',slots:1,pos:true,details:'full'},
   pos2:{grid:'g21',slots:2,pos:true},
   pos4row:{grid:'g41',slots:4,pos:true,stack:true,minImg:.5},
-  tvhero:{grid:'g11',slots:1,stack:true,minImg:.5},
+  tvhero:{grid:'g11',slots:1,stack:true,minImg:.5,details:'full'},
   tv2:{grid:'g12',slots:2},
   tv3:{grid:'g13',slots:3},
   email6:{grid:'g32',slots:6}
@@ -4707,8 +4767,8 @@ function cleanCard(p,extra='',cfg={}){
   if(!p)return `<div class="${cls} empty-cell"></div>`;
   // The red circle carries the saving, so the green line under the price shows only WAS / RRP.
   // Stacked cards (pack shot above the text) drop the vertical divider.
-  const stamp=cleanSaveCircle(p);
-  return `<div class="${cls}"${mi}><div class="imgwrap${stamp?' has-save':''}">${img(p,{pop:true})}${stamp}</div><div class="cl-info">${offerBlock(p,{divided:!stack,noSave:!!stamp,ends:true})}</div></div>`;
+  const stamp=cleanSaveCircle(p),extraHTML=productExtraHTML(p,cfg.detailMode||'');
+  return `<div class="${cls}"${mi}><div class="imgwrap${stamp?' has-save':''}">${img(p,{pop:true})}${stamp}</div><div class="cl-info">${offerBlock(p,{divided:!stack,noSave:!!stamp,ends:true,extra:extraHTML})}</div></div>`;
 }
 function cleanHeader(cfg){
   const title=String(S.title||'').trim()?titleInline():'CURRENT SPECIALS';
@@ -4724,7 +4784,7 @@ function cleanSlide(layout,P){
   // v41: 4-up grids (2×2 and 4 across) centre a last page of 1–3 products, keeping the card size
   const part=cfg.slots===4&&(cfg.grid==='g22'||cfg.grid==='g41')?partialClass(Math.min(P.length,4),4):'';
   const cells=[...P].slice(0,cfg.slots);if(!part)while(cells.length<cfg.slots)cells.push(null);
-  const cards=cells.map((p,i)=>cleanCard(p,cfg.hero&&i===0?'cl-hero':'',cfg)).join('');
+  const cards=cells.map((p,i)=>{const detailMode=cfg.details||(cfg.hero&&i===0?(cfg.heroDetails||'summary'):'');return cleanCard(p,cfg.hero&&i===0?'cl-hero':'',{...cfg,detailMode});}).join('');
   // v27: cards only — the CURRENT SPECIALS header is no longer drawn (cleanHeader kept for reference).
   return `<div class="cl-pad"><div class="cl-grid ${cfg.grid}${part}">${cards}</div>${cleanFoot()}</div>`;
 }
@@ -5116,6 +5176,9 @@ function rowsFromGViz(response){
       end:pick('end_date','end','ends','valid_to','valid_until','until','expiry','expires'),
       short:pick('short_name','display_name','pos_name','slide_name'),
       brandShow:pick('brand_on_slide','slide_brand','brand_display','display_brand','short_brand'),
+      form:pick('product_form','form'),feature:pick('feature_heading','feature','headline'),
+      ingredients:pick('key_ingredients','ingredients'),benefits:pick('key_benefits','benefits'),
+      promoDisplay:pick('promo_display','promo','display_promo'),
       _rowId:'sheet-'+(i+1)}));
   }
   return out;
@@ -5303,7 +5366,7 @@ document.getElementById('localCsvFile').addEventListener('change',e=>{
 
 /* ---------- inline editing controls ---------- */
 document.getElementById('addProd').onclick=()=>{
-  S.work.push({brand:'NEW BRAND',name:'Product name',now:'0.00',disc:'was',dv:'',rrp:'',img:'',recImg:'',altImg:'',scale:'100',_rowId:'local-'+Date.now()});
+  S.work.push({brand:'NEW BRAND',name:'Product name',now:'0.00',disc:'was',dv:'',rrp:'',form:'',feature:'',ingredients:'',benefits:'',promoDisplay:'',img:'',recImg:'',altImg:'',scale:'100',_rowId:'local-'+Date.now()});
   markEdited();S.page=pageCount()-1;render(true);
 };
 document.getElementById('revertBtn').onclick=()=>{syncWork();clearEdited();S.page=0;render(true);};
@@ -5367,6 +5430,7 @@ function offerTextLine(p){
   if(d.deal)parts.push(d.deal);
   if(d.was)parts.push(`was $${d.was}`);else if(d.rrp&&S.optRRP)parts.push(`RRP $${d.rrp}`);
   const save=retailSaveLabel(p);if(save)parts.push(save.replace(/^SAVE/,'save'));
+  const promo=promoDisplayText(p);if(promo)parts.push(promo);
   const e=offerDates(p).end;if(e)parts.push(`ends ${fmtOfferDate(e)}`);
   return `${name} — ${parts.join(', ')}`;
 }
@@ -5375,7 +5439,13 @@ function slideTextBlock(rows,file){
   const lines=[];
   if(file)lines.push(file);
   lines.push('ALT TEXT: '+slideAltText(rows));
-  rows.forEach(p=>lines.push('• '+offerTextLine(p)));
+  rows.forEach(p=>{
+    lines.push('• '+offerTextLine(p));
+    if(p.feature)lines.push('  Feature: '+p.feature);
+    if(p.form)lines.push('  Form: '+p.form);
+    if(p.ingredients)lines.push('  Key ingredients: '+p.ingredients);
+    if(p.benefits)lines.push('  Key benefits: '+p.benefits);
+  });
   return lines.join('\n');
 }
 function textFileHeader(){
@@ -5393,12 +5463,12 @@ function textFileFooter(){
 }
 function recordCSV(entries){
   const esc=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
-  const head=['exported_at','app_version','channel','layout','page','file','brand','name','now_price','discount_style','discount_value','was_price','save_shown','rrp','rrp_shown','deal','start_date','end_date','image_source','label_statement','price_scope'];
+  const head=['exported_at','app_version','channel','layout','page','file','brand','name','product_form','feature_heading','key_ingredients','key_benefits','promo_display','now_price','discount_style','discount_value','was_price','save_shown','rrp','rrp_shown','deal','start_date','end_date','image_source','label_statement','price_scope'];
   const at=new Date().toISOString(),btn=layoutButtonFor(S.layout),layout=btn?btn.textContent.trim():S.layout;
   const lines=[head.map(esc).join(',')];
   entries.forEach(({page,file,rows})=>rows.forEach(p=>{
     const d=priceData(p),od=offerDates(p),x=IMAGE_HEALTH.get(productKey(p))||{};
-    lines.push([at,APP_VERSION,S.channel,layout,page,file,p.brand,p.name,p.now,p.disc,p.dv,d.was,retailSaveLabel(p),p.rrp||'',d.rrp&&S.optRRP&&!d.was?'yes':'no',d.deal,
+    lines.push([at,APP_VERSION,S.channel,layout,page,file,p.brand,p.name,p.form||'',p.feature||'',p.ingredients||'',p.benefits||'',p.promoDisplay||'',p.now,p.disc,p.dv,d.was,retailSaveLabel(p),p.rrp||'',d.rrp&&S.optRRP&&!d.was?'yes':'no',d.deal,
       od.start?isoDay(od.start):(p.start||''),od.end?isoDay(od.end):(p.end||''),x.sourceLabel||'',S.optLabel?'yes':'no',S.optScope||'not stated'].map(esc).join(','));
   }));
   return lines.join('\r\n');
