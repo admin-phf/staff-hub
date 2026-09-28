@@ -16,7 +16,7 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 
 1. In GitHub Desktop, check that **Current branch** says **main**, then click **Fetch origin** / **Pull origin**.
 2. Copy the new `index.html` and `CHANGELOG.md` into `tools/update-specials/`, replacing the old ones.
-3. Type the summary (e.g. `v35 – balanced clean cards`), click **Commit to main**, then **Push origin**.
+3. Type the summary (e.g. `v34.1 – image_url takes priority`), click **Commit to main**, then **Push origin**.
 4. After 1–2 minutes, open the tool and press **Ctrl+Shift+R**. The top right shows the new version.
    Screens already open show *"Version x is now live… Refresh"* within about 20 minutes.
 5. **Need an old version back?** On GitHub, open `tools/update-specials/index.html` → **History**,
@@ -29,25 +29,18 @@ It isn't needed day to day.)
 ---
 
 ## v35 — 28 Sep 2026
-Balanced clean cards. Classic white layouts are unchanged (checked pixel-for-pixel against v34.1).
-- **Deals read like prices.** The offer goes in the green pill and the amount or reward is the big line,
-  so every card has the same four rows: pill · big line · green rule · WAS / RRP.
-  | Deal wording in the sheet | Pill | Big line |
-  |---|---|---|
-  | `BUY 2 FOR $145.00` | BUY 2 FOR | $145.00 (same size as a NOW price) |
-  | `BUY 2, GET 1 FREE` | BUY 2 | GET 1 FREE |
-  | `BUY ANY 3 SAVE 20%` | BUY ANY 3 | SAVE 20% |
-  | anything else (`HALF PRICE`, `BUY 3 FOR $50 MIX & MATCH`) | SPECIAL | the wording, as large as fits (up to two lines) |
-- **RRP on a multi-buy says EACH:** `RRP $103.10 EACH`. It shows when the deal row has an `rrp` value,
-  so add RRPs to deal rows to give those cards their fourth line.
-- **Pack shots line up with the text.** The photo area runs from the brand line to the WAS / RRP
-  line (never less than 80% of the card), so products and prices share one top and bottom edge.
-  The red SAVE circle takes less room from the pack shot.
-- **Pop pack shots** now also turns pale grey or off-white photo backgrounds white, so they don't show
-  as a faint box on the card. Darker grey backdrops are left alone, so white caps keep their shape.
-- **Canvas: White / Charcoal** (Clean-card options, remembered on each device). Charcoal puts the white
-  cards on a dark background with a soft glow, which stands out on screens. Default is White.
-- Brands typed in capitals keep a capital on the last word (Prana On, not Prana on).
+Approved 2×2 retail balance for **POS screen → Clean cards → 4-Up grid**.
+- Matches the approved reference more closely without changing product/pricing data logic:
+  - charcoal canvas between the four white cards, with a slightly stronger rounded-card edge;
+  - tighter card gaps and internal padding so the artwork uses more of the available canvas;
+  - product area increased to about **43%** of each card and allowed to use the full image slot;
+  - subtle full-height vertical divider between pack shot and offer copy;
+  - brand and product lines use the same dark, heavy retail hierarchy instead of the product line reading lighter/greyer;
+  - NOW / SPECIAL badge, hero price and deal remain the primary scan path;
+  - the decorative green rule below the price is removed in this layout, so WAS / RRP sits directly under the offer like the approved reference;
+  - SAVE circles now overlay the product instead of reserving image space and making that pack shot smaller.
+- **Pack-shot mismatch warning:** if two different products resolve to the same selected image source, the validation bar now warns staff to verify the photo. This catches copy/paste errors such as changing the product copy but leaving another product's `image_url`.
+- Other clean-card layouts and all classic white layouts are unchanged.
 
 ## v34.1 — 28 Sep 2026
 Fix: changing a product's image link now changes the photo. Applies to every layout.

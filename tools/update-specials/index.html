@@ -2235,16 +2235,6 @@
     min-height:calc(var(--name-lines,2) * 1.18em);max-height:calc(var(--name-lines,2) * 1.18em);overflow:hidden;
     overflow-wrap:break-word;margin-top:.06em}
 
-  /* ---------- v35 balanced clean cards ---------- */
-  .slide .po-pill.po-lead{text-transform:uppercase}
-  .slide .po-dealbig{font-size:.8em;line-height:1;letter-spacing:-.02em;margin:0;white-space:nowrap;text-wrap:balance}
-  .cl-card .imgwrap.has-save .imgslot{padding:calc(var(--po-size,60px)*.2) calc(var(--po-size,60px)*.2) 0 0!important}
-  .slide.cl-dark{background:#1E1E1E!important}
-  .slide.cl-dark .cl-pad{background:#1E1E1E;--cl-line:#3A3D40;--cl-muted:#B5BAB6}
-  .slide.cl-dark .cl-card{border-color:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.08),0 0 22px rgba(255,255,255,.16)}
-  .slide.cl-dark .cl-foot{color:#B5BAB6;border-top-color:#3A3D40}
-  .slide.cl-dark .cl-foot .cl-site,.slide.cl-dark .cl-foot .foot-label{color:#fff}
-
   /* ---------- v26 channel picker (editor UI) ---------- */
   .chan-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:0 0 12px}
   .chan{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 5px 7px;font:inherit;font-weight:800;font-size:12.5px;color:var(--ink);cursor:pointer;text-align:center;line-height:1.15;min-width:0}
@@ -2264,6 +2254,133 @@
   .update-note[hidden]{display:none}
   .update-note .btn{background:#fff;color:#1f2a22;border-color:#fff;padding:6px 12px;font-size:12.5px}
   .update-note .x{background:transparent;border:none;color:#cfd8d1;font-size:17px;cursor:pointer;padding:2px 4px}
+
+
+  /* ============================================================
+     V35 — APPROVED 2×2 RETAIL BALANCE
+     Matches the approved reference for POS → Clean cards → 4-Up grid:
+     strong pack-shot presence, 43/57 image/text split, full-height subtle
+     divider, darker/heavier product copy, no decorative price rule, larger
+     rounded cards and a charcoal canvas between cards. Product data, pricing
+     logic, footer safeguards and every other layout remain unchanged.
+     ============================================================ */
+  .slide.l-retailfour{
+    background:#1E1E1E!important;
+  }
+  .l-retailfour{
+    --cl-pad:8px 8px 6px;
+    --cl-gap:8px;
+    --cl-cpad:9px 11px;
+    --cl-cgap:0px;
+    --cl-radius:22px;
+    --cl-imgcol:43%;
+    --cl-foot:10px;
+    --cl-fpad:4px;
+    --po-size:60px;
+  }
+  .l-retailfour .cl-pad{
+    background:#1E1E1E!important;
+    padding:var(--cl-pad)!important;
+    gap:var(--cl-gap)!important;
+  }
+  .l-retailfour .cl-grid{
+    gap:10px!important;
+  }
+  .l-retailfour .cl-card{
+    grid-template-columns:minmax(0,var(--cl-imgcol)) minmax(0,1fr)!important;
+    column-gap:0!important;
+    padding:var(--cl-cpad)!important;
+    border:1.5px solid #CFCFCD!important;
+    border-radius:var(--cl-radius)!important;
+    background:#FFFFFF!important;
+    box-shadow:0 2px 4px rgba(0,0,0,.28),0 6px 14px rgba(0,0,0,.18)!important;
+  }
+  .l-retailfour .cl-card .imgwrap,
+  .l-retailfour .cl-card .imgslot{
+    width:100%!important;
+    height:100%!important;
+    min-height:0!important;
+  }
+  .l-retailfour .cl-card .imgwrap{
+    padding-right:10px;
+  }
+  .l-retailfour .cl-card .imgslot img{
+    max-width:100%!important;
+    max-height:100%!important;
+    object-fit:contain!important;
+  }
+  /* SAVE circles overlay the pack shot; they must not make the product smaller. */
+  .l-retailfour .cl-card .imgwrap.has-save .imgslot{
+    padding:0!important;
+  }
+  .l-retailfour .cl-info{
+    align-self:stretch!important;
+    justify-content:center!important;
+    border-left:1px solid #D7D8D6!important;
+    padding:3px 5px 3px 17px!important;
+    min-width:0!important;
+  }
+  /* The divider belongs to the whole text column, not just the offer block. */
+  .l-retailfour .po.po-divided{
+    border-left:0!important;
+    padding-left:0!important;
+  }
+  .l-retailfour .po-name{
+    margin:0 0 .30em!important;
+    color:var(--po-ink)!important;
+  }
+  .l-retailfour .po-brand{
+    color:var(--po-ink)!important;
+    font-weight:900!important;
+    line-height:1.06!important;
+    letter-spacing:-.012em!important;
+  }
+  .l-retailfour .po-prod{
+    color:var(--po-ink)!important;
+    font-size:.97em!important;
+    font-weight:900!important;
+    line-height:1.08!important;
+    letter-spacing:-.014em!important;
+  }
+  .l-retailfour .po-pill{
+    font-size:.40em!important;
+    padding:.22em .74em .20em!important;
+    margin:0 0 .12em!important;
+    border-radius:.24em!important;
+    letter-spacing:.01em!important;
+  }
+  .l-retailfour .po-price{
+    line-height:.92!important;
+    letter-spacing:-.035em!important;
+  }
+  .l-retailfour .po-deal{
+    font-size:.50em!important;
+    line-height:1.00!important;
+    margin:.10em 0 .06em!important;
+    text-wrap:balance!important;
+  }
+  /* The approved reference uses the reference price itself as the lower anchor. */
+  .l-retailfour .po-rule{
+    display:none!important;
+  }
+  .l-retailfour .po-foot{
+    margin-top:.08em!important;
+  }
+  .l-retailfour .po-sub{
+    font-size:.39em!important;
+    line-height:1.06!important;
+    margin-top:.08em!important;
+    color:var(--po-green)!important;
+  }
+  .l-retailfour .cl-foot{
+    border-top-color:rgba(255,255,255,.23)!important;
+    color:#E7E7E4!important;
+    padding-top:var(--cl-fpad)!important;
+  }
+  .l-retailfour .cl-foot .foot-label,
+  .l-retailfour .cl-foot .cl-site{
+    color:#FFFFFF!important;
+  }
 
 </style>
 </head>
@@ -2395,10 +2512,7 @@
         <label class="fo-select" title="Every card reserves the same space for the product name. Longer names are abbreviated or shortened (size always kept).">Product name
           <select id="optNameLines"><option value="1">1 line</option><option value="2">2 lines</option></select>
         </label>
-        <label class="auto-balance-toggle" title="Gently lifts colour, contrast and crispness of pack shots on clean cards, and turns pale grey photo backgrounds white. Included in PNG exports. Classic white layouts are untouched."><input type="checkbox" id="optPop" checked> Pop pack shots</label>
-        <label class="fo-select" title="Background behind the clean cards. Charcoal makes the white cards stand out on screens.">Canvas
-          <select id="optCanvas"><option value="white">White</option><option value="dark">Charcoal</option></select>
-        </label>
+        <label class="auto-balance-toggle" title="Gently lifts colour, contrast and crispness of pack shots on clean cards. Included in PNG exports. Classic white layouts are untouched."><input type="checkbox" id="optPop" checked> Pop pack shots</label>
         <label class="auto-balance-toggle" title="TGA mandatory statement. Not required for picture + price ads with no health claims, but cheap insurance."><input type="checkbox" id="optLabel" checked> Label statement</label>
         <label class="auto-balance-toggle" title="Turn off if you can't show the RRP is genuinely charged by other retailers."><input type="checkbox" id="optRRP" checked> Show RRP</label>
         <label class="fo-select">Prices apply
@@ -2633,7 +2747,7 @@ const S={layout:'two', page:0, title:'',
   lastLoaded:null,
   zoom:'fit',
   channel:'pos',
-  optLabel:true,optRRP:true,optScope:'',showUpcoming:false,nameLines:2,optPop:true,optCanvas:'white'};  // v28 footer / offer-date options  // v26: POS screen · Portrait TV · Email · Social · Web banner   // preview only: 'fit' scales to the panel, 'actual' shows real canvas pixels
+  optLabel:true,optRRP:true,optScope:'',showUpcoming:false,nameLines:2,optPop:true};  // v28 footer / offer-date options  // v26: POS screen · Portrait TV · Email · Social · Web banner   // preview only: 'fit' scales to the panel, 'actual' shows real canvas pixels
 
 const SAMPLE=[
   {brand:'MELROSE',name:'Essential Greens 200g',now:'24.95',disc:'was',dv:'29.95',rrp:'29.95',img:'',scale:'100'},
@@ -3273,7 +3387,6 @@ async function balanceOneImage(img){
 async function applyAutoBalance(root=document){
   const sl0=root&&root.id==='slide'?root:document.getElementById('slide');
   if(sl0&&sl0.querySelector('.po'))fitOffers(sl0);   // v31: final card spaces first, then fit pack shots
-  if(sl0&&sl0.querySelector('.cl-card'))anchorPackShots(sl0);   // v35: photo area spans the text block
   const imgs=[...root.querySelectorAll('.imgslot img')];
   await Promise.all(imgs.map(balanceOneImage));
   const sl=root&&root.id==='slide'?root:document.getElementById('slide');
@@ -3378,35 +3491,13 @@ const POP_MAX=2400,POP_VIBRANCE=.16,POP_S=.12,POP_CLARITY=.35;
 function absURL(u){try{return new URL(u,location.href).href;}catch(e){return String(u||'');}}
 function popSourceOf(u){return POP_ORIGINAL.get(u)||u;}
 function popWanted(img){return !!(S.optPop&&img&&img.closest&&img.closest('.cl-card'));}
-/* v35 clean backdrop: many supplier photos sit on a light grey / off-white box that shows as a
-   pale rectangle on the white card. If the photo's border is mostly one neutral near-white tone
-   (230–253), that tone is lifted to white, with a soft shoulder above it on greyer backdrops, so white caps keep their
-   shape. Darker grey studio backdrops, cut-outs and photos already on white are left alone. */
-function popWhitePoint(d,w,h){
-  const none=[255,255,255],lum=[],rs=[],gs=[],bs=[];let all=0;
-  const take=(x,y)=>{const i=(y*w+x)*4;all++;if(d[i+3]<250)return;rs.push(d[i]);gs.push(d[i+1]);bs.push(d[i+2]);lum.push((d[i]+d[i+1]+d[i+2])/3);};
-  const e=Math.max(1,Math.round(Math.min(w,h)*.01)),sx=Math.max(1,Math.floor(w/120)),sy=Math.max(1,Math.floor(h/120));
-  for(let x=0;x<w;x+=sx)for(let k=0;k<e;k++){take(x,k);take(x,h-1-k);}
-  for(let y=0;y<h;y+=sy)for(let k=0;k<e;k++){take(k,y);take(w-1-k,y);}
-  if(lum.length<all*.6||lum.length<20)return none;                  // cut-out / transparent photo
-  if(lum.filter(v=>v>=225).length<lum.length*.7)return none;        // border isn't mostly a light backdrop
-  const q=arr=>{arr.sort((a,b)=>a-b);return arr[Math.min(arr.length-1,Math.floor(arr.length*.5))];};
-  const bg=[q(rs),q(gs),q(bs)];
-  if(Math.min(...bg)<230||Math.max(...bg)-Math.min(...bg)>12||Math.min(...bg)>=254)return none;
-  return bg;
-}
-function popCurve(W=255){   // one channel: white point (soft shoulder) then a gentle S (≈ +6% midtone contrast)
-  const T=W>=244?255:253;   // a near-white backdrop becomes pure white; a greyer one near-white with a soft shoulder
-  const lut=new Uint8ClampedArray(256),g=W<255?Math.min(T/W,1.11):1,top=Math.min(T,g*W);
-  for(let x=0;x<256;x++){
-    const y=x<=W?x*g:top+(255-top)*(x-W)/Math.max(1,255-W),t=clamp(y/255,0,1);
-    lut[x]=Math.round(255*(t+POP_S*t*(1-t)*(2*t-1)));
-  }
+function popCurve(){   // gentle S: ≈ +6% midtone contrast; black and white stay put, so nothing clips
+  const lut=new Uint8ClampedArray(256);
+  for(let x=0;x<256;x++){const t=x/255;lut[x]=Math.round(255*(t+POP_S*t*(1-t)*(2*t-1)));}
   return lut;
 }
 function popPixels(d,w,h){
-  const src=new Uint8ClampedArray(d),row=w*4,wp=popWhitePoint(src,w,h),ix=v=>v<0?0:v>255?255:Math.round(v);
-  const lr=popCurve(wp[0]),lg=popCurve(wp[1]),lb=popCurve(wp[2]);
+  const src=new Uint8ClampedArray(d),row=w*4,lut=popCurve(),ix=v=>v<0?0:v>255?255:Math.round(v);
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){
     const i=y*row+x*4;if(src[i+3]<8)continue;
     let r=src[i],g=src[i+1],b=src[i+2];
@@ -3416,8 +3507,8 @@ function popPixels(d,w,h){
       g+=POP_CLARITY*(g-(src[i-3]+src[i+5]+src[i-row+1]+src[i+row+1])/4);
       b+=POP_CLARITY*(b-(src[i-2]+src[i+6]+src[i-row+2]+src[i+row+2])/4);
     }
-    // tone: clean backdrop + gentle contrast
-    r=lr[ix(r)];g=lg[ix(g)];b=lb[ix(b)];
+    // tone: gentle contrast
+    r=lut[ix(r)];g=lut[ix(g)];b=lut[ix(b)];
     // vibrance: lifts muted colours most and leaves already-strong colours nearly alone
     const hi=Math.max(r,g,b),lo=Math.min(r,g,b),sat=(hi-lo)/255;
     const L=.299*r+.587*g+.114*b,f=1+POP_VIBRANCE*(1-sat);
@@ -3655,6 +3746,21 @@ function validateProducts(){
     const pn=PACK_NOTES.get(productKey(p));
     if(pn==='unread')warnings.push(health&&health.status==='risk'?`Product ${n}: its website blocks the photo, so the pack shot can't be auto-sized either — save the photo in images/`:`Product ${n}: pack shot couldn't be auto-sized (busy or dark photo background) — use Image fine-tune, or a photo on plain white`);
     if(pn==='small')warnings.push(`Product ${n}: pack shot looks small (small photo or lots of empty space) — use a bigger or tighter-cropped photo, or Image fine-tune`);
+  });
+  // v35 asset-to-copy safeguard: different products should not silently reuse the
+  // same selected pack-shot source. This catches the common copy/paste failure where
+  // the wording changes but image_url (or an explicit local filename) does not.
+  const seenPackShots=new Map();
+  rows.forEach((p,i)=>{
+    const first=imageCandidates(p)[0];if(!first||!first.url)return;
+    const key=String(first.url).trim().toLowerCase();if(!key)return;
+    const sig=(String(p.brand||'')+'|'+String(p.name||'')).trim().toLowerCase();
+    const prev=seenPackShots.get(key);
+    if(prev&&prev.sig!==sig){
+      warnings.push(`Products ${prev.n} and ${i+1}: same pack-shot source is used for different products — verify the image matches the copy`);
+    }else if(!prev){
+      seenPackShots.set(key,{n:i+1,sig});
+    }
   });
   return {errors:[...new Set(errors)],warnings:[...new Set(warnings)],count:rows.length};
 }
@@ -3942,10 +4048,9 @@ function offerBrand(v){
   // Nutra-Life, Herbs of Gold. Mixed-case brands are shown exactly as typed in the sheet.
   const raw=String(v==null?'':v).trim().replace(/[\s,;:]+$/,'');
   if(!raw||raw!==raw.toUpperCase()||!/[A-Z]/.test(raw))return h(raw);
-  const parts=raw.toLowerCase().split(/(\s+)/),last=parts.length-1;
-  const out=parts.map((word,i)=>{
+  const out=raw.toLowerCase().split(/(\s+)/).map((word,i)=>{
     if(/^\s+$/.test(word))return word;
-    if(i>0&&i<last&&PO_SMALL_WORDS.has(word))return word;   // v35: last word always capitalised
+    if(i>0&&PO_SMALL_WORDS.has(word))return word;
     if(/^[a-z]{2,4}$/.test(word)&&!/[aeiouy]/.test(word))return word.toUpperCase(); // BHR, PHF, MCT-style initials
     return word.replace(/(^|[-./])([a-z])/g,(m,a,b)=>a+b.toUpperCase());   // v32: Nature's, not Nature'S
   }).join('');
@@ -3958,7 +4063,7 @@ function offerPrice(now){
 function offerSubLines(p,opts={}){
   const d=priceData(p),lines=[];
   if(d.has&&d.deal)lines.push(h(d.deal));
-  const ref=d.was?`WAS $${h(d.was)}`:(d.rrp&&S.optRRP?`RRP $${h(d.rrp)}${!d.has&&d.deal?' EACH':''}`:'');   // v35: multi-buy RRP is per item
+  const ref=d.was?`WAS $${h(d.was)}`:(d.rrp&&S.optRRP?`RRP $${h(d.rrp)}`:'');
   let save='';
   if(!opts.noSave&&p.disc==='save$'){const v=numberFrom(p.dv);if(Number.isFinite(v)&&v>0)save=`SAVE $${h(savingText(v))}`;}
   if(!opts.noSave&&p.disc==='save%'){const v=numberFrom(p.dv);if(Number.isFinite(v)&&v>0)save=`SAVE ${h(savingText(v))}%`;}
@@ -3977,15 +4082,11 @@ function offerBlock(p,opts={}){
   const brandTxt=nbh(plainText(offerBrand(p.brand)));
   const prodTxt=nbh(plainText(productText(String(p.short||'').trim()||p.name)));
   const title=brandTxt||prodTxt?`<div class="po-brand" data-full="${ha(brandTxt)}">${h(brandTxt)}</div><div class="po-prod" data-full="${ha(prodTxt)}">${h(prodTxt)}</div>`:'';
-  // v35: a deal reads like a price. The mechanic goes in the pill (BUY 2 FOR) and the amount or reward is
-  // the big line ($145.00 / GET 1 FREE), so every card has the same rows: pill · big line · rule · reference.
-  const sd=!d.has&&d.deal?splitDeal(p.dv):null;
-  const pill=sd&&sd.lead?`<div class="po-pill po-lead">${h(sd.lead)}</div>`:`<div class="po-pill">${d.has?'NOW':'SPECIAL'}</div>`;
-  const hero=d.has?`<div class="po-price po-hero">${h(offerPrice(p.now))}</div>`:(sd?(sd.amount?`<div class="po-price po-hero">${h(sd.hero)}</div>`:`<div class="po-deal po-dealbig po-hero">${h(sd.hero)}</div>`):'');
+  const hero=d.has?`<div class="po-price po-hero">${h(offerPrice(p.now))}</div>`:(d.deal?`<div class="po-deal po-hero">${h(d.deal)}</div>`:'');
   const subs=offerSubLines(p,{noSave:!!opts.noSave}).map(t=>`<div class="po-sub">${t}</div>`).join('');
   const ends=opts.ends?offerDates(p).end:null;
   const endsHTML=ends?`<div class="po-ends">Offer ends ${h(fmtOfferDate(ends))}</div>`:'';
-  return `<div class="${cls.join(' ')}" data-key="${ha(pkey)}">${title?`<div class="po-name">${title}</div>`:''}${opts.extra?`<div class="po-extra">${opts.extra}</div>`:''}${pill}${hero}${hero||subs?'<div class="po-rule"></div>':''}<div class="po-foot">${subs}${endsHTML}</div></div>`;
+  return `<div class="${cls.join(' ')}" data-key="${ha(pkey)}">${title?`<div class="po-name">${title}</div>`:''}${opts.extra?`<div class="po-extra">${opts.extra}</div>`:''}<div class="po-pill">${d.has?'NOW':'SPECIAL'}</div>${hero}${hero||subs?'<div class="po-rule"></div>':''}<div class="po-foot">${subs}${endsHTML}</div></div>`;
 }
 /* Shrink a block only when something would not fit: price or WAS line wider than
    the column, the name running past three lines, or the block running out of its
@@ -4075,47 +4176,6 @@ function applyNameBoundary(po){
   if(po.dataset.key)NAME_TRIMS.set(po.dataset.key,state);
 }
 
-/* ---------- v35 balanced cards ----------
-   splitDeal: "BUY 2 FOR $145.00" → pill "BUY 2 FOR", big line "$145.00" (same size as a NOW price)
-              "BUY 2, GET 1 FREE" → pill "BUY 2",     big line "GET 1 FREE"
-              anything else       → pill "SPECIAL",   big line = the wording, as large as fits */
-function splitDeal(raw){
-  const t=String(raw==null?'':raw).trim().replace(/\s+/g,' ');if(!t)return null;
-  const tidy=s=>s.replace(/[\s,;:–\-]+$/,'').trim();
-  let m=t.match(/^(.+?)\s*(\$\s?\d[\d,]*(?:\.\d{1,2})?)$/);
-  if(m&&tidy(m[1]).length>=2&&tidy(m[1]).length<=16)return {lead:tidy(m[1]),hero:offerPrice(m[2]),amount:true};
-  m=t.match(/^(.+?)[,;:]?\s+((?:GET|SAVE)\b.+)$/i);
-  if(m&&tidy(m[1]).length>=2&&tidy(m[1]).length<=16)return {lead:tidy(m[1]),hero:m[2].trim(),amount:false};
-  return {lead:'',hero:t,amount:false};
-}
-/* The big deal line: one line as large as a price allows; if that would be small, two balanced
-   lines about the height of a price instead — whichever gives the larger type. */
-function fitDealBig(po){
-  const el=po.querySelector('.po-dealbig');if(!el)return;
-  const fits=()=>el.scrollWidth<=el.clientWidth+1;
-  el.style.whiteSpace='nowrap';let f=.8;el.style.fontSize=f+'em';
-  while(f>.36&&!fits()){f-=.02;el.style.fontSize=f.toFixed(2)+'em';}
-  if(f>=.6)return;
-  el.style.whiteSpace='normal';let g=.54;el.style.fontSize=g+'em';
-  const lh=()=>parseFloat(getComputedStyle(el).lineHeight)||1;
-  while(g>.36&&(el.offsetHeight>lh()*2.2||!fits())){g-=.02;el.style.fontSize=g.toFixed(2)+'em';}
-  if(g<=f){el.style.whiteSpace='nowrap';el.style.fontSize=f.toFixed(2)+'em';}
-}
-/* Pack shots line up with the text: the photo area spans the text block (brand line to the
-   WAS / RRP line), never less than 80% of the card, so products and prices share one top and
-   bottom edge. Cards with the pack shot above the text are left as they are. */
-function anchorPackShots(slide){
-  slide.querySelectorAll('.cl-card:not(.stack):not(.empty-cell)').forEach(card=>{
-    const wrap=card.querySelector('.imgwrap'),po=card.querySelector('.po');if(!wrap||!po)return;
-    wrap.style.removeProperty('height');
-    const cs=getComputedStyle(card);
-    const inner=card.clientHeight-parseFloat(cs.paddingTop||0)-parseFloat(cs.paddingBottom||0);
-    if(!(inner>0))return;
-    const want=clamp(po.offsetHeight*1.04,inner*.8,inner);
-    if(want<inner-1)wrap.style.setProperty('height',want.toFixed(1)+'px','important');
-  });
-}
-
 function fitOffers(root){
   const slide=root&&root.querySelectorAll?root:document.getElementById('slide');
   if(!slide)return;
@@ -4129,11 +4189,11 @@ function fitOffers(root){
     po.style.fontSize='';
     const target=parseFloat(getComputedStyle(po).fontSize)||60;
     let size=target;const min=target*0.5;
-    applyNameBoundary(po);fitDealBig(po);
+    applyNameBoundary(po);
     for(let i=0;i<30&&size>min&&offerOverflows(po);i++){
       size=Math.max(min,size*0.95);
       po.style.fontSize=size.toFixed(2)+'px';
-      applyNameBoundary(po);fitDealBig(po);
+      applyNameBoundary(po);
     }
     const k=target.toFixed(1);
     groups.set(k,Math.min(groups.has(k)?groups.get(k):Infinity,size));
@@ -4142,7 +4202,7 @@ function fitOffers(root){
     po.style.fontSize='';
     const k=(parseFloat(getComputedStyle(po).fontSize)||60).toFixed(1);
     if(groups.has(k))po.style.fontSize=groups.get(k).toFixed(2)+'px';
-    applyNameBoundary(po);fitDealBig(po);   // final size may leave room for more of the name
+    applyNameBoundary(po);   // final size may leave room for more of the name
   });
   equaliseOfferCards(slide);
   if(JSON.stringify([...NAME_TRIMS])!==trimsBefore&&typeof updateValidation==='function')updateValidation();
@@ -4242,7 +4302,6 @@ function render(rebuildInputs=true){
   const L=LAYOUTS[S.layout],s=document.getElementById('slide');
   s.className='slide l-'+S.layout;
   s.style.setProperty('--name-lines',String(S.nameLines||2));
-  if(CLEAN_LAYOUTS[S.layout]&&S.optCanvas==='dark')s.classList.add('cl-dark');   // v35 charcoal canvas (clean cards only)
   // IMPORTANT: the original hub used a fixed 1000×625 .slide. Multi-channel
   // layouts must resize the actual DOM canvas as well as the export metadata;
   // otherwise portrait/square/banner artwork is rendered into 1000×625 and
@@ -4476,9 +4535,6 @@ document.getElementById('autoBalanceToggle').addEventListener('change',e=>{
   S.optPop=get('phf_opt_pop','on')!=='off';
   const PP=document.getElementById('optPop');PP.checked=S.optPop;
   PP.onchange=()=>{S.optPop=PP.checked;put('phf_opt_pop',PP.checked?'on':'off');render(false);};
-  S.optCanvas=get('phf_opt_canvas','white')==='dark'?'dark':'white';
-  const CV=document.getElementById('optCanvas');CV.value=S.optCanvas;
-  CV.onchange=()=>{S.optCanvas=CV.value==='dark'?'dark':'white';put('phf_opt_canvas',S.optCanvas);render(false);};
   const L=document.getElementById('optLabel'),R=document.getElementById('optRRP'),Sc=document.getElementById('optScope'),U=document.getElementById('upcomingToggle');
   L.checked=S.optLabel;R.checked=S.optRRP;Sc.value=S.optScope;U.checked=S.showUpcoming;
   L.onchange=()=>{S.optLabel=L.checked;put('phf_opt_label',L.checked?'on':'off');render(false);};
