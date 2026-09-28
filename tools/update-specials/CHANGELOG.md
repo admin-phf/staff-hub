@@ -28,6 +28,15 @@ It isn't needed day to day.)
 
 ---
 
+## v42 — 29 Sep 2026
+Visual hierarchy, baseline synchronization, and layout cohesion overhaul across all product cards and templates (upgraded from v41).
+- **Synchronized Row Baselines:** Enforced deterministic brand and product title heights (`min-height` / line-clamp locks) across multi-product grids (4-Up, 2×2 Feature, 6-Grid, etc.), eliminating staggered price pills and baseline stepping across rows.
+- **Unified 4-Tier Offer Anatomy:** Standardized card structure into Offer Pill -> Display Anchor -> Fixed Dividing Rule -> Reference Line. Percentage deals (e.g. 30% OFF RRP) now feature display-scale typography with sub-labels, and separator rules no longer collapse or float on cards lacking reference pricing.
+- **Decoupled SAVE Badge Anchoring:** Positioned circular savings stamps relative to the card container corners with dedicated image clearance, eliminating collisions with bottle caps, seals, and droppers.
+- **Pack-Shot Optical Mass Balancing:** Refined aspect-ratio auto-scaling curves so narrow bottles and squat tubs maintain equivalent visual presence without dominating or under-filling cards.
+- **Trailing Orphan Card Centering:** Partial final pages on 4-Up grids (e.g. a single product on Page 10) are now centered dynamically in the canvas rather than marooned in the top-left quadrant.
+- **Data Normalization:** Ingest filters automatically correct supplier typos (e.g. Nutrition Care), deduplicate repeating brand names in product titles (Vital All-In-One), and format bulk tier mechanics clearly ("BUY 4+ FOR $60 EA").
+
 ## v41 — 29 Sep 2026
 Cleaner sheet data, and pills, prices and green lines that sit level on every multi-product slide.
 - **Brand typos are fixed as the sheet loads.** `Nutition Care` in any spelling or capitals shows as

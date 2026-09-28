@@ -2314,6 +2314,102 @@
   .l-feature .partial-3>:nth-child(2){grid-column:3 / span 2}
   .l-feature .partial-3>:nth-child(3){grid-column:2 / span 2}
 
+  /* ---------- v42 layout & visual cohesion overhaul ----------
+     Deterministic title geometry + a shared four-tier offer stack:
+       1) offer pill  2) display anchor  3) locked rule  4) reference line.
+     These rules intentionally sit after v41 so every classic/clean multi-card template resolves to the
+     same baseline model without disturbing hero/single layouts that need their own scale. */
+
+  /* Clean cards: exact title rows, exact offer rows. */
+  .slide .po-name{
+    height:calc(1.194em + var(--name-lines,2) * 1.062em)!important;
+    min-height:calc(1.194em + var(--name-lines,2) * 1.062em)!important;
+    max-height:calc(1.194em + var(--name-lines,2) * 1.062em)!important;
+    overflow:hidden!important;margin-bottom:.34em!important
+  }
+  .slide .po-brand{height:1.14em;min-height:1.14em;max-height:1.14em;text-overflow:ellipsis!important;white-space:nowrap!important}
+  .slide .po-prod{display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:var(--name-lines,2)!important}
+  .slide .po-pill{
+    box-sizing:border-box!important;height:1.42em!important;min-height:1.42em!important;max-height:1.42em!important;
+    display:flex!important;align-items:center!important;justify-content:center!important;padding:.15em .62em .14em!important;
+    margin:0 0 .12em!important
+  }
+  .slide .po-anchor{
+    width:100%;height:1.05em!important;min-height:1.05em!important;max-height:1.05em!important;
+    display:flex;align-items:center;justify-content:flex-start;overflow:hidden
+  }
+  .slide .po.po-center .po-anchor{justify-content:center}
+  .slide .po-hero{margin:0!important;max-height:100%!important}
+  .slide .po-rule{flex:none;margin:.10em 0 .10em!important}
+  .slide .po-foot{min-height:.44em!important}
+  .slide .po-dealpct{display:flex!important;align-items:baseline;gap:.17em;white-space:nowrap!important;font-size:1em!important;line-height:1!important}
+  .slide .po-dealpct-value{font-size:.86em;font-weight:900;letter-spacing:-.03em}
+  .slide .po-dealpct-sub{font-size:.31em;font-weight:900;letter-spacing:.025em;color:var(--po-green);white-space:nowrap}
+
+  /* Classic grid title locks. Brand is one deterministic line; product is exactly two lines. */
+  .l-four .pbrand,.l-gridcards .gcard>.pbrand,.l-feature .finfo .pbrand,.l-six .pbrand,.l-sixsplit .pbrand{
+    display:block!important;width:100%!important;max-width:100%!important;white-space:nowrap!important;overflow:hidden!important;
+    text-overflow:ellipsis!important;line-height:1.15!important;height:1.15em!important;min-height:1.15em!important;max-height:1.15em!important
+  }
+  .l-four .pname,.l-gridcards .gcard>.pname,.l-feature .finfo .pname,.l-six .pname,.l-sixsplit .pname{
+    display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow:hidden!important;
+    width:100%!important;line-height:1.18!important;height:2.36em!important;min-height:2.36em!important;max-height:2.36em!important
+  }
+  .l-feature .finfo .pname{line-height:1.2!important;height:2.4em!important;min-height:2.4em!important;max-height:2.4em!important}
+  .l-sixsplit .pname{line-height:1.14!important;height:2.28em!important;min-height:2.28em!important;max-height:2.28em!important}
+
+  /* Classic four-tier anatomy. Each layout supplies an anchor height matched to its established price size. */
+  .l-four .cell{--v42-anchor-h:62px;--v42-pill-h:22px;--v42-ref-h:16px;--v42-badge-clear:56px}
+  .l-six .cell{--v42-anchor-h:44px;--v42-pill-h:18px;--v42-ref-h:14px;--v42-badge-clear:50px}
+  .l-sixsplit .scell{--v42-anchor-h:48px;--v42-pill-h:18px;--v42-ref-h:14px;--v42-badge-clear:46px}
+  .l-gridcards .gcard{--v42-anchor-h:38px;--v42-pill-h:18px;--v42-ref-h:14px;--v42-badge-clear:50px}
+  .l-feature .fcell{--v42-anchor-h:56px;--v42-pill-h:22px;--v42-ref-h:16px;--v42-badge-clear:46px}
+  .l-sixsplit .body.partial-1 .scell{--v42-anchor-h:66px;--v42-pill-h:22px;--v42-ref-h:17px}
+  .l-sixsplit .body.partial-2 .scell{--v42-anchor-h:56px;--v42-pill-h:20px;--v42-ref-h:15px}
+
+  :is(.l-four,.l-six,.l-sixsplit,.l-gridcards,.l-feature) :is(.nowlbl,.ftag,.gnow){
+    box-sizing:border-box!important;height:var(--v42-pill-h)!important;min-height:var(--v42-pill-h)!important;max-height:var(--v42-pill-h)!important;
+    display:flex!important;align-items:center!important;justify-content:center!important;margin-bottom:3px!important
+  }
+  .l-sixsplit .nowlbl{justify-content:flex-start!important}
+  :is(.l-four,.l-six,.l-sixsplit,.l-gridcards,.l-feature) .classic-anchor{
+    width:100%;height:var(--v42-anchor-h)!important;min-height:var(--v42-anchor-h)!important;max-height:var(--v42-anchor-h)!important;
+    display:flex;align-items:center;justify-content:center;overflow:hidden
+  }
+  .l-sixsplit .classic-anchor{justify-content:flex-start}
+  :is(.l-four,.l-six,.l-sixsplit,.l-gridcards,.l-feature) .classic-offer-rule{
+    flex:none;width:72%;height:2.5px;background:var(--green);border-radius:2px;margin:4px auto 4px
+  }
+  .l-sixsplit .classic-offer-rule{margin-left:0;margin-right:0}
+  :is(.l-four,.l-six,.l-sixsplit,.l-gridcards,.l-feature) :is(.was,.refline){
+    box-sizing:border-box!important;height:var(--v42-ref-h)!important;min-height:var(--v42-ref-h)!important;max-height:var(--v42-ref-h)!important;
+    line-height:var(--v42-ref-h)!important;margin-top:0!important;overflow:hidden!important
+  }
+  :is(.l-four,.l-six,.l-sixsplit,.l-gridcards,.l-feature) .dealpct{
+    height:100%;font-size:calc(var(--v42-anchor-h)*.58)!important;display:flex!important;flex-direction:column;align-items:center;justify-content:center;line-height:.9!important;white-space:nowrap!important
+  }
+  .l-sixsplit .dealpct{align-items:flex-start}
+  :is(.l-four,.l-six,.l-sixsplit,.l-gridcards,.l-feature) .dealpct-value{font-size:1.35em;font-weight:900;letter-spacing:-.035em;color:var(--ink)}
+  :is(.l-four,.l-six,.l-sixsplit,.l-gridcards,.l-feature) .dealpct-sub{font-size:.52em;font-weight:900;letter-spacing:.035em;color:var(--green);margin-top:.08em}
+
+  /* SAVE badges are container-anchored, never product-bounds-anchored. Dedicated slot clearance keeps
+     bottle caps / droppers / seals out from underneath them while auto-balance remains free to recenter. */
+  .cl-card .imgwrap.has-save .imgslot{
+    padding-top:calc(var(--po-size,60px)*.30)!important;
+    padding-right:calc(var(--po-size,60px)*.30)!important
+  }
+  :is(.l-four,.l-six,.l-sixsplit,.l-gridcards,.l-feature,.l-two,.l-single,.l-herosplit,.l-promo) .imgwrap.has-stamp .imgslot{
+    padding-top:calc(var(--v42-badge-clear,54px)*.30)!important;
+    padding-right:calc(var(--v42-badge-clear,54px)*.30)!important
+  }
+  .cl-stamp,.stamp{transform:none!important}
+
+  /* Partial pages: explicitly center one/two-card trailing sets in both axes. Existing v41 span rules keep
+     the normal card footprint; these alignment rules stop a sparse last page reading as a top-left fragment. */
+  .cl-grid:is(.g22,.g41).partial-1,.cl-grid:is(.g22,.g41).partial-2,
+  .l-four .body.partial-1,.l-four .body.partial-2,.l-gridcards .body.partial-1,.l-gridcards .body.partial-2,
+  .l-feature .body.partial-1,.l-feature .body.partial-2{align-content:center!important;justify-content:center!important}
+
   /* ---------- v26 channel picker (editor UI) ---------- */
   .chan-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:0 0 12px}
   .chan{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 5px 7px;font:inherit;font-weight:800;font-size:12.5px;color:var(--ink);cursor:pointer;text-align:center;line-height:1.15;min-width:0}
@@ -2571,7 +2667,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='41';
+const APP_VERSION='42';
 const APP_DATE='2026-09-29';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -2815,6 +2911,10 @@ function stripBrandPrefix(name,brands){
 }
 function displayName(p){
   if(!p)return '';
+  // v42: rows loaded from CSV / Sheets cache the cleaned display title while preserving the source name
+  // for image-file matching and advertising records. If staff edit the Product name field, the cache is
+  // automatically ignored and the new wording is cleaned live instead.
+  if(p._cleanNameSource===p.name&&String(p._cleanName||'').trim())return unitTidy(p._cleanName);
   const name=unitTidy(p.name),brands=[p.brand,p.brandRaw,p.brandShow].filter(Boolean);
   const rest=stripBrandPrefix(name,brands);
   if(rest===name)return name;
@@ -2831,6 +2931,16 @@ function normaliseDeal(v){
   return m?`BUY ${m[1]}+ FOR ${m[2].replace(/\s+/g,'')} EA`:t;
 }
 function dealText(v){return offerText(normaliseDeal(v));}
+/* v42 ingest normalization. Keep source wording in name/nameRaw but cache the polished display title,
+   and normalize per-item deal mechanics as the row enters the app so CSV, Google Sheets, Apps Script
+   and last-good data all behave identically. */
+function normaliseProductRow(r){
+  if(!r)return r;
+  const row=tidyRowBrand(r),rawName=String(row.name==null?'':row.name).trim();
+  const cleaned=displayName({...row,name:rawName,_cleanName:'',_cleanNameSource:''});
+  return {...row,name:rawName,nameRaw:String(row.nameRaw||rawName),_cleanName:cleaned,_cleanNameSource:rawName,
+    dv:row.disc==='deal'?normaliseDeal(row.dv):row.dv};
+}
 /* Resolve an image cell from the sheet. Accepts, in order:
    1. data:/blob: URIs and full http(s) URLs  -> used as-is
    2. a Google Drive share link (.../file/d/<ID>/... or ?id=<ID>) -> ID extracted
@@ -2896,7 +3006,7 @@ function rowsFromMatrix(matrix){
     const scale=g('image_scale')||g('image scale')||g('scale')||'100';
     // v28 offer dates. gviz tables carry dates as Date(y,m,d) in .v and the sheet's display text in .f
     const pick=(...names)=>{for(const n of names){const v=(typeof gDate==='function'?gDate:g)(n);if(v)return v;}return '';};
-    out.push(tidyRowBrand({brand:g('brand'),name:g('name'),now:g('now_price')||g('now'),
+    out.push(normaliseProductRow({brand:g('brand'),name:g('name'),now:g('now_price')||g('now'),
       disc,dv:g('discount_value'),img:g('image_url'),recImg:g('recommended_image_url'),
       altImg:g('alternate_candidate_url'),imageReviewStatus:g('image_review_status'),
       imageReviewNote:g('image_review_note'),rrp:g('rrp'),scale,
@@ -3106,8 +3216,8 @@ function handleImageError(el){
    ordinary 70–200% fine-tune slider is used as the fallback.
    ---------------------------------------------------------------- */
 const AUTO_ANALYSIS_CACHE=new Map();
-const AUTO_TARGET_FILL=.915;     // strong visual presence inside the protected bounds
-const AUTO_SAFE_FILL=.925;       // hard no-crop perimeter for detected product content
+const AUTO_TARGET_FILL=.90;      // v42 fallback target; aspect-aware profiles below do the primary sizing
+const AUTO_SAFE_FILL=.955;       // v42 protected perimeter permits tall bottles to reach 92–94% without clipping
 const AUTO_DETECT_HALO=.030;     // uncertainty halo protects pale lids/boxes/shadows from over-trimming
 const AUTO_MIN_SCALE=.70;        // allow an oversized source to shrink
 const AUTO_MAX_SCALE=2.35;       // extreme padded canvases can still be corrected automatically
@@ -3121,6 +3231,17 @@ const AUTO_STRICT_STEP=26;       // background search may not jump a visible edg
 const AUTO_STRICT_CORE=14;       // pixels this close to the backdrop colour are always backdrop
 const PACK_BALANCE_MIN=.88;      // optical balance: a pack shot is never reduced by more than 12%
 const PACK_SMALL_FILL=.72;       // warn when a pack shot fills less than 72% of its space
+/* v42 optical-mass profile. Height targets are deliberately form-factor aware rather than derived only
+   from rectangular bounds: tall/narrow bottles use 92–94% of slot height; squat/wide tubs, bags and
+   multi-packs are held around 78–82% while being allowed to use more horizontal width. */
+function opticalPackProfile(aspect){
+  const a=Number.isFinite(aspect)&&aspect>0?aspect:1;
+  if(a<=.62)return {kind:'tall',h:.94,minH:.92,maxH:.94,w:.88};
+  if(a<=.82)return {kind:'tall',h:.925,minH:.90,maxH:.94,w:.90};
+  if(a>=1.65)return {kind:'wide',h:.79,minH:.76,maxH:.82,w:.97};
+  if(a>=1.25)return {kind:'wide',h:.81,minH:.78,maxH:.83,w:.96};
+  return {kind:'balanced',h:.88,minH:.84,maxH:.91,w:.93};
+}
 const POP_CACHE=new Map(),POP_ORIGINAL=new Map(),POP_BUSY=new Map(),POP_FAILED=new Set();
 var PACK_NOTES=new Map();        // var: safe to read before this line runs
 
@@ -3398,18 +3519,23 @@ async function balanceOneImage(img){
     }
   }
 
-  const fitScale=Math.min((availW2*AUTO_TARGET_FILL)/visibleW,(availH2*AUTO_TARGET_FILL)/visibleH);
+  const profile=opticalPackProfile(contentAspect);
+  const fitScale=Math.min((availW2*profile.w)/visibleW,(availH2*profile.h)/visibleH);
   const safeScale=Math.min((availW2*AUTO_SAFE_FILL)/visibleW,(availH2*AUTO_SAFE_FILL)/visibleH);
+  const shapeMinScale=(availH2*profile.minH)/visibleH;
+  const shapeMaxScale=(availH2*profile.maxH)/visibleH;
   let auto=fitScale;
 
-  // Visual-mass correction remains, but the final result can never exceed the
-  // hard safeScale calculated from the expanded product bounds.
+  // v42 visual-mass correction: low-occupancy artwork can still be enlarged, but never past the
+  // form-factor height band. Tall bottles are encouraged up into their 92–94% target; squat/wide
+  // packs are prevented from becoming vertically dominant even when their source canvas is padded.
   const occupancy=Math.max(.02,Math.min(1,rawAnalysis.w*rawAnalysis.h));
   let massBoost=1;
-  if(occupancy<.34)massBoost*=1.07;
-  if(occupancy<.20)massBoost*=1.05;
-  if(contentAspect>1.75)massBoost*=1.025;
+  if(occupancy<.34)massBoost*=1.055;
+  if(occupancy<.20)massBoost*=1.035;
   auto=clamp(auto*massBoost,AUTO_MIN_SCALE,maxS);
+  auto=Math.min(auto,shapeMaxScale);
+  if(profile.kind==='tall')auto=Math.max(auto,Math.min(shapeMinScale,safeScale,maxS));
 
   const manual=clamp(parseFloat(img.dataset.manualScale||'1')||1,.70,2);
   // v40: Image fine-tune scales on top of the automatic size, so 130% is always 30% bigger than automatic
@@ -3442,7 +3568,8 @@ async function balanceOneImage(img){
   img.dataset.safeScale=safeScale.toFixed(3);
   img.dataset.safeLimited=safeLimited?'1':'0';
   if(inClean)img._bal={a,visW:baseW*rawAnalysis.w,visH:baseH*rawAnalysis.h,baseW,baseH,availW:availW2,availH:availH2,
-    safeScale,maxS:finalMax,base:finalScale,scale:finalScale,manual,capped:fitScale*massBoost>finalMax+.005};
+    safeScale,maxS:finalMax,base:finalScale,scale:finalScale,manual,profile,
+    shapeMinS:shapeMinScale,shapeMaxS:shapeMaxScale,capped:fitScale*massBoost>finalMax+.005};
 }
 async function applyAutoBalance(root=document){
   const sl0=root&&root.id==='slide'?root:document.getElementById('slide');
@@ -3459,60 +3586,17 @@ async function applyAutoBalance(root=document){
    (not the corner of the empty image area), always kept inside the image column. */
 function placeSaveCircles(root){
   const slide=root&&root.querySelectorAll?root:document.getElementById('slide');if(!slide)return;
-  slide.querySelectorAll('.cl-card .imgwrap.has-save, .imgwrap.has-stamp').forEach(wrap=>{   // v38: classic too
-    const st=wrap.querySelector('.cl-stamp,.stamp'),im=wrap.querySelector('.imgslot img');
-    if(!st)return;
+  // v42: savings circles no longer follow the detected bottle/tub silhouette. They are anchored to the
+  // stable top-right corner of the image container with a consistent inset; CSS reserves clearance inside
+  // .imgslot, so caps, droppers and seals never slide underneath the badge as auto-balance changes scale.
+  slide.querySelectorAll('.cl-card .imgwrap.has-save, .imgwrap.has-stamp').forEach(wrap=>{
+    const st=wrap.querySelector('.cl-stamp,.stamp');if(!st)return;
     ['left','top','right'].forEach(k=>st.style.removeProperty(k));
-    if(!im||!im.naturalWidth||!im.offsetWidth||!wrap.offsetWidth)return;
-    // Untransformed image box inside the wrap (layout px, independent of preview zoom).
-    let bx=0,by=0,el=im;
-    while(el&&el!==wrap){bx+=el.offsetLeft;by+=el.offsetTop;el=el.offsetParent;}
-    if(el!==wrap){const k=wrap.getBoundingClientRect().width/wrap.offsetWidth||1,prev=im.style.transform;
-      im.style.transform='none';const ir=im.getBoundingClientRect(),wr=wrap.getBoundingClientRect();im.style.transform=prev;
-      bx=(ir.left-wr.left)/k;by=(ir.top-wr.top)/k;}
-    const w=im.offsetWidth,hgt=im.offsetHeight;
-    const s=parseFloat(im.style.getPropertyValue('--img-scale'))||1;
-    const tx=parseFloat(im.style.getPropertyValue('--img-shift-x'))||0,ty=parseFloat(im.style.getPropertyValue('--img-shift-y'))||0;
-    let b=[0,0,1,1];
-    if(im.dataset.bounds&&im.dataset.boundsSrc===(im.currentSrc||im.src)){
-      const v=im.dataset.bounds.split(',').map(Number);if(v.length===4&&v.every(Number.isFinite)&&v[2]>0&&v[3]>0)b=v;
-    }
-    const cx=bx+w/2,cy=by+hgt/2;
-    const right=cx+tx+s*((bx+(b[0]+b[2])*w)-cx);   // product's right edge after balance
-    const top=cy+ty+s*((by+b[1]*hgt)-cy);          // product's top edge after balance
-    const left=cx+tx+s*((bx+b[0]*w)-cx),bottom=cy+ty+s*((by+(b[1]+b[3])*hgt)-cy);
-    const d=st.offsetWidth,W=wrap.offsetWidth,H=wrap.offsetHeight;
-    let L=Math.max(0,Math.min(W-d,right-d*0.45));
-    let T=Math.max(0,Math.min(H-d,top-d*0.4));
-    /* v41: tall bottles and dropper bottles. On the shoulder the circle would cover the cap or dropper,
-       so it moves to a top corner of the card's photo area (inset a little), right corner first. If the
-       product fills the area so a corner would still touch the cap, it drops just below the cap instead. */
-    const pw=right-left,ph=bottom-top;
-    let cap=[1,.5];
-    if(im.dataset.capTop&&im.dataset.boundsSrc===(im.currentSrc||im.src)){
-      const v=im.dataset.capTop.split(',').map(Number);if(v.length===2&&v.every(Number.isFinite))cap=v;
-    }
-    if(pw>0&&ph>0&&((ph/pw>=1.15&&cap[0]<.8)||ph/pw>=2.2)){
-      const pad=Math.max(4,d*.1),g=d*.08,gc=Math.max(1.5,d*.04),capH=Math.max(ph*.25,d*.6);
-      const capC=left+cap[1]*pw,capHalf=Math.max(pw*cap[0],d*.2)/2;
-      const box=(x,y)=>[Math.max(0,Math.min(W-d,x)),Math.max(0,Math.min(H-d,y))];
-      // area of the circle (top-left x,y) that falls inside a rectangle, sampled on a 16×16 grid
-      const hit=(x,y,x0,y0,x1,y1)=>{let n=0;const r=d/2,st=d/16;
-        for(let i=0;i<16;i++)for(let j=0;j<16;j++){const px=x+(i+.5)*st,py=y+(j+.5)*st;
-          if((px-x-r)**2+(py-y-r)**2<=r*r&&px>=x0&&px<=x1&&py>=y0&&py<=y1)n++;}
-        return n*st*st;};
-      let best=null;
-      [[W-d-pad,pad],[pad,pad],[W-d-pad,top+capH+g],[pad,top+capH+g],[right+g,top+capH+g],[left-g-d,top+capH+g]].forEach(([x,y],i)=>{
-        [x,y]=box(x,y);
-        const onCap=hit(x,y,capC-capHalf-gc,top-gc,capC+capHalf+gc,top+capH);   // cap / dropper / neck
-        const onBody=hit(x,y,left,top+capH,right,bottom);                     // the rest of the pack
-        const score=onCap*20+onBody+(i>1?d*d*.03:0)+i;                          // top corners first
-        if(!best||score<best.score)best={x,y,score};
-      });
-      L=best.x;T=best.y;
-      st.dataset.anchor='corner';
-    }else delete st.dataset.anchor;
-    st.style.setProperty('right','auto','important');st.style.setProperty('left',L.toFixed(1)+'px','important');st.style.setProperty('top',T.toFixed(1)+'px','important');
+    const d=st.offsetWidth||48,inset=Math.max(4,Math.min(12,d*.10));
+    st.style.setProperty('left','auto','important');
+    st.style.setProperty('right',inset.toFixed(1)+'px','important');
+    st.style.setProperty('top',inset.toFixed(1)+'px','important');
+    st.dataset.anchor='container';
   });
 }
 /* ---------- v34 pack shots on clean cards ----------
@@ -3552,14 +3636,16 @@ function harmonisePackShots(slide){
     if(!g){g={w,h:hh,list:[]};groups.push(g);}
     g.list.push(im);
   });
-  const look=im=>{const b=im._bal;return Math.sqrt(b.visW*b.visH)*b.base;};
+  const look=im=>{const b=im._bal,h=b.visH*b.base,w=b.visW*b.base;return h*.62+Math.sqrt(Math.max(1,w*h))*.38;};
   groups.forEach(g=>{
     if(g.list.length<2)return;
     const med=median(g.list.map(look));
     g.list.forEach(im=>{
       const b=im._bal,m=look(im);if(!(m>0)||!(med>0))return;
-      const f=clamp(Math.sqrt(med/m),PACK_BALANCE_MIN,1.12);
-      const s=clamp(Math.min(b.base*f,b.safeScale,b.maxS),.70,b.maxS);
+      const f=clamp(Math.sqrt(med/m),PACK_BALANCE_MIN,1.10);
+      const hi=Math.min(b.safeScale||Infinity,b.maxS||Infinity,b.shapeMaxS||Infinity);
+      const lo=Math.min(hi,Math.max(.70,Math.min(b.shapeMinS||.70,hi)));
+      const s=clamp(Math.min(b.base*f,hi),lo,hi);
       if(Math.abs(s-b.base)>.004)applyBalancedScale(im,s);
     });
   });
@@ -3693,7 +3779,7 @@ const TEXT_MATCH_WFILL=1;     // a wide product may use the full photo column
 // Classic 2×2 Feature: pack shot = text height. The hero layouts (Single, 2-Product, Hero + pick) and the small
 // 6-Grid Split cells keep the pack shot filling its space, because their text is much shorter than the photo area.
 const CLASSIC_SIDE='.l-feature .fcell';
-const CLASSIC_TEXT_SEL='.pbrand,.pname,.nowlbl,.ftag,.gnow,.price,.fprice,.gprice,.dealhero,.fdeal,.gdeal,.was,.refline,.deal';
+const CLASSIC_TEXT_SEL='.pbrand,.pname,.nowlbl,.ftag,.gnow,.classic-anchor,.classic-offer-rule,.price,.fprice,.gprice,.dealhero,.fdeal,.gdeal,.dealpct,.was,.refline,.deal';
 function packShotContext(img){
   const cc=img.closest('.cl-card');
   if(cc){const po=cc.querySelector('.po');return !cc.classList.contains('stack')&&po?{text:po,box:true}:null;}
@@ -3715,9 +3801,11 @@ function textExtent(ctx,k){
 }
 function textMatchPackShot(img,raw,g){
   if(!(g.textH>0))return false;
-  const rawW=Math.max(1,g.baseW*raw.w),rawH=Math.max(1,g.baseH*raw.h);
-  const targetH=Math.min(g.textH,g.availH);
-  const sH=targetH/rawH,sW=g.availW*TEXT_MATCH_WFILL/rawW;
+  const rawW=Math.max(1,g.baseW*raw.w),rawH=Math.max(1,g.baseH*raw.h),profile=opticalPackProfile(rawW/rawH);
+  // v42: keep text alignment as a guide, but clamp the visible pack to the form-factor target band.
+  // This stops wide tubs from becoming as tall as a dropper bottle simply because their text blocks match.
+  const targetH=Math.min(g.availH*profile.maxH,Math.max(g.textH,g.availH*profile.minH,g.availH*profile.h));
+  const sH=targetH/rawH,sW=g.availW*Math.min(TEXT_MATCH_WFILL,profile.w)/rawW;
   const manual=clamp(parseFloat(img.dataset.manualScale||'1')||1,.70,2);
   const want=Math.min(sH,sW)*manual,s=clamp(want,.3,g.maxS*Math.max(1,manual));   // v40: fine-tune may go past the quality limit
   // Centre the product on the text block (up/down) and in the photo column (left/right) …
@@ -3732,7 +3820,8 @@ function textMatchPackShot(img,raw,g){
   img.style.setProperty('--img-shift-y',sy.toFixed(2)+'px');
   img.dataset.autoStatus='balanced-safe';img.dataset.autoScale=s.toFixed(3);img.dataset.safeScale=s.toFixed(3);img.dataset.safeLimited='0';
   img._bal={textMatch:true,visW:rawW,visH:rawH,targetH,widthLimited:sW<sH,capped:want>g.maxS+.005,
-    scale:s,base:s,manual,availW:g.availW,availH:g.availH};
+    scale:s,base:s,manual,availW:g.availW,availH:g.availH,profile,
+    shapeMinS:(g.availH*profile.minH)/rawH,shapeMaxS:(g.availH*profile.maxH)/rawH};
   return true;
 }
 function scheduleAutoBalance(root=document){
@@ -3773,31 +3862,39 @@ function refLine(p,reserve){   // v38: WAS, else RRP (… EACH on a multi-buy)
    v41: BUY 4+ FOR $60 EA → pill "BUY 4+ FOR" + $60.00 with a small EA after it. */
 function classicDeal(p){
   const d=priceData(p),sd=d.deal?splitDeal(p.dv):null;
-  return {lead:sd&&sd.lead?sd.lead:'SPECIAL',amount:sd&&sd.amount?sd.hero:'',text:sd&&!sd.amount?sd.hero:'',per:sd&&sd.per?sd.per:''};
+  return {lead:sd&&sd.lead?sd.lead:'SPECIAL',amount:sd&&sd.amount?sd.hero:'',text:sd&&!sd.amount?sd.hero:'',per:sd&&sd.per?sd.per:'',percent:!!(sd&&sd.percent),sublabel:sd&&sd.sublabel?sd.sublabel:''};
 }
 function perHTML(cd){return cd&&cd.per?`<span class="per">${h(cd.per)}</span>`:'';}
+function classicPercentHTML(cd,kind='dealhero'){return `<span class="${kind} dealpct"><span class="dealpct-value">${h(cd.text)}</span><span class="dealpct-sub">${h(cd.sublabel||'OFF')}</span></span>`;}
 function pblock(p,reserve){
   const d=priceData(p),empty=reserve?`<div class="was ${REF_EMPTY_CLASS}" aria-hidden="true">&nbsp;</div>`:'';
   if(!d.has){
     const cd=classicDeal(p),ref=d.rrp&&S.optRRP?`<div class="was">RRP $${h(d.rrp)} EACH</div>`:empty;
-    return `<div class="pricerow"><span class="nowlbl">${h(cd.lead)}</span>${cd.amount?`<span class="price">${priceHTML(cd.amount)}${perHTML(cd)}</span>`:(cd.text?`<span class="dealhero dealbig">${h(cd.text)}</span>`:'')}${ref}</div>`;
+    const anchor=cd.amount?`<span class="price">${priceHTML(cd.amount)}${perHTML(cd)}</span>`:(cd.percent?classicPercentHTML(cd):`<span class="dealhero dealbig">${h(cd.text)}</span>`);
+    return `<div class="pricerow"><span class="nowlbl">${h(cd.lead)}</span><div class="classic-anchor">${anchor}</div><div class="classic-offer-rule"></div>${ref}</div>`;
   }
-  let extra='';
-  if(d.was)extra+=`<div class="was">WAS $${h(d.was)}</div>`;
-  else if(d.rrp&&S.optRRP)extra+=`<div class="was">RRP $${h(d.rrp)}</div>`;   // v38
-  else extra+=empty;
-  if(d.deal)extra+=`<div class="deal">${h(d.deal)}</div>`;
-  return `<div class="pricerow"><span class="nowlbl">NOW</span><span class="price">${priceHTML(p.now)}</span>${extra}</div>`;
+  let ref='';
+  if(d.was)ref=`<div class="was">WAS $${h(d.was)}</div>`;
+  else if(d.rrp&&S.optRRP)ref=`<div class="was">RRP $${h(d.rrp)}</div>`;
+  else ref=empty;
+  const extra=d.deal?`<div class="deal">${h(d.deal)}</div>`:'';
+  return `<div class="pricerow"><span class="nowlbl">NOW</span><div class="classic-anchor"><span class="price">${priceHTML(p.now)}</span></div><div class="classic-offer-rule"></div>${ref}${extra}</div>`;
 }
 function gridPriceBlock(p,reserve){
   const d=priceData(p);
-  if(!d.has){const cd=classicDeal(p);return `<div class="gprice-row"><span class="gnow">${h(cd.lead)}</span>${cd.amount?`<span class="gprice">${priceHTML(cd.amount)}${perHTML(cd)}</span>`:''}</div>${cd.text?`<div class="gdeal dealbig">${h(cd.text)}</div>`:''}${refLine(p,reserve)}`;}
-  return `<div class="gprice-row"><span class="gnow">NOW</span><span class="gprice">${priceHTML(p.now)}</span></div>${d.deal?`<div class="gdeal">${h(d.deal)}</div>`:''}${refLine(p,reserve)}`;
+  if(!d.has){
+    const cd=classicDeal(p),anchor=cd.amount?`<span class="gprice">${priceHTML(cd.amount)}${perHTML(cd)}</span>`:(cd.percent?classicPercentHTML(cd,'gdeal'):`<span class="gdeal dealbig">${h(cd.text)}</span>`);
+    return `<div class="gprice-row"><span class="gnow">${h(cd.lead)}</span></div><div class="classic-anchor">${anchor}</div><div class="classic-offer-rule"></div>${refLine(p,reserve)}`;
+  }
+  return `<div class="gprice-row"><span class="gnow">NOW</span></div><div class="classic-anchor"><span class="gprice">${priceHTML(p.now)}</span></div><div class="classic-offer-rule"></div>${refLine(p,reserve)}${d.deal?`<div class="gdeal">${h(d.deal)}</div>`:''}`;
 }
 function featurePriceBlock(p,reserve){
   const d=priceData(p);
-  if(!d.has){const cd=classicDeal(p);return `<div class="ftag">${h(cd.lead)}</div>${cd.amount?`<div class="fprice">${priceHTML(cd.amount)}${perHTML(cd)}</div>`:(cd.text?`<div class="fdeal dealbig">${h(cd.text)}</div>`:'')}${refLine(p,reserve)}`;}
-  return `<div class="ftag">NOW</div><div class="fprice">${priceHTML(p.now)}</div>${d.deal?`<div class="fdeal">${h(d.deal)}</div>`:''}${refLine(p,reserve)}`;
+  if(!d.has){
+    const cd=classicDeal(p),anchor=cd.amount?`<div class="fprice">${priceHTML(cd.amount)}${perHTML(cd)}</div>`:(cd.percent?classicPercentHTML(cd,'fdeal'):`<div class="fdeal dealbig">${h(cd.text)}</div>`);
+    return `<div class="ftag">${h(cd.lead)}</div><div class="classic-anchor">${anchor}</div><div class="classic-offer-rule"></div>${refLine(p,reserve)}`;
+  }
+  return `<div class="ftag">NOW</div><div class="classic-anchor"><div class="fprice">${priceHTML(p.now)}</div></div><div class="classic-offer-rule"></div>${refLine(p,reserve)}${d.deal?`<div class="fdeal">${h(d.deal)}</div>`:''}`;
 }
 function titleInline(){
   const safe=h(S.title);
@@ -4274,11 +4371,11 @@ function offerBlock(p,opts={}){
   // the big line ($145.00 / GET 1 FREE), so every card has the same rows: pill · big line · rule · reference.
   const sd=!d.has&&d.deal?splitDeal(p.dv):null;
   const pill=sd&&sd.lead?`<div class="po-pill po-lead">${h(sd.lead)}</div>`:`<div class="po-pill">${d.has?'NOW':'SPECIAL'}</div>`;
-  const hero=d.has?`<div class="po-price po-hero">${h(offerPrice(p.now))}</div>`:(sd?(sd.amount?`<div class="po-price po-hero">${h(sd.hero)}${sd.per?`<span class="po-per">${h(sd.per)}</span>`:''}</div>`:`<div class="po-deal po-dealbig po-hero">${h(sd.hero)}</div>`):'');
-  const subs=offerSubLines(p,{noSave:!!opts.noSave}).map(t=>`<div class="po-sub">${t}</div>`).join('');
+  const hero=d.has?`<div class="po-price po-hero">${h(offerPrice(p.now))}</div>`:(sd?(sd.amount?`<div class="po-price po-hero">${h(sd.hero)}${sd.per?`<span class="po-per">${h(sd.per)}</span>`:''}</div>`:(sd.percent?`<div class="po-deal po-dealpct po-hero"><span class="po-dealpct-value">${h(sd.hero)}</span><span class="po-dealpct-sub">${h(sd.sublabel||'OFF')}</span></div>`:`<div class="po-deal po-dealbig po-hero">${h(sd.hero)}</div>`)):'');
+  const subParts=offerSubLines(p,{noSave:!!opts.noSave}),subs=subParts.length?subParts.map(t=>`<div class="po-sub">${t}</div>`).join(''):`<div class="po-sub ${REF_EMPTY_CLASS}" aria-hidden="true">&nbsp;</div>`;
   const ends=opts.ends?offerDates(p).end:null;
   const endsHTML=ends?`<div class="po-ends">Offer ends ${h(fmtOfferDate(ends))}</div>`:'';
-  return `<div class="${cls.join(' ')}" data-key="${ha(pkey)}">${title?`<div class="po-name">${title}</div>`:''}${opts.extra?`<div class="po-extra">${opts.extra}</div>`:''}${pill}${hero}${hero||subs?'<div class="po-rule"></div>':''}<div class="po-foot">${subs}${endsHTML}</div></div>`;
+  return `<div class="${cls.join(' ')}" data-key="${ha(pkey)}">${title?`<div class="po-name">${title}</div>`:''}${opts.extra?`<div class="po-extra">${opts.extra}</div>`:''}${pill}<div class="po-anchor">${hero}</div><div class="po-rule"></div><div class="po-foot">${subs}${endsHTML}</div></div>`;
 }
 /* Shrink a block only when something would not fit: price or WAS line wider than
    the column, the name running past three lines, or the block running out of its
@@ -4376,8 +4473,12 @@ function applyNameBoundary(po){
 function splitDeal(raw){
   const t=normaliseDeal(raw);if(!t)return null;   // v41: "4 FOR $60 EACH" → "BUY 4+ FOR $60 EA"
   const tidy=s=>s.replace(/[\s,;:–\-]+$/,'').trim();
+  // v42: percentage/range offers become a structured display anchor instead of one unformatted phrase.
+  // "30% OFF RRP" → SPECIAL pill · 30% display numeral · OFF RRP sub-label.
+  let m=t.match(/^(\d+(?:\.\d+)?(?:\s*[–-]\s*\d+(?:\.\d+)?)?)\s*%\s*(OFF(?:\s+RRP)?(?:\s+.*)?)$/i);
+  if(m)return {lead:'SPECIAL',hero:m[1].replace(/\s*[–-]\s*/g,'–')+'%',amount:false,percent:true,sublabel:m[2].toUpperCase()};
   // v41: priced per item → pill "BUY 4+ FOR", big line "$60.00" with a small "EA"
-  let m=t.match(/^(.+?)\s*(\$\s?\d[\d,]*(?:\.\d{1,2})?)\s*(EA|EACH)\.?$/i);
+  m=t.match(/^(.+?)\s*(\$\s?\d[\d,]*(?:\.\d{1,2})?)\s*(EA|EACH)\.?$/i);
   if(m&&tidy(m[1]).length>=2&&tidy(m[1]).length<=16)return {lead:tidy(m[1]),hero:offerPrice(m[2]),amount:true,per:'EA'};
   m=t.match(/^(.+?)\s*(\$\s?\d[\d,]*(?:\.\d{1,2})?)$/);
   if(m&&tidy(m[1]).length>=2&&tidy(m[1]).length<=16)return {lead:tidy(m[1]),hero:offerPrice(m[2]),amount:true};
@@ -4405,7 +4506,7 @@ function fitDealBig(po){
    2. Cards of the same size share the same height for the brand, the name, the pill, the price / deal and the
       WAS / RRP line, and the same total text height, so every row of text sits level from card to card. */
 const CLASSIC_CELLS='.l-four .cell,.l-six .cell,.l-two .col,.l-sixsplit .scell,.l-promo .promo-cell,.l-herosplit .hero-main,.l-herosplit .side-cell,.l-feature .fcell,.l-gridcards .gcard,.l-single .body';
-const CLASSIC_SEGS=['.pbrand','.pname','.nowlbl,.ftag,.gnow','.price,.fprice,.gprice,.dealhero,.fdeal,.gdeal','.was,.refline'];
+const CLASSIC_SEGS=['.pbrand','.pname','.nowlbl,.ftag,.gnow','.classic-anchor','.classic-offer-rule','.was,.refline'];
 function classicPriceSize(el){
   const pr=document.createElement('span');
   pr.className=el.classList.contains('fdeal')?'fprice':(el.classList.contains('gdeal')?'gprice':'price');
@@ -4428,7 +4529,7 @@ function fitClassicDeal(el){
 }
 /* v41: on multi-product classic cards the brand is always one line, so it can never push the name, pill
    and price down. A long brand is made up to 20% smaller (its row keeps its height), then ends with "…". */
-const CLASSIC_BRAND_FIT='.l-four .pbrand,.l-gridcards .gcard>.pbrand,.l-feature .finfo .pbrand,.l-sixsplit .pbrand';
+const CLASSIC_BRAND_FIT='.l-four .pbrand,.l-gridcards .gcard>.pbrand,.l-feature .finfo .pbrand,.l-six .pbrand,.l-sixsplit .pbrand';
 function fitClassicBrand(el){
   if(el.dataset.full==null)el.dataset.full=el.textContent;
   el.textContent=el.dataset.full;
@@ -4492,7 +4593,7 @@ function scheduleClassicText(root){
 function fitOffers(root){
   const slide=root&&root.querySelectorAll?root:document.getElementById('slide');
   if(!slide)return;
-  slide.querySelectorAll('.po-name,.po-hero,.po-foot').forEach(el=>{el.style.minHeight='';el.style.paddingTop='';el.style.marginTop='';});
+  slide.querySelectorAll('.po-name,.po-anchor,.po-foot').forEach(el=>{el.style.minHeight='';el.style.paddingTop='';el.style.marginTop='';});
   // 1) fit each block on its own, 2) blocks of the same role share the smallest
   // fitted size so every price on the slide reads at one consistent size.
   const groups=new Map();
@@ -4535,7 +4636,7 @@ function equaliseOfferCards(slide){
   });
   groups.forEach(g=>{
     if(g.list.length<2)return;
-    ['.po-name','.po-hero','.po-foot'].forEach(sel=>{
+    ['.po-name','.po-anchor','.po-foot'].forEach(sel=>{
       const els=g.list.map(po=>po.querySelector(sel)).filter(Boolean);
       if(els.length<2)return;
       const max=Math.max(...els.map(el=>el.offsetHeight));
@@ -4560,7 +4661,7 @@ function anchorOfferRows(list){
     list.forEach((po,i)=>{const d=max-o[i];if(d>.25)apply(po,d);});
   };
   lift('.po-pill',(po,d)=>{const n=po.querySelector('.po-name');if(n)n.style.marginTop=d.toFixed(2)+'px';});
-  lift('.po-rule',(po,d)=>{const e=po.querySelector('.po-hero');if(e)e.style.minHeight=(e.offsetHeight+d).toFixed(2)+'px';});
+  lift('.po-rule',(po,d)=>{const e=po.querySelector('.po-anchor');if(e)e.style.minHeight=(e.offsetHeight+d).toFixed(2)+'px';});
   const hs=list.map(po=>po.getBoundingClientRect().height/k),maxH=Math.max(...hs);
   list.forEach((po,i)=>{const d=maxH-hs[i];if(d>.25){const f=po.querySelector('.po-foot');if(f)f.style.minHeight=(f.offsetHeight+d).toFixed(2)+'px';}});
 }
@@ -4701,7 +4802,7 @@ function render(rebuildInputs=true){
   }else{
     const cells=[...P];while(cells.length<6)cells.push(null);
     html=`<div class="pad"><div class="titlebar"><span class="big">${titleInline()}</span></div>
-      <div class="body">${cells.map(p=>p?`<div class="cell">${imgStamped(p)}${productName(p)}${pblock(p)}</div>`:`<div class="cell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
+      <div class="body">${cells.map(p=>p?`<div class="cell">${imgStamped(p)}${productName(p)}${pblock(p,P.length>1)}</div>`:`<div class="cell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
   }
   s.innerHTML=html;
   document.getElementById('pageInfo').textContent=`Page ${S.page+1} of ${pageCount()}`;
@@ -5007,7 +5108,7 @@ function rowsFromGViz(response){
     const scale=g('image_scale')||g('image scale')||g('scale')||'100';
     // v28 offer dates. gviz tables carry dates as Date(y,m,d) in .v and the sheet's display text in .f
     const pick=(...names)=>{for(const n of names){const v=(typeof gDate==='function'?gDate:g)(n);if(v)return v;}return '';};
-    out.push(tidyRowBrand({brand:g('brand'),name:g('name'),now:g('now_price')||g('now'),
+    out.push(normaliseProductRow({brand:g('brand'),name:g('name'),now:g('now_price')||g('now'),
       disc,dv:g('discount_value'),img:g('image_url'),recImg:g('recommended_image_url'),
       altImg:g('alternate_candidate_url'),imageReviewStatus:g('image_review_status'),
       imageReviewNote:g('image_review_note'),rrp:g('rrp'),scale,
@@ -5180,7 +5281,7 @@ async function loadSheet(url,quiet){
     if(hadLive){setStatus('err',`Couldn't refresh the live Specials source. Your existing live data is still on screen — nothing was replaced.<br><small>${detail}</small>`);return;}
     const cached=readLastGoodSpecials();
     if(cached){
-      S.rows=cached.rows.map(tidyRowBrand);S.source='sheet';S.page=0;S.lastLoaded=cached.savedAt?new Date(cached.savedAt):null;
+      S.rows=cached.rows.map(normaliseProductRow);S.source='sheet';S.page=0;S.lastLoaded=cached.savedAt?new Date(cached.savedAt):null;
       syncWork();clearEdited();render(true);
       const when=S.lastLoaded&&!isNaN(S.lastLoaded)?S.lastLoaded.toLocaleString():'an earlier successful load';
       setStatus('warn',`LIVE SOURCE UNAVAILABLE · Showing the last successful Specials data saved ${h(when)}.<br><small>${detail}</small>`);
