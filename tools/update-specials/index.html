@@ -2002,12 +2002,12 @@
   .slide .po-pill{display:block;width:fit-content;background:var(--po-green);color:#fff;font-weight:900;font-size:.4em;line-height:1;letter-spacing:.015em;padding:.2em .62em .19em;border-radius:.26em;margin:0 0 .16em;white-space:nowrap}
   .slide .po-price{font-weight:900;font-size:1em;line-height:1;letter-spacing:-.025em;white-space:nowrap;margin:0;color:var(--po-ink)}
   .slide .po-deal{font-weight:900;font-size:.5em;line-height:1.04;letter-spacing:-.012em;text-transform:uppercase;text-wrap:balance;overflow-wrap:break-word;margin:.14em 0 .1em;color:var(--po-ink)}
-  .slide .po-rule{height:max(2px,.045em);background:var(--po-green);width:100%;max-width:4.3em;margin:.1em 0 .17em;border-radius:1px}
+  .slide .po-rule{height:max(1.5px,.022em);background:var(--po-green);width:100%;max-width:4.3em;margin:.12em 0 .18em;border-radius:1px}   /* v33: half the previous thickness */
   .slide .po-sub{color:var(--po-green);font-weight:900;font-size:.4em;line-height:1.12;letter-spacing:-.004em;text-transform:uppercase;white-space:nowrap}
   .slide .po-sub+.po-sub{margin-top:.12em}
   .slide .po.po-center{text-align:center}
   .slide .po.po-center .po-rule,.slide .po.po-center .po-pill{margin-left:auto;margin-right:auto}
-  .slide .po.po-divided{border-left:2px solid var(--po-divider);padding-left:.34em}
+  .slide .po.po-divided{border-left:0;padding-left:0}   /* v33: no vertical divider — the card and spacing already separate image and text */
   .slide .po.po-dealonly .po-rule{margin-top:.16em}
 
 
@@ -2484,7 +2484,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='32';
+const APP_VERSION='33';
 const APP_DATE='2026-09-28';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"

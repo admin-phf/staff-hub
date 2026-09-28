@@ -16,7 +16,7 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 
 1. In GitHub Desktop, check that **Current branch** says **main**, then click **Fetch origin** / **Pull origin**.
 2. Copy the new `index.html` and `CHANGELOG.md` into `tools/update-specials/`, replacing the old ones.
-3. Type the summary (e.g. `v32 – brand row + name boundary`), click **Commit to main**, then **Push origin**.
+3. Type the summary (e.g. `v33 – thinner rule, no divider`), click **Commit to main**, then **Push origin**.
 4. After 1–2 minutes, open the tool and press **Ctrl+Shift+R**. The top right shows the new version.
    Screens already open show *"Version x is now live… Refresh"* within about 20 minutes.
 5. **Need an old version back?** On GitHub, open `tools/update-specials/index.html` → **History**,
@@ -27,6 +27,13 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 It isn't needed day to day.)
 
 ---
+
+## v33 — 28 Sep 2026
+Lighter clean cards. Classic white layouts are unchanged.
+- The green line under the price is half as thick.
+- The vertical grey line between the pack shot and the text is removed. The card border and the
+  spacing already separate them, and the text gets a little more width, so names and deals wrap
+  less and prices can sit slightly larger in narrow cards.
 
 ## v32 — 28 Sep 2026
 Consistent product names on clean cards. Classic white layouts are unchanged.
