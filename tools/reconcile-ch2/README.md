@@ -1,4 +1,15 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.26
+# Prahran Health Foods — CH2 Reconciler v2.6.27
+
+## v2.6.27 — POSActive balancing check
+
+- Adds a prominent POSActive balancing panel calculated from the exact live 15-column TXT payload.
+- Shows the expected POSActive total with `CP Inc GST` on, the ex-GST total expected when it is off, GST, the same supplied rows at old POS prices, the full current POS order and the supplier invoice total.
+- Explicitly identifies invoice-only billed products omitted because no POS row exists, POS-order products not invoiced that POSActive may retain, and invoice Customer PO/order mismatches.
+- Keeps matching, alignment, invoice parsing, receiving quantities, the 43-column reconciliation outputs and the proven POSActive import contract unchanged.
+
+Suggested commit summary:
+
+`v2.6.27: Add exact POSActive balancing breakdown`
 
 ## v2.6.26 — align section and alternating colours
 

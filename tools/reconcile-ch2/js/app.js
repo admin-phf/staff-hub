@@ -4,7 +4,7 @@
   const state={pos:null,invoices:[],result:null,previewView:'pos',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackManualChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null,receivingMigratedFrom266:false,orderOverrides:new Map(),importKeys:new Map(),importKeyReviews:new Map(),posSortKey:'__pos_order_index',posSortDir:'asc'};
   const els={
     referenceReady:document.querySelector('#referenceReady'),referenceDot:document.querySelector('#referenceDot'),buildLabel:document.querySelector('#buildLabel'),
-    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),orderOverrideBox:document.querySelector('#orderOverrideBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),fullDownloadBtn:document.querySelector('#fullDownloadBtn'),fullCsvDownloadBtn:document.querySelector('#fullCsvDownloadBtn'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),keyReviewBtn:document.querySelector('#keyReviewBtn'),importKeySummary:document.querySelector('#importKeySummary'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn')
+    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),orderOverrideBox:document.querySelector('#orderOverrideBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),fullDownloadBtn:document.querySelector('#fullDownloadBtn'),fullCsvDownloadBtn:document.querySelector('#fullCsvDownloadBtn'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posBalancePanel:document.querySelector('#posBalancePanel'),keyReviewBtn:document.querySelector('#keyReviewBtn'),importKeySummary:document.querySelector('#importKeySummary'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn')
   };
 
   const RECON_COLUMNS=[
@@ -269,12 +269,16 @@
     // proven 15-column exporter so short/over/zero Found quantities are reflected in
     // the footer exactly the same way they will be in the downloaded file.  Column 14
     // is Total inc GST, so this value is explicitly GST-inclusive.
-    let adjusted=null;
+    let adjusted=null,adjustedEx=null,adjustedGst=null,supplierInvoiceTotal=null,records=[];
     try{
       if(PHF.posImport&&typeof PHF.posImport.buildLegacyFiles==='function'&&state.docs&&state.docs.length&&state.posParsed&&state.result){
         const built=PHF.posImport.buildLegacyFiles(state.docs,state.refs,state.posParsed,state.result,posExportOptions());
         if(built&&Array.isArray(built.files)&&built.files.length){
           adjusted=built.files.reduce((sum,file)=>sum+(numberValue(file&&file.totals&&file.totals.total)||0),0);
+          adjustedEx=built.files.reduce((sum,file)=>sum+(numberValue(file&&file.totals&&file.totals.ext)||0),0);
+          adjustedGst=built.files.reduce((sum,file)=>sum+(numberValue(file&&file.totals&&file.totals.gst)||0),0);
+          supplierInvoiceTotal=built.files.reduce((sum,file)=>sum+(numberValue(file&&file.sourceTotals&&file.sourceTotals.total)||0),0);
+          records=built.files.flatMap(file=>Array.isArray(file&&file.records)?file.records:[]);
         }
       }
     }catch(err){console.warn('Could not calculate live POSActive import total',err);}
@@ -299,7 +303,45 @@
         adjusted+=grossPerUnit*found;
       }
     }
-    return {current,adjusted};
+    const matchedCurrent=records.reduce((sum,record)=>{
+      const pos=record&&record.pos||{},raw=pos.raw||{},qtySupplied=numberValue(record&&record.qtySupplied)??0;
+      const currentPrice=numberValue(raw.last_price)??numberValue(pos.expectedUnit)??0;
+      const gstPct=Math.max(0,numberValue(raw.gst_tax_pc)??numberValue(pos.gstPct)??0);
+      return sum+currentPrice*qtySupplied*(1+gstPct/100);
+    },0);
+    const invoiceOnlyRows=(state.result&&state.result.unmatchedInvoice)||[];
+    const invoiceOnlyTotal=invoiceOnlyRows.reduce((sum,row)=>sum+(numberValue(row&&row.totalIncGst)||0),0);
+    const notInvoicedDetails=((state.result&&state.result.detail)||[]).filter(detail=>!Array.isArray(detail&&detail.invoiceRows)||!detail.invoiceRows.length);
+    let notInvoicedTotal=0;
+    for(const pos of rows||[]){
+      const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''));
+      if(detail&&Array.isArray(detail.invoiceRows)&&detail.invoiceRows.length)continue;
+      const raw=pos.raw||{},qtyNow=numberValue(raw.qty)??numberValue(pos.orderedQty)??0;
+      const currentPrice=numberValue(raw.last_price)??numberValue(pos.expectedUnit)??0;
+      const gstPct=Math.max(0,numberValue(raw.gst_tax_pc)??numberValue(pos.gstPct)??0);
+      notInvoicedTotal+=currentPrice*qtyNow*(1+gstPct/100);
+    }
+    return {current,matchedCurrent,adjusted,adjustedEx,adjustedGst,supplierInvoiceTotal,invoiceOnlyCount:invoiceOnlyRows.length,invoiceOnlyTotal,notInvoicedCount:notInvoicedDetails.length,notInvoicedTotal,recordCount:records.length};
+  }
+
+  function renderPosBalance(totals){
+    const box=els.posBalancePanel;if(!box)return;
+    if(!totals){box.classList.add('hidden');box.innerHTML='';return;}
+    const exportBalances=totals.adjusted!=null&&totals.adjustedEx!=null&&totals.adjustedGst!=null&&Math.abs((totals.adjustedEx+totals.adjustedGst)-totals.adjusted)<=.02;
+    const cautions=[];
+    if(totals.invoiceOnlyCount)cautions.push(`${totals.invoiceOnlyCount} billed invoice-only product${totals.invoiceOnlyCount===1?' is':'s are'} omitted from the POSActive import (${money(totals.invoiceOnlyTotal)} inc GST) because no matching POS-order row exists.`);
+    if(totals.notInvoicedCount)cautions.push(`${totals.notInvoicedCount} POS-order product${totals.notInvoicedCount===1?' was':'s were'} not invoiced (${money(totals.notInvoicedTotal)} at current ordered value). The TXT cannot clear absent/zero-quantity rows, so confirm they are zero or unticked in POSActive.`);
+    if(orderLinkMismatches().length)cautions.push('The invoice Customer PO differs from the uploaded POS order. Confirm the open POSActive order number before comparing totals.');
+    const card=(label,value,note,cls='')=>`<div class="pos-balance-card ${cls}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></div>`;
+    box.classList.remove('hidden');
+    box.innerHTML=`<div class="pos-balance-heading"><div><strong>POSActive balancing check</strong><span>These figures come from the exact TXT payload currently ready to download.</span></div><span class="pos-balance-status ${exportBalances?'pass':'review'}">${exportBalances?'FILE BALANCES':'REVIEW'}</span></div><div class="pos-balance-grid">${[
+      card('Expected POSActive total',money(totals.adjusted),'Use when CP Inc GST is ON','primary'),
+      card('CP Inc GST off',money(totals.adjustedEx),'Expected ex-GST footer'),
+      card('GST in import',money(totals.adjustedGst),'Included in expected total'),
+      card('Same imported rows—old prices',money(totals.matchedCurrent),'Current POS prices and import quantities'),
+      card('Full current POS order',money(totals.current),'Every ordered row, inc GST'),
+      card('Supplier invoice total',money(totals.supplierInvoiceTotal),'Before invoice-only omissions or receiving changes')
+    ].join('')}</div><div class="pos-balance-equation"><strong>${money(totals.adjustedEx)} ex GST + ${money(totals.adjustedGst)} GST = ${money(totals.adjusted)} expected in POSActive</strong><span>Compare like-for-like: same order, same included rows and the same CP Inc GST setting.</span></div>${cautions.length?`<div class="pos-balance-cautions">${cautions.map(x=>`<span>${escapeHtml(x)}</span>`).join('')}</div>`:''}`;
   }
 
   function sortedPosRows(){
@@ -724,7 +766,7 @@
     updateDownloadButton();
   }
   function renderReconTable(r){
-    if(els.posTools)els.posTools.classList.add('hidden');els.tableWrap.classList.remove('preview-pos');els.table.classList.remove('pos-preview-table');clearPosColumnSizing();if(els.tableFoot)els.tableFoot.innerHTML='';
+    if(els.posTools)els.posTools.classList.add('hidden');renderPosBalance(null);els.tableWrap.classList.remove('preview-pos');els.table.classList.remove('pos-preview-table');clearPosColumnSizing();if(els.tableFoot)els.tableFoot.innerHTML='';
     els.tableHead.innerHTML=`<tr>${RECON_COLUMNS.map(c=>`<th${c.kind==='number'?' class="num"':c.kind==='center'?' class="center"':''}>${escapeHtml(c.label)}</th>`).join('')}</tr>`;
     const display=state.previewView==='all'?r.detail:r.detail.filter(x=>x.hasException||x.matchConfidence==='LOW');
     const extras=r.unmatchedInvoice.map(x=>({status:'NOT ORDERED / UNMATCHED',posDescription:x.description,orderedQty:null,suppliedQty:x.qtySupplied,expectedUnit:null,actualUnit:x.unitPriceExGst,unitVariance:null,missedTotal:0,matchConfidence:'',hasException:true}));
@@ -874,9 +916,10 @@
     if(els.tableFoot){
       if(baseRows.length){
         const totals=posTotals(baseRows,detailBySourceRow),foundTotal=baseRows.reduce((sum,pos)=>sum+(state.unpackCounts.has(unpackIdentity(pos))?unpackCountFor(pos):0),0),foundIndex=POS_VIEW_COLUMNS.findIndex(c=>c.key==='__unpack_total'),lastBlock=5,leftSpan=Math.max(1,foundIndex-1),middleSpan=Math.max(0,POS_VIEW_COLUMNS.length-lastBlock-(leftSpan+2));
+        renderPosBalance(totals);
         els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="${leftSpan}" class="pos-total-left"><strong>Current Order</strong><span>${baseRows.length.toLocaleString()} product line${baseRows.length===1?'':'s'} · <b data-check-progress>accounted ${progress.checked}/${progress.total} · unchecked ${progress.remaining}</b> · exact counts or manually ticked rows move below Remaining after a short delay · under/over counts stay in Remaining until resolved or manually ticked · unticking a row clears Found and returns it to Remaining · untouched + unticked rows = not supplied by default · entered Found always controls the download qty · grey rows = not invoiced · Add Qty 0 = accounted / not supplied</span></td><td class="pos-found-total-label" title="Total units physically found across all touched POS rows">Found total</td><td class="pos-found-total-value num" title="Total units physically found across all touched POS rows">${displayUnpackCount(foundTotal)}</td>${middleSpan?`<td colspan="${middleSpan}" class="pos-total-spacer"></td>`:''}<td colspan="2" class="pos-total-label" title="Both totals include GST. Adjusted Total mirrors the POSActive import total and applies any Found receiving quantities.">Current / Adjusted Total inc GST</td><td class="pos-total-current" title="Current POS order total including GST">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted" title="Live POSActive import total including GST; Found quantities applied">${money(totals.adjusted)}</td></tr>`;
       }
-      else els.tableFoot.innerHTML='';
+      else{els.tableFoot.innerHTML='';renderPosBalance(null);}
     }
     ensurePosResizeObserver();schedulePosColumnSizing();
   }
