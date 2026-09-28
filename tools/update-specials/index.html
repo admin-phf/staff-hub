@@ -2528,7 +2528,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='39';
+const APP_VERSION='40';
 const APP_DATE='2026-09-28';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -3278,9 +3278,12 @@ async function balanceOneImage(img){
   auto=clamp(auto*massBoost,AUTO_MIN_SCALE,maxS);
 
   const manual=clamp(parseFloat(img.dataset.manualScale||'1')||1,.70,2);
-  const desired=clamp(auto*manual,.70,finalMax);
-  const finalScale=clamp(Math.min(desired,safeScale),.70,finalMax);
-  const safeLimited=desired>safeScale+.005;
+  // v40: Image fine-tune scales on top of the automatic size, so 130% is always 30% bigger than automatic
+  // and 70% always 30% smaller. (Before, a pack shot that already filled its space couldn't get any bigger.)
+  // Pushed past its space, a pack shot is cropped at the edge of the photo area, as the slider always did.
+  const fitted=Math.min(auto,safeScale),desired=fitted*manual;
+  const finalScale=Math.abs(manual-1)<.001?clamp(fitted,.70,finalMax):clamp(desired,.3,Math.max(finalMax,fitted)*manual);
+  const safeLimited=auto>safeScale+.005;
 
   // Re-centre against the expanded protected bounds, not the aggressively
   // detected inner pixels. This keeps pale edges safely inside the image slot.
@@ -3523,8 +3526,7 @@ async function settlePop(root){
    is limited by the photo column instead and sits centred on the text. Every card of the same size
    has the same text height, so their pack shots are the same height too. A Fine-tune setting still
    scales on top. Cards with the pack shot above the text keep the fit-to-space rule. */
-const TEXT_MATCH_WFILL=1;     // a wide product may use the full photo column …
-const TEXT_MATCH_GAP=.045;    // … less a small breathing space on the text side (4.5% of the column, at least 6px)
+const TEXT_MATCH_WFILL=1;     // a wide product may use the full photo column
 // Classic 2×2 Feature: pack shot = text height. The hero layouts (Single, 2-Product, Hero + pick) and the small
 // 6-Grid Split cells keep the pack shot filling its space, because their text is much shorter than the photo area.
 const CLASSIC_SIDE='.l-feature .fcell';
@@ -3552,17 +3554,16 @@ function textMatchPackShot(img,raw,g){
   if(!(g.textH>0))return false;
   const rawW=Math.max(1,g.baseW*raw.w),rawH=Math.max(1,g.baseH*raw.h);
   const targetH=Math.min(g.textH,g.availH);
-  const gap=Math.max(6,g.availW*TEXT_MATCH_GAP),useW=g.availW*TEXT_MATCH_WFILL-gap;   // v39
-  const sH=targetH/rawH,sW=useW/rawW;
+  const sH=targetH/rawH,sW=g.availW*TEXT_MATCH_WFILL/rawW;
   const manual=clamp(parseFloat(img.dataset.manualScale||'1')||1,.70,2);
-  const want=Math.min(sH,sW)*manual,s=clamp(want,.3,g.maxS);
+  const want=Math.min(sH,sW)*manual,s=clamp(want,.3,g.maxS*Math.max(1,manual));   // v40: fine-tune may go past the quality limit
   // Centre the product on the text block (up/down) and in the photo column (left/right) …
   const textMid=g.textTop+g.textH/2-g.availH/2;
-  let sx=-(raw.cx-.5)*g.baseW*s-gap/2,sy=textMid-(raw.cy-.5)*g.baseH*s;   // v39: centred in the column less the gap
+  let sx=-(raw.cx-.5)*g.baseW*s,sy=textMid-(raw.cy-.5)*g.baseH*s;
   // … and never outside its space.
   const l=(raw.x-.5)*g.baseW*s,r=(raw.x+raw.w-.5)*g.baseW*s,t=(raw.y-.5)*g.baseH*s,b=(raw.y+raw.h-.5)*g.baseH*s;
   const keep=(v,lo,hi)=>lo<=hi?clamp(v,lo,hi):(lo+hi)/2;
-  sx=keep(sx,-g.availW/2-l,g.availW/2-gap-r);sy=keep(sy,-g.availH/2-t,g.availH/2-b);
+  sx=keep(sx,-g.availW/2-l,g.availW/2-r);sy=keep(sy,-g.availH/2-t,g.availH/2-b);
   img.style.setProperty('--img-scale',s.toFixed(4));
   img.style.setProperty('--img-shift-x',sx.toFixed(2)+'px');
   img.style.setProperty('--img-shift-y',sy.toFixed(2)+'px');
@@ -3952,7 +3953,7 @@ function buildInputs(){
         <div><label>Image fine-tune (70–200%)</label><div class="scale-control">
           <input type="range" min="70" max="200" step="5" data-gi="${gi}" data-k="scale" value="${imageScale(p)}" aria-label="Image scale for product ${gi+1}">
           <span class="scale-value" data-scale-label="${gi}">${imageScale(p)}%</span>
-        </div><div style="font-size:10.5px;color:var(--muted);margin-top:2px">100% = automatic visual balance. Move only if this product still needs a little more or less visual size.</div></div>
+        </div><div style="font-size:10.5px;color:var(--muted);margin-top:2px">100% = automatic size. Works with auto-balance on: 120% makes this pack shot 20% bigger, 80% makes it 20% smaller.</div></div>
       </div>
       <label style="margin-top:8px">Image URL (optional)</label>
       <input type="text" data-gi="${gi}" data-k="img" value="${ha(p.img)}" placeholder="paste web link, or use Photo file above">
