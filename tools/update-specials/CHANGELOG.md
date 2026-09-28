@@ -16,7 +16,7 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 
 1. In GitHub Desktop, check that **Current branch** says **main**, then click **Fetch origin** / **Pull origin**.
 2. Copy the new `index.html` and `CHANGELOG.md` into `tools/update-specials/`, replacing the old ones.
-3. Type the summary (e.g. `v30.1 – slider under photo`), click **Commit to main**, then **Push origin**.
+3. Type the summary (e.g. `v31 – even cards`), click **Commit to main**, then **Push origin**.
 4. After 1–2 minutes, open the tool and press **Ctrl+Shift+R**. The top right shows the new version.
    Screens already open show *"Version x is now live… Refresh"* within about 20 minutes.
 5. **Need an old version back?** On GitHub, open `tools/update-specials/index.html` → **History**,
@@ -27,6 +27,16 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 It isn't needed day to day.)
 
 ---
+
+## v31 — 28 Sep 2026
+Even clean cards. Classic white layouts are unchanged.
+- Cards of the same size (all four in 4 Across, all four in the 4-Up grid, all six in 6-Up, the two
+  side cards of Hero + 2, the rows on Portrait TV …) now share the same spaces for the product name,
+  the price or deal, and the WAS / RRP line.
+  - The NOW / SPECIAL pills and the green rules sit level from card to card.
+  - Every pack shot gets the same size area, so pack shots look consistent.
+  - Names sit directly on their pill; spare space goes above a shorter name.
+- A hero card is never matched to the smaller cards next to it.
 
 ## v30.1 — 28 Sep 2026
 Editor only. Exported slides are unchanged.

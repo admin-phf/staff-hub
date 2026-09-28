@@ -2474,7 +2474,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='30.1';
+const APP_VERSION='31';
 const APP_DATE='2026-09-28';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -3180,6 +3180,8 @@ async function balanceOneImage(img){
   img.dataset.safeLimited=safeLimited?'1':'0';
 }
 async function applyAutoBalance(root=document){
+  const sl0=root&&root.id==='slide'?root:document.getElementById('slide');
+  if(sl0&&sl0.querySelector('.po'))fitOffers(sl0);   // v31: final card spaces first, then fit pack shots
   const imgs=[...root.querySelectorAll('.imgslot img')];
   await Promise.all(imgs.map(balanceOneImage));
   const sl=root&&root.id==='slide'?root:document.getElementById('slide');
@@ -3690,11 +3692,11 @@ function offerBlock(p,opts={}){
   const brand=offerBrand(p.brand),name=productText(p.name);
   // Non-breaking hyphens keep Nutra-Life / Co-Q10 / Ester-C together when the name wraps.
   const title=(brand&&name?`${brand}, ${name}`:(brand||name)).replace(/([A-Za-z0-9])-(?=[A-Za-z0-9])/g,'$1\u2011');
-  const hero=d.has?`<div class="po-price">${h(offerPrice(p.now))}</div>`:(d.deal?`<div class="po-deal">${h(d.deal)}</div>`:'');
+  const hero=d.has?`<div class="po-price po-hero">${h(offerPrice(p.now))}</div>`:(d.deal?`<div class="po-deal po-hero">${h(d.deal)}</div>`:'');
   const subs=offerSubLines(p,{noSave:!!opts.noSave}).map(t=>`<div class="po-sub">${t}</div>`).join('');
   const ends=opts.ends?offerDates(p).end:null;
   const endsHTML=ends?`<div class="po-ends">Offer ends ${h(fmtOfferDate(ends))}</div>`:'';
-  return `<div class="${cls.join(' ')}">${title?`<div class="po-name">${title}</div>`:''}${opts.extra?`<div class="po-extra">${opts.extra}</div>`:''}<div class="po-pill">${d.has?'NOW':'SPECIAL'}</div>${hero}${hero||subs?'<div class="po-rule"></div>':''}${subs}${endsHTML}</div>`;
+  return `<div class="${cls.join(' ')}">${title?`<div class="po-name">${title}</div>`:''}${opts.extra?`<div class="po-extra">${opts.extra}</div>`:''}<div class="po-pill">${d.has?'NOW':'SPECIAL'}</div>${hero}${hero||subs?'<div class="po-rule"></div>':''}<div class="po-foot">${subs}${endsHTML}</div></div>`;
 }
 /* Shrink a block only when something would not fit: price or WAS line wider than
    the column, the name running past three lines, or the block running out of its
@@ -3734,6 +3736,7 @@ function offerOverflows(po){
 function fitOffers(root){
   const slide=root&&root.querySelectorAll?root:document.getElementById('slide');
   if(!slide)return;
+  slide.querySelectorAll('.po-name,.po-hero,.po-foot').forEach(el=>{el.style.minHeight='';el.style.paddingTop='';});
   // 1) fit each block on its own, 2) blocks of the same role share the smallest
   // fitted size so every price on the slide reads at one consistent size.
   const groups=new Map();
@@ -3752,6 +3755,34 @@ function fitOffers(root){
     po.style.fontSize='';
     const k=(parseFloat(getComputedStyle(po).fontSize)||60).toFixed(1);
     if(groups.has(k))po.style.fontSize=groups.get(k).toFixed(2)+'px';
+  });
+  equaliseOfferCards(slide);
+}
+/* v31: make matching cards even. Cards of the same size and type (all 4 in a row, all 6 in a grid,
+   the two side cards of Hero + 2 …) get the same space for the product name, the price or deal,
+   and the WAS / RRP / ends lines. Pills, prices and green rules then sit level from card to card,
+   and every pack shot gets the same size area. A hero card is never matched to smaller cards. */
+function equaliseOfferCards(slide){
+  const groups=[];
+  slide.querySelectorAll('.cl-card .po').forEach(po=>{
+    const card=po.closest('.cl-card');
+    const w=card.offsetWidth,hgt=card.offsetHeight,st=card.classList.contains('stack'),fs=po.style.fontSize||getComputedStyle(po).fontSize;
+    let g=groups.find(x=>x.st===st&&x.fs===fs&&Math.abs(x.w-w)<=3&&Math.abs(x.h-hgt)<=3);
+    if(!g){g={w,h:hgt,st,fs,list:[]};groups.push(g);}
+    g.list.push(po);
+  });
+  groups.forEach(g=>{
+    if(g.list.length<2)return;
+    ['.po-name','.po-hero','.po-foot'].forEach(sel=>{
+      const els=g.list.map(po=>po.querySelector(sel)).filter(Boolean);
+      if(els.length<2)return;
+      const max=Math.max(...els.map(el=>el.offsetHeight));
+      if(max<=0)return;
+      // Names sit directly on their pill (spare space goes above the name);
+      // prices / deals and WAS lines keep their top edge level.
+      if(sel==='.po-name')els.forEach(el=>{const pad=max-el.offsetHeight;if(pad>0)el.style.paddingTop=pad+'px';});
+      else els.forEach(el=>{el.style.minHeight=max+'px';});
+    });
   });
 }
 function scheduleFitOffers(root){
