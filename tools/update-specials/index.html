@@ -2486,7 +2486,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='34';
+const APP_VERSION='34.1';
 const APP_DATE='2026-09-28';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -2841,13 +2841,15 @@ function imageCandidates(p){
   if(explicitInline){pushImageCandidate(list,raw,'uploaded','Uploaded photo');return list;}
   if(explicitLocal)pushImageCandidate(list,raw,'local-explicit','Local filename');
 
-  // Safety-net local library. Try both the preferred /images folder and the
-  // older /Pictures folder, and try PNG/WEBP/JPG/JPEG automatically.
+  // v34.1: the image_url you set (sheet column or the editor's Image URL field) comes first, so
+  // changing the link changes the photo. Invalid links such as Drive folders are discarded by
+  // safeImageURL rather than becoming broken image boxes.
+  pushImageCandidate(list,p.img,'sheet','Sheet image_url');
+
+  // Safety-net local library (the backup): used when image_url is blank, doesn't load, or its
+  // website would block the PNG export. Tries /images then /Pictures, PNG/WEBP/JPG/JPEG.
   productLocalCandidates(p).forEach(u=>pushImageCandidate(list,u,'local','Local library'));
 
-  // Runtime fallbacks from the sheet. Invalid links such as Drive folders are
-  // discarded by safeImageURL rather than becoming broken image boxes.
-  pushImageCandidate(list,p.img,'sheet','Sheet image_url');
   pushImageCandidate(list,p.recImg,'recommended','recommended_image_url');
   pushImageCandidate(list,p.altImg,'alternate','alternate_candidate_url');
   return list;
@@ -2887,14 +2889,26 @@ async function assessLoadedImage(el){
     const copy=await corsAnalysisCopy(cand.url);
     exportSafe=!!copy;
   }
-  const fallbackUsed=cand.type==='recommended'||cand.type==='alternate';
+  // v34.1: the image_url link loads but its website would block the PNG export → use the saved copy.
+  if(remote&&!exportSafe&&cand.type==='sheet'){
+    const list=decodeImageCandidates(el);
+    for(let j=0;j<list.length;j++){
+      if(list[j].type!=='local'||!(await probeImageURL(list[j].url,2500)))continue;
+      const cur=currentImageCandidate(el);if(!el.isConnected||!cur||cur.url!==cand.url)return;
+      el.dataset.linkBlocked='1';el.dataset.candidateIndex=String(j);el.src=list[j].url;return;
+    }
+  }
+  const linkBlocked=el.dataset.linkBlocked==='1',linkFailed=el.dataset.linkFailed==='1';
+  const fallbackUsed=cand.type==='recommended'||cand.type==='alternate'||linkBlocked||linkFailed;
   let status='ok',note='Loaded and export-safe.';
   if(remote&&!exportSafe){status='risk';note='Loads in preview, but this host may block PNG/ZIP export. Add a local copy for guaranteed export.';}
+  else if(linkBlocked){status='fallback';note='The image_url website blocks PNG export, so the saved copy is shown. Replace that file to change the photo.';}
+  else if(linkFailed){status='fallback';note="The image_url link didn't load (not a direct image link?), so a backup photo is shown.";}
   else if(fallbackUsed){status='fallback';note=`Primary source unavailable; ${sourceShortLabel(cand.type)} fallback loaded successfully.`;}
   else if(remote){status='remote';note='Remote image loaded and passed the export-safety check.';}
   else if(cand.type==='local'||cand.type==='local-explicit'){note='Local image loaded — preferred for reliable PNG/ZIP export.';}
   else if(cand.type==='uploaded'){note='Uploaded photo is embedded in this session and export-safe.';}
-  recordImageHealth(el,{status,sourceType:cand.type,sourceLabel:sourceShortLabel(cand.type),url:cand.url,exportSafe,note,candidateIndex:+(el.dataset.candidateIndex||0)});
+  recordImageHealth(el,{status,sourceType:cand.type,sourceLabel:sourceShortLabel(cand.type),url:cand.url,exportSafe,note,candidateIndex:+(el.dataset.candidateIndex||0),linkBlocked,linkFailed});
 }
 function handleImageLoad(el){
   const slot=el.closest('.imgslot');if(slot){slot.classList.remove('empty','image-load-failed');}
@@ -2905,6 +2919,7 @@ function handleImageLoad(el){
 function handleImageError(el){
   const candidates=decodeImageCandidates(el);
   let i=parseInt(el.dataset.candidateIndex||'0',10);
+  if(candidates[i]&&(candidates[i].type==='sheet'||candidates[i].type==='local-explicit'))el.dataset.linkFailed='1';   // v34.1
   if(i+1<candidates.length){
     i++;
     el.dataset.candidateIndex=String(i);
@@ -3599,6 +3614,8 @@ function validateProducts(){
     const health=IMAGE_HEALTH.get(productKey(p));
     if(health&&health.status==='failed')errors.push(`Product ${n}: image failed`);
     else if(health&&health.status==='risk')warnings.push(`Product ${n}: image may be blocked in PNG export`);
+    if(health&&health.linkBlocked){let f=String(health.url||'');try{f=decodeURI(f);}catch(e){}warnings.push(`Product ${n}: the image_url website blocks PNG export, so the saved copy ${f} is shown — replace that file to change the photo`);}
+    else if(health&&health.linkFailed&&health.status!=='failed')warnings.push(`Product ${n}: image_url didn't load, so a backup photo is shown — check the link or file name (for a web photo: right-click it → Copy image address)`);
     const pn=PACK_NOTES.get(productKey(p));
     if(pn==='unread')warnings.push(health&&health.status==='risk'?`Product ${n}: its website blocks the photo, so the pack shot can't be auto-sized either — save the photo in images/`:`Product ${n}: pack shot couldn't be auto-sized (busy or dark photo background) — use Image fine-tune, or a photo on plain white`);
     if(pn==='small')warnings.push(`Product ${n}: pack shot looks small (small photo or lots of empty space) — use a bigger or tighter-cropped photo, or Image fine-tune`);
@@ -3622,6 +3639,8 @@ function healthDisplayText(health){
   if(health.status==='failed')return 'Image: FAILED — all available sources failed';
   const src=health.sourceLabel||'IMAGE';
   if(health.status==='risk')return `Image: ${src} ⚠ preview works; PNG export not guaranteed`;
+  if(health.linkBlocked)return `Image: ${src} ✓ saved copy (link blocked for PNG)`;
+  if(health.linkFailed)return `Image: ${src} ✓ backup (image_url didn't load)`;
   if(health.status==='fallback')return `Image: ${src} ✓ fallback used`;
   if(health.status==='remote')return `Image: ${src} ✓ remote + PNG-safe`;
   if(health.status==='ok')return `Image: ${src} ✓`;
@@ -3693,19 +3712,29 @@ async function probeProductImage(p){
   if(!candidates.length){
     const health={key,status:'failed',sourceLabel:'FAILED',exportSafe:false,note:'No usable image source is configured.'};IMAGE_HEALTH.set(key,health);return health;
   }
+  let linkFailed=false;
   for(let i=0;i<candidates.length;i++){
     const cand=candidates[i];
-    if(!(await probeImageURL(cand.url)))continue;
+    if(!(await probeImageURL(cand.url))){if(cand.type==='sheet'||cand.type==='local-explicit')linkFailed=true;continue;}
     const remote=isRemoteURL(cand.url);
     let exportSafe=true;
     if(remote)exportSafe=!!(await corsAnalysisCopy(cand.url));
+    if(remote&&!exportSafe&&cand.type==='sheet'){   // v34.1: prefer the saved copy for a blocked link
+      for(let j=i+1;j<candidates.length;j++){
+        const lc=candidates[j];if(lc.type!=='local'||!(await probeImageURL(lc.url)))continue;
+        const health={key,status:'fallback',sourceType:'local',sourceLabel:'LOCAL',url:lc.url,exportSafe:true,linkBlocked:true,linkFailed:false,
+          note:'The image_url website blocks PNG export, so the saved copy is shown. Replace that file to change the photo.',candidateIndex:j,checkedAt:Date.now()};
+        IMAGE_HEALTH.set(key,health);return health;
+      }
+    }
     const fallbackUsed=cand.type==='recommended'||cand.type==='alternate';
     let status='ok',note='Loaded and export-safe.';
     if(remote&&!exportSafe){status='risk';note='Loads in preview, but the host may block PNG/ZIP export. Use a local copy for guaranteed export.';}
     else if(fallbackUsed){status='fallback';note=`Primary source unavailable; ${sourceShortLabel(cand.type)} fallback loaded.`;}
+    else if(linkFailed){status='fallback';note="The image_url link didn't load (not a direct image link?), so a backup photo is shown.";}
     else if(remote){status='remote';note='Remote source loaded and passed the browser export-safety test.';}
     else{note='Local source loaded — preferred for reliable export.';}
-    const health={key,status,sourceType:cand.type,sourceLabel:sourceShortLabel(cand.type),url:cand.url,exportSafe,note,candidateIndex:i,checkedAt:Date.now()};
+    const health={key,status,sourceType:cand.type,sourceLabel:sourceShortLabel(cand.type),url:cand.url,exportSafe,note,candidateIndex:i,checkedAt:Date.now(),linkBlocked:false,linkFailed};
     IMAGE_HEALTH.set(key,health);return health;
   }
   const health={key,status:'failed',sourceLabel:'FAILED',url:'',exportSafe:false,note:'All local, image_url, recommended_image_url and alternate_candidate_url candidates failed.',checkedAt:Date.now()};

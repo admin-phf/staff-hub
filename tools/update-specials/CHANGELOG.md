@@ -16,7 +16,7 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 
 1. In GitHub Desktop, check that **Current branch** says **main**, then click **Fetch origin** / **Pull origin**.
 2. Copy the new `index.html` and `CHANGELOG.md` into `tools/update-specials/`, replacing the old ones.
-3. Type the summary (e.g. `v34 – pack shots auto-sized + pop`), click **Commit to main**, then **Push origin**.
+3. Type the summary (e.g. `v34.1 – image_url takes priority`), click **Commit to main**, then **Push origin**.
 4. After 1–2 minutes, open the tool and press **Ctrl+Shift+R**. The top right shows the new version.
    Screens already open show *"Version x is now live… Refresh"* within about 20 minutes.
 5. **Need an old version back?** On GitHub, open `tools/update-specials/index.html` → **History**,
@@ -27,6 +27,20 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 It isn't needed day to day.)
 
 ---
+
+## v34.1 — 28 Sep 2026
+Fix: changing a product's image link now changes the photo. Applies to every layout.
+- **The image_url you set now comes first**, whether it's in the sheet's `image_url` column or the
+  editor's **Image URL** field. Before, a saved copy in `images/` or `Pictures/` named after the
+  product (e.g. `images/HERBS_OF_GOLD_Quercetin_Complex_60c.png`) always won, so a new link was ignored.
+- The saved copy is now the backup. It's used when:
+  - `image_url` is blank.
+  - the link doesn't load. Warning: "image_url didn't load, so a backup photo is shown — check the link…"
+  - the link's website would block the PNG export. Warning: "…the saved copy images/… is shown —
+    replace that file to change the photo".
+- The line under each product card says which photo is showing and why.
+- To force the saved copy, put its file name in `image_url` (e.g. `Quercetin.png`). A file name
+  always wins, as before.
 
 ## v34 — 28 Sep 2026
 Pack shots on clean cards. Classic white layouts are unchanged (checked pixel-for-pixel against v33.1).
