@@ -7,18 +7,34 @@
 The running version is shown at the top right of the tool (e.g. `v25.1 · 28 Sep 2026`).
 It is set in one place: `APP_VERSION` / `APP_DATE` at the top of the script in `index.html`.
 
-## Release steps (GitHub Desktop or the GitHub website)
-1. Put the new `index.html` (and this `CHANGELOG.md`) in **`tools/update-specials-beta/`**.
-   - Desktop: copy the files into that folder in your local copy of the repo. In GitHub Desktop,
-     type the summary (e.g. `v29 – restore classic white`), click **Commit to main**, then **Push origin**.
-   - Website: open the folder → **Add file → Upload files** → commit.
-2. Open the beta page on the devices that matter (checkout POS screen, portrait TV) and check it.
-   Beta shows an amber **BETA** badge and uses the live folder's `images/` automatically.
-3. When happy, upload the **same files** to **`tools/update-specials/`** with the same commit message.
-4. Screens already open show *"Version x is now live… Refresh"* within about 20 minutes.
-5. Roll back if needed: open `index.html` on GitHub → **History** → previous version → restore.
+## Release steps (one folder, one branch)
+Everything lives on the **`main`** branch in **`tools/update-specials/`**. There are no copies
+for old versions: GitHub's History keeps every version automatically.
+
+Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders `images/` and
+`Pictures/`. Nothing else is needed.
+
+1. In GitHub Desktop, check that **Current branch** says **main**, then click **Fetch origin** / **Pull origin**.
+2. Copy the new `index.html` and `CHANGELOG.md` into `tools/update-specials/`, replacing the old ones.
+3. Type the summary (e.g. `v30 – clean 6-Up`), click **Commit to main**, then **Push origin**.
+4. After 1–2 minutes, open the tool and press **Ctrl+Shift+R**. The top right shows the new version.
+   Screens already open show *"Version x is now live… Refresh"* within about 20 minutes.
+5. **Need an old version back?** On GitHub, open `tools/update-specials/index.html` → **History**,
+   click the version you want → **⋯ → View file** → **Raw**, save it as `index.html`,
+   and commit it the same way.
+
+(The tool still supports a separate `-beta` folder for testing if you ever want one again.
+It isn't needed day to day.)
 
 ---
+
+## v30 — 28 Sep 2026
+Two classic layouts brought across to clean cards. The classic versions are unchanged.
+- **Email → Clean cards → 6-Up** (new): six clean cards in a 3×2 grid, pack shot left and price right.
+  It's the clean-card version of 6-Grid Split, and every price on the slide is the same size.
+  1000×625, PNG 2000×1250.
+- **Email → Clean cards → Hero + 2**: the clean-card version of Hero + pick. Same layout as
+  POS → Hero + 2, now also listed under Email.
 
 ## v29 — 28 Sep 2026
 - **Classic white layouts fully restored to the original file**, footer included (original
