@@ -29,14 +29,29 @@ It isn't needed day to day.)
 ---
 
 ## v43 — 29 Sep 2026
-Product-detail data from the Specials sheet is now carried through the generator and used where it improves the artwork without overcrowding dense layouts.
-- **Five new sheet columns are supported end-to-end:** `product_form`, `feature_heading`, `key_ingredients`, `key_benefits`, and `promo_display`. They are read from published CSV, Google Visualization, Apps Script feed matrices, local CSV backups and last-good cached rows.
-- **Product editor:** every product card now exposes Product form, Feature heading, Key ingredients, Key benefits and Promo display, so imported values can be checked or adjusted in the live preview. Edits remain preview-only, exactly like the existing price/image fields.
-- **Hero layouts use the richer copy automatically:** POS Hero, Portrait TV Hero, Social Hero 4:5 and Hero Square 800 can show the feature heading, product form, key ingredients and key benefits. The hero card in Email/POS Hero + 2 uses the shorter feature heading + product form treatment. Dense multi-product cards deliberately remain price-led.
-- **`promo_display` is display-aware:** it fills the existing reference line only when it adds something useful (for example `BUY 2 FOR $145` can show `$72.50 EA`). It is suppressed when it would simply duplicate the main price, deal wording or SAVE badge.
-- **Copy text / email text** now carries the feature heading, product form, key ingredients and key benefits underneath each product line.
-- **Advertising record CSV** now includes all five new fields so the exported record preserves the exact richer product information used by the campaign.
-- If your Apps Script feed publishes a fixed whitelist of columns, add these five column names there as well. Published-sheet CSV and normal Google Sheet table feeds pick them up automatically.
+Universal readability and spacing correction for the new product metadata introduced in v42.1.
+- **Adaptive information density:** clean cards now decide how much optional metadata to show from the actual rendered card size, rather than forcing Ingredients + Benefits into every template.
+  - **Full:** spacious hero / large cards can show Product Form, Feature Heading, Ingredients and Benefits.
+  - **Medium:** keeps Feature Heading + Benefits; hides Product Form and Ingredients.
+  - **Compact:** keeps Feature Heading only.
+  - **Minimal:** hides optional metadata entirely on extremely small cards.
+- **Core offer protected first:** optional metadata is reduced before the whole offer block is scaled down, preserving larger product names, promotion pills, prices and green offer rules.
+- **Consistent cards within a group:** cards with the same geometry use the same metadata depth, preventing one card from looking dense while the neighbouring card looks sparse.
+- **Controlled copy lengths:** feature headings, Ingredients and Benefits are line-clamped so unusually long spreadsheet copy cannot take over the artwork.
+- **Cleaner hierarchy:** metadata typography is slightly smaller and tighter, with less vertical spacing, while the Feature Heading remains the strongest educational callout.
+- **Universal behaviour:** the correction is geometry-based and therefore applies automatically across POS, portrait TV, email, social and web-banner clean-card layouts without a separate rule for every template.
+- **Classic white layouts remain unchanged.**
+- **Version:** `APP_VERSION` is now `43`; release date remains `2026-09-29`.
+
+## v42.1 — 29 Sep 2026
+Optional product metadata support, with existing products and layouts unchanged when the new fields are blank.
+- **New spreadsheet / feed columns:** `product_form`, `feature_heading`, `key_ingredients`, `key_benefits`, and `promo_display`.
+  Common space-separated and shorthand fallbacks are also accepted (for example `product form`, `ingredients`, `benefits`, `promo`).
+- **All ingestion routes updated:** published CSV, local CSV, Google Visualization, and the PHF Apps Script matrix feed map the five fields into each normalized product row.
+- **Staff editor support:** the five metadata values can be reviewed or overridden directly in each product card in the left-hand workspace.
+- **Clean-card callouts:** Product Form, Feature Heading, Ingredients, and Benefits render conditionally between the product title and the offer stack; cards with no metadata retain the v42 structure.
+- **Promo display override:** `promo_display` takes priority for the displayed promotion/deal wording while leaving the underlying discount value intact for WAS / SAVE calculations.
+- **Version:** `APP_VERSION` is now `42.1`; release date remains `2026-09-29`.
 
 ## v42 — 29 Sep 2026
 Visual hierarchy, baseline synchronization, and layout cohesion overhaul across all product cards and templates (upgraded from v41).

@@ -56,9 +56,8 @@
   .seg .lblgrp{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin:0 2px}
   .field{flex:1;min-width:190px}
   label{display:block;font-size:11.5px;color:var(--muted);margin:0 0 4px;font-weight:600}
-  input[type=text],select,textarea{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;color:var(--ink);background:#fff;font-family:inherit}
-  textarea{resize:vertical;min-height:64px;line-height:1.35}
-  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--grey)}
+  input[type=text],select{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;color:var(--ink);background:#fff}
+  input:focus,select:focus{outline:none;border-color:var(--grey)}
 
   .grid-inputs{display:grid;gap:12px}
   .card-input{border:1px solid var(--line);border-radius:11px;padding:12px;background:#fcfcfc;position:relative}
@@ -67,9 +66,6 @@
   .card-input .del:hover{background:#f3dede;color:var(--red)}
   .mini{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .discwrap{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)}
-  .detailwrap{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
-  .detailwrap .detailtitle{font-size:10.5px;color:var(--green);font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:7px}
-  .detailgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .status{font-size:13px;padding:10px 14px;border-radius:9px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
   .status.ok{background:#eef7ee;color:#256428;border:1px solid #cfe6cf}
   .status.warn{background:#fff6e6;color:#8a6100;border:1px solid #f0e0b8}
@@ -2414,6 +2410,43 @@
   .l-four .body.partial-1,.l-four .body.partial-2,.l-gridcards .body.partial-1,.l-gridcards .body.partial-2,
   .l-feature .body.partial-1,.l-feature .body.partial-2{align-content:center!important;justify-content:center!important}
 
+  /* ---------- v43 adaptive product metadata ----------
+     Product education is useful, but it must never overpower the pack shot or offer. Metadata now has
+     a universal density ladder based on the actual card geometry: full -> medium -> compact -> minimal.
+     Spacious hero cards can show the complete story; tighter multi-product cards automatically reduce
+     secondary copy before the core brand / product / price hierarchy is allowed to shrink. */
+  .slide .po-meta{width:100%;min-width:0;margin:0 0 .20em;overflow:hidden}
+  .slide .po-form{
+    font-size:.20em;font-weight:800;text-transform:uppercase;color:var(--po-green);letter-spacing:.055em;
+    line-height:1.1;margin:0 0 .13em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+  }
+  .slide .po-feature-head{
+    font-size:.30em;font-weight:800;color:var(--po-ink);line-height:1.12;margin:0 0 .17em;text-transform:uppercase;
+    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-wrap:balance
+  }
+  .slide .po-details{
+    font-size:.205em;line-height:1.22;color:var(--muted);margin:.10em 0 0;font-family:Arial,Helvetica,sans-serif
+  }
+  .slide .po-detail{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  .slide .po-detail+.po-detail{margin-top:.08em}
+  .slide .po-details strong{color:var(--brandink);font-weight:700}
+
+  /* Medium cards keep the marketing story but drop the most technical / duplicative lines. */
+  .slide .po[data-meta-density="medium"] .po-form,
+  .slide .po[data-meta-density="medium"] .po-ing{display:none}
+  .slide .po[data-meta-density="medium"] .po-meta{margin-bottom:.16em}
+  .slide .po[data-meta-density="medium"] .po-feature-head{font-size:.29em;margin-bottom:.13em}
+  .slide .po[data-meta-density="medium"] .po-benefit{-webkit-line-clamp:2}
+
+  /* Compact cards show one useful headline only. Product, pack shot and offer regain the visual priority. */
+  .slide .po[data-meta-density="compact"] .po-form,
+  .slide .po[data-meta-density="compact"] .po-details{display:none}
+  .slide .po[data-meta-density="compact"] .po-meta{margin-bottom:.13em}
+  .slide .po[data-meta-density="compact"] .po-feature-head{font-size:.275em;line-height:1.1;margin-bottom:0;-webkit-line-clamp:2}
+
+  /* Extremely small cards omit optional metadata completely rather than making every element unreadably small. */
+  .slide .po[data-meta-density="minimal"] .po-meta{display:none}
+
   /* ---------- v26 channel picker (editor UI) ---------- */
   .chan-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:0 0 12px}
   .chan{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 5px 7px;font:inherit;font-weight:800;font-size:12.5px;color:var(--ink);cursor:pointer;text-align:center;line-height:1.15;min-width:0}
@@ -2433,23 +2466,6 @@
   .update-note[hidden]{display:none}
   .update-note .btn{background:#fff;color:#1f2a22;border-color:#fff;padding:6px 12px;font-size:12.5px}
   .update-note .x{background:transparent;border:none;color:#cfd8d1;font-size:17px;cursor:pointer;padding:2px 4px}
-
-
-
-  /* ---------- v43 richer product information ----------
-     The sheet can now carry product_form, feature_heading, key_ingredients,
-     key_benefits and promo_display. Dense multi-product cards stay price-led;
-     richer copy is used only on spacious clean hero cards. */
-  .slide .po-extra{font-family:Arial,Helvetica,sans-serif;font-size:1em;line-height:1.2;color:#4f5a53;margin:0 0 .28em}
-  .slide .po-feature{font-size:.29em;line-height:1.15;font-weight:800;color:var(--po-green);letter-spacing:.005em;margin:0 0 .18em;text-wrap:balance}
-  .slide .po-meta-row{display:flex;align-items:center;gap:.28em;flex-wrap:wrap;margin:0 0 .18em}
-  .slide .po-form{display:inline-flex;align-items:center;width:fit-content;font-size:.19em;line-height:1;font-weight:800;letter-spacing:.055em;text-transform:uppercase;color:#5f6862;background:#f0f3f0;border-radius:999px;padding:.34em .58em}
-  .slide .po-detail-line{font-size:.20em;line-height:1.28;color:#515b55;margin:.16em 0 0;overflow-wrap:anywhere}
-  .slide .po-detail-label{font-weight:800;color:#39413c}
-  .slide .po-promo-display{color:var(--po-green)!important}
-  .l-retailhero2 .cl-hero .po-feature{font-size:.25em}
-  .l-retailhero2 .cl-hero .po-form{font-size:.17em}
-  .l-poshero .po-detail-line,.l-retailsquarehero .po-detail-line,.l-botanicalsingle .po-detail-line,.l-tvhero .po-detail-line{display:block}
 
 </style>
 </head>
@@ -2611,7 +2627,7 @@
       </div>
       <div class="auto-balance-help"><b>Safe Smart Fit:</b> detects the visible pack shot, removes excess white/transparent padding, recentres uneven sources and equalises visual mass — but now keeps a protected edge margin so lids, boxes and labels are not clipped. The slider remains a fine-tune control. Local <code>images/</code> files are preferred, with <code>Pictures/</code> retained as a safety-net folder.</div>
       <div class="grid-inputs" id="prodInputs"></div>
-      <div class="exportnote" style="text-align:left">Edits here change the slide right now but don't write back to the sheet — refresh or revert to pull sheet data again. Keep permanent changes in the sheet. Permanent product-detail columns supported: product_form, feature_heading, key_ingredients, key_benefits and promo_display. Optional: add an image_scale column (70–200) for permanent fine-tuning. At 100%, Smart Auto-Balance does the sizing automatically.</div>
+      <div class="exportnote" style="text-align:left">Edits here change the slide right now but don't write back to the sheet — refresh or revert to pull sheet data again. Keep permanent changes in the sheet. Optional: add an image_scale column (70–200) for permanent fine-tuning. At 100%, Smart Auto-Balance does the sizing automatically.</div>
     </div>
 
     <div id="imageHealthPanel" class="image-health-panel" aria-live="polite">
@@ -2959,10 +2975,19 @@ function normaliseProductRow(r){
   if(!r)return r;
   const row=tidyRowBrand(r),rawName=String(row.name==null?'':row.name).trim();
   const cleaned=displayName({...row,name:rawName,_cleanName:'',_cleanNameSource:''});
-  return {...row,name:rawName,nameRaw:String(row.nameRaw||rawName),_cleanName:cleaned,_cleanNameSource:rawName,
-    form:String(row.form||'').trim(),feature:String(row.feature||'').trim(),ingredients:String(row.ingredients||'').trim(),
-    benefits:String(row.benefits||'').trim(),promoDisplay:String(row.promoDisplay||'').trim(),
-    dv:row.disc==='deal'?normaliseDeal(row.dv):row.dv};
+  return {
+    ...row,
+    name:rawName,
+    nameRaw:String(row.nameRaw||rawName),
+    _cleanName:cleaned,
+    _cleanNameSource:rawName,
+    productForm:String(row.productForm||'').trim(),
+    featureHeading:String(row.featureHeading||'').trim(),
+    keyIngredients:String(row.keyIngredients||'').trim(),
+    keyBenefits:String(row.keyBenefits||'').trim(),
+    promoDisplay:String(row.promoDisplay||'').trim(),
+    dv:row.disc==='deal'?normaliseDeal(row.dv):row.dv
+  };
 }
 /* Resolve an image cell from the sheet. Accepts, in order:
    1. data:/blob: URIs and full http(s) URLs  -> used as-is
@@ -3037,9 +3062,11 @@ function rowsFromMatrix(matrix){
       end:pick('end_date','end','ends','valid_to','valid_until','until','expiry','expires'),
       short:pick('short_name','display_name','pos_name','slide_name'),
       brandShow:pick('brand_on_slide','slide_brand','brand_display','display_brand','short_brand'),
-      form:pick('product_form','form'),feature:pick('feature_heading','feature','headline'),
-      ingredients:pick('key_ingredients','ingredients'),benefits:pick('key_benefits','benefits'),
-      promoDisplay:pick('promo_display','promo','display_promo'),
+      productForm:pick('product_form','product form','form','pack_form','pack form'),
+      featureHeading:pick('feature_heading','feature heading','heading','tagline'),
+      keyIngredients:pick('key_ingredients','key ingredients','ingredients','active_ingredients','active ingredients'),
+      keyBenefits:pick('key_benefits','key benefits','benefits','key_benefit','key benefit'),
+      promoDisplay:pick('promo_display','promo display','promo','display_offer','display offer'),
       _rowId:'sheet-'+i}));
   }
   return out;
@@ -3055,7 +3082,10 @@ function priceHTML(now){
   return `<span class="d">$</span>${h(Number(d).toLocaleString('en-AU'))}<span class="c">.${h(c)}</span>`;
 }
 function priceData(p){
-  const deal=p.disc==='deal'?dealText(p.dv):'';   // v41: BUY 4+ FOR $60 EA
+  // v42.1: promo_display is presentation-only. It overrides the displayed deal/promo line
+  // without changing dv, so SAVE/WAS calculations and the source discount data remain intact.
+  const promo=String(p.promoDisplay||'').trim();
+  const deal=promo?offerText(promo):(p.disc==='deal'?dealText(p.dv):'');   // v41: BUY 4+ FOR $60 EA
   const was=p.disc==='was'?moneyText(p.dv):'';
   const rrp=moneyText(p.rrp);
   return {has:hasPrice(p.now),deal,was,rrp};
@@ -3878,16 +3908,16 @@ function imgStamped(p){
    slide has the same text height and the pills, prices and pack shots sit level (4-Product, Grid Cards,
    2×2 Feature, 6-Grid Split). */
 const REF_EMPTY_CLASS='ref-empty';
-function refLine(p,reserve){   // v38: WAS, else RRP (… EACH on a multi-buy); v43: useful promo_display may fill the same row
-  const d=priceData(p),promo=promoDisplayText(p);
-  const t=d.was?`WAS $${h(d.was)}`:(d.rrp&&S.optRRP?`RRP $${h(d.rrp)}${!d.has&&d.deal?' EACH':''}`:(promo?h(promo):''));
+function refLine(p,reserve){   // v38: WAS, else RRP (… EACH on a multi-buy)
+  const d=priceData(p);
+  const t=d.was?`WAS $${h(d.was)}`:(d.rrp&&S.optRRP?`RRP $${h(d.rrp)}${!d.has&&d.deal?' EACH':''}`:'');
   return t?`<div class="refline">${t}</div>`:(reserve?`<div class="refline ${REF_EMPTY_CLASS}" aria-hidden="true">&nbsp;</div>`:'');
 }
 /* v38: a deal on a classic layout reads like a price, as on the clean cards —
    BUY 2 FOR $145.00 → pill "BUY 2 FOR" + the price in the big price style; BUY 2, GET 1 FREE → pill "BUY 2" + big GET 1 FREE.
    v41: BUY 4+ FOR $60 EA → pill "BUY 4+ FOR" + $60.00 with a small EA after it. */
 function classicDeal(p){
-  const d=priceData(p),sd=d.deal?splitDeal(p.dv):null;
+  const d=priceData(p),sd=d.deal?splitDeal(d.deal):null;
   return {lead:sd&&sd.lead?sd.lead:'SPECIAL',amount:sd&&sd.amount?sd.hero:'',text:sd&&!sd.amount?sd.hero:'',per:sd&&sd.per?sd.per:'',percent:!!(sd&&sd.percent),sublabel:sd&&sd.sublabel?sd.sublabel:''};
 }
 function perHTML(cd){return cd&&cd.per?`<span class="per">${h(cd.per)}</span>`:'';}
@@ -3895,14 +3925,14 @@ function classicPercentHTML(cd,kind='dealhero'){return `<span class="${kind} dea
 function pblock(p,reserve){
   const d=priceData(p),empty=reserve?`<div class="was ${REF_EMPTY_CLASS}" aria-hidden="true">&nbsp;</div>`:'';
   if(!d.has){
-    const cd=classicDeal(p),promo=promoDisplayText(p),ref=d.rrp&&S.optRRP?`<div class="was">RRP $${h(d.rrp)} EACH</div>`:(promo?`<div class="was">${h(promo)}</div>`:empty);
+    const cd=classicDeal(p),ref=d.rrp&&S.optRRP?`<div class="was">RRP $${h(d.rrp)} EACH</div>`:empty;
     const anchor=cd.amount?`<span class="price">${priceHTML(cd.amount)}${perHTML(cd)}</span>`:(cd.percent?classicPercentHTML(cd):`<span class="dealhero dealbig">${h(cd.text)}</span>`);
     return `<div class="pricerow"><span class="nowlbl">${h(cd.lead)}</span><div class="classic-anchor">${anchor}</div><div class="classic-offer-rule"></div>${ref}</div>`;
   }
   let ref='';
   if(d.was)ref=`<div class="was">WAS $${h(d.was)}</div>`;
   else if(d.rrp&&S.optRRP)ref=`<div class="was">RRP $${h(d.rrp)}</div>`;
-  else {const promo=promoDisplayText(p);ref=promo?`<div class="was">${h(promo)}</div>`:empty;}
+  else ref=empty;
   const extra=d.deal?`<div class="deal">${h(d.deal)}</div>`:'';
   return `<div class="pricerow"><span class="nowlbl">NOW</span><div class="classic-anchor"><span class="price">${priceHTML(p.now)}</span></div><div class="classic-offer-rule"></div>${ref}${extra}</div>`;
 }
@@ -4232,6 +4262,11 @@ function buildInputs(){
       <label title="Optional. Shown on clean cards exactly as you type it — e.g. BioCeuticals, PRANA ON. The Brand above still finds the photo file.">Brand on slide <span style="font-weight:500;color:var(--muted)">(optional)</span></label><input type="text" data-gi="${gi}" data-k="brandShow" value="${ha(p.brandShow||'')}" placeholder="${ha(slideBrand({brand:p.brand})||'Leave blank to use the brand')}">
       <label>Product name</label><input type="text" data-gi="${gi}" data-k="name" value="${ha(p.name)}">
       <label title="Optional. Used on clean cards instead of the product name — e.g. Kyolic 120c">Short name on slide <span style="font-weight:500;color:var(--muted)">(optional)</span></label><input type="text" data-gi="${gi}" data-k="short" value="${ha(p.short||'')}" placeholder="${ha(displayName(p)!==unitTidy(p.name)?displayName(p):'Leave blank to use the product name')}">
+      <label>Product Form</label><input type="text" data-gi="${gi}" data-k="productForm" value="${ha(p.productForm||'')}" placeholder="e.g. 60 Veg Caps, Liquid 500ml">
+      <label>Feature Heading</label><input type="text" data-gi="${gi}" data-k="featureHeading" value="${ha(p.featureHeading||'')}" placeholder="e.g. High-Potency Antioxidant">
+      <label>Key Ingredients</label><input type="text" data-gi="${gi}" data-k="keyIngredients" value="${ha(p.keyIngredients||'')}" placeholder="e.g. Quercetin 500mg, Zinc 15mg">
+      <label>Key Benefits</label><input type="text" data-gi="${gi}" data-k="keyBenefits" value="${ha(p.keyBenefits||'')}" placeholder="e.g. Immune Support & Recovery">
+      <label>Promo Display Override</label><input type="text" data-gi="${gi}" data-k="promoDisplay" value="${ha(p.promoDisplay||'')}" placeholder="e.g. SPECIAL BUY 2 FOR $50">
       <div class="mini"><div><label>NOW price</label>
         <input type="text" inputmode="decimal" data-gi="${gi}" data-k="now" value="${ha(p.now)}"></div>
       <div><label>RRP (optional)</label>
@@ -4242,16 +4277,6 @@ function buildInputs(){
         </select></div>
         <div><label>Discount value</label><input type="text" data-gi="${gi}" data-k="dv" value="${ha(p.dv)}"></div>
       </div></div>
-      <div class="detailwrap">
-        <div class="detailtitle">Product details from sheet</div>
-        <div class="detailgrid">
-          <div><label>Product form</label><input type="text" data-gi="${gi}" data-k="form" value="${ha(p.form||'')}" placeholder="e.g. Capsules, Powder, Liquid"></div>
-          <div><label>Promo display</label><input type="text" data-gi="${gi}" data-k="promoDisplay" value="${ha(p.promoDisplay||'')}" placeholder="e.g. $72.50 ea"></div>
-        </div>
-        <label style="margin-top:7px">Feature heading</label><input type="text" data-gi="${gi}" data-k="feature" value="${ha(p.feature||'')}" placeholder="Short customer-facing feature line">
-        <label style="margin-top:7px">Key ingredients</label><textarea data-gi="${gi}" data-k="ingredients" placeholder="Ingredient / formulation summary">${h(p.ingredients||'')}</textarea>
-        <label style="margin-top:7px">Key benefits</label><textarea data-gi="${gi}" data-k="benefits" placeholder="Concise benefit summary">${h(p.benefits||'')}</textarea>
-      </div>
       <div class="mini photo-stack" style="margin-top:8px">
         <div><label>Photo file</label><input type="file" accept="image/*" data-gi="${gi}" data-k="imgfile"></div>
         <div><label>Image fine-tune (70–200%)</label><div class="scale-control">
@@ -4265,7 +4290,7 @@ function buildInputs(){
     box.appendChild(d);
   });
   renderImageHealthPanel();
-  box.querySelectorAll('input[type=text],input[type=range],select,textarea').forEach(inp=>{
+  box.querySelectorAll('input[type=text],input[type=range],select').forEach(inp=>{
     const ev=inp.tagName==='SELECT'?'change':'input';
     inp.addEventListener(ev,e=>{
       const gi=+e.target.dataset.gi,k=e.target.dataset.k;
@@ -4362,14 +4387,6 @@ function offerPrice(now){
   const n=numberFrom(now);if(!Number.isFinite(n))return '';
   return '$'+n.toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
-function promoDisplayText(p){
-  const raw=String(p&&p.promoDisplay||'').trim();if(!raw)return '';
-  const norm=v=>String(v||'').toLowerCase().replace(/each/g,'ea').replace(/[^a-z0-9]+/g,'');
-  const d=priceData(p),save=retailSaveLabel(p);
-  const existing=[d.deal,d.has?offerPrice(p.now):'',save,d.was?`WAS $${d.was}`:'',d.rrp?`RRP $${d.rrp}`:''];
-  if(existing.some(v=>v&&norm(v)===norm(raw)))return '';
-  return raw;
-}
 function offerSubLines(p,opts={}){
   const d=priceData(p),lines=[];
   if(d.has&&d.deal)lines.push(h(d.deal));
@@ -4378,9 +4395,6 @@ function offerSubLines(p,opts={}){
   if(!opts.noSave&&p.disc==='save$'){const v=numberFrom(p.dv);if(Number.isFinite(v)&&v>0)save=`SAVE $${h(savingText(v))}`;}
   if(!opts.noSave&&p.disc==='save%'){const v=numberFrom(p.dv);if(Number.isFinite(v)&&v>0)save=`SAVE ${h(savingText(v))}%`;}
   if(ref&&save)lines.push(`${ref} · ${save}`);else if(ref||save)lines.push(ref||save);
-  // v43: promo_display fills the otherwise-empty reference row (e.g. BUY 2 FOR $145 -> $72.50 EA)
-  // but is suppressed when it merely repeats the price, deal or SAVE wording already on the card.
-  const promo=promoDisplayText(p);if(!lines.length&&promo)lines.push(`<span class="po-promo-display">${h(promo)}</span>`);
   return lines;
 }
 /* v37: Brand on slide (editor field or sheet column brand_on_slide) is shown exactly as typed —
@@ -4402,18 +4416,69 @@ function slideBrand(p){
   return brandCaseText(p?p.brand:'',m,true);
 }
 function classicBrand(p){const o=String(p&&p.brandShow||'').trim();return h(brandCaseText(o||(p?p.brand:''),S.brandCase||'std',false));}
-function productExtraHTML(p,mode=''){
-  if(!p||!mode)return '';
-  const feature=String(p.feature||'').trim(),form=String(p.form||'').trim();
-  const ingredients=String(p.ingredients||'').trim(),benefits=String(p.benefits||'').trim();
-  const bits=[];
-  if(feature)bits.push(`<div class="po-feature">${h(feature)}</div>`);
-  if(form)bits.push(`<div class="po-meta-row"><span class="po-form">${h(form)}</span></div>`);
-  if(mode==='full'){
-    if(ingredients)bits.push(`<div class="po-detail-line"><span class="po-detail-label">Key ingredients:</span> ${h(ingredients)}</div>`);
-    if(benefits)bits.push(`<div class="po-detail-line"><span class="po-detail-label">Key benefits:</span> ${h(benefits)}</div>`);
+function offerMetaHTML(p){
+  const formTag=p.productForm?`<div class="po-form">${h(p.productForm)}</div>`:'';
+  const feature=p.featureHeading?`<div class="po-feature-head">${h(p.featureHeading)}</div>`:'';
+  let details='';
+  if(p.keyIngredients||p.keyBenefits){
+    details=`<div class="po-details">`+
+      (p.keyIngredients?`<div class="po-detail po-ing"><strong>Ingredients:</strong> ${h(p.keyIngredients)}</div>`:'')+
+      (p.keyBenefits?`<div class="po-detail po-benefit"><strong>Benefits:</strong> ${h(p.keyBenefits)}</div>`:'')+
+    `</div>`;
   }
-  return bits.join('');
+  return (formTag||feature||details)?`<div class="po-meta">${formTag}${feature}${details}</div>`:'';
+}
+
+/* v43 metadata density ladder.
+   Optional education copy adapts to the *actual rendered card*, not to a hard-coded layout name. This keeps
+   the behaviour universal across POS, portrait TV, email, social and banner templates, including future
+   layouts that reuse clean cards. The offer itself is always protected first. */
+const META_DENSITIES=['full','medium','compact','minimal'];
+function metaDensityIndex(v){const i=META_DENSITIES.indexOf(v);return i<0?0:i;}
+function setMetaDensity(po,level){
+  if(!po||!po.querySelector('.po-meta')){if(po)delete po.dataset.metaDensity;return;}
+  po.dataset.metaDensity=META_DENSITIES.includes(level)?level:'full';
+}
+function baseMetaDensity(po){
+  if(!po||!po.querySelector('.po-meta'))return 'minimal';
+  const card=po.closest('.cl-card'),info=po.closest('.cl-info')||po.parentElement;
+  const w=(info&&info.clientWidth)||po.clientWidth||0,h=(card&&card.clientHeight)||po.clientHeight||0;
+  const stack=!!(card&&card.classList.contains('stack'));
+  if(stack){
+    if(w<150||h<190)return 'minimal';
+    if(w<270||h<360)return 'compact';
+    if(w<390||h<560)return 'medium';
+    return 'full';
+  }
+  if(w<145||h<140)return 'minimal';
+  if(w<205||h<220)return 'compact';
+  if(w<320||h<340)return 'medium';
+  return 'full';
+}
+function metadataGroups(slide){
+  const groups=[];
+  slide.querySelectorAll('.cl-card .po').forEach(po=>{
+    if(!po.querySelector('.po-meta'))return;
+    const card=po.closest('.cl-card'),w=card.offsetWidth,h=card.offsetHeight,st=card.classList.contains('stack');
+    let g=groups.find(x=>x.st===st&&Math.abs(x.w-w)<=3&&Math.abs(x.h-h)<=3);
+    if(!g){g={w,h,st,list:[]};groups.push(g);}
+    g.list.push(po);
+  });
+  return groups;
+}
+function prepareMetadataDensity(slide){
+  const all=[...slide.querySelectorAll('.po')];
+  all.forEach(po=>setMetaDensity(po,baseMetaDensity(po)));
+  // Matching cards use one shared information depth, so a page never looks as though some products
+  // received a different design treatment simply because their copy is shorter.
+  metadataGroups(slide).forEach(g=>{
+    let idx=Math.max(...g.list.map(po=>metaDensityIndex(po.dataset.metaDensity)));
+    g.list.forEach(po=>setMetaDensity(po,META_DENSITIES[idx]));
+    // If the optional copy still crowds the cell, reduce that whole card group before reducing price size.
+    while(idx<META_DENSITIES.length-1&&g.list.some(offerOverflows)){
+      idx++;g.list.forEach(po=>setMetaDensity(po,META_DENSITIES[idx]));
+    }
+  });
 }
 function offerBlock(p,opts={}){
   const d=priceData(p);
@@ -4427,15 +4492,16 @@ function offerBlock(p,opts={}){
   const brandTxt=nbh(slideBrand(p));
   const prodTxt=nbh(plainText(String(p.short||'').trim()?productText(p.short):nameHTML(p)));   // v41: brand not repeated
   const title=brandTxt||prodTxt?`<div class="po-brand" data-full="${ha(brandTxt)}">${h(brandTxt)}</div><div class="po-prod" data-full="${ha(prodTxt)}">${h(prodTxt)}</div>`:'';
+  const meta=offerMetaHTML(p);
   // v35: a deal reads like a price. The mechanic goes in the pill (BUY 2 FOR) and the amount or reward is
   // the big line ($145.00 / GET 1 FREE), so every card has the same rows: pill · big line · rule · reference.
-  const sd=!d.has&&d.deal?splitDeal(p.dv):null;
+  const sd=!d.has&&d.deal?splitDeal(d.deal):null;
   const pill=sd&&sd.lead?`<div class="po-pill po-lead">${h(sd.lead)}</div>`:`<div class="po-pill">${d.has?'NOW':'SPECIAL'}</div>`;
   const hero=d.has?`<div class="po-price po-hero">${h(offerPrice(p.now))}</div>`:(sd?(sd.amount?`<div class="po-price po-hero">${h(sd.hero)}${sd.per?`<span class="po-per">${h(sd.per)}</span>`:''}</div>`:(sd.percent?`<div class="po-deal po-dealpct po-hero"><span class="po-dealpct-value">${h(sd.hero)}</span><span class="po-dealpct-sub">${h(sd.sublabel||'OFF')}</span></div>`:`<div class="po-deal po-dealbig po-hero">${h(sd.hero)}</div>`)):'');
   const subParts=offerSubLines(p,{noSave:!!opts.noSave}),subs=subParts.length?subParts.map(t=>`<div class="po-sub">${t}</div>`).join(''):`<div class="po-sub ${REF_EMPTY_CLASS}" aria-hidden="true">&nbsp;</div>`;
   const ends=opts.ends?offerDates(p).end:null;
   const endsHTML=ends?`<div class="po-ends">Offer ends ${h(fmtOfferDate(ends))}</div>`:'';
-  return `<div class="${cls.join(' ')}" data-key="${ha(pkey)}">${title?`<div class="po-name">${title}</div>`:''}${opts.extra?`<div class="po-extra">${opts.extra}</div>`:''}${pill}<div class="po-anchor">${hero}</div><div class="po-rule"></div><div class="po-foot">${subs}${endsHTML}</div></div>`;
+  return `<div class="${cls.join(' ')}" data-key="${ha(pkey)}">${title?`<div class="po-name">${title}</div>`:''}${meta}${opts.extra?`<div class="po-extra">${opts.extra}</div>`:''}${pill}<div class="po-anchor">${hero}</div><div class="po-rule"></div><div class="po-foot">${subs}${endsHTML}</div></div>`;
 }
 /* Shrink a block only when something would not fit: price or WAS line wider than
    the column, the name running past three lines, or the block running out of its
@@ -4443,7 +4509,7 @@ function offerBlock(p,opts={}){
 const PO_CELLS='.cl-card';
 function offerOverflows(po){
   const w=po.clientWidth;if(!w)return false;
-  for(const el of po.querySelectorAll('.po-price,.po-sub,.po-pill,.po-deal,.po-name,.po-extra,.po-feature,.po-detail-line')){
+  for(const el of po.querySelectorAll('.po-price,.po-sub,.po-pill,.po-deal,.po-name,.po-meta,.po-form,.po-feature-head,.po-details')){
     if(el.scrollWidth>el.clientWidth+1||el.getBoundingClientRect().width>po.getBoundingClientRect().width+1)return true;
   }
   const dl=po.querySelector('.po-deal');
@@ -4653,7 +4719,11 @@ function scheduleClassicText(root){
 function fitOffers(root){
   const slide=root&&root.querySelectorAll?root:document.getElementById('slide');
   if(!slide)return;
-  slide.querySelectorAll('.po-name,.po-anchor,.po-foot').forEach(el=>{el.style.minHeight='';el.style.paddingTop='';el.style.marginTop='';});
+  slide.querySelectorAll('.po-name,.po-meta,.po-anchor,.po-foot').forEach(el=>{el.style.minHeight='';el.style.paddingTop='';el.style.marginTop='';});
+  // v43: start from the full offer size and decide how much optional metadata the real card can carry.
+  // This happens before any global font shrinking, so product / price readability wins over secondary copy.
+  slide.querySelectorAll('.po').forEach(po=>{po.style.fontSize='';applyNameBoundary(po);fitDealBig(po);});
+  prepareMetadataDensity(slide);
   // 1) fit each block on its own, 2) blocks of the same role share the smallest
   // fitted size so every price on the slide reads at one consistent size.
   const groups=new Map();
@@ -4696,7 +4766,7 @@ function equaliseOfferCards(slide){
   });
   groups.forEach(g=>{
     if(g.list.length<2)return;
-    ['.po-name','.po-anchor','.po-foot'].forEach(sel=>{
+    ['.po-name','.po-meta','.po-anchor','.po-foot'].forEach(sel=>{
       const els=g.list.map(po=>po.querySelector(sel)).filter(Boolean);
       if(els.length<2)return;
       const max=Math.max(...els.map(el=>el.offsetHeight));
@@ -4739,19 +4809,19 @@ if(document.fonts&&document.fonts.load){
    saved preferences, file names and page counts are unchanged. */
 const CLEAN_LAYOUTS={
   retailfour:{grid:'g22',slots:4,pos:true},
-  retailhero2:{grid:'ghero',slots:3,pos:true,hero:true,heroDetails:'summary'},
+  retailhero2:{grid:'ghero',slots:3,pos:true,hero:true},
   retailbanner2:{grid:'g21',slots:2,row:true},
   retailportrait:{grid:'g14',slots:4},
   retailsquare4:{grid:'g22',slots:4},
-  retailsquarehero:{grid:'g11',slots:1,details:'full'},
-  botanicalsingle:{grid:'g11',slots:1,details:'full'},
+  retailsquarehero:{grid:'g11',slots:1},
+  botanicalsingle:{grid:'g11',slots:1},
   botanicaltwo:{grid:'g21',slots:2},
   botanicalfour:{grid:'g22',slots:4},
   botanicalsquare:{grid:'g22',slots:4},
-  poshero:{grid:'g11',slots:1,pos:true,details:'full'},
+  poshero:{grid:'g11',slots:1,pos:true},
   pos2:{grid:'g21',slots:2,pos:true},
   pos4row:{grid:'g41',slots:4,pos:true,stack:true,minImg:.5},
-  tvhero:{grid:'g11',slots:1,stack:true,minImg:.5,details:'full'},
+  tvhero:{grid:'g11',slots:1,stack:true,minImg:.5},
   tv2:{grid:'g12',slots:2},
   tv3:{grid:'g13',slots:3},
   email6:{grid:'g32',slots:6}
@@ -4767,8 +4837,8 @@ function cleanCard(p,extra='',cfg={}){
   if(!p)return `<div class="${cls} empty-cell"></div>`;
   // The red circle carries the saving, so the green line under the price shows only WAS / RRP.
   // Stacked cards (pack shot above the text) drop the vertical divider.
-  const stamp=cleanSaveCircle(p),extraHTML=productExtraHTML(p,cfg.detailMode||'');
-  return `<div class="${cls}"${mi}><div class="imgwrap${stamp?' has-save':''}">${img(p,{pop:true})}${stamp}</div><div class="cl-info">${offerBlock(p,{divided:!stack,noSave:!!stamp,ends:true,extra:extraHTML})}</div></div>`;
+  const stamp=cleanSaveCircle(p);
+  return `<div class="${cls}"${mi}><div class="imgwrap${stamp?' has-save':''}">${img(p,{pop:true})}${stamp}</div><div class="cl-info">${offerBlock(p,{divided:!stack,noSave:!!stamp,ends:true})}</div></div>`;
 }
 function cleanHeader(cfg){
   const title=String(S.title||'').trim()?titleInline():'CURRENT SPECIALS';
@@ -4784,7 +4854,7 @@ function cleanSlide(layout,P){
   // v41: 4-up grids (2×2 and 4 across) centre a last page of 1–3 products, keeping the card size
   const part=cfg.slots===4&&(cfg.grid==='g22'||cfg.grid==='g41')?partialClass(Math.min(P.length,4),4):'';
   const cells=[...P].slice(0,cfg.slots);if(!part)while(cells.length<cfg.slots)cells.push(null);
-  const cards=cells.map((p,i)=>{const detailMode=cfg.details||(cfg.hero&&i===0?(cfg.heroDetails||'summary'):'');return cleanCard(p,cfg.hero&&i===0?'cl-hero':'',{...cfg,detailMode});}).join('');
+  const cards=cells.map((p,i)=>cleanCard(p,cfg.hero&&i===0?'cl-hero':'',cfg)).join('');
   // v27: cards only — the CURRENT SPECIALS header is no longer drawn (cleanHeader kept for reference).
   return `<div class="cl-pad"><div class="cl-grid ${cfg.grid}${part}">${cards}</div>${cleanFoot()}</div>`;
 }
@@ -5176,9 +5246,11 @@ function rowsFromGViz(response){
       end:pick('end_date','end','ends','valid_to','valid_until','until','expiry','expires'),
       short:pick('short_name','display_name','pos_name','slide_name'),
       brandShow:pick('brand_on_slide','slide_brand','brand_display','display_brand','short_brand'),
-      form:pick('product_form','form'),feature:pick('feature_heading','feature','headline'),
-      ingredients:pick('key_ingredients','ingredients'),benefits:pick('key_benefits','benefits'),
-      promoDisplay:pick('promo_display','promo','display_promo'),
+      productForm:pick('product_form','product form','form','pack_form','pack form'),
+      featureHeading:pick('feature_heading','feature heading','heading','tagline'),
+      keyIngredients:pick('key_ingredients','key ingredients','ingredients','active_ingredients','active ingredients'),
+      keyBenefits:pick('key_benefits','key benefits','benefits','key_benefit','key benefit'),
+      promoDisplay:pick('promo_display','promo display','promo','display_offer','display offer'),
       _rowId:'sheet-'+(i+1)}));
   }
   return out;
@@ -5366,7 +5438,7 @@ document.getElementById('localCsvFile').addEventListener('change',e=>{
 
 /* ---------- inline editing controls ---------- */
 document.getElementById('addProd').onclick=()=>{
-  S.work.push({brand:'NEW BRAND',name:'Product name',now:'0.00',disc:'was',dv:'',rrp:'',form:'',feature:'',ingredients:'',benefits:'',promoDisplay:'',img:'',recImg:'',altImg:'',scale:'100',_rowId:'local-'+Date.now()});
+  S.work.push({brand:'NEW BRAND',name:'Product name',now:'0.00',disc:'was',dv:'',rrp:'',img:'',recImg:'',altImg:'',scale:'100',_rowId:'local-'+Date.now()});
   markEdited();S.page=pageCount()-1;render(true);
 };
 document.getElementById('revertBtn').onclick=()=>{syncWork();clearEdited();S.page=0;render(true);};
@@ -5430,7 +5502,6 @@ function offerTextLine(p){
   if(d.deal)parts.push(d.deal);
   if(d.was)parts.push(`was $${d.was}`);else if(d.rrp&&S.optRRP)parts.push(`RRP $${d.rrp}`);
   const save=retailSaveLabel(p);if(save)parts.push(save.replace(/^SAVE/,'save'));
-  const promo=promoDisplayText(p);if(promo)parts.push(promo);
   const e=offerDates(p).end;if(e)parts.push(`ends ${fmtOfferDate(e)}`);
   return `${name} — ${parts.join(', ')}`;
 }
@@ -5439,13 +5510,7 @@ function slideTextBlock(rows,file){
   const lines=[];
   if(file)lines.push(file);
   lines.push('ALT TEXT: '+slideAltText(rows));
-  rows.forEach(p=>{
-    lines.push('• '+offerTextLine(p));
-    if(p.feature)lines.push('  Feature: '+p.feature);
-    if(p.form)lines.push('  Form: '+p.form);
-    if(p.ingredients)lines.push('  Key ingredients: '+p.ingredients);
-    if(p.benefits)lines.push('  Key benefits: '+p.benefits);
-  });
+  rows.forEach(p=>lines.push('• '+offerTextLine(p)));
   return lines.join('\n');
 }
 function textFileHeader(){
@@ -5463,12 +5528,12 @@ function textFileFooter(){
 }
 function recordCSV(entries){
   const esc=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
-  const head=['exported_at','app_version','channel','layout','page','file','brand','name','product_form','feature_heading','key_ingredients','key_benefits','promo_display','now_price','discount_style','discount_value','was_price','save_shown','rrp','rrp_shown','deal','start_date','end_date','image_source','label_statement','price_scope'];
+  const head=['exported_at','app_version','channel','layout','page','file','brand','name','now_price','discount_style','discount_value','was_price','save_shown','rrp','rrp_shown','deal','start_date','end_date','image_source','label_statement','price_scope'];
   const at=new Date().toISOString(),btn=layoutButtonFor(S.layout),layout=btn?btn.textContent.trim():S.layout;
   const lines=[head.map(esc).join(',')];
   entries.forEach(({page,file,rows})=>rows.forEach(p=>{
     const d=priceData(p),od=offerDates(p),x=IMAGE_HEALTH.get(productKey(p))||{};
-    lines.push([at,APP_VERSION,S.channel,layout,page,file,p.brand,p.name,p.form||'',p.feature||'',p.ingredients||'',p.benefits||'',p.promoDisplay||'',p.now,p.disc,p.dv,d.was,retailSaveLabel(p),p.rrp||'',d.rrp&&S.optRRP&&!d.was?'yes':'no',d.deal,
+    lines.push([at,APP_VERSION,S.channel,layout,page,file,p.brand,p.name,p.now,p.disc,p.dv,d.was,retailSaveLabel(p),p.rrp||'',d.rrp&&S.optRRP&&!d.was?'yes':'no',d.deal,
       od.start?isoDay(od.start):(p.start||''),od.end?isoDay(od.end):(p.end||''),x.sourceLabel||'',S.optLabel?'yes':'no',S.optScope||'not stated'].map(esc).join(','));
   }));
   return lines.join('\r\n');
