@@ -16,7 +16,7 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 
 1. In GitHub Desktop, check that **Current branch** says **main**, then click **Fetch origin** / **Pull origin**.
 2. Copy the new `index.html` and `CHANGELOG.md` into `tools/update-specials/`, replacing the old ones.
-3. Type the summary (e.g. `v31 – even cards`), click **Commit to main**, then **Push origin**.
+3. Type the summary (e.g. `v32 – brand row + name boundary`), click **Commit to main**, then **Push origin**.
 4. After 1–2 minutes, open the tool and press **Ctrl+Shift+R**. The top right shows the new version.
    Screens already open show *"Version x is now live… Refresh"* within about 20 minutes.
 5. **Need an old version back?** On GitHub, open `tools/update-specials/index.html` → **History**,
@@ -27,6 +27,23 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 It isn't needed day to day.)
 
 ---
+
+## v32 — 28 Sep 2026
+Consistent product names on clean cards. Classic white layouts are unchanged.
+- **Fixed structure on every card:**
+  - **Row 1 — Brand**, always one line (Nutra-Life, Bio-Practica, Herbs of Gold). A very long brand
+    is made slightly smaller, then ends with "…".
+  - **Row 2 — Product + size**, always the same space on every card.
+- **Name boundary:** Clean-card options → **Product name: 1 line / 2 lines** (default 2, remembered
+  on each device). If a name doesn't fit, the tool tries in order:
+  1. common abbreviations: capsules → caps, tablets → tabs, vegetable capsules → vcaps, and → &
+  2. shortening the product words while keeping the size, e.g. `Manuka Honey UMF 10+ Premium… 500g`
+- **Short name** (optional) for full control: a `short_name` column in the sheet (`display_name`,
+  `pos_name` and `slide_name` also work), or the new **Short name on slide** field in each product card.
+  If you use the Apps Script feed, add `short_name` to the columns it publishes.
+- Staff are warned when a name had to be shortened: "Product 5: name shortened on the slide —
+  add a Short name to choose the wording".
+- Fixed brand casing after apostrophes (Nature's Way, not Nature'S Way).
 
 ## v31 — 28 Sep 2026
 Even clean cards. Classic white layouts are unchanged.

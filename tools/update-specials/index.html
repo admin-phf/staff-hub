@@ -2228,6 +2228,13 @@
   .card-input .photo-stack .scale-control{display:flex;align-items:center;gap:10px;width:100%}
   .card-input .photo-stack .scale-control input[type=range]{flex:1 1 auto;min-width:0;width:100%}
 
+  /* ---------- v32 consistent name rows on clean cards ---------- */
+  .slide .po-name{text-wrap:initial}
+  .slide .po-brand{font-weight:800;line-height:1.14;white-space:nowrap;overflow:hidden;color:var(--po-ink)}
+  .slide .po-prod{font-weight:600;font-size:.9em;line-height:1.18;color:#3a434d;letter-spacing:-.006em;
+    min-height:calc(var(--name-lines,2) * 1.18em);max-height:calc(var(--name-lines,2) * 1.18em);overflow:hidden;
+    overflow-wrap:break-word;margin-top:.06em}
+
   /* ---------- v26 channel picker (editor UI) ---------- */
   .chan-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:0 0 12px}
   .chan{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 5px 7px;font:inherit;font-weight:800;font-size:12.5px;color:var(--ink);cursor:pointer;text-align:center;line-height:1.15;min-width:0}
@@ -2374,7 +2381,10 @@
         <div class="field"><label>Footer website</label><input type="text" id="f_foot" value="prahranhealthfoods.com.au"></div>
       </div>
       <div class="footer-opts" aria-label="Artwork footer options">
-        <span class="fo-title" title="These options change the clean-card layouts only. Classic white layouts are untouched.">Clean-card footer &amp; pricing</span>
+        <span class="fo-title" title="These options change the clean-card layouts only. Classic white layouts are untouched.">Clean-card options</span>
+        <label class="fo-select" title="Every card reserves the same space for the product name. Longer names are abbreviated or shortened (size always kept).">Product name
+          <select id="optNameLines"><option value="1">1 line</option><option value="2">2 lines</option></select>
+        </label>
         <label class="auto-balance-toggle" title="TGA mandatory statement. Not required for picture + price ads with no health claims, but cheap insurance."><input type="checkbox" id="optLabel" checked> Label statement</label>
         <label class="auto-balance-toggle" title="Turn off if you can't show the RRP is genuinely charged by other retailers."><input type="checkbox" id="optRRP" checked> Show RRP</label>
         <label class="fo-select">Prices apply
@@ -2474,7 +2484,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='31';
+const APP_VERSION='32';
 const APP_DATE='2026-09-28';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -2608,7 +2618,7 @@ const S={layout:'two', page:0, title:'',
   lastLoaded:null,
   zoom:'fit',
   channel:'pos',
-  optLabel:true,optRRP:true,optScope:'',showUpcoming:false};  // v28 footer / offer-date options  // v26: POS screen · Portrait TV · Email · Social · Web banner   // preview only: 'fit' scales to the panel, 'actual' shows real canvas pixels
+  optLabel:true,optRRP:true,optScope:'',showUpcoming:false,nameLines:2};  // v28 footer / offer-date options  // v26: POS screen · Portrait TV · Email · Social · Web banner   // preview only: 'fit' scales to the panel, 'actual' shows real canvas pixels
 
 const SAMPLE=[
   {brand:'MELROSE',name:'Essential Greens 200g',now:'24.95',disc:'was',dv:'29.95',rrp:'29.95',img:'',scale:'100'},
@@ -2730,6 +2740,7 @@ function rowsFromMatrix(matrix){
       imageReviewNote:g('image_review_note'),rrp:g('rrp'),scale,
       start:pick('start_date','start','starts','valid_from','from_date'),
       end:pick('end_date','end','ends','valid_to','valid_until','until','expiry','expires'),
+      short:pick('short_name','display_name','pos_name','slide_name'),
       _rowId:'sheet-'+i});
   }
   return out;
@@ -3383,6 +3394,8 @@ function validateProducts(){
     if(od.start&&od.end&&dayNum(od.end)<dayNum(od.start))warnings.push(`Product ${n}: end date is before start date`);
     if(od.end&&dayNum(od.end)===todayNum())warnings.push(`Product ${n}: offer ends today — take it off screens tonight`);
     if(offerState(p)==='upcoming')warnings.push(`Product ${n}: starts ${fmtOfferDate(od.start)} (upcoming preview)`);
+    const nt=NAME_TRIMS?NAME_TRIMS.get(productKey(p)):'';
+    if(nt==='cut'||nt==='clamp')warnings.push(`Product ${n}: name shortened on the slide — add a Short name to choose the wording`);
     if(!imageCandidates(p).length)errors.push(`Product ${n}: no usable image source`);
     const health=IMAGE_HEALTH.get(productKey(p));
     if(health&&health.status==='failed')errors.push(`Product ${n}: image failed`);
@@ -3554,6 +3567,7 @@ function buildInputs(){
       <h3>Product ${gi+1}</h3>
       <label>Brand</label><input type="text" data-gi="${gi}" data-k="brand" value="${ha(p.brand)}">
       <label>Product name</label><input type="text" data-gi="${gi}" data-k="name" value="${ha(p.name)}">
+      <label title="Optional. Used on clean cards instead of the product name — e.g. Kyolic 120c">Short name on slide <span style="font-weight:500;color:var(--muted)">(optional)</span></label><input type="text" data-gi="${gi}" data-k="short" value="${ha(p.short||'')}" placeholder="Leave blank to use the product name">
       <div class="mini"><div><label>NOW price</label>
         <input type="text" inputmode="decimal" data-gi="${gi}" data-k="now" value="${ha(p.now)}"></div>
       <div><label>RRP (optional)</label>
@@ -3665,7 +3679,7 @@ function offerBrand(v){
     if(/^\s+$/.test(word))return word;
     if(i>0&&PO_SMALL_WORDS.has(word))return word;
     if(/^[a-z]{2,4}$/.test(word)&&!/[aeiouy]/.test(word))return word.toUpperCase(); // BHR, PHF, MCT-style initials
-    return word.replace(/(^|[-'’./])([a-z])/g,(m,a,b)=>a+b.toUpperCase());
+    return word.replace(/(^|[-./])([a-z])/g,(m,a,b)=>a+b.toUpperCase());   // v32: Nature's, not Nature'S
   }).join('');
   return h(out);
 }
@@ -3685,18 +3699,21 @@ function offerSubLines(p,opts={}){
 }
 function offerBlock(p,opts={}){
   const d=priceData(p);
-  const cls=['po'];
+  const cls=['po'],pkey=productKey(p);
   if(opts.center)cls.push('po-center');
   if(opts.divided)cls.push('po-divided');
   if(!d.has)cls.push('po-dealonly');
-  const brand=offerBrand(p.brand),name=productText(p.name);
-  // Non-breaking hyphens keep Nutra-Life / Co-Q10 / Ester-C together when the name wraps.
-  const title=(brand&&name?`${brand}, ${name}`:(brand||name)).replace(/([A-Za-z0-9])-(?=[A-Za-z0-9])/g,'$1\u2011');
+  // v32: row 1 = brand (one line), row 2 = product + size inside a fixed boundary (see applyNameBoundary).
+  // Non-breaking hyphens keep Nutra-Life / Co-Q10 / Ester-C together when a line wraps.
+  const nbh=s=>String(s||'').replace(/([A-Za-z0-9])-(?=[A-Za-z0-9])/g,'$1\u2011');
+  const brandTxt=nbh(plainText(offerBrand(p.brand)));
+  const prodTxt=nbh(plainText(productText(String(p.short||'').trim()||p.name)));
+  const title=brandTxt||prodTxt?`<div class="po-brand" data-full="${ha(brandTxt)}">${h(brandTxt)}</div><div class="po-prod" data-full="${ha(prodTxt)}">${h(prodTxt)}</div>`:'';
   const hero=d.has?`<div class="po-price po-hero">${h(offerPrice(p.now))}</div>`:(d.deal?`<div class="po-deal po-hero">${h(d.deal)}</div>`:'');
   const subs=offerSubLines(p,{noSave:!!opts.noSave}).map(t=>`<div class="po-sub">${t}</div>`).join('');
   const ends=opts.ends?offerDates(p).end:null;
   const endsHTML=ends?`<div class="po-ends">Offer ends ${h(fmtOfferDate(ends))}</div>`:'';
-  return `<div class="${cls.join(' ')}">${title?`<div class="po-name">${title}</div>`:''}${opts.extra?`<div class="po-extra">${opts.extra}</div>`:''}<div class="po-pill">${d.has?'NOW':'SPECIAL'}</div>${hero}${hero||subs?'<div class="po-rule"></div>':''}<div class="po-foot">${subs}${endsHTML}</div></div>`;
+  return `<div class="${cls.join(' ')}" data-key="${ha(pkey)}">${title?`<div class="po-name">${title}</div>`:''}${opts.extra?`<div class="po-extra">${opts.extra}</div>`:''}<div class="po-pill">${d.has?'NOW':'SPECIAL'}</div>${hero}${hero||subs?'<div class="po-rule"></div>':''}<div class="po-foot">${subs}${endsHTML}</div></div>`;
 }
 /* Shrink a block only when something would not fit: price or WAS line wider than
    the column, the name running past three lines, or the block running out of its
@@ -3707,8 +3724,6 @@ function offerOverflows(po){
   for(const el of po.querySelectorAll('.po-price,.po-sub,.po-pill,.po-deal,.po-name')){
     if(el.scrollWidth>el.clientWidth+1||el.getBoundingClientRect().width>po.getBoundingClientRect().width+1)return true;
   }
-  const nm=po.querySelector('.po-name');
-  if(nm){const lh=parseFloat(getComputedStyle(nm).lineHeight)||1;if(nm.offsetHeight>lh*3.25)return true;}
   const dl=po.querySelector('.po-deal');
   if(dl){const lh=parseFloat(getComputedStyle(dl).lineHeight)||1;if(dl.offsetHeight>lh*2.25)return true;}
   const cell=po.closest(PO_CELLS),slide=po.closest('.slide');
@@ -3733,6 +3748,61 @@ function offerOverflows(po){
   }
   return false;
 }
+/* ---------- v32 name boundary ----------
+   Row 1: brand — always one line (slightly smaller if needed, then …).
+   Row 2: product + size — always the same number of lines (Clean-card options → Product name: 1 or 2 lines).
+   If the product doesn't fit, in order:
+     1. common abbreviations (capsules → caps, tablets → tabs, vegetable capsules → vcaps, and → &)
+     2. shorten the product words but always keep the size at the end:  "Manuka Honey UMF 10+… 500g"
+   A Short name (sheet column short_name, or the editor field) replaces the product name when you want full control. */
+var NAME_TRIMS=new Map();   // var: safe to read before this line runs
+function abbreviateName(s){
+  return String(s||'')
+    .replace(/\bveg(?:etarian|etable|e)?\s*cap(?:sule)?s\b/gi,'vcaps')
+    .replace(/\bcapsules\b/gi,'caps').replace(/\bcapsule\b/gi,'cap')
+    .replace(/\btablets\b/gi,'tabs').replace(/\btablet\b/gi,'tab')
+    .replace(/\s+and\s+/gi,' & ')
+    .replace(/\s{2,}/g,' ').trim();
+}
+const NAME_SIZE_RE=/(?:^|\s)((?:\d+(?:[.,]\d+)?\s?[×x]\s?)?\d+(?:[.,]\d+)?\s?(?:mg|mcg|µg|iu|g|kg|ml|l|c|t|caps?|vcaps|tabs?|softgels?|sachets?|serves|pk|pack)\b(?:\s(?:caps|vcaps|tabs|softgels|sachets|serves|pack))?)/gi;
+function splitSize(s){
+  const sizes=[];
+  const name=String(s||'').replace(NAME_SIZE_RE,(m,g)=>{sizes.push(g.trim());return ' ';}).replace(/\s{2,}/g,' ').trim();
+  return {name,size:sizes.join(' ')};
+}
+function applyNameBoundary(po){
+  const br=po.querySelector('.po-brand');
+  if(br){
+    const full=br.dataset.full||'';
+    br.style.fontSize='';br.textContent=full;
+    let f=1;
+    while(br.scrollWidth>br.clientWidth+1&&f>0.8){f-=0.04;br.style.fontSize=f.toFixed(2)+'em';}
+    if(br.scrollWidth>br.clientWidth+1){let t=full;while(t.length>2&&br.scrollWidth>br.clientWidth+1){t=t.slice(0,-1).trimEnd();br.textContent=t+'…';}}
+  }
+  const pr=po.querySelector('.po-prod');
+  if(!pr)return;
+  const full=pr.dataset.full||'';
+  const lh=parseFloat(getComputedStyle(pr).lineHeight)||16,lines=Math.max(1,+(S.nameLines||2)),limit=lh*lines+1;
+  const fits=t=>{pr.textContent=t;return pr.scrollHeight<=limit&&pr.scrollWidth<=pr.clientWidth+1;};
+  let state='';
+  if(!fits(full)){
+    const ab=abbreviateName(full);
+    if(fits(ab))state='abbr';
+    else{
+      const {name,size}=splitSize(ab),words=name.split(/\s+/).filter(Boolean);
+      state='cut';let ok=false;
+      for(let n=words.length-1;n>=1&&!ok;n--){
+        const t=words.slice(0,n).join(' ').replace(/[\s,;:–\-‑&]+$/,'')+'…'+(size?' '+size:'');
+        ok=fits(t);
+      }
+      // Last resorts: the product words without the size, then a hard stop at the boundary.
+      if(!ok&&!(name&&fits(name))){pr.textContent=ab;state='clamp';}
+    }
+  }
+  po.dataset.trim=state;
+  if(po.dataset.key)NAME_TRIMS.set(po.dataset.key,state);
+}
+
 function fitOffers(root){
   const slide=root&&root.querySelectorAll?root:document.getElementById('slide');
   if(!slide)return;
@@ -3740,13 +3810,17 @@ function fitOffers(root){
   // 1) fit each block on its own, 2) blocks of the same role share the smallest
   // fitted size so every price on the slide reads at one consistent size.
   const groups=new Map();
+  const trimsBefore=JSON.stringify([...NAME_TRIMS]);
+  NAME_TRIMS.clear();
   slide.querySelectorAll('.po').forEach(po=>{
     po.style.fontSize='';
     const target=parseFloat(getComputedStyle(po).fontSize)||60;
     let size=target;const min=target*0.5;
+    applyNameBoundary(po);
     for(let i=0;i<30&&size>min&&offerOverflows(po);i++){
       size=Math.max(min,size*0.95);
       po.style.fontSize=size.toFixed(2)+'px';
+      applyNameBoundary(po);
     }
     const k=target.toFixed(1);
     groups.set(k,Math.min(groups.has(k)?groups.get(k):Infinity,size));
@@ -3755,8 +3829,10 @@ function fitOffers(root){
     po.style.fontSize='';
     const k=(parseFloat(getComputedStyle(po).fontSize)||60).toFixed(1);
     if(groups.has(k))po.style.fontSize=groups.get(k).toFixed(2)+'px';
+    applyNameBoundary(po);   // final size may leave room for more of the name
   });
   equaliseOfferCards(slide);
+  if(JSON.stringify([...NAME_TRIMS])!==trimsBefore&&typeof updateValidation==='function')updateValidation();
 }
 /* v31: make matching cards even. Cards of the same size and type (all 4 in a row, all 6 in a grid,
    the two side cards of Hero + 2 …) get the same space for the product name, the price or deal,
@@ -3852,6 +3928,7 @@ function emptyCell(cls='cell'){return `<div class="${cls} empty-cell"></div>`;}
 function render(rebuildInputs=true){
   const L=LAYOUTS[S.layout],s=document.getElementById('slide');
   s.className='slide l-'+S.layout;
+  s.style.setProperty('--name-lines',String(S.nameLines||2));
   // IMPORTANT: the original hub used a fixed 1000×625 .slide. Multi-channel
   // layouts must resize the actual DOM canvas as well as the export metadata;
   // otherwise portrait/square/banner artwork is rendered into 1000×625 and
@@ -4079,6 +4156,9 @@ document.getElementById('autoBalanceToggle').addEventListener('change',e=>{
   S.optRRP=get('phf_opt_rrp','on')!=='off';
   S.optScope=get('phf_opt_scope','');
   S.showUpcoming=get('phf_show_upcoming','off')==='on';
+  S.nameLines=get('phf_name_lines','2')==='1'?1:2;
+  const NL=document.getElementById('optNameLines');NL.value=String(S.nameLines);
+  NL.onchange=()=>{S.nameLines=NL.value==='1'?1:2;put('phf_name_lines',String(S.nameLines));render(false);};
   const L=document.getElementById('optLabel'),R=document.getElementById('optRRP'),Sc=document.getElementById('optScope'),U=document.getElementById('upcomingToggle');
   L.checked=S.optLabel;R.checked=S.optRRP;Sc.value=S.optScope;U.checked=S.showUpcoming;
   L.onchange=()=>{S.optLabel=L.checked;put('phf_opt_label',L.checked?'on':'off');render(false);};
@@ -4211,6 +4291,7 @@ function rowsFromGViz(response){
       imageReviewNote:g('image_review_note'),rrp:g('rrp'),scale,
       start:pick('start_date','start','starts','valid_from','from_date'),
       end:pick('end_date','end','ends','valid_to','valid_until','until','expiry','expires'),
+      short:pick('short_name','display_name','pos_name','slide_name'),
       _rowId:'sheet-'+(i+1)});
   }
   return out;
