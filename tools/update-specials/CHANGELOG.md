@@ -28,6 +28,49 @@ It isn't needed day to day.)
 
 ---
 
+## v41 — 29 Sep 2026
+Cleaner sheet data, and pills, prices and green lines that sit level on every multi-product slide.
+- **Brand typos are fixed as the sheet loads.** `Nutition Care` in any spelling or capitals shows as
+  **Nutrition Care** (or **NUTRITION CARE** when typed in capitals). Stray punctuation and double spaces
+  at the end of a brand are removed too: `Nutition Care,` → `Nutrition Care`.
+  - Works for the published sheet, the Apps Script feed, a Google Sheet link, a local CSV backup and the
+    last-good copy saved on each device.
+  - Photos are still found: `images/Nutrition_Care_….png` is tried first, then the sheet's own spelling
+    `images/Nutition_Care_….png`.
+  - To fix another brand, add a line to `BRAND_FIXES` near the top of the script.
+- **Product names no longer repeat the brand.** When a name starts with the brand, or with its last
+  words, those words are left off the slide: `Tru Niagen` + `Tru Niagen 30 caps` → **30 caps**.
+  - If only a size and pack format is left, the product wording from `NAME_DESCRIPTORS` goes in front:
+    Vital All-In-One + `All-in-One, 1.1kg Bag` → **Daily Greens Powder, 1.1kg Bag**, and
+    `All-in-One, 1kg Tub` → **Daily Greens Powder, 1kg Tub**.
+  - When a name has to be shortened, the pack format stays with the size (`… 1.1kg Bag`, not `… 1.1kg`),
+    so a bag and a tub of the same product never read the same.
+  - Used in Copy text and the email text too. A Short name still wins, and the Short name box now shows
+    the cleaned name as its hint. The sheet and the ZIP record keep the name exactly as typed.
+- **Multi-buys priced per item read clearly.** `4 FOR $60 EACH` (also `BUY 4 FOR $60 EA`,
+  `4 OR MORE FOR $60 EACH`) becomes **BUY 4+ FOR $60 EA**. On the cards: pill **BUY 4+ FOR**, then
+  **$60.00** in the big price style with a small **EA**. Totals such as `BUY 2 FOR $145.00` are unchanged.
+- **Title and pill rows lock level** on 4-Product, Grid Cards, 2×2 Feature and 6-Grid Split:
+  - The brand is always one line. A long brand is made up to 20% smaller (its row keeps its height),
+    then ends with "…".
+  - The product name always takes two lines, so a one-line name no longer lifts its pill and price
+    above the cards next to it.
+  - A card without a WAS / RRP line keeps that line's space, so every card has the same text height and
+    the pack shots on 2×2 Feature match.
+- **Green line anchored on clean cards** (4-Up grid, 4 Across, 6-Up, Portrait TV rows and the rest):
+  - The name block is a fixed height and every card keeps room for one WAS / RRP line.
+  - On a deal card the green line now sits at the same height as on a price card (it was slightly lower).
+  - A final check lines up the pill and the green line across each row of cards, whatever each card
+    shows underneath.
+- **SAVE circle clear of caps and droppers.** On tall bottles and dropper bottles (the top of the
+  product narrower than its body, e.g. BioCeuticals Liposomal D3, Bragg Apple Cider Vinegar) the circle
+  moves to a top corner of the card's photo area, inset a little, right corner first. Where the photo
+  area is so narrow that a corner would still touch the cap, it sits just below the cap instead.
+  Boxes, tubs and bags keep the circle on the product's shoulder as before.
+- **Last page centred on 4-up grids.** A last page with 1, 2 or 3 products is centred on the slide at
+  the normal card size instead of sitting in the top-left corner (37 specials → page 10 has one card).
+  Applies to 4-Product, Grid Cards, 2×2 Feature, 4-Up grid, 4 Across, 4-Up 7:5 and 4-Up Square.
+
 ## v40 — 29 Sep 2026
 - **Pack-shot spacing is back to v38.** v39's extra gap between the pack shot and the text is removed.
   The classic layouts are pixel-for-pixel the same as v38.

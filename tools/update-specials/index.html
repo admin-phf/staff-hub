@@ -2271,6 +2271,49 @@
   .slide .po-rule{margin-bottom:.11em}   /* was .18em: the WAS / RRP line sits a little closer to the green line */
   .slide .po-sub{line-height:1.04}       /* was 1.12: a little less space around the WAS / RRP line */
 
+  /* ---------- v41 ----------
+     Multi-product classic cards (4-Product, Grid Cards, 2×2 Feature, 6-Grid Split): the brand is one line and
+     the product name always takes two lines, so a short name never lifts its pill and price above the others. */
+  .l-four .pbrand,.l-gridcards .gcard>.pbrand,.l-feature .finfo .pbrand,.l-sixsplit .pbrand{
+    display:block!important;width:100%!important;max-width:100%!important;white-space:nowrap!important;overflow:hidden!important;
+    line-height:1.15!important;height:1.15em!important;min-height:1.15em!important}
+  .l-four .pname,.l-gridcards .gcard>.pname,.l-gridcards .gname{width:100%!important;line-height:1.18!important;height:2.36em!important;min-height:2.36em!important;max-height:2.36em!important}
+  .l-feature .finfo .pname{line-height:1.2!important;height:2.4em!important;min-height:2.4em!important;max-height:2.4em!important}
+  .l-sixsplit .pname{width:100%!important;line-height:1.14!important;height:2.28em!important;min-height:2.28em!important;max-height:2.28em!important}
+  .slide .ref-empty{visibility:hidden!important}   /* kept WAS / RRP row on cards without one */
+  .price .per,.fprice .per,.gprice .per{font-size:.34em;letter-spacing:0;margin-left:.14em;vertical-align:baseline;position:static}
+  /* Clean cards: fixed name block; the green rule sits as low on a deal card as on a price card; every card keeps
+     room for one WAS / RRP line, so rules and pills line up with or without one. */
+  .slide .po-name{min-height:calc(1.194em + var(--name-lines,2) * 1.062em)}
+  .slide .po.po-dealonly .po-rule{margin-top:.12em}
+  .slide .po-foot{min-height:.416em}
+  .slide .po-per{font-size:.42em;letter-spacing:0;margin-left:.12em}
+  /* 4-up grids: a last page with 1–3 products keeps the normal card size, centred on the slide. */
+  .l-four .body.partial-1,.l-four .body.partial-2,.l-four .body.partial-3,
+  .l-gridcards .body.partial-1,.l-gridcards .body.partial-2,.l-gridcards .body.partial-3,
+  .cl-grid.g41.partial-1,.cl-grid.g41.partial-2,.cl-grid.g41.partial-3{grid-template-columns:repeat(8,minmax(0,1fr))!important}
+  .l-four .partial-1>:nth-child(1),.l-gridcards .partial-1>:nth-child(1),.cl-grid.g41.partial-1>:nth-child(1){grid-column:4 / span 2}
+  .l-four .partial-2>:nth-child(1),.l-gridcards .partial-2>:nth-child(1),.cl-grid.g41.partial-2>:nth-child(1){grid-column:3 / span 2}
+  .l-four .partial-2>:nth-child(2),.l-gridcards .partial-2>:nth-child(2),.cl-grid.g41.partial-2>:nth-child(2){grid-column:5 / span 2}
+  .l-four .partial-3>:nth-child(1),.l-gridcards .partial-3>:nth-child(1),.cl-grid.g41.partial-3>:nth-child(1){grid-column:2 / span 2}
+  .l-four .partial-3>:nth-child(2),.l-gridcards .partial-3>:nth-child(2),.cl-grid.g41.partial-3>:nth-child(2){grid-column:4 / span 2}
+  .l-four .partial-3>:nth-child(3),.l-gridcards .partial-3>:nth-child(3),.cl-grid.g41.partial-3>:nth-child(3){grid-column:6 / span 2}
+  .cl-grid.g22.partial-1,.cl-grid.g22.partial-2,.cl-grid.g22.partial-3{grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(4,minmax(0,1fr))}
+  .cl-grid.g22.partial-1>:nth-child(1){grid-column:2 / span 2;grid-row:2 / span 2}
+  .cl-grid.g22.partial-2>:nth-child(1){grid-column:1 / span 2;grid-row:2 / span 2}
+  .cl-grid.g22.partial-2>:nth-child(2){grid-column:3 / span 2;grid-row:2 / span 2}
+  .cl-grid.g22.partial-3>:nth-child(1){grid-column:1 / span 2;grid-row:1 / span 2}
+  .cl-grid.g22.partial-3>:nth-child(2){grid-column:3 / span 2;grid-row:1 / span 2}
+  .cl-grid.g22.partial-3>:nth-child(3){grid-column:2 / span 2;grid-row:3 / span 2}
+  .l-feature .body.partial-1,.l-feature .body.partial-2,.l-feature .body.partial-3{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+  .l-feature .body.partial-1,.l-feature .body.partial-2{grid-template-rows:250px!important}
+  .l-feature .partial-1>:nth-child(1){grid-column:2 / span 2}
+  .l-feature .partial-2>:nth-child(1){grid-column:1 / span 2}
+  .l-feature .partial-2>:nth-child(2){grid-column:3 / span 2}
+  .l-feature .partial-3>:nth-child(1){grid-column:1 / span 2}
+  .l-feature .partial-3>:nth-child(2){grid-column:3 / span 2}
+  .l-feature .partial-3>:nth-child(3){grid-column:2 / span 2}
+
   /* ---------- v26 channel picker (editor UI) ---------- */
   .chan-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:0 0 12px}
   .chan{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 5px 7px;font:inherit;font-weight:800;font-size:12.5px;color:var(--ink);cursor:pointer;text-align:center;line-height:1.15;min-width:0}
@@ -2528,8 +2571,8 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='40';
-const APP_DATE='2026-09-28';
+const APP_VERSION='41';
+const APP_DATE='2026-09-29';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
    (e.g. tools/update-specials-beta/) labels itself BETA and loads product
@@ -2701,7 +2744,7 @@ function displayBrand(v){
   // Remove accidental punctuation from the end of a brand without changing sheet data.
   return h(String(v==null?'':v).trim().replace(/[\s,;:]+$/,''));
 }
-function productText(v){
+function unitTidy(v){
   // Display-only retail cleanup: standardise common units and spacing while keeping
   // the original sheet/editor text untouched.
   let s=String(v==null?'':v).trim();
@@ -2711,8 +2754,83 @@ function productText(v){
   s=s.replace(/(\d(?:[.,]\d+)?)\s*(?:millilitres?|milliliters?|mls?)\b/gi,'$1ml');
   s=s.replace(/(\d(?:[.,]\d+)?)\s*(?:litres?|liters?|ltrs?)\b/gi,'$1L');
   s=s.replace(/(\d+)\s*(?:capsules?|caps)\b/gi,'$1 caps');
-  return h(s);
+  return s;
 }
+function productText(v){return h(unitTidy(v));}
+
+/* ---------- v41 data cleansing ----------
+   1. Brand typos are fixed as the sheet loads (CSV, Apps Script feed, Google table and the saved
+      last-good copy). Add a line to BRAND_FIXES to fix another one. The brand exactly as typed in the
+      sheet is kept as brandRaw, so a photo saved under the old spelling is still found.
+   2. A product name that starts with the brand ("Vital All-In-One" + "All-in-One, 1.1kg Bag") loses the
+      repeated words on the slide. If only a size / pack format is left, NAME_DESCRIPTORS supplies the
+      product wording in front of it. A Short name always wins. */
+const BRAND_FIXES=[
+  [/\bnu(?:tr|rt|t)i?t?i?on[\s\-_.]*care\b/gi,'Nutrition Care']   // Nutition Care, NUTITION CARE, Nutriton Care …
+];
+const NAME_DESCRIPTORS={
+  'vital all in one':'Daily Greens Powder'   // key = brand in lower case, letters and numbers only
+};
+function fixBrandTypos(v){
+  let s=String(v==null?'':v);
+  BRAND_FIXES.forEach(([re,to])=>{s=s.replace(re,m=>/[a-z]/.test(m)?to:to.toUpperCase());});
+  return s;
+}
+function cleanBrand(v){
+  let s=fixBrandTypos(String(v==null?'':v).replace(/\s+/g,' ').trim());
+  s=s.replace(/[\s,;:!?|\/\\\-–—]+$/,'');
+  if(/\.$/.test(s)&&!/\b(?:co|inc|ltd|pty|dr|st|no)\.$/i.test(s))s=s.replace(/[\s.]+$/,'');
+  return s;
+}
+function tidyRowBrand(r){
+  if(!r)return r;
+  const raw=String(r.brandRaw!=null&&r.brandRaw!==''?r.brandRaw:(r.brand||'')).trim();
+  const show=String(r.brandShow||'').replace(/\s+/g,' ').trim();
+  return {...r,brand:cleanBrand(r.brand),brandRaw:raw,brandShow:show?fixBrandTypos(show):''};
+}
+function brandWords(v){return String(v||'').toLowerCase().replace(/&/g,' and ').match(/[a-z0-9]+/g)||[];}
+const PACK_WORDS_RE=/\b(?:bag|tub|pouch|jar|tin|tube|refill|bottle|box|pack|pk|sachets?|caps?|vcaps|capsules?|tabs?|tablets?|softgels?|serves|chewables?|lozenges?)\b/gi;
+function isSizeOnly(s){
+  const t=String(s||'').trim();
+  return !!t&&!t.replace(NAME_SIZE_RE,' ').replace(PACK_WORDS_RE,' ').replace(/[^A-Za-z0-9]+/g,'');
+}
+function stripBrandPrefix(name,brands){
+  const src=String(name||''),toks=[],re=/[A-Za-z0-9]+/g;let m;
+  while((m=re.exec(src)))toks.push({w:m[0].toLowerCase(),end:m.index+m[0].length});
+  if(toks.length<2)return src;
+  for(const b of brands){
+    const bw=brandWords(b);if(!bw.length)continue;
+    // the whole brand, or its last 2+ words ("All-in-One" from "Vital All-In-One")
+    for(let k=bw.length;k>=1;k--){
+      if(k<bw.length&&(k<2||/^(?:of|and|the|by)$/.test(bw[bw.length-k])))continue;
+      if(k>=toks.length)continue;
+      const cand=bw.slice(bw.length-k);
+      if(!cand.every((w,i)=>toks[i].w===w))continue;
+      const rest=src.slice(toks[k-1].end).replace(/^[\s,;:.|\/\-–—‑]+/,'');
+      if(!/[A-Za-z0-9]/.test(rest))continue;
+      return rest.charAt(0).toUpperCase()+rest.slice(1);
+    }
+  }
+  return src;
+}
+function displayName(p){
+  if(!p)return '';
+  const name=unitTidy(p.name),brands=[p.brand,p.brandRaw,p.brandShow].filter(Boolean);
+  const rest=stripBrandPrefix(name,brands);
+  if(rest===name)return name;
+  if(isSizeOnly(rest)){
+    const key=brands.map(b=>brandWords(b).join(' ')).find(k=>NAME_DESCRIPTORS[k]);
+    if(key)return `${NAME_DESCRIPTORS[key]}, ${rest}`;
+  }
+  return rest;
+}
+/* Multi-buy priced per item: "4 FOR $60 EACH" → "BUY 4+ FOR $60 EA". Totals ("BUY 2 FOR $145") are left as typed. */
+function normaliseDeal(v){
+  const t=String(v==null?'':v).trim().replace(/\s+/g,' ');
+  const m=t.match(/^(?:buy\s+)?(?:any\s+)?(\d+)\s*(?:\+|or\s+more|and\s+over)?\s*(?:for|@|at)\s*(\$\s?\d[\d,]*(?:\.\d{1,2})?)\s*(?:each|ea\.?|per\s+(?:item|unit|bottle|pack))$/i);
+  return m?`BUY ${m[1]}+ FOR ${m[2].replace(/\s+/g,'')} EA`:t;
+}
+function dealText(v){return offerText(normaliseDeal(v));}
 /* Resolve an image cell from the sheet. Accepts, in order:
    1. data:/blob: URIs and full http(s) URLs  -> used as-is
    2. a Google Drive share link (.../file/d/<ID>/... or ?id=<ID>) -> ID extracted
@@ -2778,7 +2896,7 @@ function rowsFromMatrix(matrix){
     const scale=g('image_scale')||g('image scale')||g('scale')||'100';
     // v28 offer dates. gviz tables carry dates as Date(y,m,d) in .v and the sheet's display text in .f
     const pick=(...names)=>{for(const n of names){const v=(typeof gDate==='function'?gDate:g)(n);if(v)return v;}return '';};
-    out.push({brand:g('brand'),name:g('name'),now:g('now_price')||g('now'),
+    out.push(tidyRowBrand({brand:g('brand'),name:g('name'),now:g('now_price')||g('now'),
       disc,dv:g('discount_value'),img:g('image_url'),recImg:g('recommended_image_url'),
       altImg:g('alternate_candidate_url'),imageReviewStatus:g('image_review_status'),
       imageReviewNote:g('image_review_note'),rrp:g('rrp'),scale,
@@ -2786,7 +2904,7 @@ function rowsFromMatrix(matrix){
       end:pick('end_date','end','ends','valid_to','valid_until','until','expiry','expires'),
       short:pick('short_name','display_name','pos_name','slide_name'),
       brandShow:pick('brand_on_slide','slide_brand','brand_display','display_brand','short_brand'),
-      _rowId:'sheet-'+i});
+      _rowId:'sheet-'+i}));
   }
   return out;
 }
@@ -2801,7 +2919,7 @@ function priceHTML(now){
   return `<span class="d">$</span>${h(Number(d).toLocaleString('en-AU'))}<span class="c">.${h(c)}</span>`;
 }
 function priceData(p){
-  const deal=p.disc==='deal'?offerText(p.dv):'';
+  const deal=p.disc==='deal'?dealText(p.dv):'';   // v41: BUY 4+ FOR $60 EA
   const was=p.disc==='was'?moneyText(p.dv):'';
   const rrp=moneyText(p.rrp);
   return {has:hasPrice(p.now),deal,was,rrp};
@@ -2832,17 +2950,19 @@ function productKey(p){
   if(p._rowId)return String(p._rowId);
   return (String(p.brand||'')+'|'+String(p.name||'')).toLowerCase();
 }
-function cleanProductStem(p){
+function cleanProductStem(p,brandOverride){
   if(!p)return '';
   const clean=v=>String(v||'').trim()
     .replace(/&/g,'and')
     .replace(/[^A-Za-z0-9]+/g,'_')
     .replace(/^_+|_+$/g,'');
-  const brand=clean(p.brand),name=clean(p.name);
+  const brand=clean(brandOverride!=null?brandOverride:p.brand),name=clean(p.name);
   return brand&&name?`${brand}_${name}`:'';
 }
 function productLocalCandidates(p){
   const stem=cleanProductStem(p);if(!stem)return [];
+  // v41: a brand fixed on load (Nutition → Nutrition) still finds a photo saved under the sheet's spelling.
+  const rawStem=p.brandRaw?cleanProductStem(p,p.brandRaw):'';
   const exts=['png','webp','jpg','jpeg'];
   const folders=['images','Pictures'];
   const paths=[];
@@ -2852,6 +2972,7 @@ function productLocalCandidates(p){
     ['FUSION_30%','FUSION_30_'].forEach(f=>folders.forEach(dir=>exts.forEach(ext=>paths.push(`${dir}/${f}.${ext}`))));
   }
   folders.forEach(dir=>exts.forEach(ext=>paths.push(`${dir}/${stem}.${ext}`)));
+  if(rawStem&&rawStem!==stem)folders.forEach(dir=>exts.forEach(ext=>paths.push(`${dir}/${rawStem}.${ext}`)));
   return [...new Set(paths.map(v=>encodeURI(v)))];
 }
 function productLocalFilename(p){return productLocalCandidates(p)[0]||'';}
@@ -3152,10 +3273,22 @@ function analyseReadableImage(source,strict=false){
   const bw=maxX-minX+1,bh=maxY-minY+1;
   if(bw<4||bh<4)return null;
 
+  // v41: how wide the top of the product is (cap, dropper, neck) compared with its widest part,
+  // and where the cap sits across the product (0 = left edge, 1 = right edge).
+  let topW=0,capSum=0,capN=0;
+  const capRows=Math.max(1,Math.round(bh*.2));
+  for(let y=minY;y<minY+capRows&&y<=maxY;y++){
+    let lo=-1,hi=-1;
+    for(let x=minX;x<=maxX;x++){const k=y*w+x;if(px[k*4+3]<22||seen[k])continue;if(lo<0)lo=x;hi=x;}
+    if(lo<0||rowCount[y]<rowNeed)continue;
+    topW=Math.max(topW,hi-lo+1);capSum+=(lo+hi+1)/2;capN++;
+  }
+  const top=topW?Math.min(1,topW/bw):1,capX=capN?clamp((capSum/capN-minX)/bw,0,1):.5;
+
   return {
     x:minX/w,y:minY/h,w:bw/w,h:bh/h,
     cx:(minX+maxX+1)/(2*w),cy:(minY+maxY+1)/(2*h),
-    aspect:bw/bh, area:(bw*bh)/(w*h)
+    aspect:bw/bh, area:(bw*bh)/(w*h), top, capX
   };
 }
 async function getImageAnalysis(img,strict=false){
@@ -3218,6 +3351,7 @@ async function balanceOneImage(img){
   if(!rawAnalysis){resetAutoBalance(img);return;}
   // v27: remember where the product sits inside the photo (fractions of the image).
   img.dataset.bounds=[rawAnalysis.x,rawAnalysis.y,rawAnalysis.w,rawAnalysis.h].map(v=>(+v||0).toFixed(4)).join(',');
+  img.dataset.capTop=[rawAnalysis.top!=null?rawAnalysis.top:1,rawAnalysis.capX!=null?rawAnalysis.capX:.5].map(v=>(+v).toFixed(3)).join(',');   // v41
   img.dataset.boundsSrc=img.currentSrc||img.src;
   // Expand the detected product bounds before calculating scale. This small
   // halo is deliberate: pale bottle caps, white cartons and faint shadows are
@@ -3346,9 +3480,38 @@ function placeSaveCircles(root){
     const cx=bx+w/2,cy=by+hgt/2;
     const right=cx+tx+s*((bx+(b[0]+b[2])*w)-cx);   // product's right edge after balance
     const top=cy+ty+s*((by+b[1]*hgt)-cy);          // product's top edge after balance
-    const d=st.offsetWidth;
-    const L=Math.max(0,Math.min(wrap.offsetWidth-d,right-d*0.45));
-    const T=Math.max(0,Math.min(wrap.offsetHeight-d,top-d*0.4));
+    const left=cx+tx+s*((bx+b[0]*w)-cx),bottom=cy+ty+s*((by+(b[1]+b[3])*hgt)-cy);
+    const d=st.offsetWidth,W=wrap.offsetWidth,H=wrap.offsetHeight;
+    let L=Math.max(0,Math.min(W-d,right-d*0.45));
+    let T=Math.max(0,Math.min(H-d,top-d*0.4));
+    /* v41: tall bottles and dropper bottles. On the shoulder the circle would cover the cap or dropper,
+       so it moves to a top corner of the card's photo area (inset a little), right corner first. If the
+       product fills the area so a corner would still touch the cap, it drops just below the cap instead. */
+    const pw=right-left,ph=bottom-top;
+    let cap=[1,.5];
+    if(im.dataset.capTop&&im.dataset.boundsSrc===(im.currentSrc||im.src)){
+      const v=im.dataset.capTop.split(',').map(Number);if(v.length===2&&v.every(Number.isFinite))cap=v;
+    }
+    if(pw>0&&ph>0&&((ph/pw>=1.15&&cap[0]<.8)||ph/pw>=2.2)){
+      const pad=Math.max(4,d*.1),g=d*.08,gc=Math.max(1.5,d*.04),capH=Math.max(ph*.25,d*.6);
+      const capC=left+cap[1]*pw,capHalf=Math.max(pw*cap[0],d*.2)/2;
+      const box=(x,y)=>[Math.max(0,Math.min(W-d,x)),Math.max(0,Math.min(H-d,y))];
+      // area of the circle (top-left x,y) that falls inside a rectangle, sampled on a 16×16 grid
+      const hit=(x,y,x0,y0,x1,y1)=>{let n=0;const r=d/2,st=d/16;
+        for(let i=0;i<16;i++)for(let j=0;j<16;j++){const px=x+(i+.5)*st,py=y+(j+.5)*st;
+          if((px-x-r)**2+(py-y-r)**2<=r*r&&px>=x0&&px<=x1&&py>=y0&&py<=y1)n++;}
+        return n*st*st;};
+      let best=null;
+      [[W-d-pad,pad],[pad,pad],[W-d-pad,top+capH+g],[pad,top+capH+g],[right+g,top+capH+g],[left-g-d,top+capH+g]].forEach(([x,y],i)=>{
+        [x,y]=box(x,y);
+        const onCap=hit(x,y,capC-capHalf-gc,top-gc,capC+capHalf+gc,top+capH);   // cap / dropper / neck
+        const onBody=hit(x,y,left,top+capH,right,bottom);                     // the rest of the pack
+        const score=onCap*20+onBody+(i>1?d*d*.03:0)+i;                          // top corners first
+        if(!best||score<best.score)best={x,y,score};
+      });
+      L=best.x;T=best.y;
+      st.dataset.anchor='corner';
+    }else delete st.dataset.anchor;
     st.style.setProperty('right','auto','important');st.style.setProperty('left',L.toFixed(1)+'px','important');st.style.setProperty('top',T.toFixed(1)+'px','important');
   });
 }
@@ -3596,38 +3759,45 @@ function imgStamped(p){
   return `<div class="imgwrap${badge?' has-stamp':''}">${img(p,{pop:true})}${badge}</div>`;
 }
 
-function refLine(p){   // v38: WAS, else RRP (… EACH on a multi-buy)
+/* v41: reserve = keep an empty WAS / RRP line on cards that have none, so every card on a multi-product
+   slide has the same text height and the pills, prices and pack shots sit level (4-Product, Grid Cards,
+   2×2 Feature, 6-Grid Split). */
+const REF_EMPTY_CLASS='ref-empty';
+function refLine(p,reserve){   // v38: WAS, else RRP (… EACH on a multi-buy)
   const d=priceData(p);
   const t=d.was?`WAS $${h(d.was)}`:(d.rrp&&S.optRRP?`RRP $${h(d.rrp)}${!d.has&&d.deal?' EACH':''}`:'');
-  return t?`<div class="refline">${t}</div>`:'';
+  return t?`<div class="refline">${t}</div>`:(reserve?`<div class="refline ${REF_EMPTY_CLASS}" aria-hidden="true">&nbsp;</div>`:'');
 }
 /* v38: a deal on a classic layout reads like a price, as on the clean cards —
-   BUY 2 FOR $145.00 → pill "BUY 2 FOR" + the price in the big price style; BUY 2, GET 1 FREE → pill "BUY 2" + big GET 1 FREE. */
+   BUY 2 FOR $145.00 → pill "BUY 2 FOR" + the price in the big price style; BUY 2, GET 1 FREE → pill "BUY 2" + big GET 1 FREE.
+   v41: BUY 4+ FOR $60 EA → pill "BUY 4+ FOR" + $60.00 with a small EA after it. */
 function classicDeal(p){
   const d=priceData(p),sd=d.deal?splitDeal(p.dv):null;
-  return {lead:sd&&sd.lead?sd.lead:'SPECIAL',amount:sd&&sd.amount?sd.hero:'',text:sd&&!sd.amount?sd.hero:''};
+  return {lead:sd&&sd.lead?sd.lead:'SPECIAL',amount:sd&&sd.amount?sd.hero:'',text:sd&&!sd.amount?sd.hero:'',per:sd&&sd.per?sd.per:''};
 }
-function pblock(p){
-  const d=priceData(p);
+function perHTML(cd){return cd&&cd.per?`<span class="per">${h(cd.per)}</span>`:'';}
+function pblock(p,reserve){
+  const d=priceData(p),empty=reserve?`<div class="was ${REF_EMPTY_CLASS}" aria-hidden="true">&nbsp;</div>`:'';
   if(!d.has){
-    const cd=classicDeal(p),ref=d.rrp&&S.optRRP?`<div class="was">RRP $${h(d.rrp)} EACH</div>`:'';
-    return `<div class="pricerow"><span class="nowlbl">${h(cd.lead)}</span>${cd.amount?`<span class="price">${priceHTML(cd.amount)}</span>`:(cd.text?`<span class="dealhero dealbig">${h(cd.text)}</span>`:'')}${ref}</div>`;
+    const cd=classicDeal(p),ref=d.rrp&&S.optRRP?`<div class="was">RRP $${h(d.rrp)} EACH</div>`:empty;
+    return `<div class="pricerow"><span class="nowlbl">${h(cd.lead)}</span>${cd.amount?`<span class="price">${priceHTML(cd.amount)}${perHTML(cd)}</span>`:(cd.text?`<span class="dealhero dealbig">${h(cd.text)}</span>`:'')}${ref}</div>`;
   }
   let extra='';
   if(d.was)extra+=`<div class="was">WAS $${h(d.was)}</div>`;
   else if(d.rrp&&S.optRRP)extra+=`<div class="was">RRP $${h(d.rrp)}</div>`;   // v38
+  else extra+=empty;
   if(d.deal)extra+=`<div class="deal">${h(d.deal)}</div>`;
   return `<div class="pricerow"><span class="nowlbl">NOW</span><span class="price">${priceHTML(p.now)}</span>${extra}</div>`;
 }
-function gridPriceBlock(p){
+function gridPriceBlock(p,reserve){
   const d=priceData(p);
-  if(!d.has){const cd=classicDeal(p);return `<div class="gprice-row"><span class="gnow">${h(cd.lead)}</span>${cd.amount?`<span class="gprice">${priceHTML(cd.amount)}</span>`:''}</div>${cd.text?`<div class="gdeal dealbig">${h(cd.text)}</div>`:''}${refLine(p)}`;}
-  return `<div class="gprice-row"><span class="gnow">NOW</span><span class="gprice">${priceHTML(p.now)}</span></div>${d.deal?`<div class="gdeal">${h(d.deal)}</div>`:''}${refLine(p)}`;
+  if(!d.has){const cd=classicDeal(p);return `<div class="gprice-row"><span class="gnow">${h(cd.lead)}</span>${cd.amount?`<span class="gprice">${priceHTML(cd.amount)}${perHTML(cd)}</span>`:''}</div>${cd.text?`<div class="gdeal dealbig">${h(cd.text)}</div>`:''}${refLine(p,reserve)}`;}
+  return `<div class="gprice-row"><span class="gnow">NOW</span><span class="gprice">${priceHTML(p.now)}</span></div>${d.deal?`<div class="gdeal">${h(d.deal)}</div>`:''}${refLine(p,reserve)}`;
 }
-function featurePriceBlock(p){
+function featurePriceBlock(p,reserve){
   const d=priceData(p);
-  if(!d.has){const cd=classicDeal(p);return `<div class="ftag">${h(cd.lead)}</div>${cd.amount?`<div class="fprice">${priceHTML(cd.amount)}</div>`:(cd.text?`<div class="fdeal dealbig">${h(cd.text)}</div>`:'')}${refLine(p)}`;}
-  return `<div class="ftag">NOW</div><div class="fprice">${priceHTML(p.now)}</div>${d.deal?`<div class="fdeal">${h(d.deal)}</div>`:''}${refLine(p)}`;
+  if(!d.has){const cd=classicDeal(p);return `<div class="ftag">${h(cd.lead)}</div>${cd.amount?`<div class="fprice">${priceHTML(cd.amount)}${perHTML(cd)}</div>`:(cd.text?`<div class="fdeal dealbig">${h(cd.text)}</div>`:'')}${refLine(p,reserve)}`;}
+  return `<div class="ftag">NOW</div><div class="fprice">${priceHTML(p.now)}</div>${d.deal?`<div class="fdeal">${h(d.deal)}</div>`:''}${refLine(p,reserve)}`;
 }
 function titleInline(){
   const safe=h(S.title);
@@ -3656,7 +3826,8 @@ function footerNoteText(rowsOnSlide,withEnds){
 function footLabelHTML(){return S.optLabel?` <span class="foot-label">${h(PHF_LABEL_STATEMENT)}</span>`:'';}
 // v29: classic white layouts keep their original footer exactly. Footer options apply to clean cards only.
 function footHTML(){return `<div class="foot"><span class="foot-left"><span class="terms">*Not valid with existing specials, markdowns or promotions. Strictly while stocks last.</span></span><span class="foot-site">${h(S.foot)}</span></div>`;}
-function productName(p){return `<div class="pbrand">${classicBrand(p)}</div><div class="pname">${productText(p.name)}</div>`;}
+function nameHTML(p){return h(displayName(p));}   // v41: product name without the repeated brand
+function productName(p){return `<div class="pbrand">${classicBrand(p)}</div><div class="pname">${nameHTML(p)}</div>`;}
 
 /* ---------- data state ---------- */
 function baseRows(){return S.source==='sheet'?S.rows:SAMPLE;}
@@ -3937,7 +4108,7 @@ function buildInputs(){
       <label>Brand</label><input type="text" data-gi="${gi}" data-k="brand" value="${ha(p.brand)}">
       <label title="Optional. Shown on clean cards exactly as you type it — e.g. BioCeuticals, PRANA ON. The Brand above still finds the photo file.">Brand on slide <span style="font-weight:500;color:var(--muted)">(optional)</span></label><input type="text" data-gi="${gi}" data-k="brandShow" value="${ha(p.brandShow||'')}" placeholder="${ha(slideBrand({brand:p.brand})||'Leave blank to use the brand')}">
       <label>Product name</label><input type="text" data-gi="${gi}" data-k="name" value="${ha(p.name)}">
-      <label title="Optional. Used on clean cards instead of the product name — e.g. Kyolic 120c">Short name on slide <span style="font-weight:500;color:var(--muted)">(optional)</span></label><input type="text" data-gi="${gi}" data-k="short" value="${ha(p.short||'')}" placeholder="Leave blank to use the product name">
+      <label title="Optional. Used on clean cards instead of the product name — e.g. Kyolic 120c">Short name on slide <span style="font-weight:500;color:var(--muted)">(optional)</span></label><input type="text" data-gi="${gi}" data-k="short" value="${ha(p.short||'')}" placeholder="${ha(displayName(p)!==unitTidy(p.name)?displayName(p):'Leave blank to use the product name')}">
       <div class="mini"><div><label>NOW price</label>
         <input type="text" inputmode="decimal" data-gi="${gi}" data-k="now" value="${ha(p.now)}"></div>
       <div><label>RRP (optional)</label>
@@ -4097,13 +4268,13 @@ function offerBlock(p,opts={}){
   // Non-breaking hyphens keep Nutra-Life / Co-Q10 / Ester-C together when a line wraps.
   const nbh=s=>String(s||'').replace(/([A-Za-z0-9])-(?=[A-Za-z0-9])/g,'$1\u2011');
   const brandTxt=nbh(slideBrand(p));
-  const prodTxt=nbh(plainText(productText(String(p.short||'').trim()||p.name)));
+  const prodTxt=nbh(plainText(String(p.short||'').trim()?productText(p.short):nameHTML(p)));   // v41: brand not repeated
   const title=brandTxt||prodTxt?`<div class="po-brand" data-full="${ha(brandTxt)}">${h(brandTxt)}</div><div class="po-prod" data-full="${ha(prodTxt)}">${h(prodTxt)}</div>`:'';
   // v35: a deal reads like a price. The mechanic goes in the pill (BUY 2 FOR) and the amount or reward is
   // the big line ($145.00 / GET 1 FREE), so every card has the same rows: pill · big line · rule · reference.
   const sd=!d.has&&d.deal?splitDeal(p.dv):null;
   const pill=sd&&sd.lead?`<div class="po-pill po-lead">${h(sd.lead)}</div>`:`<div class="po-pill">${d.has?'NOW':'SPECIAL'}</div>`;
-  const hero=d.has?`<div class="po-price po-hero">${h(offerPrice(p.now))}</div>`:(sd?(sd.amount?`<div class="po-price po-hero">${h(sd.hero)}</div>`:`<div class="po-deal po-dealbig po-hero">${h(sd.hero)}</div>`):'');
+  const hero=d.has?`<div class="po-price po-hero">${h(offerPrice(p.now))}</div>`:(sd?(sd.amount?`<div class="po-price po-hero">${h(sd.hero)}${sd.per?`<span class="po-per">${h(sd.per)}</span>`:''}</div>`:`<div class="po-deal po-dealbig po-hero">${h(sd.hero)}</div>`):'');
   const subs=offerSubLines(p,{noSave:!!opts.noSave}).map(t=>`<div class="po-sub">${t}</div>`).join('');
   const ends=opts.ends?offerDates(p).end:null;
   const endsHTML=ends?`<div class="po-ends">Offer ends ${h(fmtOfferDate(ends))}</div>`:'';
@@ -4158,7 +4329,7 @@ function abbreviateName(s){
     .replace(/\s+and\s+/gi,' & ')
     .replace(/\s{2,}/g,' ').trim();
 }
-const NAME_SIZE_RE=/(?:^|\s)((?:\d+(?:[.,]\d+)?\s?[×x]\s?)?\d+(?:[.,]\d+)?\s?(?:mg|mcg|µg|iu|g|kg|ml|l|c|t|caps?|vcaps|tabs?|softgels?|sachets?|serves|pk|pack)\b(?:\s(?:caps|vcaps|tabs|softgels|sachets|serves|pack))?)/gi;
+const NAME_SIZE_RE=/(?:^|\s)((?:\d+(?:[.,]\d+)?\s?[×x]\s?)?\d+(?:[.,]\d+)?\s?(?:mg|mcg|µg|iu|g|kg|ml|l|c|t|caps?|vcaps|tabs?|softgels?|sachets?|serves|pk|pack)\b(?:\s(?:caps|vcaps|tabs|softgels|sachets|serves|pack|bag|tub|pouch|jar|tin|tube|refill|bottle|box)\b)?)/gi;   // v41: pack format stays with the size
 function splitSize(s){
   const sizes=[];
   const name=String(s||'').replace(NAME_SIZE_RE,(m,g)=>{sizes.push(g.trim());return ' ';}).replace(/\s{2,}/g,' ').trim();
@@ -4168,9 +4339,10 @@ function applyNameBoundary(po){
   const br=po.querySelector('.po-brand');
   if(br){
     const full=br.dataset.full||'';
-    br.style.fontSize='';br.textContent=full;
+    br.style.fontSize='';br.style.lineHeight='';br.textContent=full;
+    const lh0=parseFloat(getComputedStyle(br).lineHeight)||0;   // v41: a smaller brand keeps its row height
     let f=1;
-    while(br.scrollWidth>br.clientWidth+1&&f>0.8){f-=0.04;br.style.fontSize=f.toFixed(2)+'em';}
+    while(br.scrollWidth>br.clientWidth+1&&f>0.8){f-=0.04;br.style.fontSize=f.toFixed(2)+'em';if(lh0)br.style.lineHeight=lh0+'px';}
     if(br.scrollWidth>br.clientWidth+1){let t=full;while(t.length>2&&br.scrollWidth>br.clientWidth+1){t=t.slice(0,-1).trimEnd();br.textContent=t+'…';}}
   }
   const pr=po.querySelector('.po-prod');
@@ -4202,9 +4374,12 @@ function applyNameBoundary(po){
               "BUY 2, GET 1 FREE" → pill "BUY 2",     big line "GET 1 FREE"
               anything else       → pill "SPECIAL",   big line = the wording, as large as fits */
 function splitDeal(raw){
-  const t=String(raw==null?'':raw).trim().replace(/\s+/g,' ');if(!t)return null;
+  const t=normaliseDeal(raw);if(!t)return null;   // v41: "4 FOR $60 EACH" → "BUY 4+ FOR $60 EA"
   const tidy=s=>s.replace(/[\s,;:–\-]+$/,'').trim();
-  let m=t.match(/^(.+?)\s*(\$\s?\d[\d,]*(?:\.\d{1,2})?)$/);
+  // v41: priced per item → pill "BUY 4+ FOR", big line "$60.00" with a small "EA"
+  let m=t.match(/^(.+?)\s*(\$\s?\d[\d,]*(?:\.\d{1,2})?)\s*(EA|EACH)\.?$/i);
+  if(m&&tidy(m[1]).length>=2&&tidy(m[1]).length<=16)return {lead:tidy(m[1]),hero:offerPrice(m[2]),amount:true,per:'EA'};
+  m=t.match(/^(.+?)\s*(\$\s?\d[\d,]*(?:\.\d{1,2})?)$/);
   if(m&&tidy(m[1]).length>=2&&tidy(m[1]).length<=16)return {lead:tidy(m[1]),hero:offerPrice(m[2]),amount:true};
   m=t.match(/^(.+?)[,;:]?\s+((?:GET|SAVE)\b.+)$/i);
   if(m&&tidy(m[1]).length>=2&&tidy(m[1]).length<=16)return {lead:tidy(m[1]),hero:m[2].trim(),amount:false};
@@ -4251,11 +4426,26 @@ function fitClassicDeal(el){
   while(g>base*.28&&(el.offsetHeight>g*1.02*2.3||el.scrollWidth>avail+1)){g*=.96;set(g,true);}
   if(g<=f)set(f,false);
 }
+/* v41: on multi-product classic cards the brand is always one line, so it can never push the name, pill
+   and price down. A long brand is made up to 20% smaller (its row keeps its height), then ends with "…". */
+const CLASSIC_BRAND_FIT='.l-four .pbrand,.l-gridcards .gcard>.pbrand,.l-feature .finfo .pbrand,.l-sixsplit .pbrand';
+function fitClassicBrand(el){
+  if(el.dataset.full==null)el.dataset.full=el.textContent;
+  el.textContent=el.dataset.full;
+  ['font-size','line-height','height'].forEach(k=>el.style.removeProperty(k));
+  if(el.scrollWidth<=el.clientWidth+1)return;
+  const fs=parseFloat(getComputedStyle(el).fontSize)||16,hpx=el.offsetHeight;
+  el.style.setProperty('height',hpx+'px','important');el.style.setProperty('line-height',hpx+'px','important');
+  let f=1;
+  while(el.scrollWidth>el.clientWidth+1&&f>.8){f-=.04;el.style.setProperty('font-size',(fs*f).toFixed(2)+'px','important');}
+  if(el.scrollWidth>el.clientWidth+1){let t=el.dataset.full;while(t.length>2&&el.scrollWidth>el.clientWidth+1){t=t.slice(0,-1).trimEnd();el.textContent=t+'…';}}
+}
 function balanceClassicText(slide){
   if(!slide||CLEAN_LAYOUTS[S.layout])return;
   const cells=[...slide.querySelectorAll(CLASSIC_CELLS)].filter(c=>!c.classList.contains('empty-cell'));
   cells.forEach(c=>c.querySelectorAll(CLASSIC_TEXT_SEL).forEach(el=>{el.style.removeProperty('min-height');el.style.removeProperty('margin-bottom');delete el.dataset.eqPad;}));
   slide.querySelectorAll('.dealbig').forEach(fitClassicDeal);
+  slide.querySelectorAll(CLASSIC_BRAND_FIT).forEach(fitClassicBrand);   // v41
   const groups=[];
   cells.forEach(c=>{
     const w=c.offsetWidth,hh=c.offsetHeight,cls=(c.className||'').split(' ')[0];
@@ -4302,7 +4492,7 @@ function scheduleClassicText(root){
 function fitOffers(root){
   const slide=root&&root.querySelectorAll?root:document.getElementById('slide');
   if(!slide)return;
-  slide.querySelectorAll('.po-name,.po-hero,.po-foot').forEach(el=>{el.style.minHeight='';el.style.paddingTop='';});
+  slide.querySelectorAll('.po-name,.po-hero,.po-foot').forEach(el=>{el.style.minHeight='';el.style.paddingTop='';el.style.marginTop='';});
   // 1) fit each block on its own, 2) blocks of the same role share the smallest
   // fitted size so every price on the slide reads at one consistent size.
   const groups=new Map();
@@ -4355,7 +4545,24 @@ function equaliseOfferCards(slide){
       if(sel==='.po-name')els.forEach(el=>{const pad=max-el.offsetHeight;if(pad>0)el.style.paddingTop=pad+'px';});
       else els.forEach(el=>{el.style.minHeight=max+'px';});
     });
+    anchorOfferRows(g.list);
   });
+}
+/* v41: lock the pill and the green rule to the same height on every card in a group, whether or not a card
+   has a WAS / RRP line or a two-line deal, and give every card the same total text height so the blocks
+   centre alike. Measured after the rows above, so any rounding or font difference is taken out too. */
+function anchorOfferRows(list){
+  const k=slideScaleOf(list[0]);
+  const off=(po,sel)=>{const e=po.querySelector(sel);return e?(e.getBoundingClientRect().top-po.getBoundingClientRect().top)/k:null;};
+  const lift=(sel,apply)=>{
+    const o=list.map(po=>off(po,sel));if(o.some(v=>v==null))return;
+    const max=Math.max(...o);
+    list.forEach((po,i)=>{const d=max-o[i];if(d>.25)apply(po,d);});
+  };
+  lift('.po-pill',(po,d)=>{const n=po.querySelector('.po-name');if(n)n.style.marginTop=d.toFixed(2)+'px';});
+  lift('.po-rule',(po,d)=>{const e=po.querySelector('.po-hero');if(e)e.style.minHeight=(e.offsetHeight+d).toFixed(2)+'px';});
+  const hs=list.map(po=>po.getBoundingClientRect().height/k),maxH=Math.max(...hs);
+  list.forEach((po,i)=>{const d=maxH-hs[i];if(d>.25){const f=po.querySelector('.po-foot');if(f)f.style.minHeight=(f.offsetHeight+d).toFixed(2)+'px';}});
 }
 function scheduleFitOffers(root){
   const run=()=>fitOffers(root);
@@ -4413,13 +4620,16 @@ function cleanFoot(){
 }
 function cleanSlide(layout,P){
   const cfg=CLEAN_LAYOUTS[layout];
-  const cells=[...P].slice(0,cfg.slots);while(cells.length<cfg.slots)cells.push(null);
+  // v41: 4-up grids (2×2 and 4 across) centre a last page of 1–3 products, keeping the card size
+  const part=cfg.slots===4&&(cfg.grid==='g22'||cfg.grid==='g41')?partialClass(Math.min(P.length,4),4):'';
+  const cells=[...P].slice(0,cfg.slots);if(!part)while(cells.length<cfg.slots)cells.push(null);
   const cards=cells.map((p,i)=>cleanCard(p,cfg.hero&&i===0?'cl-hero':'',cfg)).join('');
   // v27: cards only — the CURRENT SPECIALS header is no longer drawn (cleanHeader kept for reference).
-  return `<div class="cl-pad"><div class="cl-grid ${cfg.grid}">${cards}</div>${cleanFoot()}</div>`;
+  return `<div class="cl-pad"><div class="cl-grid ${cfg.grid}${part}">${cards}</div>${cleanFoot()}</div>`;
 }
 
 /* ---------- slide rendering ---------- */
+function partialClass(n,full){return n>0&&n<full?` partial-${n}`:'';}   // v41: last page with fewer products
 function emptyCell(cls='cell'){return `<div class="${cls} empty-cell"></div>`;}
 function render(rebuildInputs=true){
   const L=LAYOUTS[S.layout],s=document.getElementById('slide');
@@ -4441,9 +4651,11 @@ function render(rebuildInputs=true){
     html=`<div class="pad"><div class="titlebar"><span class="big">${titleInline()}</span></div>
       <div class="body">${p?`${imgStamped(p)}<div class="info">${productName(p)}${pblock(p)}</div>`:''}</div>${footHTML()}</div>`;
   }else if(S.layout==='four'){
-    const cells=[...P];while(cells.length<4)cells.push(null);
+    // v41: a last page with 1–3 products is centred (same card size); cards keep a WAS / RRP row
+    const part=partialClass(P.length,4),rsv=P.length>1;
+    const cells=[...P];if(!part)while(cells.length<4)cells.push(null);
     html=`<div class="pad"><div class="titlebar"><span class="big">${titleInline()}</span></div>
-      <div class="body">${cells.map(p=>p?`<div class="cell">${imgStamped(p)}${productName(p)}${pblock(p)}</div>`:`<div class="cell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
+      <div class="body${part}">${cells.map(p=>p?`<div class="cell">${imgStamped(p)}${productName(p)}${pblock(p,rsv)}</div>`:`<div class="cell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
   }else if(S.layout==='two'){
     const a=P[0]||null,b=P[1]||null,one=!!a&&!b;
     const col=(p,solo=false)=>p?`<div class="col${solo?' solo':''}">${imgStamped(p)}<div class="pair-info">${productName(p)}${pblock(p)}</div></div>`:`<div class="col empty-cell"></div>`;
@@ -4460,15 +4672,17 @@ function render(rebuildInputs=true){
         </div>
       </div>${footHTML()}</div>`;
   }else if(S.layout==='gridcards'){
-    const cells=[...P];while(cells.length<4)cells.push(null);
+    const part=partialClass(P.length,4),rsv=P.length>1;   // v41
+    const cells=[...P];if(!part)while(cells.length<4)cells.push(null);
     html=`<div class="pad"><div class="titlebar"><span class="big">${titleInline()}</span></div>
-      <div class="body">${cells.map(p=>p?`<div class="gcard">${imgStamped(p)}
-        <div class="pbrand">${classicBrand(p)}</div><div class="pname">${productText(p.name)}</div>${gridPriceBlock(p)}</div>`:`<div class="gcard empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
+      <div class="body${part}">${cells.map(p=>p?`<div class="gcard">${imgStamped(p)}
+        <div class="pbrand">${classicBrand(p)}</div><div class="pname">${nameHTML(p)}</div>${gridPriceBlock(p,rsv)}</div>`:`<div class="gcard empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
   }else if(S.layout==='feature'){
-    const cells=[...P];while(cells.length<4)cells.push(null);
+    const part=partialClass(P.length,4),rsv=P.length>1;   // v41
+    const cells=[...P];if(!part)while(cells.length<4)cells.push(null);
     html=`<div class="pad"><div class="titlebar"><span class="big">${titleInline()}</span></div>
-      <div class="body">${cells.map(p=>p?`<div class="fcell">${imgStamped(p)}<div class="finfo">
-        <div class="pbrand">${classicBrand(p)}</div><div class="pname">${productText(p.name)}</div><div class="frule"></div>${featurePriceBlock(p)}</div></div>`:`<div class="fcell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
+      <div class="body${part}">${cells.map(p=>p?`<div class="fcell">${imgStamped(p)}<div class="finfo">
+        <div class="pbrand">${classicBrand(p)}</div><div class="pname">${nameHTML(p)}</div><div class="frule"></div>${featurePriceBlock(p,rsv)}</div></div>`:`<div class="fcell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
   }else if(S.layout==='promo'){
     const cells=[...P].slice(0,4);while(cells.length<4)cells.push(null);
     const promoHead=String(S.title||'').trim()?titleInline():'SPECIALS <span class="accent">ON NOW</span>';
@@ -4481,7 +4695,7 @@ function render(rebuildInputs=true){
     const cells=[...P];
     if(count>=4)while(cells.length<6)cells.push(null);
     html=`<div class="pad"><div class="titlebar"><span class="big">${titleInline()}</span></div>
-      <div class="body partial-${count}">${cells.map(p=>p?`<div class="scell">${imgStamped(p)}<div class="sinfo">${productName(p)}${pblock(p)}</div></div>`:`<div class="scell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
+      <div class="body partial-${count}">${cells.map(p=>p?`<div class="scell">${imgStamped(p)}<div class="sinfo">${productName(p)}${pblock(p,count>1)}</div></div>`:`<div class="scell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
   }else if(CLEAN_LAYOUTS[S.layout]){
     html=cleanSlide(S.layout,P);
   }else{
@@ -4793,7 +5007,7 @@ function rowsFromGViz(response){
     const scale=g('image_scale')||g('image scale')||g('scale')||'100';
     // v28 offer dates. gviz tables carry dates as Date(y,m,d) in .v and the sheet's display text in .f
     const pick=(...names)=>{for(const n of names){const v=(typeof gDate==='function'?gDate:g)(n);if(v)return v;}return '';};
-    out.push({brand:g('brand'),name:g('name'),now:g('now_price')||g('now'),
+    out.push(tidyRowBrand({brand:g('brand'),name:g('name'),now:g('now_price')||g('now'),
       disc,dv:g('discount_value'),img:g('image_url'),recImg:g('recommended_image_url'),
       altImg:g('alternate_candidate_url'),imageReviewStatus:g('image_review_status'),
       imageReviewNote:g('image_review_note'),rrp:g('rrp'),scale,
@@ -4801,7 +5015,7 @@ function rowsFromGViz(response){
       end:pick('end_date','end','ends','valid_to','valid_until','until','expiry','expires'),
       short:pick('short_name','display_name','pos_name','slide_name'),
       brandShow:pick('brand_on_slide','slide_brand','brand_display','display_brand','short_brand'),
-      _rowId:'sheet-'+(i+1)});
+      _rowId:'sheet-'+(i+1)}));
   }
   return out;
 }
@@ -4966,7 +5180,7 @@ async function loadSheet(url,quiet){
     if(hadLive){setStatus('err',`Couldn't refresh the live Specials source. Your existing live data is still on screen — nothing was replaced.<br><small>${detail}</small>`);return;}
     const cached=readLastGoodSpecials();
     if(cached){
-      S.rows=cached.rows;S.source='sheet';S.page=0;S.lastLoaded=cached.savedAt?new Date(cached.savedAt):null;
+      S.rows=cached.rows.map(tidyRowBrand);S.source='sheet';S.page=0;S.lastLoaded=cached.savedAt?new Date(cached.savedAt):null;
       syncWork();clearEdited();render(true);
       const when=S.lastLoaded&&!isNaN(S.lastLoaded)?S.lastLoaded.toLocaleString():'an earlier successful load';
       setStatus('warn',`LIVE SOURCE UNAVAILABLE · Showing the last successful Specials data saved ${h(when)}.<br><small>${detail}</small>`);
@@ -5046,7 +5260,7 @@ function pageSuffix(i){return '_p'+String(i+1).padStart(2,'0');}
 function plainText(html){const t=document.createElement('textarea');t.innerHTML=String(html||'');return t.value;}
 function offerTextLine(p){
   const d=priceData(p);
-  const name=[slideBrand(p),plainText(productText(p.name))].filter(Boolean).join(' ');
+  const name=[slideBrand(p),displayName(p)].filter(Boolean).join(' ');
   const parts=[];
   if(d.has)parts.push(`now ${offerPrice(p.now)}`);
   if(d.deal)parts.push(d.deal);
