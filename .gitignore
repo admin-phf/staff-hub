@@ -1,0 +1,17 @@
+# Operating system / editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Never commit live business documents or exports
+*.xls
+*.xlsx
+*.csv
+*.pdf
+*.zip
+
+# Temporary / backup files
+~$*
+*.tmp
+*.bak
