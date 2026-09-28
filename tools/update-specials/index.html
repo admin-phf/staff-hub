@@ -2245,6 +2245,13 @@
   .slide.cl-dark .cl-foot{color:#B5BAB6;border-top-color:#3A3D40}
   .slide.cl-dark .cl-foot .cl-site,.slide.cl-dark .cl-foot .foot-label{color:#fff}
 
+  /* ---------- v36 pack shot = text height (side-by-side clean cards) ----------
+     A little more width for the photo (+4% of the card) so wide products (bags, tubs, double boxes)
+     can reach the text height too; prices still shrink to fit if they must. The SAVE circle no
+     longer reserves space: it sits on the product's top-right shoulder. */
+  .cl-card:not(.stack){grid-template-columns:minmax(0,calc(var(--cl-imgcol,40%) + 4%)) minmax(0,1fr)}
+  .cl-card:not(.stack) .imgwrap.has-save .imgslot{padding:0!important}
+
   /* ---------- v26 channel picker (editor UI) ---------- */
   .chan-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:0 0 12px}
   .chan{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 5px 7px;font:inherit;font-weight:800;font-size:12.5px;color:var(--ink);cursor:pointer;text-align:center;line-height:1.15;min-width:0}
@@ -2499,7 +2506,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='35';
+const APP_VERSION='36';
 const APP_DATE='2026-09-28';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -3227,6 +3234,10 @@ async function balanceOneImage(img){
   const availW2=Math.max(1,slot.clientWidth-parseFloat(cs2.paddingLeft||0)-parseFloat(cs2.paddingRight||0));
   const availH2=Math.max(1,slot.clientHeight-parseFloat(cs2.paddingTop||0)-parseFloat(cs2.paddingBottom||0));
 
+  // v36: side-by-side clean cards — the pack shot is exactly as tall as the promotional text and lines up with it.
+  const tcard=inClean?img.closest('.cl-card'):null,tpo=tcard&&!tcard.classList.contains('stack')?tcard.querySelector('.po'):null;
+  if(tpo&&tpo.offsetHeight>0&&textMatchPackShot(img,rawAnalysis,{card:tcard,po:tpo,slot,cs:cs2,availW:availW2,availH:availH2,baseW,baseH,maxS}))return;
+
   const fitScale=Math.min((availW2*AUTO_TARGET_FILL)/visibleW,(availH2*AUTO_TARGET_FILL)/visibleH);
   const safeScale=Math.min((availW2*AUTO_SAFE_FILL)/visibleW,(availH2*AUTO_SAFE_FILL)/visibleH);
   let auto=fitScale;
@@ -3273,7 +3284,6 @@ async function balanceOneImage(img){
 async function applyAutoBalance(root=document){
   const sl0=root&&root.id==='slide'?root:document.getElementById('slide');
   if(sl0&&sl0.querySelector('.po'))fitOffers(sl0);   // v31: final card spaces first, then fit pack shots
-  if(sl0&&sl0.querySelector('.cl-card'))anchorPackShots(sl0);   // v35: photo area spans the text block
   const imgs=[...root.querySelectorAll('.imgslot img')];
   await Promise.all(imgs.map(balanceOneImage));
   const sl=root&&root.id==='slide'?root:document.getElementById('slide');
@@ -3341,6 +3351,7 @@ function harmonisePackShots(slide){
   const groups=[];
   slide.querySelectorAll('.cl-card .imgslot img').forEach(im=>{
     const b=im._bal;if(!b||im.dataset.autoStatus!=='balanced-safe')return;
+    if(b.textMatch)return;   // v36: already exactly the height of its text
     if(b.scale!==b.base)applyBalancedScale(im,b.base);   // start from the plain fit every time
     if(Math.abs(b.manual-1)>.001||b.capped)return;
     const card=im.closest('.cl-card'),w=card.offsetWidth,hh=card.offsetHeight;
@@ -3368,6 +3379,7 @@ function notePackShots(slide){
     if(Math.abs((parseFloat(im.dataset.manualScale||'1')||1)-1)>.001)return;   // staff already fine-tuned it
     if(im.dataset.autoStatus==='fallback'){PACK_NOTES.set(key,'unread');return;}
     const b=im._bal;if(!b)return;
+    if(b.textMatch){if(b.capped&&b.visH*b.scale<b.targetH*.8)PACK_NOTES.set(key,'small');return;}   // v36
     const fill=Math.max(b.visW*b.scale/b.availW,b.visH*b.scale/b.availH);
     if(fill<PACK_SMALL_FILL)PACK_NOTES.set(key,'small');
   });
@@ -3476,6 +3488,38 @@ async function settlePop(root){
     await waitForImages(root);
   }
   return changed;
+}
+/* ---------- v36 pack shot = height of the promotional text ----------
+   On side-by-side clean cards the product (as detected in the photo, not the photo's empty space)
+   is scaled to exactly the height of the text block — brand line down to the WAS / RRP line — and
+   centred on it, so every card reads as two equal blocks. A very wide product (a bag, a double box)
+   is limited by the photo column instead and sits centred on the text. Every card of the same size
+   has the same text height, so their pack shots are the same height too. A Fine-tune setting still
+   scales on top. Cards with the pack shot above the text keep the fit-to-space rule. */
+const TEXT_MATCH_WFILL=1;     // a wide product may use the full photo column
+function textMatchPackShot(img,raw,g){
+  const offTop=el=>{let y=0;while(el&&el!==g.card){y+=el.offsetTop;el=el.offsetParent;}return el===g.card?y:NaN;};
+  const slotTop=offTop(g.slot)+parseFloat(g.cs.paddingTop||0),poTop=offTop(g.po);
+  if(!Number.isFinite(slotTop)||!Number.isFinite(poTop))return false;
+  const rawW=Math.max(1,g.baseW*raw.w),rawH=Math.max(1,g.baseH*raw.h);
+  const targetH=Math.min(g.po.offsetHeight,g.availH);
+  const sH=targetH/rawH,sW=g.availW*TEXT_MATCH_WFILL/rawW;
+  const manual=clamp(parseFloat(img.dataset.manualScale||'1')||1,.70,2);
+  const want=Math.min(sH,sW)*manual,s=clamp(want,.3,g.maxS);
+  // Centre the product on the text block (up/down) and in the photo column (left/right) …
+  const textMid=poTop+g.po.offsetHeight/2-(slotTop+g.availH/2);
+  let sx=-(raw.cx-.5)*g.baseW*s,sy=textMid-(raw.cy-.5)*g.baseH*s;
+  // … and never outside its space.
+  const l=(raw.x-.5)*g.baseW*s,r=(raw.x+raw.w-.5)*g.baseW*s,t=(raw.y-.5)*g.baseH*s,b=(raw.y+raw.h-.5)*g.baseH*s;
+  const keep=(v,lo,hi)=>lo<=hi?clamp(v,lo,hi):(lo+hi)/2;
+  sx=keep(sx,-g.availW/2-l,g.availW/2-r);sy=keep(sy,-g.availH/2-t,g.availH/2-b);
+  img.style.setProperty('--img-scale',s.toFixed(4));
+  img.style.setProperty('--img-shift-x',sx.toFixed(2)+'px');
+  img.style.setProperty('--img-shift-y',sy.toFixed(2)+'px');
+  img.dataset.autoStatus='balanced-safe';img.dataset.autoScale=s.toFixed(3);img.dataset.safeScale=s.toFixed(3);img.dataset.safeLimited='0';
+  img._bal={textMatch:true,visW:rawW,visH:rawH,targetH,widthLimited:sW<sH,capped:want>g.maxS+.005,
+    scale:s,base:s,manual,availW:g.availW,availH:g.availH};
+  return true;
 }
 function scheduleAutoBalance(root=document){
   requestAnimationFrame(()=>requestAnimationFrame(()=>{applyAutoBalance(root);}));
@@ -4100,20 +4144,6 @@ function fitDealBig(po){
   const lh=()=>parseFloat(getComputedStyle(el).lineHeight)||1;
   while(g>.36&&(el.offsetHeight>lh()*2.2||!fits())){g-=.02;el.style.fontSize=g.toFixed(2)+'em';}
   if(g<=f){el.style.whiteSpace='nowrap';el.style.fontSize=f.toFixed(2)+'em';}
-}
-/* Pack shots line up with the text: the photo area spans the text block (brand line to the
-   WAS / RRP line), never less than 80% of the card, so products and prices share one top and
-   bottom edge. Cards with the pack shot above the text are left as they are. */
-function anchorPackShots(slide){
-  slide.querySelectorAll('.cl-card:not(.stack):not(.empty-cell)').forEach(card=>{
-    const wrap=card.querySelector('.imgwrap'),po=card.querySelector('.po');if(!wrap||!po)return;
-    wrap.style.removeProperty('height');
-    const cs=getComputedStyle(card);
-    const inner=card.clientHeight-parseFloat(cs.paddingTop||0)-parseFloat(cs.paddingBottom||0);
-    if(!(inner>0))return;
-    const want=clamp(po.offsetHeight*1.04,inner*.8,inner);
-    if(want<inner-1)wrap.style.setProperty('height',want.toFixed(1)+'px','important');
-  });
 }
 
 function fitOffers(root){

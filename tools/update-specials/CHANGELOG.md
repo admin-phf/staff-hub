@@ -16,7 +16,7 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 
 1. In GitHub Desktop, check that **Current branch** says **main**, then click **Fetch origin** / **Pull origin**.
 2. Copy the new `index.html` and `CHANGELOG.md` into `tools/update-specials/`, replacing the old ones.
-3. Type the summary (e.g. `v35 – balanced clean cards`), click **Commit to main**, then **Push origin**.
+3. Type the summary (e.g. `v36 – pack shot matches text height`), click **Commit to main**, then **Push origin**.
 4. After 1–2 minutes, open the tool and press **Ctrl+Shift+R**. The top right shows the new version.
    Screens already open show *"Version x is now live… Refresh"* within about 20 minutes.
 5. **Need an old version back?** On GitHub, open `tools/update-specials/index.html` → **History**,
@@ -27,6 +27,21 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 It isn't needed day to day.)
 
 ---
+
+## v36 — 28 Sep 2026
+Pack shot = height of the promotional text. Classic white layouts are unchanged (checked pixel-for-pixel
+against v35), and so are the cards with the pack shot above the text (POS 4 Across, Portrait TV Hero).
+- **On every side-by-side clean card, the product is exactly as tall as the text block**, from the
+  brand line down to the WAS / RRP line, and centred on it. Bottles, tubs, bags and double boxes all
+  line up the same way. The measurement uses the product itself, not the photo's empty space.
+  Cards of the same size have the same text height, so their pack shots match too.
+- The photo column is a little wider (+4% of the card) so wide products (bags, tubs, double boxes)
+  can reach the text height. Prices shrink slightly where they need the room: about 5% on POS 4-Up,
+  up to 10% on the widest prices in TV 3 Rows.
+- The red SAVE circle no longer reserves space in the photo column. It sits on the product's top-right
+  shoulder.
+- **Image fine-tune** still works on top: 110% makes that product 10% taller than its text.
+- A very wide product that can't reach the text height even in the wider column is centred on the text.
 
 ## v35 — 28 Sep 2026
 Balanced clean cards. Classic white layouts are unchanged (checked pixel-for-pixel against v34.1).
