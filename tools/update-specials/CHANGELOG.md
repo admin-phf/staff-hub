@@ -16,7 +16,7 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 
 1. In GitHub Desktop, check that **Current branch** says **main**, then click **Fetch origin** / **Pull origin**.
 2. Copy the new `index.html` and `CHANGELOG.md` into `tools/update-specials/`, replacing the old ones.
-3. Type the summary (e.g. `v36 – pack shot matches text height`), click **Commit to main**, then **Push origin**.
+3. Type the summary (e.g. `v38 – balanced classic layouts + brand letters`), click **Commit to main**, then **Push origin**.
 4. After 1–2 minutes, open the tool and press **Ctrl+Shift+R**. The top right shows the new version.
    Screens already open show *"Version x is now live… Refresh"* within about 20 minutes.
 5. **Need an old version back?** On GitHub, open `tools/update-specials/index.html` → **History**,
@@ -27,6 +27,51 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 It isn't needed day to day.)
 
 ---
+
+## v38 — 29 Sep 2026
+The classic white layouts now get the same balance as the clean cards. Their look is kept: capitals
+brand, grey name, small green pill, big price with raised cents.
+- **Brand letters** (Card options, remembered on each device): Standard · Title Case · CAPITALS · As typed.
+  - Applies to every layout.
+  - Standard keeps what you had: clean cards in Title Case, classic layouts in CAPITALS.
+  - A Brand on slide is shown exactly as typed in Standard and As typed. It now shows on the classic
+    layouts too.
+- **Green line under the price: 2.5px** on POS, scaled up on larger layouts.
+- **Classic layouts**
+  - **Deals read like prices.** The offer goes in the pill and the big line is the price or the reward:
+    - `BUY 2 FOR $145.00` → pill **BUY 2 FOR** and **$145.00** in the big price style.
+    - `BUY 2, GET 1 FREE` → pill **BUY 2** and **GET 1 FREE**.
+    - Other wording, such as `30% OFF RRP` or `SINGLE $4.95 / BOX 12 $53.45`, keeps the SPECIAL pill.
+      The wording is made as large as fits, on up to two lines.
+  - The red circle is kept for savings only. Deal wording no longer repeats in it.
+  - **RRP shows** under the price when there's no WAS (`RRP $x`, or `RRP $x EACH` on a multi-buy).
+    It follows Show RRP.
+  - **Text rows sit level.** Cards of the same size share the same height for the brand, the name, the
+    pill, the price and the WAS / RRP line, so every row lines up across the slide. In very tight
+    cells (6-Grid) a row is left as it was rather than squeezing the pack shot.
+  - **2×2 Feature: each pack shot is the height of its text**, like the clean cards.
+  - Single, 2-Product, Hero + pick and 6-Grid Split keep their big pack shots, filling the space. Their
+    text is much shorter than the photo area, so matching it would make the products small.
+  - The SAVE circle sits on the product's top-right shoulder, and the side-by-side layouts no longer
+    reserve empty space for it.
+  - Pack shots use the better background detection and can be enlarged further when a photo has lots
+    of empty space.
+  - Grid Cards: the pill sits above the price, as on every other layout.
+- **Pop pack shots** now applies to every layout (it's in the same tick box).
+- **Show RRP** now applies to every layout.
+
+## v37 — 28 Sep 2026
+Clean cards only. Classic white layouts are unchanged.
+- **The green line under the price is a little thicker:** 2px on POS (was 1.5px), scaling up on TV.
+- **Brand on slide** (optional): a new field under **Brand** in each product card. Whatever you type
+  is shown on the card exactly as typed, e.g. `BioCeuticals`, `PRANA ON`, `Herbs of Gold`. Leave it
+  blank to use the sheet brand; brands typed in ALL CAPS are still shown in title case.
+  - Sheet column: `brand_on_slide` (`slide_brand`, `display_brand` and `brand_display` also work).
+    If you use the Apps Script feed, add the column to what it publishes.
+  - The placeholder in the field shows what the card will say if you leave it blank.
+  - The sheet **Brand** still finds the photo file (`images/BRAND_Product.png`), so changing how the
+    brand looks never breaks a photo.
+  - It's also used in Copy text and the email text.
 
 ## v36 — 28 Sep 2026
 Pack shot = height of the promotional text. Classic white layouts are unchanged (checked pixel-for-pixel
