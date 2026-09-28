@@ -2385,6 +2385,7 @@
         <label class="fo-select" title="Every card reserves the same space for the product name. Longer names are abbreviated or shortened (size always kept).">Product name
           <select id="optNameLines"><option value="1">1 line</option><option value="2">2 lines</option></select>
         </label>
+        <label class="auto-balance-toggle" title="Gently lifts colour, contrast and crispness of pack shots on clean cards. Included in PNG exports. Classic white layouts are untouched."><input type="checkbox" id="optPop" checked> Pop pack shots</label>
         <label class="auto-balance-toggle" title="TGA mandatory statement. Not required for picture + price ads with no health claims, but cheap insurance."><input type="checkbox" id="optLabel" checked> Label statement</label>
         <label class="auto-balance-toggle" title="Turn off if you can't show the RRP is genuinely charged by other retailers."><input type="checkbox" id="optRRP" checked> Show RRP</label>
         <label class="fo-select">Prices apply
@@ -2485,7 +2486,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='33.1';
+const APP_VERSION='34';
 const APP_DATE='2026-09-28';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -2619,7 +2620,7 @@ const S={layout:'two', page:0, title:'',
   lastLoaded:null,
   zoom:'fit',
   channel:'pos',
-  optLabel:true,optRRP:true,optScope:'',showUpcoming:false,nameLines:2};  // v28 footer / offer-date options  // v26: POS screen · Portrait TV · Email · Social · Web banner   // preview only: 'fit' scales to the panel, 'actual' shows real canvas pixels
+  optLabel:true,optRRP:true,optScope:'',showUpcoming:false,nameLines:2,optPop:true};  // v28 footer / offer-date options  // v26: POS screen · Portrait TV · Email · Social · Web banner   // preview only: 'fit' scales to the panel, 'actual' shows real canvas pixels
 
 const SAMPLE=[
   {brand:'MELROSE',name:'Essential Greens 200g',now:'24.95',disc:'was',dv:'29.95',rrp:'29.95',img:'',scale:'100'},
@@ -2937,6 +2938,15 @@ const AUTO_MAX_SCALE=2.35;       // extreme padded canvases can still be correct
 const AUTO_FINAL_MAX=2.35;       // absolute transform limit
 const AUTO_SAMPLE_MAX=420;       // finer analysis for shadows / JPEG edge noise
 const AUTO_BG_DISTANCE=40;       // tolerant of off-white/light-grey studio backgrounds
+/* v34 clean cards only (classic white layouts keep the values above) */
+const CLEAN_AUTO_MAX=6;          // padded photos can be enlarged further on clean cards…
+const CLEAN_QUALITY_UPSCALE=1.7; // …but never beyond 1.7× the photo's own pixels in the 2× PNG
+const AUTO_STRICT_STEP=26;       // background search may not jump a visible edge (grey studio backdrops)
+const AUTO_STRICT_CORE=14;       // pixels this close to the backdrop colour are always backdrop
+const PACK_BALANCE_MIN=.88;      // optical balance: a pack shot is never reduced by more than 12%
+const PACK_SMALL_FILL=.72;       // warn when a pack shot fills less than 72% of its space
+const POP_CACHE=new Map(),POP_ORIGINAL=new Map(),POP_BUSY=new Map(),POP_FAILED=new Set();
+var PACK_NOTES=new Map();        // var: safe to read before this line runs
 
 function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
 function imageSourceKey(img){return String(img.currentSrc||img.src||'');}
@@ -2979,13 +2989,15 @@ function median(arr){
   const m=Math.floor(arr.length/2);
   return arr.length%2?arr[m]:(arr[m-1]+arr[m])/2;
 }
-function analyseReadableImage(source){
+function analyseReadableImage(source,strict=false){
   const nw=source.naturalWidth||source.width,nh=source.naturalHeight||source.height;
   if(!nw||!nh)return null;
   const ratio=Math.min(1,AUTO_SAMPLE_MAX/Math.max(nw,nh));
   const w=Math.max(8,Math.round(nw*ratio)),h=Math.max(8,Math.round(nh*ratio));
   const c=document.createElement('canvas');c.width=w;c.height=h;
   const ctx=c.getContext('2d',{willReadFrequently:true});
+  // v34 strict: smooth downsizing keeps thin product outlines visible to the search
+  if(strict){ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';}
   ctx.clearRect(0,0,w,h);ctx.drawImage(source,0,0,w,h);
   let px;
   try{px=ctx.getImageData(0,0,w,h).data;}catch(e){return null;}
@@ -2994,8 +3006,9 @@ function analyseReadableImage(source){
   // to logos/shadows that happen to touch one corner.
   const rs=[],gs=[],bs=[];
   const edge=Math.max(2,Math.min(8,Math.floor(Math.min(w,h)*.025)));
+  let sampAll=0;
   const sample=(x,y)=>{
-    const i=(y*w+x)*4,a=px[i+3];
+    const i=(y*w+x)*4,a=px[i+3];sampAll++;
     if(a<20)return;
     rs.push(px[i]);gs.push(px[i+1]);bs.push(px[i+2]);
   };
@@ -3009,6 +3022,9 @@ function analyseReadableImage(source){
   }
   const bg=[median(rs),median(gs),median(bs)];
   const bgBright=(bg[0]+bg[1]+bg[2])/3;
+  // v34 strict (clean cards): a cut-out photo on a clear background uses transparency only,
+  // so white caps and boxes are never mistaken for background.
+  const clearBg=strict&&rs.length<sampAll*.25;
 
   // Mark only background-looking pixels connected to the outer edge.
   // This is safer than deleting every white pixel because many supplements
@@ -3018,22 +3034,34 @@ function analyseReadableImage(source){
   const isBg=(x,y)=>{
     const i=(y*w+x)*4,a=px[i+3];
     if(a<22)return true;
+    if(clearBg)return false;
     const r=px[i],g=px[i+1],b=px[i+2];
     const bright=(r+g+b)/3;
     const nearWhite=r>240&&g>240&&b>240;
     const close=rgbaDistance(r,g,b,bg)<AUTO_BG_DISTANCE && Math.abs(bright-bgBright)<34;
     return nearWhite||close;
   };
-  const push=(x,y)=>{
+  // v34 strict: the search may only spread across smooth changes. A grey or vignetted studio
+  // backdrop changes gradually; the edge of a pack shot is a sudden step, so the search stops there
+  // instead of leaking into a white bottle body (which made the product look smaller than it is).
+  const smoothStep=(i,j)=>{
+    if(px[i+3]<22)return true;
+    if(rgbaDistance(px[i],px[i+1],px[i+2],bg)<AUTO_STRICT_CORE)return true;
+    if(px[j+3]<22)return false;
+    const dr=px[i]-px[j],dg=px[i+1]-px[j+1],db=px[i+2]-px[j+2];
+    return Math.sqrt(dr*dr+dg*dg+db*db)<AUTO_STRICT_STEP;
+  };
+  const push=(x,y,from=-1)=>{
     if(x<0||y<0||x>=w||y>=h)return;
     const k=y*w+x;if(seen[k]||!isBg(x,y))return;
+    if(strict&&from>=0&&!smoothStep(k*4,from))return;
     seen[k]=1;qx[qt]=x;qy[qt]=y;qt++;
   };
   for(let x=0;x<w;x++){push(x,0);push(x,h-1);}
   for(let y=0;y<h;y++){push(0,y);push(w-1,y);}
   while(qh<qt){
-    const x=qx[qh],y=qy[qh];qh++;
-    push(x-1,y);push(x+1,y);push(x,y-1);push(x,y+1);
+    const x=qx[qh],y=qy[qh],f=(y*w+x)*4;qh++;
+    push(x-1,y,f);push(x+1,y,f);push(x,y-1,f);push(x,y+1,f);
   }
 
   // Count content by row/column and ignore isolated dust/shadow specks.
@@ -3075,20 +3103,22 @@ function analyseReadableImage(source){
     aspect:bw/bh, area:(bw*bh)/(w*h)
   };
 }
-async function getImageAnalysis(img){
-  const key=imageSourceKey(img);if(!key)return null;
+async function getImageAnalysis(img,strict=false){
+  // v34: a 'popped' copy shares the analysis of the photo it was made from.
+  const src=popSourceOf(imageSourceKey(img));if(!src)return null;
+  const key=(strict?'strict|':'')+src;
   if(AUTO_ANALYSIS_CACHE.has(key))return AUTO_ANALYSIS_CACHE.get(key);
 
   let analysis=null;
   // First attempt the image already on screen. Same-origin/local/data images
   // take this fast path.
-  try{analysis=analyseReadableImage(img);}catch(e){analysis=null;}
+  try{analysis=analyseReadableImage(img,strict);}catch(e){analysis=null;}
 
   // A remote image may have tainted the first canvas. Try a dedicated CORS
   // analysis image without changing the image the customer actually sees.
-  if(!analysis&&isRemoteURL(key)){
-    const copy=await corsAnalysisCopy(key);
-    if(copy)try{analysis=analyseReadableImage(copy);}catch(e){analysis=null;}
+  if(!analysis&&isRemoteURL(src)){
+    const copy=await corsAnalysisCopy(src);
+    if(copy)try{analysis=analyseReadableImage(copy,strict);}catch(e){analysis=null;}
   }
   AUTO_ANALYSIS_CACHE.set(key,analysis||false);
   return analysis||null;
@@ -3097,6 +3127,15 @@ function expandDetectedBounds(a){
   if(!a)return a;
   const hx=Math.max(AUTO_DETECT_HALO,Math.min(.055,a.w*.045));
   const hy=Math.max(AUTO_DETECT_HALO,Math.min(.055,a.h*.045));
+  const x=Math.max(0,a.x-hx),y=Math.max(0,a.y-hy);
+  const r=Math.min(1,a.x+a.w+hx),b=Math.min(1,a.y+a.h+hy);
+  return {...a,x,y,w:Math.max(.01,r-x),h:Math.max(.01,b-y),cx:(x+r)/2,cy:(y+b)/2};
+}
+/* v34 clean cards: the safety margin follows the product's own size (6% each side, at least 1.2% of
+   the photo) instead of a fixed 3% of the photo, which held heavily padded pack shots back. */
+function expandStrictBounds(a){
+  if(!a)return a;
+  const hx=Math.max(.012,Math.min(.055,a.w*.06)),hy=Math.max(.012,Math.min(.055,a.h*.06));
   const x=Math.max(0,a.x-hx),y=Math.max(0,a.y-hy);
   const r=Math.min(1,a.x+a.w+hx),b=Math.min(1,a.y+a.h+hy);
   return {...a,x,y,w:Math.max(.01,r-x),h:Math.max(.01,b-y),cx:(x+r)/2,cy:(y+b)/2};
@@ -3112,12 +3151,15 @@ function resetAutoBalance(img){
 }
 async function balanceOneImage(img){
   if(!img||!img.isConnected)return;
+  img._bal=null;   // v34: geometry for the optical balance (set again below)
   const ok=await waitImage(img);
   if(!img.isConnected)return;
   if(!ok||!img.naturalWidth){resetAutoBalance(img);return;}
+  if(popWanted(img))schedulePop(img);   // v34: gentle pop, made in the background
   if(!S.autoBalance){resetAutoBalance(img);return;}
 
-  const rawAnalysis=await getImageAnalysis(img);
+  const inClean=!!img.closest('.cl-card');   // v34: clean cards use strict detection + more reach
+  const rawAnalysis=await getImageAnalysis(img,inClean);
   if(!rawAnalysis){resetAutoBalance(img);return;}
   // v27: remember where the product sits inside the photo (fractions of the image).
   img.dataset.bounds=[rawAnalysis.x,rawAnalysis.y,rawAnalysis.w,rawAnalysis.h].map(v=>(+v||0).toFixed(4)).join(',');
@@ -3125,7 +3167,7 @@ async function balanceOneImage(img){
   // Expand the detected product bounds before calculating scale. This small
   // halo is deliberate: pale bottle caps, white cartons and faint shadows are
   // the hardest pixels to distinguish from a white source background.
-  const a=expandDetectedBounds(rawAnalysis);
+  const a=inClean?expandStrictBounds(rawAnalysis):expandDetectedBounds(rawAnalysis);   // v34
 
   const slot=img.closest('.imgslot');
   if(!slot){resetAutoBalance(img);return;}
@@ -3135,6 +3177,13 @@ async function balanceOneImage(img){
   const baseW=Math.max(1,img.offsetWidth),baseH=Math.max(1,img.offsetHeight);
   const visibleW=Math.max(1,baseW*a.w),visibleH=Math.max(1,baseH*a.h);
   const contentAspect=visibleW/visibleH;
+  // v34: on clean cards a padded photo may be enlarged up to 4.5× (was 2.35×), limited by the
+  // photo's own resolution so it never looks soft in the 2× PNG. Classic layouts keep 2.35×.
+  let maxS=AUTO_MAX_SCALE,finalMax=AUTO_FINAL_MAX;
+  if(inClean){
+    const q=(img.naturalHeight*CLEAN_QUALITY_UPSCALE)/(baseH*EXPORT_SCALE);
+    maxS=Math.max(AUTO_MAX_SCALE,Math.min(CLEAN_AUTO_MAX,q));finalMax=maxS;
+  }
 
   // Give wide multi-pack/range composites a wider physical image zone in split
   // layouts instead of zooming until their left/right edges disappear.
@@ -3161,11 +3210,11 @@ async function balanceOneImage(img){
   if(occupancy<.34)massBoost*=1.07;
   if(occupancy<.20)massBoost*=1.05;
   if(contentAspect>1.75)massBoost*=1.025;
-  auto=clamp(auto*massBoost,AUTO_MIN_SCALE,AUTO_MAX_SCALE);
+  auto=clamp(auto*massBoost,AUTO_MIN_SCALE,maxS);
 
   const manual=clamp(parseFloat(img.dataset.manualScale||'1')||1,.70,2);
-  const desired=clamp(auto*manual,.70,AUTO_FINAL_MAX);
-  const finalScale=clamp(Math.min(desired,safeScale),.70,AUTO_FINAL_MAX);
+  const desired=clamp(auto*manual,.70,finalMax);
+  const finalScale=clamp(Math.min(desired,safeScale),.70,finalMax);
   const safeLimited=desired>safeScale+.005;
 
   // Re-centre against the expanded protected bounds, not the aggressively
@@ -3190,6 +3239,8 @@ async function balanceOneImage(img){
   img.dataset.autoScale=auto.toFixed(3);
   img.dataset.safeScale=safeScale.toFixed(3);
   img.dataset.safeLimited=safeLimited?'1':'0';
+  if(inClean)img._bal={a,visW:baseW*rawAnalysis.w,visH:baseH*rawAnalysis.h,baseW,baseH,availW:availW2,availH:availH2,
+    safeScale,maxS:finalMax,base:finalScale,scale:finalScale,manual,capped:fitScale*massBoost>finalMax+.005};
 }
 async function applyAutoBalance(root=document){
   const sl0=root&&root.id==='slide'?root:document.getElementById('slide');
@@ -3198,6 +3249,7 @@ async function applyAutoBalance(root=document){
   await Promise.all(imgs.map(balanceOneImage));
   const sl=root&&root.id==='slide'?root:document.getElementById('slide');
   if(sl&&sl.querySelector('.po'))fitOffers(sl);
+  if(sl){if(sl.querySelector('.cl-card'))harmonisePackShots(sl);notePackShots(sl);}   // v34
   if(sl)placeSaveCircles(sl);
 }
 /* v27: tuck each red SAVE circle over the top-right corner of the visible pack shot
@@ -3231,11 +3283,154 @@ function placeSaveCircles(root){
     st.style.right='auto';st.style.left=L.toFixed(1)+'px';st.style.top=T.toFixed(1)+'px';
   });
 }
+/* ---------- v34 pack shots on clean cards ----------
+   1. Optical balance: cards of the same size are compared by how big each product actually looks
+      (the area of the visible pack, not the photo). A product that looks clearly bigger than the
+      others is eased back (at most 12%); a smaller one may grow as far as its space safely allows.
+      Photos with a Fine-tune setting, and photos too small to fill their space, are left alone.
+   2. Notes for staff: a clean-card pack shot that couldn't be read, or still fills less than 72% of
+      its space, gets a warning in the status bar with what to do.
+   3. Pop pack shots: a gentle lift of colour (vibrance), contrast and crispness, made once per photo
+      in the background and baked into the pixels, so the PNG export matches the preview.
+      Black and white stay put (nothing clips); transparency is kept. Classic layouts never use it. */
+function applyBalancedScale(img,s){
+  const b=img._bal;if(!b)return;const a=b.a;
+  const idealShiftX=-(a.cx-.5)*b.baseW*s,idealShiftY=-(a.cy-.5)*b.baseH*s;
+  const safeHalfW=b.availW*AUTO_SAFE_FILL/2,safeHalfH=b.availH*AUTO_SAFE_FILL/2;
+  const left=(a.x-.5)*b.baseW*s,right=(a.x+a.w-.5)*b.baseW*s;
+  const top=(a.y-.5)*b.baseH*s,bottom=(a.y+a.h-.5)*b.baseH*s;
+  const minShiftX=-safeHalfW-left,maxShiftX=safeHalfW-right;
+  const minShiftY=-safeHalfH-top,maxShiftY=safeHalfH-bottom;
+  const shiftX=minShiftX<=maxShiftX?clamp(idealShiftX,minShiftX,maxShiftX):0;
+  const shiftY=minShiftY<=maxShiftY?clamp(idealShiftY,minShiftY,maxShiftY):0;
+  img.style.setProperty('--img-scale',s.toFixed(4));
+  img.style.setProperty('--img-shift-x',shiftX.toFixed(2)+'px');
+  img.style.setProperty('--img-shift-y',shiftY.toFixed(2)+'px');
+  b.scale=s;
+}
+function harmonisePackShots(slide){
+  const groups=[];
+  slide.querySelectorAll('.cl-card .imgslot img').forEach(im=>{
+    const b=im._bal;if(!b||im.dataset.autoStatus!=='balanced-safe')return;
+    if(b.scale!==b.base)applyBalancedScale(im,b.base);   // start from the plain fit every time
+    if(Math.abs(b.manual-1)>.001||b.capped)return;
+    const card=im.closest('.cl-card'),w=card.offsetWidth,hh=card.offsetHeight;
+    let g=groups.find(x=>Math.abs(x.w-w)<=3&&Math.abs(x.h-hh)<=3);
+    if(!g){g={w,h:hh,list:[]};groups.push(g);}
+    g.list.push(im);
+  });
+  const look=im=>{const b=im._bal;return Math.sqrt(b.visW*b.visH)*b.base;};
+  groups.forEach(g=>{
+    if(g.list.length<2)return;
+    const med=median(g.list.map(look));
+    g.list.forEach(im=>{
+      const b=im._bal,m=look(im);if(!(m>0)||!(med>0))return;
+      const f=clamp(Math.sqrt(med/m),PACK_BALANCE_MIN,1.12);
+      const s=clamp(Math.min(b.base*f,b.safeScale,b.maxS),.70,b.maxS);
+      if(Math.abs(s-b.base)>.004)applyBalancedScale(im,s);
+    });
+  });
+}
+function notePackShots(slide){
+  const before=JSON.stringify([...PACK_NOTES]);
+  PACK_NOTES.clear();
+  if(S.autoBalance)slide.querySelectorAll('.cl-card .imgslot img').forEach(im=>{
+    const key=im.dataset.productKey;if(!key||!im.naturalWidth)return;
+    if(Math.abs((parseFloat(im.dataset.manualScale||'1')||1)-1)>.001)return;   // staff already fine-tuned it
+    if(im.dataset.autoStatus==='fallback'){PACK_NOTES.set(key,'unread');return;}
+    const b=im._bal;if(!b)return;
+    const fill=Math.max(b.visW*b.scale/b.availW,b.visH*b.scale/b.availH);
+    if(fill<PACK_SMALL_FILL)PACK_NOTES.set(key,'small');
+  });
+  if(JSON.stringify([...PACK_NOTES])!==before&&typeof updateValidation==='function')updateValidation();
+}
+
+const POP_MAX=2400,POP_VIBRANCE=.16,POP_S=.12,POP_CLARITY=.35;
+function absURL(u){try{return new URL(u,location.href).href;}catch(e){return String(u||'');}}
+function popSourceOf(u){return POP_ORIGINAL.get(u)||u;}
+function popWanted(img){return !!(S.optPop&&img&&img.closest&&img.closest('.cl-card'));}
+function popCurve(){   // gentle S: ≈ +6% midtone contrast; black and white stay put, so nothing clips
+  const lut=new Uint8ClampedArray(256);
+  for(let x=0;x<256;x++){const t=x/255;lut[x]=Math.round(255*(t+POP_S*t*(1-t)*(2*t-1)));}
+  return lut;
+}
+function popPixels(d,w,h){
+  const src=new Uint8ClampedArray(d),row=w*4,lut=popCurve(),ix=v=>v<0?0:v>255?255:Math.round(v);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const i=y*row+x*4;if(src[i+3]<8)continue;
+    let r=src[i],g=src[i+1],b=src[i+2];
+    // crispness: a light unsharp mask (skipped next to transparent edges, so no dark halos)
+    if(x>0&&y>0&&x<w-1&&y<h-1&&src[i+3]>250&&src[i-4+3]>250&&src[i+4+3]>250&&src[i-row+3]>250&&src[i+row+3]>250){
+      r+=POP_CLARITY*(r-(src[i-4]+src[i+4]+src[i-row]+src[i+row])/4);
+      g+=POP_CLARITY*(g-(src[i-3]+src[i+5]+src[i-row+1]+src[i+row+1])/4);
+      b+=POP_CLARITY*(b-(src[i-2]+src[i+6]+src[i-row+2]+src[i+row+2])/4);
+    }
+    // tone: gentle contrast
+    r=lut[ix(r)];g=lut[ix(g)];b=lut[ix(b)];
+    // vibrance: lifts muted colours most and leaves already-strong colours nearly alone
+    const hi=Math.max(r,g,b),lo=Math.min(r,g,b),sat=(hi-lo)/255;
+    const L=.299*r+.587*g+.114*b,f=1+POP_VIBRANCE*(1-sat);
+    d[i]=L+(r-L)*f;d[i+1]=L+(g-L)*f;d[i+2]=L+(b-L)*f;
+  }
+}
+async function makePopVersion(img,src){
+  try{
+    const nw=img.naturalWidth,nh=img.naturalHeight;if(!nw||!nh)return null;
+    const r=Math.min(1,POP_MAX/Math.max(nw,nh)),w=Math.max(1,Math.round(nw*r)),h=Math.max(1,Math.round(nh*r));
+    const grab=source=>{   // a fresh canvas each time: a blocked photo 'taints' the canvas it touches
+      const c=document.createElement('canvas');c.width=w;c.height=h;
+      const ctx=c.getContext('2d',{willReadFrequently:true});ctx.drawImage(source,0,0,w,h);
+      try{return {c,ctx,data:ctx.getImageData(0,0,w,h)};}catch(e){return null;}
+    };
+    let g=grab(img);
+    if(!g&&isRemoteURL(src)){const copy=await corsAnalysisCopy(src);if(copy)g=grab(copy);}
+    if(!g)return null;   // the photo's website blocks reading it: shown as it is
+    await new Promise(res=>setTimeout(res,0));
+    popPixels(g.data.data,w,h);
+    g.ctx.putImageData(g.data,0,0);
+    const blob=await new Promise(res=>g.c.toBlob(res,'image/png'));
+    return blob?URL.createObjectURL(blob):null;
+  }catch(e){return null;}
+}
+function schedulePop(img){
+  const src=img.currentSrc||img.src;
+  if(!src||POP_ORIGINAL.has(src)||POP_FAILED.has(src))return;
+  if(POP_CACHE.has(src)){swapToPop(img,src);return;}
+  let job=POP_BUSY.get(src);
+  if(!job){
+    job=makePopVersion(img,src).then(u=>{
+      if(u){POP_CACHE.set(src,u);POP_ORIGINAL.set(u,src);}else POP_FAILED.add(src);
+      POP_BUSY.delete(src);return u;
+    });
+    POP_BUSY.set(src,job);
+  }
+  job.then(u=>{if(u)swapToPop(img,src);});
+}
+function swapToPop(img,src){
+  if(!img.isConnected||!popWanted(img)||(img.currentSrc||img.src)!==src)return;
+  const u=POP_CACHE.get(src);if(!u)return;
+  img.dataset.popOf=src;img.src=u;   // the load event re-balances the slide
+}
+/* Export: finish any pop still being made, so the PNG always matches the preview. */
+async function settlePop(root){
+  let changed=false;
+  for(let k=0;k<3;k++){
+    const busy=[...root.querySelectorAll('.cl-card .imgslot img')].map(im=>POP_BUSY.get(im.currentSrc||im.src)).filter(Boolean);
+    const stale=[...root.querySelectorAll('.cl-card .imgslot img')].filter(im=>popWanted(im)&&POP_CACHE.has(im.currentSrc||im.src));
+    if(!busy.length&&!stale.length)break;
+    changed=true;
+    await Promise.all(busy);
+    stale.forEach(im=>swapToPop(im,im.currentSrc||im.src));
+    await new Promise(res=>setTimeout(res,20));
+    await waitForImages(root);
+  }
+  return changed;
+}
 function scheduleAutoBalance(root=document){
   requestAnimationFrame(()=>requestAnimationFrame(()=>{applyAutoBalance(root);}));
 }
 
-function img(p){
+function img(p,opts={}){
   const candidates=imageCandidates(p);
   const key=productKey(p);
   if(!candidates.length){
@@ -3245,7 +3440,10 @@ function img(p){
   const url=candidates[0].url;
   const manual=(imageScale(p)/100).toFixed(2);
   const encoded=encodeURIComponent(JSON.stringify(candidates));
-  return `<div class="imgslot"><img src="${ha(url)}" data-product-key="${ha(key)}" data-image-candidates="${ha(encoded)}" data-candidate-index="0" data-manual-scale="${manual}" data-auto-status="pending" style="--img-scale:${manual};--img-shift-x:0px;--img-shift-y:0px" onload="handleImageLoad(this)" onerror="handleImageError(this)"></div>`;
+  // v34: clean cards show the ready-made 'popped' copy straight away (no flicker on re-render)
+  let show=url;
+  if(opts.pop&&S.optPop){const u=POP_CACHE.get(absURL(url));if(u)show=u;}
+  return `<div class="imgslot"><img src="${ha(show)}" data-product-key="${ha(key)}" data-image-candidates="${ha(encoded)}" data-candidate-index="0" data-manual-scale="${manual}" data-auto-status="pending" style="--img-scale:${manual};--img-shift-x:0px;--img-shift-y:0px" onload="handleImageLoad(this)" onerror="handleImageError(this)"></div>`;
 }
 function imgStamped(p){
   const badge=stampHTML(p);
@@ -3401,6 +3599,9 @@ function validateProducts(){
     const health=IMAGE_HEALTH.get(productKey(p));
     if(health&&health.status==='failed')errors.push(`Product ${n}: image failed`);
     else if(health&&health.status==='risk')warnings.push(`Product ${n}: image may be blocked in PNG export`);
+    const pn=PACK_NOTES.get(productKey(p));
+    if(pn==='unread')warnings.push(health&&health.status==='risk'?`Product ${n}: its website blocks the photo, so the pack shot can't be auto-sized either — save the photo in images/`:`Product ${n}: pack shot couldn't be auto-sized (busy or dark photo background) — use Image fine-tune, or a photo on plain white`);
+    if(pn==='small')warnings.push(`Product ${n}: pack shot looks small (small photo or lots of empty space) — use a bigger or tighter-cropped photo, or Image fine-tune`);
   });
   return {errors:[...new Set(errors)],warnings:[...new Set(warnings)],count:rows.length};
 }
@@ -3905,7 +4106,7 @@ function cleanCard(p,extra='',cfg={}){
   // The red circle carries the saving, so the green line under the price shows only WAS / RRP.
   // Stacked cards (pack shot above the text) drop the vertical divider.
   const stamp=cleanSaveCircle(p);
-  return `<div class="${cls}"${mi}><div class="imgwrap${stamp?' has-save':''}">${img(p)}${stamp}</div><div class="cl-info">${offerBlock(p,{divided:!stack,noSave:!!stamp,ends:true})}</div></div>`;
+  return `<div class="${cls}"${mi}><div class="imgwrap${stamp?' has-save':''}">${img(p,{pop:true})}${stamp}</div><div class="cl-info">${offerBlock(p,{divided:!stack,noSave:!!stamp,ends:true})}</div></div>`;
 }
 function cleanHeader(cfg){
   const title=String(S.title||'').trim()?titleInline():'CURRENT SPECIALS';
@@ -4160,6 +4361,9 @@ document.getElementById('autoBalanceToggle').addEventListener('change',e=>{
   S.nameLines=get('phf_name_lines','2')==='1'?1:2;
   const NL=document.getElementById('optNameLines');NL.value=String(S.nameLines);
   NL.onchange=()=>{S.nameLines=NL.value==='1'?1:2;put('phf_name_lines',String(S.nameLines));render(false);};
+  S.optPop=get('phf_opt_pop','on')!=='off';
+  const PP=document.getElementById('optPop');PP.checked=S.optPop;
+  PP.onchange=()=>{S.optPop=PP.checked;put('phf_opt_pop',PP.checked?'on':'off');render(false);};
   const L=document.getElementById('optLabel'),R=document.getElementById('optRRP'),Sc=document.getElementById('optScope'),U=document.getElementById('upcomingToggle');
   L.checked=S.optLabel;R.checked=S.optRRP;Sc.value=S.optScope;U.checked=S.showUpcoming;
   L.onchange=()=>{S.optLabel=L.checked;put('phf_opt_label',L.checked?'on':'off');render(false);};
@@ -4507,6 +4711,7 @@ async function captureCurrentPage(scale=EXPORT_SCALE){
   await waitForImages(s);
   if(document.fonts&&document.fonts.ready){try{await document.fonts.ready;}catch(e){}}
   await applyAutoBalance(s);
+  if(await settlePop(s))await applyAutoBalance(s);   // v34: the PNG gets the same popped pack shots
   if(s.querySelector('.po'))fitOffers(s);
   // Export from html2canvas' private copy of the page: the copied slide is
   // un-scaled and lifted out of the preview frame, so the on-screen zoom,

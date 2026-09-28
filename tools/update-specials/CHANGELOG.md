@@ -16,7 +16,7 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 
 1. In GitHub Desktop, check that **Current branch** says **main**, then click **Fetch origin** / **Pull origin**.
 2. Copy the new `index.html` and `CHANGELOG.md` into `tools/update-specials/`, replacing the old ones.
-3. Type the summary (e.g. `v33.1 – design review PDF`), click **Commit to main**, then **Push origin**.
+3. Type the summary (e.g. `v34 – pack shots auto-sized + pop`), click **Commit to main**, then **Push origin**.
 4. After 1–2 minutes, open the tool and press **Ctrl+Shift+R**. The top right shows the new version.
    Screens already open show *"Version x is now live… Refresh"* within about 20 minutes.
 5. **Need an old version back?** On GitHub, open `tools/update-specials/index.html` → **History**,
@@ -27,6 +27,28 @@ Keep in this folder: `index.html`, `CHANGELOG.md`, and the product photo folders
 It isn't needed day to day.)
 
 ---
+
+## v34 — 28 Sep 2026
+Pack shots on clean cards. Classic white layouts are unchanged (checked pixel-for-pixel against v33.1).
+- **Auto-size reaches further.** A photo with a lot of empty space around the product can now be
+  enlarged up to 6× (was 2.35×), so it fills its space like the others. The limit is set by the
+  photo's own resolution, so an enlarged pack shot never looks soft in the PNG.
+- **Better background detection** for photos on grey or vignetted studio backdrops. The product's
+  own outline stops the search, so a white bottle is no longer mistaken for background.
+  Transparent cut-out photos use their transparency only.
+- **Optical balance:** cards of the same size are compared by how big each product actually looks.
+  A product that looks clearly bigger than its neighbours (e.g. a tall bottle next to a flat box) is
+  eased back by up to 12%. Photos with an Image fine-tune setting are left exactly as set.
+- The red SAVE circle follows the enlarged product, so it no longer floats in empty space.
+- **Pop pack shots** (Clean-card options, on by default, remembered on each device): a gentle lift
+  of colour, contrast and crispness. It's built into the image itself, so the PNG export and the
+  design review PDF match the preview. Black and white stay put, and transparent photos stay transparent.
+- **New warnings:**
+  - "pack shot looks small": the photo is too small, or has too much empty space, to fill its space.
+    Use a bigger or tighter-cropped photo, or Image fine-tune.
+  - "its website blocks the photo, so the pack shot can't be auto-sized": save the photo in `images/`.
+  - "pack shot couldn't be auto-sized": the photo's background is busy or dark. Use Image fine-tune,
+    or a photo on plain white.
 
 ## v33.1 — 28 Sep 2026
 Tooling only. Exported slides are unchanged.
