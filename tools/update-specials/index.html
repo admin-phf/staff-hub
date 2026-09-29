@@ -2410,41 +2410,55 @@
   .l-four .body.partial-1,.l-four .body.partial-2,.l-gridcards .body.partial-1,.l-gridcards .body.partial-2,
   .l-feature .body.partial-1,.l-feature .body.partial-2{align-content:center!important;justify-content:center!important}
 
-  /* ---------- v42.1 optional product metadata ----------
-     These blocks are emitted only when their source fields are populated, so existing products retain
-     the v42 card anatomy unchanged. The sizing is relative to each offer block and participates in fitOffers. */
-  .slide .po-meta{width:100%;min-width:0;margin:0 0 .28em}
-  /* Product Form Pill / Tag */
-  .slide .po-form {
-    font-size: 0.28em;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: var(--po-green);
-    letter-spacing: 0.05em;
-    margin-bottom: 0.2em;
+  /* ---------- v43 adaptive product metadata ----------
+     Product education is useful, but it must never overpower the pack shot or offer. Metadata now has
+     a universal density ladder based on the actual card geometry: full -> medium -> compact -> minimal.
+     Spacious hero cards can show the complete story; tighter multi-product cards automatically reduce
+     secondary copy before the core brand / product / price hierarchy is allowed to shrink. */
+  .slide .po-meta{width:100%;min-width:0;margin:0 0 .20em;overflow:hidden}
+  .slide .po-form{
+    font-size:.20em;font-weight:800;text-transform:uppercase;color:var(--po-green);letter-spacing:.055em;
+    line-height:1.1;margin:0 0 .13em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
   }
+  .slide .po-feature-head{
+    font-size:.30em;font-weight:800;color:var(--po-ink);line-height:1.12;margin:0 0 .17em;text-transform:uppercase;
+    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-wrap:balance
+  }
+  .slide .po-details{
+    font-size:.205em;line-height:1.22;color:var(--muted);margin:.10em 0 0;font-family:Arial,Helvetica,sans-serif
+  }
+  .slide .po-detail{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+  .slide .po-detail+.po-detail{margin-top:.08em}
+  .slide .po-details strong{color:var(--brandink);font-weight:700}
 
-  /* Feature Heading */
-  .slide .po-feature-head {
-    font-size: 0.34em;
-    font-weight: 800;
-    color: var(--po-ink);
-    line-height: 1.15;
-    margin-bottom: 0.25em;
-    text-transform: uppercase;
-  }
+  /* v44 health-story floor. Density may simplify copy, but it must never make the useful health message vanish. */
+  .slide .po-health-min{display:none}
 
-  /* Key Ingredients & Benefits Subcopy */
-  .slide .po-details {
-    font-size: 0.24em;
-    line-height: 1.25;
-    color: var(--muted);
-    margin-top: 0.35em;
-    font-family: Arial, Helvetica, sans-serif;
-  }
-  .slide .po-details strong {
-    color: var(--brandink);
-    font-weight: 700;
+  /* Medium cards keep the consumer-facing health story and drop only the most technical line. */
+  .slide .po[data-meta-density="medium"] .po-form,
+  .slide .po[data-meta-density="medium"] .po-ing,
+  .slide .po[data-meta-density="medium"] .po-health-min{display:none}
+  .slide .po[data-meta-density="medium"] .po-meta{margin-bottom:.15em}
+  .slide .po[data-meta-density="medium"] .po-feature-head{font-size:.29em;margin-bottom:.11em}
+  .slide .po[data-meta-density="medium"] .po-benefit{-webkit-line-clamp:2}
+
+  /* Compact cards retain a clear health headline plus one concise benefit line. */
+  .slide .po[data-meta-density="compact"] .po-form,
+  .slide .po[data-meta-density="compact"] .po-ing,
+  .slide .po[data-meta-density="compact"] .po-health-min{display:none}
+  .slide .po[data-meta-density="compact"] .po-meta{margin-bottom:.11em}
+  .slide .po[data-meta-density="compact"] .po-feature-head{font-size:.265em;line-height:1.08;margin-bottom:.08em;-webkit-line-clamp:2}
+  .slide .po[data-meta-density="compact"] .po-details{display:block;font-size:.18em;line-height:1.16;margin-top:0}
+  .slide .po[data-meta-density="compact"] .po-benefit{-webkit-line-clamp:1}
+
+  /* Minimal cards still show one short health summary instead of removing metadata completely. */
+  .slide .po[data-meta-density="minimal"] .po-form,
+  .slide .po[data-meta-density="minimal"] .po-feature-head,
+  .slide .po[data-meta-density="minimal"] .po-details{display:none}
+  .slide .po[data-meta-density="minimal"] .po-meta{display:block;margin-bottom:.09em}
+  .slide .po[data-meta-density="minimal"] .po-health-min{
+    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;
+    font-size:.235em;font-weight:800;line-height:1.08;text-transform:uppercase;color:var(--po-ink);text-wrap:balance
   }
 
   /* ---------- v26 channel picker (editor UI) ---------- */
@@ -2704,7 +2718,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='42.1';
+const APP_VERSION='44';
 const APP_DATE='2026-09-29';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -4422,11 +4436,67 @@ function offerMetaHTML(p){
   let details='';
   if(p.keyIngredients||p.keyBenefits){
     details=`<div class="po-details">`+
-      (p.keyIngredients?`<div><strong>Ingredients:</strong> ${h(p.keyIngredients)}</div>`:'')+
-      (p.keyBenefits?`<div><strong>Benefits:</strong> ${h(p.keyBenefits)}</div>`:'')+
+      (p.keyIngredients?`<div class="po-detail po-ing"><strong>Ingredients:</strong> ${h(p.keyIngredients)}</div>`:'')+
+      (p.keyBenefits?`<div class="po-detail po-benefit"><strong>Benefits:</strong> ${h(p.keyBenefits)}</div>`:'')+
     `</div>`;
   }
-  return (formTag||feature||details)?`<div class="po-meta">${formTag}${feature}${details}</div>`:'';
+  // v44: even the smallest card keeps one useful health message. Prefer the curated feature heading,
+  // then Benefits, then Ingredients as a final fallback. It is only displayed at minimal density.
+  const healthSummary=String(p.featureHeading||p.keyBenefits||p.keyIngredients||'').trim();
+  const healthMin=healthSummary?`<div class="po-health-min">${h(healthSummary)}</div>`:'';
+  return (formTag||feature||details||healthMin)?`<div class="po-meta">${formTag}${feature}${details}${healthMin}</div>`:'';
+}
+
+/* v44 metadata density ladder.
+   Optional education copy adapts to the *actual rendered card*, not to a hard-coded layout name. This keeps
+   the behaviour universal across POS, portrait TV, email, social and banner templates, including future
+   layouts that reuse clean cards. The offer itself is always protected first. */
+const META_DENSITIES=['full','medium','compact','minimal'];
+function metaDensityIndex(v){const i=META_DENSITIES.indexOf(v);return i<0?0:i;}
+function setMetaDensity(po,level){
+  if(!po||!po.querySelector('.po-meta')){if(po)delete po.dataset.metaDensity;return;}
+  po.dataset.metaDensity=META_DENSITIES.includes(level)?level:'full';
+}
+function baseMetaDensity(po){
+  if(!po||!po.querySelector('.po-meta'))return 'minimal';
+  const card=po.closest('.cl-card'),info=po.closest('.cl-info')||po.parentElement;
+  const w=(info&&info.clientWidth)||po.clientWidth||0,h=(card&&card.clientHeight)||po.clientHeight||0;
+  const stack=!!(card&&card.classList.contains('stack'));
+  if(stack){
+    if(w<150||h<190)return 'minimal';
+    if(w<270||h<360)return 'compact';
+    if(w<390||h<560)return 'medium';
+    return 'full';
+  }
+  if(w<145||h<140)return 'minimal';
+  if(w<205||h<220)return 'compact';
+  if(w<320||h<340)return 'medium';
+  return 'full';
+}
+function metadataGroups(slide){
+  const groups=[];
+  slide.querySelectorAll('.cl-card .po').forEach(po=>{
+    if(!po.querySelector('.po-meta'))return;
+    const card=po.closest('.cl-card'),w=card.offsetWidth,h=card.offsetHeight,st=card.classList.contains('stack');
+    let g=groups.find(x=>x.st===st&&Math.abs(x.w-w)<=3&&Math.abs(x.h-h)<=3);
+    if(!g){g={w,h,st,list:[]};groups.push(g);}
+    g.list.push(po);
+  });
+  return groups;
+}
+function prepareMetadataDensity(slide){
+  const all=[...slide.querySelectorAll('.po')];
+  all.forEach(po=>setMetaDensity(po,baseMetaDensity(po)));
+  // Matching cards use one shared information depth, so a page never looks as though some products
+  // received a different design treatment simply because their copy is shorter.
+  metadataGroups(slide).forEach(g=>{
+    let idx=Math.max(...g.list.map(po=>metaDensityIndex(po.dataset.metaDensity)));
+    g.list.forEach(po=>setMetaDensity(po,META_DENSITIES[idx]));
+    // If the optional copy still crowds the cell, reduce that whole card group before reducing price size.
+    while(idx<META_DENSITIES.length-1&&g.list.some(offerOverflows)){
+      idx++;g.list.forEach(po=>setMetaDensity(po,META_DENSITIES[idx]));
+    }
+  });
 }
 function offerBlock(p,opts={}){
   const d=priceData(p);
@@ -4667,7 +4737,11 @@ function scheduleClassicText(root){
 function fitOffers(root){
   const slide=root&&root.querySelectorAll?root:document.getElementById('slide');
   if(!slide)return;
-  slide.querySelectorAll('.po-name,.po-anchor,.po-foot').forEach(el=>{el.style.minHeight='';el.style.paddingTop='';el.style.marginTop='';});
+  slide.querySelectorAll('.po-name,.po-meta,.po-anchor,.po-foot').forEach(el=>{el.style.minHeight='';el.style.paddingTop='';el.style.marginTop='';});
+  // v44: start from the full offer size and simplify optional metadata while preserving at least one health message.
+  // This happens before any global font shrinking, so product / price readability wins over secondary copy.
+  slide.querySelectorAll('.po').forEach(po=>{po.style.fontSize='';applyNameBoundary(po);fitDealBig(po);});
+  prepareMetadataDensity(slide);
   // 1) fit each block on its own, 2) blocks of the same role share the smallest
   // fitted size so every price on the slide reads at one consistent size.
   const groups=new Map();
@@ -4710,7 +4784,7 @@ function equaliseOfferCards(slide){
   });
   groups.forEach(g=>{
     if(g.list.length<2)return;
-    ['.po-name','.po-anchor','.po-foot'].forEach(sel=>{
+    ['.po-name','.po-meta','.po-anchor','.po-foot'].forEach(sel=>{
       const els=g.list.map(po=>po.querySelector(sel)).filter(Boolean);
       if(els.length<2)return;
       const max=Math.max(...els.map(el=>el.offsetHeight));
