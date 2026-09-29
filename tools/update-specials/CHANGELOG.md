@@ -28,6 +28,36 @@ It isn't needed day to day.)
 
 ---
 
+## v46 — 29 Sep 2026
+Zone cards, pilot on three layouts: **POS screen → Hero, 4-Up grid, 4 Across**. The other 22 layouts are
+unchanged apart from the card borders (checked pixel-for-pixel against v45).
+- **Card borders removed** on every clean-card layout (the Charcoal canvas keeps its white panels). On
+  4-Up grid and 4 Across the space between cards is wider (22px and 18px) so each product still reads as
+  one unit.
+- **Zone cards.** Every card on the slide uses one zone map, top to bottom: brand · product + size · product
+  form · feature heading · ingredients / benefits · (space) · pill · price · rule · WAS / RRP · offer ends.
+  - Every size comes from one unit, the price size, with the same proportions as the v45 card, so the look
+    carries over. The price is as large as the widest price on the slide allows, then everything else
+    follows.
+  - Zones are the same height on every card, so brand, name, pill, price, green line and WAS line up by
+    construction (no levelling afterwards).
+  - **Tick a column off in Card text and the rest grow into its space.** A zone that is empty on every card
+    is left out the same way.
+  - **The pack shot is exactly the height of the text block** on Hero and 4-Up grid. On 4 Across it takes
+    all the height above the text.
+  - Text fit keeps working: Impact leaves extra information off (smaller, then Ingredients, Benefits,
+    Feature heading, Product form) before the price drops below 85% of its size without it (72% on Hero);
+    All info shows everything.
+  - Text that doesn't fit its zone: a brand, product form or WAS line shrinks up to 20% on every card
+    together, then ends with "…"; a product name is abbreviated (capsules → caps) or shortened with the
+    size kept, as before; a feature heading (2 lines) and each Ingredients / Benefits item (3 lines on
+    Impact) end with "…". The text itself is shortened, so the PNG matches the preview.
+  - Long deal wording (SINGLE $4.95 / BOX 12 $53.45) wraps to two lines inside the price zone.
+- **SAVE circle** sits on the pack's top-right corner, slightly inside its edge. On a narrow bottle it sits
+  beside the shoulder instead of over the cap. It grows with the price but never past 42% of the pack's width.
+- To bring another layout onto zones: add it to `ZONE_LAYOUTS` near `zoneCard()` in the script
+  (`stack:true` if the pack shot sits above the text).
+
 ## v45 — 29 Sep 2026
 Big prices back, with the extra information kept wherever it fits. Classic layouts are unchanged.
 - **Text fit** (Card options, remembered on each device): **Impact (price first)** is the new default;

@@ -2455,6 +2455,43 @@
   }
   /* v43: a little air between Ingredients and Benefits */
   .slide .po-details>div+div{margin-top:.45em}
+  /* ---------- v46 card borders off (every clean-card layout; Charcoal canvas keeps its white panels) ---------- */
+  .slide:not(.cl-dark) .cl-card{border-color:transparent!important;box-shadow:none!important}
+  /* ---------- v46 zone cards (POS screen → Hero, 4-Up grid, 4 Across) ----------
+     zoneFit() sets every size in px from one unit (the price size); these rules only carry the look. */
+  .l-retailfour{--cl-gap:22px;--cl-cgap:16px}   /* no borders: space between products > space inside one */
+  .l-pos4row{--cl-gap:18px}
+  .slide .cl-card.zc-card .imgwrap .imgslot{padding:0!important}
+  .slide .zc-info{display:flex;flex-direction:column;justify-content:center;min-width:0;height:100%}
+  .slide .cl-card.stack .zc-info{justify-content:flex-start;height:auto}
+  .slide .zc{--po-green:#6B8B35;--po-ink:#1C232D;width:100%;display:flex;flex-direction:column;font-family:'PHF Offer',Arial,Helvetica,sans-serif;color:var(--po-ink);text-align:left}
+  .slide .zc-z{flex:none;min-width:0;overflow:hidden}
+  .slide .zc-z[hidden]{display:none!important}
+  .slide .zc-brand{font-weight:800;letter-spacing:-.012em;white-space:nowrap;text-overflow:ellipsis}
+  .slide .zc-prod{font-weight:600;letter-spacing:-.006em;color:#3a434d;line-height:1.18;display:-webkit-box;-webkit-box-orient:vertical}
+  .slide .zc-form{font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--po-green);white-space:nowrap;text-overflow:ellipsis}
+  .slide .zc-head{font-weight:800;text-transform:uppercase;line-height:1.15;display:-webkit-box;-webkit-box-orient:vertical}
+  .slide .zc-det{font-family:Arial,Helvetica,sans-serif;font-weight:400;color:#6a6a6d;line-height:1.25}
+  .slide .zc-det>div{display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden}
+  .slide .zc-det>div[hidden]{display:none}
+  .slide .zc-det>div+div{margin-top:.45em}
+  .slide .zc-det>div[hidden]+div{margin-top:0}
+  .slide .zc-det strong{color:#3a3a3d;font-weight:700}
+  .slide .zc-pill{display:flex;align-items:flex-start}
+  .slide .zc-pilltxt{display:inline-flex;align-items:center;box-sizing:border-box;height:1.42em;padding:.15em .62em .14em;background:var(--po-green);
+    color:#fff;font-weight:900;text-transform:uppercase;letter-spacing:.015em;line-height:1;border-radius:.26em;white-space:nowrap}
+  .slide .zc-price{display:flex;align-items:center;font-weight:900;line-height:1;letter-spacing:-.025em;white-space:nowrap;color:var(--po-ink);overflow:visible!important}
+  .slide .zc-num{display:inline-flex;align-items:baseline;white-space:nowrap}
+  .slide .zc-per{font-size:.42em;letter-spacing:0;margin-left:.12em}
+  .slide .zc-pct{gap:.17em}
+  .slide .zc-pct-v{font-size:.86em;letter-spacing:-.03em}
+  .slide .zc-pct-s{font-size:.31em;letter-spacing:.025em;color:var(--po-green)}
+  .slide .zc-deal{display:block;max-width:100%;letter-spacing:-.02em;line-height:1.02}
+  .slide .zc-rule{display:flex;align-items:center}
+  .slide .zc-rule i{display:block;background:var(--po-green);border-radius:1px}
+  .slide .zc-ref{font-weight:900;text-transform:uppercase;color:var(--po-green);letter-spacing:-.004em;white-space:nowrap;line-height:1.08}
+  .slide .zc-ref>div{overflow:hidden;text-overflow:ellipsis}
+  .slide .zc-ends{font-weight:700;color:#6a6f6c;white-space:nowrap;text-overflow:ellipsis}
   /* v45 Text fit → Impact: steps set by fitOffers (data-meta) when a card is short of room. */
   .slide .po[data-meta] .po-meta{font-size:.8em}
   .slide .po[data-meta="1"] .po-meta{font-size:.9em}
@@ -2747,7 +2784,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='45';
+const APP_VERSION='46';
 const APP_DATE='2026-09-29';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -3591,6 +3628,7 @@ async function balanceOneImage(img){
   // halo is deliberate: pale bottle caps, white cartons and faint shadows are
   // the hardest pixels to distinguish from a white source background.
   const a=expandStrictBounds(rawAnalysis);   // v38: every layout
+  img._packFrac=rawAnalysis;                  // v46: SAVE circle placement on zone cards
 
   const slot=img.closest('.imgslot');
   if(!slot){resetAutoBalance(img);return;}
@@ -3628,7 +3666,7 @@ async function balanceOneImage(img){
     const k=slideScaleOf(img),ext=textExtent(mctx,k);
     if(ext){
       const cTop=slot.getBoundingClientRect().top/k+parseFloat(cs2.paddingTop||0);
-      if(textMatchPackShot(img,rawAnalysis,{textTop:ext.top-cTop,textH:ext.bottom-ext.top,availW:availW2,availH:availH2,baseW,baseH,maxS}))return;
+      if(textMatchPackShot(img,rawAnalysis,{textTop:ext.top-cTop,textH:ext.bottom-ext.top,availW:availW2,availH:availH2,baseW,baseH,maxS,exact:!!mctx.exact}))return;
     }
   }
 
@@ -3686,12 +3724,12 @@ async function balanceOneImage(img){
 }
 async function applyAutoBalance(root=document){
   const sl0=root&&root.id==='slide'?root:document.getElementById('slide');
-  if(sl0&&sl0.querySelector('.po'))fitOffers(sl0);   // v31: final card spaces first, then fit pack shots
+  if(sl0&&sl0.querySelector('.po,.zc'))fitOffers(sl0);   // v31: final card spaces first, then fit pack shots
   if(sl0&&!CLEAN_LAYOUTS[S.layout])balanceClassicText(sl0);   // v38: classic text rows first, then pack shots
   const imgs=[...root.querySelectorAll('.imgslot img')];
   await Promise.all(imgs.map(balanceOneImage));
   const sl=root&&root.id==='slide'?root:document.getElementById('slide');
-  if(sl&&sl.querySelector('.po'))fitOffers(sl);
+  if(sl&&sl.querySelector('.po,.zc'))fitOffers(sl);
   if(sl){if(sl.querySelector('.cl-card'))harmonisePackShots(sl);notePackShots(sl);}   // v34
   if(sl)placeSaveCircles(sl);
 }
@@ -3704,6 +3742,7 @@ function placeSaveCircles(root){
   // .imgslot, so caps, droppers and seals never slide underneath the badge as auto-balance changes scale.
   slide.querySelectorAll('.cl-card .imgwrap.has-save, .imgwrap.has-stamp').forEach(wrap=>{
     const st=wrap.querySelector('.cl-stamp,.stamp');if(!st)return;
+    if(wrap.closest('.zc-card')&&placeZoneStamp(wrap,st))return;   // v46
     ['left','top','right'].forEach(k=>st.style.removeProperty(k));
     const d=st.offsetWidth||48,inset=Math.max(4,Math.min(12,d*.10));
     st.style.setProperty('left','auto','important');
@@ -3711,6 +3750,31 @@ function placeSaveCircles(root){
     st.style.setProperty('top',inset.toFixed(1)+'px','important');
     st.dataset.anchor='container';
   });
+}
+/* v46 zone cards: the circle sits on the pack's top-right corner (lid or cap), slightly inside its edge and a
+   little above it, and never crosses into the text column. Falls back to the photo area's corner when the
+   pack shot hasn't been measured (auto-balance off, or the photo couldn't be read). */
+function placeZoneStamp(wrap,st){
+  const im=wrap.querySelector('.imgslot img'),fr=im&&im._packFrac,slot=im&&im.closest('.imgslot');
+  if(!fr||!slot||!S.autoBalance)return false;
+  const k=slideScaleOf(wrap),wr=wrap.getBoundingClientRect(),sr=slot.getBoundingClientRect();
+  const cx=(sr.left+sr.width/2-wr.left)/k,cy=(sr.top+sr.height/2-wr.top)/k;
+  const s=parseFloat(im.style.getPropertyValue('--img-scale'))||1;
+  const sx=parseFloat(im.style.getPropertyValue('--img-shift-x'))||0,sy=parseFloat(im.style.getPropertyValue('--img-shift-y'))||0;
+  const bw=im.offsetWidth,bh=im.offsetHeight;
+  const packL=cx+sx+(fr.x-.5)*bw*s,packR=cx+sx+(fr.x+fr.w-.5)*bw*s,packT=cy+sy+(fr.y-.5)*bh*s;
+  const card=wrap.closest('.cl-card'),padT=card?parseFloat(getComputedStyle(card).paddingTop)||0:0;
+  // The circle follows the price size, but never grows past 42% of the pack's width (the Hero's price is huge).
+  let d=st.offsetWidth||48;const dMax=.42*(packR-packL);
+  if(card&&dMax>24&&d>dMax){card.style.setProperty('--po-size',(dMax/1.12).toFixed(2)+'px');d=st.offsetWidth||dMax;}
+  // Wide packs (tubs, boxes): the circle sits inside the top-right corner. Narrow bottles: it would cover the
+  // cap and label, so it sits beside the shoulder instead, overlapping the edge by a third.
+  const narrow=packR-packL<2.2*d,inset=narrow?.33*d:.92*d;
+  const left=Math.max(0,Math.min(packR-inset,wrap.offsetWidth-d)),top=Math.max(packT+(narrow?.05*d:-.18*d),-.9*padT);
+  ['right','top','left'].forEach(p=>st.style.removeProperty(p));
+  st.style.setProperty('left',left.toFixed(1)+'px','important');st.style.setProperty('right','auto','important');
+  st.style.setProperty('top',top.toFixed(1)+'px','important');st.dataset.anchor='pack';
+  return true;
 }
 /* ---------- v34 pack shots on clean cards ----------
    1. Optical balance: cards of the same size are compared by how big each product actually looks
@@ -3895,7 +3959,7 @@ const CLASSIC_SIDE='.l-feature .fcell';
 const CLASSIC_TEXT_SEL='.pbrand,.pname,.nowlbl,.ftag,.gnow,.classic-anchor,.classic-offer-rule,.price,.fprice,.gprice,.dealhero,.fdeal,.gdeal,.dealpct,.was,.refline,.deal';
 function packShotContext(img){
   const cc=img.closest('.cl-card');
-  if(cc){const po=cc.querySelector('.po');return !cc.classList.contains('stack')&&po?{text:po,box:true}:null;}
+  if(cc){const po=cc.querySelector('.po,.zc');return !cc.classList.contains('stack')&&po?{text:po,box:true,exact:cc.classList.contains('zc-card')}:null;}
   const cell=img.closest(CLASSIC_SIDE);if(!cell)return null;
   const t=cell.querySelector('.finfo,.sinfo,.info,.pair-info');return t?{text:t,box:false}:null;
 }
@@ -3917,7 +3981,7 @@ function textMatchPackShot(img,raw,g){
   const rawW=Math.max(1,g.baseW*raw.w),rawH=Math.max(1,g.baseH*raw.h),profile=opticalPackProfile(rawW/rawH);
   // v42: keep text alignment as a guide, but clamp the visible pack to the form-factor target band.
   // This stops wide tubs from becoming as tall as a dropper bottle simply because their text blocks match.
-  const targetH=Math.min(g.availH*profile.maxH,Math.max(g.textH,g.availH*profile.minH,g.availH*profile.h));
+  const targetH=g.exact?Math.min(g.textH,g.availH):Math.min(g.availH*profile.maxH,Math.max(g.textH,g.availH*profile.minH,g.availH*profile.h));   // v46 zone cards: exactly the text height
   const sH=targetH/rawH,sW=g.availW*Math.min(TEXT_MATCH_WFILL,profile.w)/rawW;
   const manual=clamp(parseFloat(img.dataset.manualScale||'1')||1,.70,2);
   const want=Math.min(sH,sW)*manual,s=clamp(want,.3,g.maxS*Math.max(1,manual));   // v40: fine-tune may go past the quality limit
@@ -4813,6 +4877,7 @@ function scheduleClassicText(root){
 function fitOffers(root){
   const slide=root&&root.querySelectorAll?root:document.getElementById('slide');
   if(!slide)return;
+  if(ZONE_LAYOUTS[S.layout]&&slide.querySelector('.zc')){zoneFit(slide);return;}   // v46 zone cards
   slide.querySelectorAll('.po-name,.po-meta,.po-extra,.po-anchor,.po-foot,.po-pill').forEach(el=>{['min-height','padding-top','margin-top','margin-bottom'].forEach(k=>el.style.removeProperty(k));
     if(el.classList.contains('po-anchor'))['height','max-height'].forEach(k=>el.style.removeProperty(k));});
   // 1) fit each block on its own, 2) blocks of the same role share the smallest
@@ -4976,9 +5041,250 @@ function cleanSlide(layout,P){
   // v41: 4-up grids (2×2 and 4 across) centre a last page of 1–3 products, keeping the card size
   const part=cfg.slots===4&&(cfg.grid==='g22'||cfg.grid==='g41')?partialClass(Math.min(P.length,4),4):'';
   const cells=[...P].slice(0,cfg.slots);if(!part)while(cells.length<cfg.slots)cells.push(null);
-  const cards=cells.map((p,i)=>cleanCard(p,cfg.hero&&i===0?'cl-hero':'',cfg)).join('');
+  const cards=cells.map((p,i)=>ZONE_LAYOUTS[layout]?zoneCard(p,cfg):cleanCard(p,cfg.hero&&i===0?'cl-hero':'',cfg)).join('');   // v46 zone pilot
   // v27: cards only — the CURRENT SPECIALS header is no longer drawn (cleanHeader kept for reference).
   return `<div class="cl-pad"><div class="cl-grid ${cfg.grid}${part}">${cards}</div>${cleanFoot()}</div>`;
+}
+
+/* ---------- v46 zone cards (pilot: POS screen → Hero, 4-Up grid, 4 Across) ----------
+   Every card on the slide uses one zone map, top to bottom:
+     brand · product + size · product form · feature heading · ingredients / benefits · (space) ·
+     pill · price · rule · WAS / RRP · offer ends
+   Every size comes from one unit u (the price size) and the type scale ZT, taken from the v45 clean card so
+   the look carries over. u is the largest size at which the widest price fits the text column and every
+   zone fits the card. Zones are the same height on every card, so rows line up by construction, and the
+   pack shot is sized to the height of the zone stack. A zone that is empty on every card, or unticked in
+   Card text, is left out and the rest grow into its space. Text fit → Impact leaves extra information off
+   (smaller first, then Ingredients, Benefits, Feature heading, Product form) before the price drops below
+   `floor` of its size without it. To add a layout: add it here, with stack:true if the pack shot sits
+   above the text. */
+var ZONE_LAYOUTS={
+  poshero:{floor:.72},
+  retailfour:{floor:.85},
+  pos4row:{stack:true,imgMin:.46,floor:.85}
+};
+const ZT={   // s = font size × u · lh = line height · after = space below, × u
+  brand:{s:.40,lh:1.14},prod:{s:.36,lh:1.18},form:{s:.28,lh:1.08},head:{s:.34,lh:1.15},det:{s:.24,lh:1.25},
+  pill:{s:.40,box:1.42,after:.05},price:{s:1},rule:{m:.10,w:4.3},ref:{s:.40,lh:1.08},ends:{s:.24,lh:1.2,before:.06}
+};
+const ZONE_AFTER={brandToProd:.04,nameGroup:.28,form:.06,head:.10};
+const ZONE_GAP=[.22,.55];                 // space above the pill: least / most, × u
+const ZONE_DET_LINES={impact:3,all:8};    // lines per Ingredients / Benefits item
+var ZONE_MEMO={key:'',u:0,lvl:0};
+const ZONE_STAMP=1.22;                    // SAVE circle: --po-size = 1.22u → circle = 1.37 × the price size
+function zoneCard(p,cfg){
+  const cls=`cl-card zc-card${cfg.stack?' stack':''}`;
+  if(!p)return `<div class="${cls} empty-cell"></div>`;
+  const stamp=cleanSaveCircle(p);
+  return `<div class="${cls}"><div class="imgwrap${stamp?' has-save':''}">${img(p,{pop:true})}${stamp}</div><div class="cl-info zc-info">${zoneBlock(p,!!stamp)}</div></div>`;
+}
+function zoneBlock(p,hasStamp){
+  const d=priceData(p),t=v=>String(v||'').trim();
+  const nbh=s=>String(s||'').replace(/([A-Za-z0-9])-(?=[A-Za-z0-9])/g,'$1‑');   // keep Nutra-Life / Ester-C together
+  const brand=cardTextOn('brand')?nbh(slideBrand(p)):'',prod=cardNameOn()?nbh(slideNameText(p,true)):'';
+  const form=cardTextOn('form')?t(p.productForm):'',head=cardTextOn('heading')?t(p.featureHeading):'';
+  const ing=cardTextOn('ingredients')?t(p.keyIngredients):'',ben=cardTextOn('benefits')?t(p.keyBenefits):'';
+  const sd=!d.has&&d.deal?splitDeal(d.deal):null;
+  let hero='',kind='';
+  if(d.has){hero=`<span class="zc-num">${h(offerPrice(p.now))}</span>`;kind='price';}
+  else if(sd&&sd.amount){hero=`<span class="zc-num">${h(sd.hero)}${sd.per?`<span class="zc-per">${h(sd.per)}</span>`:''}</span>`;kind='price';}
+  else if(sd&&sd.percent){hero=`<span class="zc-num zc-pct"><span class="zc-pct-v">${h(sd.hero)}</span><span class="zc-pct-s">${h(sd.sublabel||'OFF')}</span></span>`;kind='price';}
+  else if(sd){hero=`<span class="zc-deal">${h(sd.hero)}</span>`;kind='deal';}
+  const subs=offerSubLines(p,{noSave:hasStamp});
+  const offer=!!(hero||subs.length);
+  const pill=offer?(sd&&sd.lead?sd.lead:(cardTextOn('style')?(d.has?'NOW':'SPECIAL'):'')):'';
+  const ends=offerDates(p).end;
+  const z=(k,inner,attr='')=>`<div class="zc-z zc-${k}" data-z="${k}"${attr}>${inner}</div>`;
+  return `<div class="zc" data-key="${ha(productKey(p))}">`+
+    z('brand',h(brand),` data-full="${ha(brand)}"`)+z('prod',h(prod),` data-full="${ha(prod)}"`)+
+    z('form',h(form))+z('head',h(head))+
+    z('det',(ing?`<div class="zc-ing"><strong>Ingredients:</strong> ${h(ing)}</div>`:'')+(ben?`<div class="zc-ben"><strong>Benefits:</strong> ${h(ben)}</div>`:''))+
+    z('gap','')+z('pill',pill?`<span class="zc-pilltxt">${h(pill)}</span>`:'')+
+    z('price',offer?hero:'',kind?` data-kind="${kind}"`:'')+z('rule',offer?'<i></i>':'')+
+    z('ref',subs.map(s=>`<div>${s}</div>`).join(''))+z('ends',ends?`Offer ends ${h(fmtOfferDate(ends))}`:'')+
+    `</div>`;
+}
+function zoneFit(slide){
+  const cfg=ZONE_LAYOUTS[S.layout],blocks=[...slide.querySelectorAll('.zc')];
+  if(!cfg||!blocks.length)return;
+  const trimsBefore=JSON.stringify([...NAME_TRIMS]),metaBefore=JSON.stringify([...META_TRIMS]);
+  NAME_TRIMS.clear();META_TRIMS.clear();
+  const K=['brand','prod','form','head','det','gap','pill','price','rule','ref','ends'],Z={};
+  K.forEach(k=>Z[k]=blocks.map(b=>b.querySelector('.zc-'+k)));
+  blocks.forEach(b=>{
+    b.querySelectorAll('.zc-z,.zc-z *').forEach(el=>{el.removeAttribute('style');});
+    b.querySelectorAll('.zc-z').forEach(el=>{el.hidden=false;});
+    b.querySelectorAll('.zc-ing,.zc-ben,.zc-head').forEach(el=>{el.hidden=false;if(el.dataset.full!=null)el.innerHTML=el.dataset.full;});
+    ['brand','prod'].forEach(k=>{const el=b.querySelector('.zc-'+k);if(el)el.textContent=el.dataset.full||'';});
+  });
+  const card0=blocks[0].closest('.cl-card'),ccs=getComputedStyle(card0);
+  const W=Math.max(40,blocks[0].parentElement.clientWidth);
+  const innerH=card0.clientHeight-(parseFloat(ccs.paddingTop)||0)-(parseFloat(ccs.paddingBottom)||0);
+  const availH=cfg.stack?innerH*(1-cfg.imgMin)-(parseFloat(ccs.rowGap)||0):innerH;
+  const filled=el=>!!(el&&(el.textContent.trim()||el.querySelector('i')));
+  const any=k=>Z[k].some(filled);
+  const detMax=ZONE_DET_LINES[S.textFit==='all'?'all':'impact'];
+  const lines=(el,fs,lh)=>Math.max(1,Math.round(el.scrollHeight/(fs*lh)));
+  // The widest price on the slide sets the upper limit for u (width grows in step with the font size).
+  let uCap=W/3;
+  const nums=Z.price.map(el=>el&&el.dataset.kind==='price'&&el.querySelector('.zc-num')).filter(Boolean);
+  nums.forEach(n=>{n.parentElement.style.fontSize='100px';});
+  nums.map(n=>n.scrollWidth).forEach(w=>{if(w>0)uCap=Math.min(uCap,W*.98/(w/100));});
+  nums.forEach(n=>{n.parentElement.style.fontSize='';});
+  const spec=lvl=>({det:lvl===1?.9:lvl===2?.8:1,ing:lvl<3,ben:lvl<4,head:lvl<5,form:lvl<6});
+  const setSpec=sp=>{
+    blocks.forEach(b=>{const i=b.querySelector('.zc-ing'),bn=b.querySelector('.zc-ben');if(i)i.hidden=!sp.ing;if(bn)bn.hidden=!sp.ben;});
+    const a={};
+    a.brand=any('brand');a.prod=any('prod');a.form=sp.form&&any('form');a.head=sp.head&&any('head');
+    a.det=blocks.some(b=>[...b.querySelectorAll('.zc-ing,.zc-ben')].some(e=>!e.hidden));
+    a.pill=any('pill');a.price=any('price');a.rule=any('rule');a.ref=any('ref');a.ends=any('ends');
+    a.gap=(a.brand||a.prod||a.form||a.head||a.det)&&(a.pill||a.price||a.ref);
+    K.forEach(k=>Z[k].forEach(el=>{if(el)el.hidden=!a[k];}));
+    const info=['brand','prod','form','head','det'].filter(k=>a[k]),af={};
+    info.forEach((k,i)=>{const nx=info[i+1];
+      af[k]=!nx?0:k==='brand'?(nx==='prod'?ZONE_AFTER.brandToProd:ZONE_AFTER.nameGroup):k==='prod'?ZONE_AFTER.nameGroup:k==='form'?ZONE_AFTER.form:k==='head'?ZONE_AFTER.head:0;});
+    return {a,af,sp};
+  };
+  // Height of the whole stack at size u (space above the pill at its least). Also returns the line counts.
+  // Sizes are written with 2 decimals in both passes, and wrapping zones are measured 3px narrower than they
+  // are drawn, so a name right on the edge of fitting one line is given two rather than cut.
+  const px=v=>v.toFixed(2)+'px',q=v=>Math.round(v*100)/100;
+  const measure=(u,st)=>{
+    const {a,af,sp}=st;let H=0;const L={};
+    const fp=q(ZT.prod.s*u),fh=q(ZT.head.s*u),fd=q(ZT.det.s*sp.det*u);
+    // All font sizes are written first, then everything is read: one page layout per step, not one per card.
+    const put=(k,f)=>Z[k].forEach(el=>{if(el){el.style.fontSize=px(f);el.style.paddingRight='3px';}});
+    if(a.prod)put('prod',fp);if(a.head)put('head',fh);if(a.det)put('det',fd);
+    if(a.brand)H+=ZT.brand.s*u*ZT.brand.lh+af.brand*u;
+    if(a.prod){let n=1;const long=[];
+      Z.prod.forEach(el=>{if(!el||!el.dataset.full)return;const c=lines(el,fp,ZT.prod.lh);if(c>1)long.push([el,c]);});
+      if(long.length){   // a common abbreviation (capsules → caps …) that brings a name onto one line is used
+        long.forEach(([el])=>{el.textContent=abbreviateName(el.dataset.full);});
+        long.forEach(([el,c],i)=>{long[i][2]=lines(el,fp,ZT.prod.lh)===1?1:c;});
+        long.forEach(([el])=>{el.textContent=el.dataset.full;});
+        n=Math.max(1,...long.map(x=>x[2]));}
+      L.prod=Math.min(n,S.nameLines===1?1:2);H+=fp*ZT.prod.lh*L.prod+af.prod*u;}
+    if(a.form)H+=ZT.form.s*u*ZT.form.lh+af.form*u;
+    if(a.head){let n=1;Z.head.forEach(el=>{if(filled(el))n=Math.max(n,lines(el,fh,ZT.head.lh));});
+      L.head=Math.min(n,2);H+=fh*ZT.head.lh*L.head+af.head*u;}
+    if(a.det){let mx=0;
+      Z.det.forEach(el=>{if(!el)return;let hh=0,cnt=0;
+        el.querySelectorAll('.zc-ing,.zc-ben').forEach(it=>{if(it.hidden)return;hh+=Math.min(detMax,lines(it,fd,ZT.det.lh))*fd*ZT.det.lh;cnt++;});
+        mx=Math.max(mx,hh+Math.max(0,cnt-1)*.45*fd);});
+      L.det=mx;H+=mx+af.det*u;}
+    if(a.gap)H+=ZONE_GAP[0]*u;
+    if(a.pill)H+=(ZT.pill.s*ZT.pill.box+ZT.pill.after)*u;
+    if(a.price)H+=ZT.price.s*u;
+    if(a.rule)H+=2*ZT.rule.m*u+Math.min(6,Math.max(2.5,.065*u));
+    if(a.ref){L.ref=Math.max(1,...Z.ref.map(el=>el?el.children.length:0));H+=ZT.ref.s*u*ZT.ref.lh*L.ref;}
+    if(a.ends)H+=(ZT.ends.before+ZT.ends.s*ZT.ends.lh)*u;
+    return {H,L};
+  };
+  const best=lvl=>{
+    const st=setSpec(spec(lvl));
+    if(measure(uCap,st).H<=availH)return {u:uCap,st,lvl};
+    let lo=4,hi=uCap;
+    for(let i=0;i<11;i++){const m=(lo+hi)/2;if(measure(m,st).H<=availH)lo=m;else hi=m;}   // ±0.1px
+    return {u:lo,st,lvl};
+  };
+  // Text fit: Impact keeps the price at `floor` or more of its size without the extra information.
+  // The same text on the same card size gives the same answer, so a repeat fit (fonts loaded, pack shots
+  // balanced, export) reuses it instead of searching again.
+  const memoKey=[S.layout,W,Math.round(availH),S.textFit,S.nameLines,document.fonts?document.fonts.status:'',blocks.map(b=>b.textContent).join('|')].join('#');
+  let pick;
+  if(ZONE_MEMO.key===memoKey)pick={u:ZONE_MEMO.u,lvl:ZONE_MEMO.lvl};
+  else{
+    const cache={},bestC=l=>cache[l]||(cache[l]=best(l));
+    pick=bestC(0);
+    if(S.textFit!=='all'&&(any('det')||any('head')||any('form'))){
+      const ref=bestC(6).u,ok=l=>bestC(l).u>=cfg.floor*ref-.01;
+      if(!ok(0)){let lo=1,hi=6;while(lo<hi){const m=(lo+hi)>>1;if(ok(m))hi=m;else lo=m+1;}pick=bestC(lo);}   // fewest left off
+    }
+    ZONE_MEMO={key:memoKey,u:pick.u,lvl:pick.lvl};
+  }
+  const u=pick.u,st=setSpec(spec(pick.lvl)),{a,af,sp}=st,{H,L}=measure(u,st);
+  K.forEach(k=>Z[k].forEach(el=>{if(el)el.style.removeProperty('padding-right');}));
+  const set=(el,o)=>{if(el)Object.entries(o).forEach(([k,v])=>el.style.setProperty(k,v));};
+  // One-line zones: every card shrinks together (down to 80%) so they stay the same size; then "…".
+  const oneLine=(k,fs,hh)=>{if(!a[k])return;let f=1;
+    Z[k].forEach(el=>{if(!filled(el))return;set(el,{'font-size':px(fs),'line-height':px(hh)});
+      [el,...el.children].forEach(c=>{if(c.scrollWidth>W+.5)f=Math.min(f,W/c.scrollWidth);});});
+    f=Math.max(.8,f);Z[k].forEach(el=>set(el,{'font-size':px(fs*f),'line-height':px(hh),height:px(hh)}));};
+  oneLine('brand',ZT.brand.s*u,ZT.brand.s*u*ZT.brand.lh);
+  if(a.brand)Z.brand.forEach(el=>set(el,{'margin-bottom':px(af.brand*u)}));
+  if(a.prod){const fs=q(ZT.prod.s*u),hh=fs*ZT.prod.lh*L.prod;
+    Z.prod.forEach(el=>{if(!el)return;set(el,{'font-size':px(fs),'line-height':String(ZT.prod.lh),'-webkit-line-clamp':String(L.prod),'margin-bottom':px(af.prod*u)});
+      if(el.dataset.full){const stt=zoneFitName(el,el.dataset.full,L.prod,fs*ZT.prod.lh);const key=el.closest('.zc').dataset.key;if(key)NAME_TRIMS.set(key,stt);}
+      set(el,{height:px(hh)});});}
+  oneLine('form',ZT.form.s*u,ZT.form.s*u*ZT.form.lh);
+  if(a.form)Z.form.forEach(el=>set(el,{'margin-bottom':px(af.form*u)}));
+  if(a.head){const fs=q(ZT.head.s*u);Z.head.forEach(el=>{set(el,{'font-size':px(fs),'margin-bottom':px(af.head*u)});
+    if(filled(el))zoneTrimLines(el,L.head,fs*ZT.head.lh);set(el,{height:px(fs*ZT.head.lh*L.head)});});}
+  if(a.det){const fs=q(ZT.det.s*sp.det*u);Z.det.forEach(el=>{set(el,{'font-size':px(fs),'margin-bottom':px(af.det*u)});
+    if(el)el.querySelectorAll('.zc-ing,.zc-ben').forEach(it=>{if(!it.hidden)zoneTrimLines(it,detMax,fs*ZT.det.lh);});
+    set(el,{height:px(L.det)});});}
+  // Space above the pill: side-by-side cards take up to ZONE_GAP[1] of spare height, so the text block (and
+  // the pack shot matched to it) grows a little before the stack is centred; stacked cards give the rest to the pack shot.
+  const spare=Math.max(0,availH-H),gap=ZONE_GAP[0]*u+(cfg.stack?0:Math.min(spare,(ZONE_GAP[1]-ZONE_GAP[0])*u));
+  if(a.gap)Z.gap.forEach(el=>set(el,{height:px(gap)}));
+  if(a.pill){const fs=ZT.pill.s*u;Z.pill.forEach(el=>{set(el,{'font-size':px(fs),height:px(fs*ZT.pill.box),'margin-bottom':px(ZT.pill.after*u)});
+    const tx=el&&el.firstElementChild;if(tx&&tx.scrollWidth>W)set(tx,{'font-size':px(fs*Math.max(.6,W/tx.scrollWidth))});});}
+  if(a.price)Z.price.forEach(el=>{if(!el)return;set(el,{'font-size':px(u),height:px(u)});
+    const dl=el.querySelector('.zc-deal');if(dl)zoneFitDeal(dl,u,W);});
+  if(a.rule){const th=Math.min(6,Math.max(2.5,.065*u));Z.rule.forEach(el=>{set(el,{height:px(th+2*ZT.rule.m*u)});
+    const i=el&&el.querySelector('i');if(i)set(i,{width:px(Math.min(W,ZT.rule.w*u)),height:px(th)});});}
+  oneLine('ref',ZT.ref.s*u,ZT.ref.s*u*ZT.ref.lh);
+  if(a.ref)Z.ref.forEach(el=>set(el,{height:px(ZT.ref.s*u*ZT.ref.lh*L.ref)}));
+  oneLine('ends',ZT.ends.s*u,ZT.ends.s*u*ZT.ends.lh);
+  if(a.ends)Z.ends.forEach(el=>set(el,{'margin-top':px(ZT.ends.before*u)}));
+  // SAVE circle scales with the price.
+  blocks.forEach(b=>{const c=b.closest('.cl-card');if(c)c.style.setProperty('--po-size',px(ZONE_STAMP*u));});
+  // Impact: say what was left off (one line for the page, in the status bar).
+  if(pick.lvl>=3)blocks.forEach(b=>{
+    const left=[pick.lvl>=3&&b.querySelector('.zc-ing')?'key ingredients':'',pick.lvl>=4&&b.querySelector('.zc-ben')?'key benefits':'',
+      pick.lvl>=5&&filled(b.querySelector('.zc-head'))?'feature heading':'',pick.lvl>=6&&filled(b.querySelector('.zc-form'))?'product form':''].filter(Boolean);
+    if(left.length&&b.dataset.key)META_TRIMS.set(b.dataset.key,left);});
+  slide.dataset.zoneU=u.toFixed(1);slide.dataset.zoneLevel=String(pick.lvl);
+  if((JSON.stringify([...NAME_TRIMS])!==trimsBefore||JSON.stringify([...META_TRIMS])!==metaBefore)&&typeof updateValidation==='function')updateValidation();
+}
+/* Longer text than its lines allow: whole words are taken off the end and "…" added, in the text itself (not only
+   a CSS clamp), so the PNG export shows exactly what the preview shows. A bold label (Ingredients:) is kept. */
+function zoneTrimLines(el,maxLines,lineH){
+  const limit=lineH*maxLines+1;
+  if(el.dataset.full==null)el.dataset.full=el.innerHTML;else el.innerHTML=el.dataset.full;
+  if(el.scrollHeight<=limit)return false;
+  const tn=[...el.childNodes].filter(n=>n.nodeType===3).pop();if(!tn)return false;
+  const words=tn.textContent.split(/(\s+)/);
+  let lo=0,hi=words.length;
+  while(lo<hi){const m=Math.ceil((lo+hi)/2);tn.textContent=words.slice(0,m).join('').replace(/[\s,;:.–\-&]+$/,'')+'…';if(el.scrollHeight<=limit)lo=m;else hi=m-1;}
+  tn.textContent=words.slice(0,lo).join('').replace(/[\s,;:.–\-&]+$/,'')+'…';
+  return true;
+}
+/* Product + size in its zone: as typed, then common abbreviations, then shortened words with the size kept. */
+function zoneFitName(el,full,maxLines,lineH){
+  const limit=lineH*maxLines+1,fits=t=>{el.textContent=t;return el.scrollHeight<=limit;};
+  el.style.setProperty('-webkit-line-clamp','none');
+  let r='';
+  if(!fits(full)){
+    const ab=abbreviateName(full);
+    if(fits(ab))r='abbr';
+    else{const {name,size}=splitSize(ab),w=name.split(/\s+/).filter(Boolean);r='clamp';
+      for(let n=w.length-1;n>=1;n--){if(fits(w.slice(0,n).join(' ').replace(/[\s,;:–\-‑&]+$/,'')+'…'+(size?' '+size:''))){r='cut';break;}}
+      if(r==='clamp')el.textContent=ab;}
+  }
+  el.style.setProperty('-webkit-line-clamp',String(maxLines));
+  return r;
+}
+/* Deal wording in the price zone (GET 1 FREE, SINGLE $4.95 / BOX 12 $53.45): one line as large as fits (up to
+   80% of the price size), else two lines within the price zone — whichever gives the larger type. */
+function zoneFitDeal(el,u,W){
+  const fits=()=>el.scrollWidth<=W+.5;
+  el.style.whiteSpace='nowrap';let f=.8;el.style.fontSize=(f*u).toFixed(2)+'px';
+  while(f>.36&&!fits()){f-=.02;el.style.fontSize=(f*u).toFixed(2)+'px';}
+  if(f>=.6)return;
+  el.style.whiteSpace='normal';let g=.49;el.style.fontSize=(g*u).toFixed(2)+'px';
+  while(g>.3&&(el.offsetHeight>u+.5||!fits())){g-=.01;el.style.fontSize=(g*u).toFixed(2)+'px';}
+  if(g<=f){el.style.whiteSpace='nowrap';el.style.fontSize=(f*u).toFixed(2)+'px';}
 }
 
 /* ---------- slide rendering ---------- */
@@ -5615,7 +5921,7 @@ async function captureCurrentPage(scale=EXPORT_SCALE){
   if(document.fonts&&document.fonts.ready){try{await document.fonts.ready;}catch(e){}}
   await applyAutoBalance(s);
   if(await settlePop(s))await applyAutoBalance(s);   // v34: the PNG gets the same popped pack shots
-  if(s.querySelector('.po'))fitOffers(s);
+  if(s.querySelector('.po,.zc'))fitOffers(s);
   // Export from html2canvas' private copy of the page: the copied slide is
   // un-scaled and lifted out of the preview frame, so the on-screen zoom,
   // pinned layout and scroll position can never clip or shrink the PNG.
