@@ -28,6 +28,20 @@ It isn't needed day to day.)
 
 ---
 
+## v44 — 29 Sep 2026
+Refinements from the v43 design review. Classic layouts are unchanged apart from the 6-Grid fix.
+- **Brand and product lines sit level across every row of cards** (4-Up grid, 4 Across, 6-Up, 4-Up 7:5,
+  4-Up Square, Portrait TV rows, Web banner, Hero + 2 side cards). Pills, prices and green lines were already
+  level; the brand line on a card with less text was pushed down to match them. The spare space now goes
+  just above the pill, so the tops line up too.
+- **Long deal wording fits its card.** `SINGLE $4.95 / BOX 12 $53.45` ran off the card and made every card on
+  the slide use the smallest text size. It now shrinks, then wraps to two lines when that gives larger type,
+  and the other cards' price rows grow to keep the green lines level.
+- **Text keeps clear of the card edge.** Text now stays at least 3% of the card height (6px minimum) inside
+  the top and bottom of its card, so the WAS line no longer sits on the border (Hero + 2 side cards).
+- **Classic 6-Grid: pack shots no longer cover the brand and name.** The photo area was 166px tall inside a
+  space squeezed to about 132px; it now fits its space.
+
 ## v43 — 29 Sep 2026
 Card text tick boxes for every sheet column, and the sheet's separate Product and Size columns.
 With every box ticked, all 25 layouts are pixel-identical to v42.1 except for the new Ingredients / Benefits gap.

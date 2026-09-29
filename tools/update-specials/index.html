@@ -1720,6 +1720,9 @@
   .l-six .body{gap:6px 12px!important;padding:1px 0 2px!important}
   .l-six .cell{padding:1px 5px!important}
   .l-six .imgwrap,.l-six .imgslot{height:166px!important}
+  /* v44: the cell squeezes the photo area to fit the text; the slot follows it instead of hanging 166px over
+     the brand and name. */
+  .l-six .imgwrap .imgslot{height:100%!important}
   .l-six .pbrand{font-size:16.5px!important}
   .l-six .pname{font-size:12.8px!important}
   .l-six .price{font-size:42px!important}
@@ -2733,7 +2736,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='43';
+const APP_VERSION='44';
 const APP_DATE='2026-09-29';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -4570,7 +4573,10 @@ function offerOverflows(po){
   const r=po.getBoundingClientRect();
   if(cell){
     const c=cell.getBoundingClientRect();
-    if(r.bottom>c.bottom+1||r.right>c.right+1||r.top<c.top-1)return true;
+    // v44: keep a small margin inside the card (3% of its height, at least 6px), so the WAS line never sits
+    // on the card's edge.
+    const clr=Math.max(6,cell.offsetHeight*.03)*slideScaleOf(cell);
+    if(r.bottom>c.bottom-clr+1||r.right>c.right+1||r.top<c.top+clr-1)return true;
     // Stacked cells (pack shot above the text): the text must start below the image slot,
     // never push up into it or hide behind it.
     const iw=cell.querySelector('.imgwrap'),sl=cell.querySelector('.imgslot');
@@ -4668,14 +4674,27 @@ function splitDeal(raw){
    lines about the height of a price instead — whichever gives the larger type. */
 function fitDealBig(po){
   const el=po.querySelector('.po-dealbig');if(!el)return;
-  const fits=()=>el.scrollWidth<=el.clientWidth+1;
+  // v44: measure against the card's text width. The big line sits in a flex row that grows to fit its
+  // text, so comparing it with its own width always passed and long wording (SINGLE $4.95 / BOX 12 $53.45)
+  // ran off the card — and dragged every card on the slide down to the smallest text size.
+  const box=el.parentElement;
+  ['height','min-height','max-height'].forEach(k=>box.style.removeProperty(k));
+  el.style.removeProperty('max-width');
+  const fits=()=>el.scrollWidth<=box.clientWidth+1;
   el.style.whiteSpace='nowrap';let f=.8;el.style.fontSize=f+'em';
   while(f>.36&&!fits()){f-=.02;el.style.fontSize=f.toFixed(2)+'em';}
   if(f>=.6)return;
-  el.style.whiteSpace='normal';let g=.54;el.style.fontSize=g+'em';
+  // Two balanced lines, about the height of a price, when that gives larger type. The big-line row is one
+  // line tall on every card, so this card's row is allowed to grow for the second line.
+  el.style.whiteSpace='normal';el.style.setProperty('max-width','100%');
+  box.style.setProperty('height','auto','important');box.style.setProperty('max-height','none','important');
+  let g=.54;el.style.fontSize=g+'em';
   const lh=()=>parseFloat(getComputedStyle(el).lineHeight)||1;
   while(g>.36&&(el.offsetHeight>lh()*2.2||!fits())){g-=.02;el.style.fontSize=g.toFixed(2)+'em';}
-  if(g<=f){el.style.whiteSpace='nowrap';el.style.fontSize=f.toFixed(2)+'em';}
+  if(g<=f){
+    el.style.whiteSpace='nowrap';el.style.removeProperty('max-width');el.style.fontSize=f.toFixed(2)+'em';
+    ['height','max-height'].forEach(k=>box.style.removeProperty(k));
+  }
 }
 
 /* ---------- v38 classic white layouts: balanced like the clean cards ----------
@@ -4771,7 +4790,8 @@ function scheduleClassicText(root){
 function fitOffers(root){
   const slide=root&&root.querySelectorAll?root:document.getElementById('slide');
   if(!slide)return;
-  slide.querySelectorAll('.po-name,.po-anchor,.po-foot').forEach(el=>{el.style.minHeight='';el.style.paddingTop='';el.style.marginTop='';});
+  slide.querySelectorAll('.po-name,.po-meta,.po-extra,.po-anchor,.po-foot,.po-pill').forEach(el=>{['min-height','padding-top','margin-top','margin-bottom'].forEach(k=>el.style.removeProperty(k));
+    if(el.classList.contains('po-anchor'))['height','max-height'].forEach(k=>el.style.removeProperty(k));});
   // 1) fit each block on its own, 2) blocks of the same role share the smallest
   // fitted size so every price on the slide reads at one consistent size.
   const groups=new Map();
@@ -4838,8 +4858,14 @@ function anchorOfferRows(list){
     const max=Math.max(...o);
     list.forEach((po,i)=>{const d=max-o[i];if(d>.25)apply(po,d);});
   };
-  lift('.po-pill',(po,d)=>{const n=po.querySelector('.po-name');if(n)n.style.marginTop=d.toFixed(2)+'px';});
-  lift('.po-rule',(po,d)=>{const e=po.querySelector('.po-anchor');if(e)e.style.minHeight=(e.offsetHeight+d).toFixed(2)+'px';});
+  // v44: the spare space goes just above the pill, so brand and product lines stay level across the row
+  // (it used to go above the name, which pushed the brand down on cards with less text).
+  // Added below the block above the pill: a margin on the pill itself would collapse into that block's margin.
+  lift('.po-pill',(po,d)=>{const pl=po.querySelector('.po-pill');if(!pl)return;const pv=pl.previousElementSibling;
+    if(pv)pv.style.setProperty('margin-bottom',((parseFloat(getComputedStyle(pv).marginBottom)||0)+d).toFixed(2)+'px','important');
+    else pl.style.setProperty('margin-top',d.toFixed(2)+'px','important');});
+  lift('.po-rule',(po,d)=>{const e=po.querySelector('.po-anchor');if(!e)return;const hh=(e.offsetHeight+d).toFixed(2)+'px';   // v44: beats the fixed row height
+    e.style.setProperty('height',hh,'important');e.style.setProperty('min-height',hh,'important');e.style.setProperty('max-height',hh,'important');});
   const hs=list.map(po=>po.getBoundingClientRect().height/k),maxH=Math.max(...hs);
   list.forEach((po,i)=>{const d=maxH-hs[i];if(d>.25){const f=po.querySelector('.po-foot');if(f)f.style.minHeight=(f.offsetHeight+d).toFixed(2)+'px';}});
 }
