@@ -2477,6 +2477,21 @@
   .l-botanicalfour{--cl-gap:30px}
   .l-email6{--cl-gap:16px}
   .l-retailhero2{--cl-gap:18px}
+  /* v48 Portrait TV on zones: no borders, so rows need more air between them */
+  .l-tv2,.l-tv3,.l-retailportrait{--cl-gap:44px}
+  /* v48 green accent (Card options) */
+  .slide.acc-head .zc-head{color:var(--po-green);letter-spacing:.04em}
+  .slide.acc-head .zc-form{color:#6a6f6c}
+  .slide.acc-labels .zc-head{color:#3a434d}
+  .slide.acc-labels .zc-det strong{color:var(--po-green)}
+  .slide.acc-head .po-feature-head{color:var(--po-green)}
+  .slide.acc-head .po-form{color:#6a6f6c}
+  .slide.acc-labels .po-feature-head{color:#3a434d}
+  .slide.acc-labels .po-details strong{color:var(--po-green)}
+  /* v48 pack-above cards: centred text */
+  .slide:is(.zc-centre,.zc-centre-top) .zc-card.stack :is(.zc-brand,.zc-prod,.zc-form){text-align:center}
+  .slide.zc-centre .zc-card.stack :is(.zc-head,.zc-det,.zc-ref,.zc-ends){text-align:center}
+  .slide.zc-centre .zc-card.stack :is(.zc-pill,.zc-price,.zc-rule){justify-content:center}
   .slide .cl-card.zc-card .imgwrap .imgslot{padding:0!important}
   .slide .zc-info{display:flex;flex-direction:column;justify-content:center;min-width:0;height:100%}
   .slide .cl-card.stack .zc-info{justify-content:flex-start;height:auto}
@@ -2675,6 +2690,12 @@
         <label class="fo-select" title="Impact: prices stay as large as possible. On zone cards (POS Hero, Hero + 2, 4-Up grid, 3 Across, 4 Across and the Email clean cards) whatever is ticked is always shown — set a little smaller, with long ingredients / benefits shortened with …. On Portrait TV, Social and Web banner, extra information is still left off where a card has no room. All info: every line in full; prices get smaller to make room.">Text fit
           <select id="optTextFit"><option value="impact">Impact (price first)</option><option value="all">All info</option></select>
         </label>
+        <label class="fo-select" title="Where the green accent goes. Feature heading: the heading is set like the product form line (small, green, letter-spaced) and the product form turns grey. Ingredients &amp; Benefits: those labels are green and the heading is grey like the product name, so it never competes with the brand.">Green accent
+          <select id="optAccent"><option value="head">Feature heading</option><option value="labels">Ingredients &amp; Benefits</option></select>
+        </label>
+        <label class="fo-select" title="Cards with the pack shot above the text (3 Across, 4 Across, Portrait TV Hero, Email 2-Up 7:5). Centre: everything centred under the pack shot. Top centred: brand, name and form centred, the rest left. Left: everything left-aligned.">Pack-above cards
+          <select id="optStackAlign"><option value="centre">Centre</option><option value="top">Top centred</option><option value="left">Left</option></select>
+        </label>
         <label class="fo-select" title="How brand names are written, on every layout. Standard: clean cards in Title Case, classic layouts in CAPITALS. A Brand on slide is kept as typed in Standard and As typed.">Brand letters
           <select id="optBrandCase"><option value="std">Standard</option><option value="title">Title Case</option><option value="upper">CAPITALS</option><option value="asis">As typed</option></select>
         </label>
@@ -2801,7 +2822,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='47';
+const APP_VERSION='48';
 const APP_DATE='2026-09-29';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -5096,7 +5117,11 @@ var ZONE_LAYOUTS={
   pos4row:{stack:true,imgMin:.46,floor:.85},
   botanicaltwo:{stack:true,imgMin:.52,floor:.85},
   botanicalfour:{floor:.85},
-  email6:{floor:.85}
+  email6:{floor:.85},
+  tvhero:{stack:true,imgMin:.48,floor:.72},   // v48 Portrait TV
+  tv2:{floor:.85},
+  tv3:{floor:.85},
+  retailportrait:{floor:.85}
 };
 const ZT={   // s = font size × u · lh = line height · after = space below, × u
   brand:{s:.40,lh:1.14},prod:{s:.36,lh:1.18},form:{s:.28,lh:1.08},head:{s:.34,lh:1.15},det:{s:.24,lh:1.25},
@@ -5175,6 +5200,8 @@ function zoneFitGroup(cfg,blocks,gkey){
   const filled=el=>!!(el&&(el.textContent.trim()||el.querySelector('i')));
   const any=k=>Z[k].some(filled);
   const fit=S.textFit==='all'?'all':'impact',headMax=ZONE_HEAD_LINES[fit];
+  // v48: a green feature heading is set like the product form line (smaller, letter-spaced); a grey one keeps its size.
+  const HD=S.accent==='labels'?{s:.34,lh:1.15}:{s:.30,lh:1.14};
   const lines=(el,fs,lh)=>Math.max(1,Math.round(el.scrollHeight/(fs*lh)));
   // The widest price in the group sets the upper limit for u (width grows in step with the font size).
   let uCap=W/3;
@@ -5205,7 +5232,7 @@ function zoneFitGroup(cfg,blocks,gkey){
   const px=v=>v.toFixed(2)+'px',q=v=>Math.round(v*100)/100;
   const measure=(u,st)=>{
     const {a,af,sp}=st;let H=0;const L={};
-    const fp=q(ZT.prod.s*u),fh=q(ZT.head.s*u),fd=q(ZT.det.s*(sp.det||1)*u);
+    const fp=q(ZT.prod.s*u),fh=q(HD.s*u),fd=q(ZT.det.s*(sp.det||1)*u);
     // All font sizes are written first, then everything is read: one page layout per step, not one per card.
     const put=(k,f)=>Z[k].forEach(el=>{if(el){el.style.fontSize=px(f);el.style.paddingRight='3px';}});
     if(a.prod)put('prod',fp);if(a.head)put('head',fh);if(a.det)put('det',fd);
@@ -5221,10 +5248,10 @@ function zoneFitGroup(cfg,blocks,gkey){
     if(a.form)H+=ZT.form.s*u*ZT.form.lh+af.form*u;
     if(cfg.top)H+=((a.topAny?1:0)+1)*ZONE_IMG_GAP*u;
     if(a.head){   // a long heading is made smaller (every card together, down to 80%) before it is cut with "…"
-      const cnt=f=>{let n=1;Z.head.forEach(el=>{if(filled(el))n=Math.max(n,lines(el,f,ZT.head.lh));});return n;};
+      const cnt=f=>{let n=1;Z.head.forEach(el=>{if(filled(el))n=Math.max(n,lines(el,f,HD.lh));});return n;};
       let hf=1,n=cnt(fh);
       while(n>headMax&&hf>.8+1e-6){hf=Math.round((hf-.05)*100)/100;put('head',q(fh*hf));n=cnt(q(fh*hf));}
-      L.headF=hf;L.head=Math.min(n,headMax);H+=q(fh*hf)*ZT.head.lh*L.head+af.head*u;}
+      L.headF=hf;L.head=Math.min(n,headMax);H+=q(fh*hf)*HD.lh*L.head+af.head*u;}
     if(a.det){let mx=0;
       Z.det.forEach(el=>{if(!el)return;let hh=0,cnt=0;
         el.querySelectorAll('.zc-ing,.zc-ben').forEach(it=>{hh+=Math.min(sp.lines,lines(it,fd,ZT.det.lh))*fd*ZT.det.lh;cnt++;});
@@ -5247,7 +5274,7 @@ function zoneFitGroup(cfg,blocks,gkey){
   };
   // The same text on the same card size gives the same answer, so a repeat fit (fonts loaded, pack shots
   // balanced, export) reuses it instead of searching again.
-  const memoKey=[S.layout,gkey,W,Math.round(availH),fit,S.nameLines,document.fonts?document.fonts.status:'',blocks.map(b=>b.textContent).join('|')].join('#');
+  const memoKey=[S.layout,gkey,W,Math.round(availH),fit,S.nameLines,S.accent,S.stackAlign,document.fonts?document.fonts.status:'',blocks.map(b=>b.textContent).join('|')].join('#');
   const steps=ZONE_STEPS[fit];
   let pick=ZONE_MEMO.get(gkey);
   if(!pick||pick.key!==memoKey){
@@ -5278,8 +5305,8 @@ function zoneFitGroup(cfg,blocks,gkey){
   if(cfg.top)blocks.forEach(b=>{const im=b.querySelector('.zc-img');if(im)set(im,{'margin-top':px(a.topAny?ZONE_IMG_GAP*u:0),'margin-bottom':px(ZONE_IMG_GAP*u)});});
   const cut={};   // information shortened with "…", per product, for the status line
   const note=(el,name)=>{const key=el.closest('.zc').dataset.key;if(key)(cut[key]=cut[key]||new Set()).add(name);};
-  if(a.head){const fs=q(q(ZT.head.s*u)*(L.headF||1));Z.head.forEach(el=>{set(el,{'font-size':px(fs),'margin-bottom':px(af.head*u)});
-    if(filled(el)&&zoneTrimLines(el,L.head,fs*ZT.head.lh))note(el,'feature heading');set(el,{height:px(fs*ZT.head.lh*L.head)});});}
+  if(a.head){const fs=q(q(HD.s*u)*(L.headF||1));Z.head.forEach(el=>{set(el,{'font-size':px(fs),'line-height':String(HD.lh),'margin-bottom':px(af.head*u)});
+    if(filled(el)&&zoneTrimLines(el,L.head,fs*HD.lh))note(el,'feature heading');set(el,{height:px(fs*HD.lh*L.head)});});}
   if(a.det){const fs=q(ZT.det.s*sp.det*u);Z.det.forEach(el=>{set(el,{'font-size':px(fs),'margin-bottom':px(af.det*u)});
     if(el)el.querySelectorAll('.zc-ing,.zc-ben').forEach(it=>{if(zoneTrimLines(it,sp.lines,fs*ZT.det.lh))note(el,it.classList.contains('zc-ing')?'key ingredients':'key benefits');});
     set(el,{height:px(L.det)});});}
@@ -5305,7 +5332,7 @@ function zoneFitGroup(cfg,blocks,gkey){
 /* Longer text than its lines allow: whole words are taken off the end and "…" added, in the text itself (not only
    a CSS clamp), so the PNG export shows exactly what the preview shows. A bold label (Ingredients:) is kept. */
 function zoneTrimLines(el,maxLines,lineH){
-  const limit=lineH*maxLines+1;
+  const limit=lineH*(maxLines+.4);   // v48: glyphs may overhang the line box by a few px; an extra line adds a whole one
   if(el.dataset.full==null)el.dataset.full=el.innerHTML;else el.innerHTML=el.dataset.full;
   if(el.scrollHeight<=limit)return false;
   const tn=[...el.childNodes].filter(n=>n.nodeType===3).pop();if(!tn)return false;
@@ -5317,7 +5344,7 @@ function zoneTrimLines(el,maxLines,lineH){
 }
 /* Product + size in its zone: as typed, then common abbreviations, then shortened words with the size kept. */
 function zoneFitName(el,full,maxLines,lineH){
-  const limit=lineH*maxLines+1,fits=t=>{el.textContent=t;return el.scrollHeight<=limit;};
+  const limit=lineH*(maxLines+.4),fits=t=>{el.textContent=t;return el.scrollHeight<=limit;};
   el.style.setProperty('-webkit-line-clamp','none');
   let r='';
   if(!fits(full)){
@@ -5352,6 +5379,8 @@ function render(rebuildInputs=true){
   if(CLEAN_LAYOUTS[S.layout]&&S.optCanvas==='dark')s.classList.add('cl-dark');
   s.classList.add('bc-'+(S.brandCase||'std'));   // v38 brand letters on classic layouts   // v35 charcoal canvas (clean cards only)
   if(!cardTextOn('brand'))s.classList.add('ct-nobrand');   // v43: name block loses the brand line
+  s.classList.add(S.accent==='labels'?'acc-labels':'acc-head');   // v48 green accent
+  if(ZONE_LAYOUTS[S.layout]&&ZONE_LAYOUTS[S.layout].stack&&S.stackAlign!=='left')s.classList.add(S.stackAlign==='top'?'zc-centre-top':'zc-centre');   // v48
   if(!cardNameOn())s.classList.add('ct-noname');           // v43: name block loses the product lines
   // IMPORTANT: the original hub used a fixed 1000×625 .slide. Multi-channel
   // layouts must resize the actual DOM canvas as well as the export metadata;
@@ -5594,6 +5623,12 @@ document.getElementById('autoBalanceToggle').addEventListener('change',e=>{
   S.nameLines=get('phf_name_lines','2')==='1'?1:2;
   const NL=document.getElementById('optNameLines');NL.value=String(S.nameLines);
   NL.onchange=()=>{S.nameLines=NL.value==='1'?1:2;put('phf_name_lines',String(S.nameLines));render(false);};
+  S.accent=get('phf_accent','head')==='labels'?'labels':'head';   // v48
+  const AC=document.getElementById('optAccent');AC.value=S.accent;
+  AC.onchange=()=>{S.accent=AC.value==='labels'?'labels':'head';put('phf_accent',S.accent);render(false);};
+  S.stackAlign=['centre','top','left'].includes(get('phf_stack_align','centre'))?get('phf_stack_align','centre'):'centre';
+  const SA=document.getElementById('optStackAlign');SA.value=S.stackAlign;
+  SA.onchange=()=>{S.stackAlign=SA.value;put('phf_stack_align',S.stackAlign);render(false);};
   S.textFit=get('phf_text_fit','impact')==='all'?'all':'impact';   // v45
   const TF=document.getElementById('optTextFit');TF.value=S.textFit;
   TF.onchange=()=>{S.textFit=TF.value==='all'?'all':'impact';put('phf_text_fit',S.textFit);render(false);};

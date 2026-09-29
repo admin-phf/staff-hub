@@ -28,6 +28,23 @@ It isn't needed day to day.)
 
 ---
 
+## v48 — 30 Sep 2026
+Calmer headings, centred pack-above cards, and Portrait TV on zones.
+- **Green accent** (Card options, remembered on each device):
+  - **Feature heading** (default). The heading is set like the product form line: smaller, green,
+    letter-spaced. It no longer competes with the brand. The product form line (if ticked) turns grey, so
+    there is only one green line.
+  - **Ingredients & Benefits.** Those labels are green and the heading is the product-name grey.
+  - Layouts not on zones yet (POS 2-Up, Social, Web banner) take the same colours, without the letter-spacing.
+- **Pack-above cards** (Card options): **Centre** (default) · **Top centred** · **Left**. Applies to 3 Across,
+  4 Across, Portrait TV Hero and Email 2-Up 7:5. Centre puts every line, the pill, the price and the green
+  line on the pack shot's centre line.
+- **Portrait TV → Hero, 2 Rows, 3 Rows, 4 Rows now use zone cards.** Every Card text tick box works. The
+  pack shot matches the text height on the row layouts, prices stay large (Impact), and rows sit 44px apart.
+- **Fix:** headings and names that exactly fit their lines were sometimes shortened with "…" because the
+  letters overhang the line box by a few pixels. There is now half a line of slack.
+- Unchanged, checked pixel-for-pixel against v47: every Classic white layout.
+
 ## v47 — 30 Sep 2026
 Tick boxes you can rely on, a new 3 Across layout, and the Email clean cards on zones.
 - **Whatever is ticked in Card text is now always shown on zone cards.** In v46, Impact could leave a ticked

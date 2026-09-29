@@ -1,4 +1,4 @@
-# Update Specials — working notes (current: v47)
+# Update Specials — working notes (current: v48)
 
 Working notes agreed with Kenneth before code changes. Measurements are from the 2000×1250 POS export
 (POS screen → 4-Up grid, page with Advance / Diasporal / Basica / Ultra Muscleze, Text fit = Impact).
@@ -75,9 +75,16 @@ fixed share of the text-block height, and the content adapts to the box — neve
 - v47: Email clean cards on zones: Hero + 2 (also POS), 2-Up 7:5 (pack above text, at least 52% of the card),
   4-Up 7:5, 6-Up.
 
-## Zone layouts (v47)
+- v48: Kenneth won't use Product form, but likes its small green letter-spaced look. The **green accent**
+  option: Feature heading (default: heading set like the form line, form turns grey) or Ingredients & Benefits
+  labels (heading grey like the product name). Either way the heading no longer competes with the brand.
+- v48: **pack-above cards centred** by default (Centre / Top centred / Left option).
+- v48: **Portrait TV** Hero, 2, 3 and 4 Rows on zones, with every tick box.
+
+## Zone layouts (v48)
 POS: Hero · Hero + 2 · 4-Up grid · 3 Across · 4 Across. Email: Hero + 2 · 2-Up 7:5 · 4-Up 7:5 · 6-Up.
-Not yet: POS 2-Up · Portrait TV (Hero, 2/3/4 Rows) · Social (Hero 4:5, Hero Square, 4-Up Square) · Web banner.
+Portrait TV: Hero · 2 Rows · 3 Rows · 4 Rows.
+Not yet: POS 2-Up · Social (Hero 4:5, Hero Square, 4-Up Square) · Web banner.
 These still use the v45 fitting, where Impact can leave extra information off.
 
 ## Open (for Kenneth, after reviewing v47)
