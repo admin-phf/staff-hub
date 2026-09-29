@@ -28,6 +28,28 @@ It isn't needed day to day.)
 
 ---
 
+## v43 — 29 Sep 2026
+Card text tick boxes for every sheet column, and the sheet's separate Product and Size columns.
+With every box ticked, all 25 layouts are pixel-identical to v42.1 except for the new Ingredients / Benefits gap.
+- **Card text** now has one tick box per sheet column: **Brand · Product · Size · Product form · Now price ·
+  Discount style · Discount value · Feature heading · Key ingredients · Key benefits**. Every layout,
+  remembered on each device. Unticked values stay in each product's fields, marked **hidden**, so you can still edit them.
+  - **Discount style** = the NOW / SPECIAL pill. A deal's own pill (BUY 2 FOR) belongs to the discount value.
+  - **Discount value** = WAS price, SAVE line and red SAVE circle, deal wording, and Promo display
+    (replaces v42.2's separate Promo display box).
+  - **Now price** = the big price.
+  - Untick Brand, or both Product and Size, and the name block closes up instead of leaving a gap.
+  - Untick Now price and Discount value and the card becomes information only: no pill, price or green line.
+  - Copy text and the email text follow the boxes too. The advertising record keeps every value.
+- **Product and Size columns.** Sheets with `product` and `size` columns load directly: the name is built as
+  `Product, Size`, so photo files and records still match. Older sheets with one `name` column still work,
+  split at the first comma. In each product card, **Product name** is now **Product** and **Size**.
+- **Sheet headers** match with spaces or underscores (`now price` = `now_price`, `image url` = `image_url`).
+  An `image id` column (a Google Drive file ID) is used when `image url` is blank.
+- **A little space between Ingredients and Benefits** on the clean cards. The two-tone label / text styling is unchanged.
+- **Pack shots unchanged:** they still size to the card's text block, as in v42.
+- Classic cards with nothing left to show under the name drop the pill, price and rule, as clean cards do.
+
 ## v42.2 — 29 Sep 2026
 Card text tick boxes and new slide file names. With every box ticked, slides look the same as v42.1.
 - **Card text** (new row under Card options, remembered on each device): tick which optional columns show

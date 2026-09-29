@@ -2450,6 +2450,12 @@
     color: var(--brandink);
     font-weight: 700;
   }
+  /* v43: a little air between Ingredients and Benefits */
+  .slide .po-details>div+div{margin-top:.45em}
+  /* v43 Card text: the fixed name block drops the brand line or the product lines when they're unticked,
+     so the text below moves up instead of leaving a gap (the pack shot then matches the shorter text). */
+  .slide.ct-nobrand .po-name{height:calc(var(--name-lines,2) * 1.062em)!important;min-height:calc(var(--name-lines,2) * 1.062em)!important;max-height:calc(var(--name-lines,2) * 1.062em)!important}
+  .slide.ct-noname .po-name{height:1.194em!important;min-height:1.194em!important;max-height:1.194em!important}
 
   /* ---------- v26 channel picker (editor UI) ---------- */
   .chan-tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:0 0 12px}
@@ -2615,12 +2621,17 @@
         </label>
       </div>
       <div class="footer-opts" aria-label="Card text columns">
-        <span class="fo-title" title="Which optional sheet columns show on the slides, on every layout. Unticked columns are left off the slides but stay in each product's fields, so you can still edit them.">Card text</span>
-        <label class="auto-balance-toggle" title="Sheet column product_form, e.g. 60 Veg Caps. Shown on clean cards."><input type="checkbox" id="ctForm" checked> Product form</label>
-        <label class="auto-balance-toggle" title="Sheet column feature_heading, e.g. ADVANCED LIPOSOMAL C. Shown on clean cards."><input type="checkbox" id="ctHeading" checked> Feature heading</label>
-        <label class="auto-balance-toggle" title="Sheet column key_ingredients. Shown on clean cards."><input type="checkbox" id="ctIngredients" checked> Ingredients</label>
-        <label class="auto-balance-toggle" title="Sheet column key_benefits. Shown on clean cards."><input type="checkbox" id="ctBenefits" checked> Benefits</label>
-        <label class="auto-balance-toggle" title="Sheet column promo_display. Replaces the deal wording on every layout. Untick to use the normal deal wording from the sheet."><input type="checkbox" id="ctPromo" checked> Promo display</label>
+        <span class="fo-title" title="Which sheet columns show on the slides, on every layout. Unticked columns are left off the slides (and Copy text) but stay in each product's fields, so you can still edit them.">Card text</span>
+        <label class="auto-balance-toggle" title="Sheet column brand. The brand line on every card."><input type="checkbox" id="ctBrand" checked> Brand</label>
+        <label class="auto-balance-toggle" title="Sheet column product, e.g. Apple Cider Vinegar."><input type="checkbox" id="ctProduct" checked> Product</label>
+        <label class="auto-balance-toggle" title="Sheet column size, e.g. 946ml or 150mg, 60c."><input type="checkbox" id="ctSize" checked> Size</label>
+        <label class="auto-balance-toggle" title="Sheet column product form, e.g. CAPSULES. Shown on clean cards."><input type="checkbox" id="ctForm" checked> Product form</label>
+        <label class="auto-balance-toggle" title="Sheet column now price: the big price."><input type="checkbox" id="ctNow" checked> Now price</label>
+        <label class="auto-balance-toggle" title="Sheet column discount style: the NOW / SPECIAL pill. A deal's own pill (BUY 2 FOR) belongs to Discount value."><input type="checkbox" id="ctStyle" checked> Discount style</label>
+        <label class="auto-balance-toggle" title="Sheet column discount value: WAS price, SAVE line and red SAVE circle, deal wording (BUY 2 FOR $145) and Promo display."><input type="checkbox" id="ctValue" checked> Discount value</label>
+        <label class="auto-balance-toggle" title="Sheet column feature heading, e.g. ADVANCED LIPOSOMAL C. Shown on clean cards."><input type="checkbox" id="ctHeading" checked> Feature heading</label>
+        <label class="auto-balance-toggle" title="Sheet column key ingredients. Shown on clean cards."><input type="checkbox" id="ctIngredients" checked> Key ingredients</label>
+        <label class="auto-balance-toggle" title="Sheet column key benefits. Shown on clean cards."><input type="checkbox" id="ctBenefits" checked> Key benefits</label>
       </div>
       <div class="footer-opts" aria-label="File names">
         <span class="fo-title" title="Slide PNGs are named {number}-{layout}_{products}-{seconds}.png, e.g. 003-phf_pos_4-up_BioCeuticalsLiposomalC_TheracurminTriple-010.png">File names</span>
@@ -2722,7 +2733,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='42.2';
+const APP_VERSION='43';
 const APP_DATE='2026-09-29';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -2989,13 +3000,26 @@ function dealText(v){return offerText(normaliseDeal(v));}
 /* v42 ingest normalization. Keep source wording in name/nameRaw but cache the polished display title,
    and normalize per-item deal mechanics as the row enters the app so CSV, Google Sheets, Apps Script
    and last-good data all behave identically. */
+/* v43: sheet headers match with spaces or underscores ("now price" = "now_price"), and the sheet can give
+   the name as separate product + size columns. name stays "Product, Size" so photo files still match. */
+function sheetHeadKey(v){return String(v==null?'':v).trim().toLowerCase().replace(/[\s\-]+/g,'_');}
+function joinProductSize(product,size){return [product,size].map(v=>String(v==null?'':v).trim()).filter(Boolean).join(', ');}
+function productSizeOf(p){
+  if(!p)return {product:'',size:''};
+  if(p.product!=null||p.size!=null)return {product:String(p.product||'').trim(),size:String(p.size||'').trim()};
+  const n=String(p.name||'').trim(),i=n.indexOf(',');   // older sheets: "CoQ10, 150mg, 60c" → CoQ10 · 150mg, 60c
+  return i<0?{product:n,size:''}:{product:n.slice(0,i).trim(),size:n.slice(i+1).trim()};
+}
 function normaliseProductRow(r){
   if(!r)return r;
-  const row=tidyRowBrand(r),rawName=String(row.name==null?'':row.name).trim();
+  const row=tidyRowBrand(r),rawName=String(row.name==null?'':row.name).trim()||joinProductSize(row.product,row.size);
   const cleaned=displayName({...row,name:rawName,_cleanName:'',_cleanNameSource:''});
+  const ps=productSizeOf(String(row.product||row.size||'').trim()?row:{name:rawName});
   return {
     ...row,
     name:rawName,
+    product:ps.product,
+    size:ps.size,
     nameRaw:String(row.nameRaw||rawName),
     _cleanName:cleaned,
     _cleanNameSource:rawName,
@@ -3058,22 +3082,23 @@ function parseCSV(text){
 function rowsFromMatrix(matrix){
   const raw=(Array.isArray(matrix)?matrix:[]).map(r=>Array.isArray(r)?r:[]).filter(r=>r.some(c=>String(c==null?'':c).trim()));
   if(!raw.length)return [];
-  const head=raw[0].map(hd=>String(hd==null?'':hd).trim().toLowerCase());
-  const idx=n=>head.indexOf(n);
+  const head=raw[0].map(sheetHeadKey);   // v43: "now price" = "now_price"
+  const idx=n=>head.indexOf(sheetHeadKey(n));
   const out=[];
   for(let i=1;i<raw.length;i++){
     const r=raw[i];
     const g=n=>{const k=idx(n);return k>=0&&r[k]!=null?String(r[k]).trim():'';};
     const active=(g('active')||'yes').toLowerCase();
     if(active==='no'||active==='false'||active==='0')continue;
-    if(!g('brand')&&!g('name'))continue;
+    const nm=g('name')||g('product_name')||joinProductSize(g('product'),g('size'));   // v43: product + size columns
+    if(!g('brand')&&!nm)continue;
     let disc=(g('discount_style')||'none').toLowerCase().trim();
     if(!ALLOWED_DISC.has(disc))disc='none';
     const scale=g('image_scale')||g('image scale')||g('scale')||'100';
     // v28 offer dates. gviz tables carry dates as Date(y,m,d) in .v and the sheet's display text in .f
     const pick=(...names)=>{for(const n of names){const v=(typeof gDate==='function'?gDate:g)(n);if(v)return v;}return '';};
-    out.push(normaliseProductRow({brand:g('brand'),name:g('name'),now:g('now_price')||g('now'),
-      disc,dv:g('discount_value'),img:g('image_url'),recImg:g('recommended_image_url'),
+    out.push(normaliseProductRow({brand:g('brand'),name:nm,product:g('product'),size:g('size'),now:g('now_price')||g('now'),
+      disc,dv:g('discount_value'),img:g('image_url')||g('image_id'),recImg:g('recommended_image_url'),
       altImg:g('alternate_candidate_url'),imageReviewStatus:g('image_review_status'),
       imageReviewNote:g('image_review_note'),rrp:g('rrp'),scale,
       start:pick('start_date','start','starts','valid_from','from_date'),
@@ -3102,8 +3127,7 @@ function priceHTML(now){
 function priceData(p){
   // v42.1: promo_display is presentation-only. It overrides the displayed deal/promo line
   // without changing dv, so SAVE/WAS calculations and the source discount data remain intact.
-  // v42.2: ignored when Promo display is unticked in Card text.
-  const promo=cardTextOn('promo')?String(p.promoDisplay||'').trim():'';
+  const promo=String(p.promoDisplay||'').trim();
   const deal=promo?offerText(promo):(p.disc==='deal'?dealText(p.dv):'');   // v41: BUY 4+ FOR $60 EA
   const was=p.disc==='was'?moneyText(p.dv):'';
   const rrp=moneyText(p.rrp);
@@ -3941,8 +3965,11 @@ function classicDeal(p){
 }
 function perHTML(cd){return cd&&cd.per?`<span class="per">${h(cd.per)}</span>`:'';}
 function classicPercentHTML(cd,kind='dealhero'){return `<span class="${kind} dealpct"><span class="dealpct-value">${h(cd.text)}</span><span class="dealpct-sub">${h(cd.sublabel||'OFF')}</span></span>`;}
+/* v43: Now price and Discount value both left nothing to show → classic cards drop the pill, price and rule. */
+function noOfferShown(d){return !(cardTextOn('now')&&cardTextOn('value'))&&!d.has&&!d.deal&&!d.was&&!(d.rrp&&S.optRRP);}
 function pblock(p,reserve){
   const d=priceData(p),empty=reserve?`<div class="was ${REF_EMPTY_CLASS}" aria-hidden="true">&nbsp;</div>`:'';
+  if(noOfferShown(d))return '';   // v43: Card text left no price or deal to show
   if(!d.has){
     const cd=classicDeal(p),ref=d.rrp&&S.optRRP?`<div class="was">RRP $${h(d.rrp)} EACH</div>`:empty;
     const anchor=cd.amount?`<span class="price">${priceHTML(cd.amount)}${perHTML(cd)}</span>`:(cd.percent?classicPercentHTML(cd):`<span class="dealhero dealbig">${h(cd.text)}</span>`);
@@ -3957,6 +3984,7 @@ function pblock(p,reserve){
 }
 function gridPriceBlock(p,reserve){
   const d=priceData(p);
+  if(noOfferShown(d))return '';   // v43: Card text left no price or deal to show
   if(!d.has){
     const cd=classicDeal(p),anchor=cd.amount?`<span class="gprice">${priceHTML(cd.amount)}${perHTML(cd)}</span>`:(cd.percent?classicPercentHTML(cd,'gdeal'):`<span class="gdeal dealbig">${h(cd.text)}</span>`);
     return `<div class="gprice-row"><span class="gnow">${h(cd.lead)}</span></div><div class="classic-anchor">${anchor}</div><div class="classic-offer-rule"></div>${refLine(p,reserve)}`;
@@ -3965,6 +3993,7 @@ function gridPriceBlock(p,reserve){
 }
 function featurePriceBlock(p,reserve){
   const d=priceData(p);
+  if(noOfferShown(d))return '';   // v43: Card text left no price or deal to show
   if(!d.has){
     const cd=classicDeal(p),anchor=cd.amount?`<div class="fprice">${priceHTML(cd.amount)}${perHTML(cd)}</div>`:(cd.percent?classicPercentHTML(cd,'fdeal'):`<div class="fdeal dealbig">${h(cd.text)}</div>`);
     return `<div class="ftag">${h(cd.lead)}</div><div class="classic-anchor">${anchor}</div><div class="classic-offer-rule"></div>${refLine(p,reserve)}`;
@@ -3998,8 +4027,11 @@ function footerNoteText(rowsOnSlide,withEnds){
 function footLabelHTML(){return S.optLabel?` <span class="foot-label">${h(PHF_LABEL_STATEMENT)}</span>`:'';}
 // v29: classic white layouts keep their original footer exactly. Footer options apply to clean cards only.
 function footHTML(){return `<div class="foot"><span class="foot-left"><span class="terms">*Not valid with existing specials, markdowns or promotions. Strictly while stocks last.</span></span><span class="foot-site">${h(S.foot)}</span></div>`;}
-function nameHTML(p){return h(displayName(p));}   // v41: product name without the repeated brand
-function productName(p){return `<div class="pbrand">${classicBrand(p)}</div><div class="pname">${nameHTML(p)}</div>`;}
+function nameHTML(p){return h(slideNameText(p,false));}   // v41: product name without the repeated brand · v43: Card text Product / Size
+function productName(p){   // v43: Card text Brand / Product / Size decide which rows are drawn
+  return (cardTextOn('brand')?`<div class="pbrand">${classicBrand(p)}</div>`:'')+
+    (cardNameOn()?`<div class="pname">${nameHTML(p)}</div>`:'');
+}
 
 /* ---------- data state ---------- */
 function baseRows(){return S.source==='sheet'?S.rows:SAMPLE;}
@@ -4277,24 +4309,25 @@ function buildInputs(){
     const p=rows[gi],d=document.createElement('div');d.className='card-input';
     d.innerHTML=`<button class="del" data-gi="${gi}" title="Remove from slide" aria-label="Remove product ${gi+1}">✕</button>
       <h3>Product ${gi+1}</h3>
-      <label>Brand</label><input type="text" data-gi="${gi}" data-k="brand" value="${ha(p.brand)}">
+      <label>Brand${cardTextOffTag('brand')}</label><input type="text" data-gi="${gi}" data-k="brand" value="${ha(p.brand)}">
       <label title="Optional. Shown on clean cards exactly as you type it — e.g. BioCeuticals, PRANA ON. The Brand above still finds the photo file.">Brand on slide <span style="font-weight:500;color:var(--muted)">(optional)</span></label><input type="text" data-gi="${gi}" data-k="brandShow" value="${ha(p.brandShow||'')}" placeholder="${ha(slideBrand({brand:p.brand})||'Leave blank to use the brand')}">
-      <label>Product name</label><input type="text" data-gi="${gi}" data-k="name" value="${ha(p.name)}">
+      <div class="mini"><div><label>Product${cardTextOffTag('product')}</label><input type="text" data-gi="${gi}" data-k="product" value="${ha(productSizeOf(p).product)}"></div>
+      <div><label>Size${cardTextOffTag('size')}</label><input type="text" data-gi="${gi}" data-k="size" value="${ha(productSizeOf(p).size)}" placeholder="e.g. 946ml, 150mg, 60c"></div></div>
       <label title="Optional. Used on clean cards instead of the product name — e.g. Kyolic 120c">Short name on slide <span style="font-weight:500;color:var(--muted)">(optional)</span></label><input type="text" data-gi="${gi}" data-k="short" value="${ha(p.short||'')}" placeholder="${ha(displayName(p)!==unitTidy(p.name)?displayName(p):'Leave blank to use the product name')}">
       <label>Product Form${cardTextOffTag('form')}</label><input type="text" data-gi="${gi}" data-k="productForm" value="${ha(p.productForm||'')}" placeholder="e.g. 60 Veg Caps, Liquid 500ml">
       <label>Feature Heading${cardTextOffTag('heading')}</label><input type="text" data-gi="${gi}" data-k="featureHeading" value="${ha(p.featureHeading||'')}" placeholder="e.g. High-Potency Antioxidant">
       <label>Key Ingredients${cardTextOffTag('ingredients')}</label><input type="text" data-gi="${gi}" data-k="keyIngredients" value="${ha(p.keyIngredients||'')}" placeholder="e.g. Quercetin 500mg, Zinc 15mg">
       <label>Key Benefits${cardTextOffTag('benefits')}</label><input type="text" data-gi="${gi}" data-k="keyBenefits" value="${ha(p.keyBenefits||'')}" placeholder="e.g. Immune Support & Recovery">
-      <label>Promo Display Override${cardTextOffTag('promo')}</label><input type="text" data-gi="${gi}" data-k="promoDisplay" value="${ha(p.promoDisplay||'')}" placeholder="e.g. SPECIAL BUY 2 FOR $50">
-      <div class="mini"><div><label>NOW price</label>
+      <label>Promo Display Override${cardTextOffTag('value')}</label><input type="text" data-gi="${gi}" data-k="promoDisplay" value="${ha(p.promoDisplay||'')}" placeholder="e.g. SPECIAL BUY 2 FOR $50">
+      <div class="mini"><div><label>NOW price${cardTextOffTag('now')}</label>
         <input type="text" inputmode="decimal" data-gi="${gi}" data-k="now" value="${ha(p.now)}"></div>
       <div><label>RRP (optional)</label>
         <input type="text" inputmode="decimal" data-gi="${gi}" data-k="rrp" value="${ha(p.rrp||'')}"></div></div>
       <div class="discwrap"><div class="mini">
-        <div><label>Discount style</label><select data-gi="${gi}" data-k="disc">
+        <div><label>Discount style${cardTextOffTag('style')}</label><select data-gi="${gi}" data-k="disc">
           ${discOpts.map(o=>`<option value="${o[0]}" ${p.disc===o[0]?'selected':''}>${o[1]}</option>`).join('')}
         </select></div>
-        <div><label>Discount value</label><input type="text" data-gi="${gi}" data-k="dv" value="${ha(p.dv)}"></div>
+        <div><label>Discount value${cardTextOffTag('value')}</label><input type="text" data-gi="${gi}" data-k="dv" value="${ha(p.dv)}"></div>
       </div></div>
       <div class="mini photo-stack" style="margin-top:8px">
         <div><label>Photo file</label><input type="file" accept="image/*" data-gi="${gi}" data-k="imgfile"></div>
@@ -4313,7 +4346,11 @@ function buildInputs(){
     const ev=inp.tagName==='SELECT'?'change':'input';
     inp.addEventListener(ev,e=>{
       const gi=+e.target.dataset.gi,k=e.target.dataset.k;
-      rows[gi][k]=e.target.value;
+      if(k==='product'||k==='size'){   // v43: name = "Product, Size", so photo files and records still match
+        const r=rows[gi],ps=productSizeOf(r);
+        r.product=k==='product'?e.target.value:ps.product;r.size=k==='size'?e.target.value:ps.size;
+        r.name=joinProductSize(r.product,r.size);
+      }else rows[gi][k]=e.target.value;
       if(k==='scale'){
         const lab=box.querySelector(`[data-scale-label="${gi}"]`);if(lab)lab.textContent=imageScale(rows[gi])+'%';
       }
@@ -4435,10 +4472,48 @@ function slideBrand(p){
   return brandCaseText(p?p.brand:'',m,true);
 }
 function classicBrand(p){const o=String(p&&p.brandShow||'').trim();return h(brandCaseText(o||(p?p.brand:''),S.brandCase||'std',false));}
-/* v42.2 Card text: tick boxes choose which optional columns show on the slides (every layout).
-   Unticked values stay on the product row and in the editor fields; they're just not drawn. */
+/* v42.2 / v43 Card text: one tick box per sheet column — brand, product, size, product form, now price,
+   discount style, discount value, feature heading, key ingredients, key benefits — on every layout.
+   Unticked values stay on the product row and in the editor fields; they're just not drawn.
+   · Discount style = the NOW / SPECIAL pill. Discount value = WAS, SAVE (line and red circle), deal wording
+     (BUY 2 FOR …) and Promo display. Now price = the big price. */
 function cardTextOn(k){return !(S.cardText&&S.cardText[k]===false);}
-function cardTextOffTag(k){return cardTextOn(k)?'':'<span class="ct-off">not shown · unticked in Card text</span>';}
+function cardNameOn(){return cardTextOn('product')||cardTextOn('size');}
+function cardTextOffTag(k){return cardTextOn(k)?'':'<span class="ct-off" title="Unticked in Card text, so it isn\'t shown on the slides. You can still edit it.">hidden</span>';}
+/* The row as drawn: prices / discount wording the Card text boxes leave out are blanked on a copy, so every
+   layout (and the red SAVE circle) follows without changing the product row itself. */
+function cardView(p){
+  if(!p)return p;
+  const now=cardTextOn('now'),val=cardTextOn('value');
+  if(now&&val)return p;
+  const v={...p};
+  if(!now)v.now='';
+  if(!val){v.dv='';v.promoDisplay='';}
+  return v;
+}
+/* Product and size as shown on the slide. Uses the sheet's size when it has one, else the name after the first
+   comma, else a size at the end of the name ("Kyolic 120c"). */
+function slideNameParts(p,dn){
+  dn=String(dn||'').trim();
+  const sz=unitTidy(productSizeOf(p).size).trim();
+  if(sz){
+    if(dn===sz)return {product:'',size:sz};
+    if(dn.endsWith(', '+sz))return {product:dn.slice(0,-(sz.length+2)).trim(),size:sz};
+    if(dn.endsWith(' '+sz))return {product:dn.slice(0,-(sz.length+1)).trim(),size:sz};
+  }
+  const i=dn.indexOf(',');
+  if(i>=0)return {product:dn.slice(0,i).trim(),size:dn.slice(i+1).trim()};
+  if(isSizeOnly(dn))return {product:'',size:dn};
+  const s=splitSize(dn);
+  return s.size&&s.name?{product:s.name,size:s.size}:{product:dn,size:''};
+}
+function slideNameText(p,useShort){
+  const base=useShort&&String(p&&p.short||'').trim()?unitTidy(p.short):displayName(p);
+  const pOn=cardTextOn('product'),sOn=cardTextOn('size');
+  if(pOn&&sOn)return base;
+  const x=slideNameParts(p,base);
+  return [pOn?x.product:'',sOn?x.size:''].filter(Boolean).join(', ');
+}
 function offerMetaHTML(p){
   const formTag=cardTextOn('form')&&p.productForm?`<div class="po-form">${h(p.productForm)}</div>`:'';
   const feature=cardTextOn('heading')&&p.featureHeading?`<div class="po-feature-head">${h(p.featureHeading)}</div>`:'';
@@ -4461,19 +4536,24 @@ function offerBlock(p,opts={}){
   // v32: row 1 = brand (one line), row 2 = product + size inside a fixed boundary (see applyNameBoundary).
   // Non-breaking hyphens keep Nutra-Life / Co-Q10 / Ester-C together when a line wraps.
   const nbh=s=>String(s||'').replace(/([A-Za-z0-9])-(?=[A-Za-z0-9])/g,'$1\u2011');
-  const brandTxt=nbh(slideBrand(p));
-  const prodTxt=nbh(plainText(String(p.short||'').trim()?productText(p.short):nameHTML(p)));   // v41: brand not repeated
-  const title=brandTxt||prodTxt?`<div class="po-brand" data-full="${ha(brandTxt)}">${h(brandTxt)}</div><div class="po-prod" data-full="${ha(prodTxt)}">${h(prodTxt)}</div>`:'';
+  const bOn=cardTextOn('brand'),nOn=cardNameOn();   // v43: Card text Brand / Product / Size
+  const brandTxt=bOn?nbh(slideBrand(p)):'';
+  const prodTxt=nOn?nbh(slideNameText(p,true)):'';   // v41: brand not repeated
+  const title=brandTxt||prodTxt?`${bOn?`<div class="po-brand" data-full="${ha(brandTxt)}">${h(brandTxt)}</div>`:''}${nOn?`<div class="po-prod" data-full="${ha(prodTxt)}">${h(prodTxt)}</div>`:''}`:'';
   const meta=offerMetaHTML(p);
   // v35: a deal reads like a price. The mechanic goes in the pill (BUY 2 FOR) and the amount or reward is
   // the big line ($145.00 / GET 1 FREE), so every card has the same rows: pill · big line · rule · reference.
+  // v43: the NOW / SPECIAL pill follows Card text → Discount style; a deal's own pill (BUY 2 FOR) is part of
+  // the discount value.
   const sd=!d.has&&d.deal?splitDeal(d.deal):null;
-  const pill=sd&&sd.lead?`<div class="po-pill po-lead">${h(sd.lead)}</div>`:`<div class="po-pill">${d.has?'NOW':'SPECIAL'}</div>`;
+  const pill=sd&&sd.lead?`<div class="po-pill po-lead">${h(sd.lead)}</div>`:(cardTextOn('style')?`<div class="po-pill">${d.has?'NOW':'SPECIAL'}</div>`:'');
   const hero=d.has?`<div class="po-price po-hero">${h(offerPrice(p.now))}</div>`:(sd?(sd.amount?`<div class="po-price po-hero">${h(sd.hero)}${sd.per?`<span class="po-per">${h(sd.per)}</span>`:''}</div>`:(sd.percent?`<div class="po-deal po-dealpct po-hero"><span class="po-dealpct-value">${h(sd.hero)}</span><span class="po-dealpct-sub">${h(sd.sublabel||'OFF')}</span></div>`:`<div class="po-deal po-dealbig po-hero">${h(sd.hero)}</div>`)):'');
   const subParts=offerSubLines(p,{noSave:!!opts.noSave}),subs=subParts.length?subParts.map(t=>`<div class="po-sub">${t}</div>`).join(''):`<div class="po-sub ${REF_EMPTY_CLASS}" aria-hidden="true">&nbsp;</div>`;
   const ends=opts.ends?offerDates(p).end:null;
   const endsHTML=ends?`<div class="po-ends">Offer ends ${h(fmtOfferDate(ends))}</div>`:'';
-  return `<div class="${cls.join(' ')}" data-key="${ha(pkey)}">${title?`<div class="po-name">${title}</div>`:''}${meta}${opts.extra?`<div class="po-extra">${opts.extra}</div>`:''}${pill}<div class="po-anchor">${hero}</div><div class="po-rule"></div><div class="po-foot">${subs}${endsHTML}</div></div>`;
+  // v43: with the price, discount style and discount value all unticked the card is information only (no rule).
+  const offer=!pill&&!hero&&!subParts.length?(endsHTML?`<div class="po-foot">${endsHTML}</div>`:''):`${pill}<div class="po-anchor">${hero}</div><div class="po-rule"></div><div class="po-foot">${subs}${endsHTML}</div>`;
+  return `<div class="${cls.join(' ')}" data-key="${ha(pkey)}">${title?`<div class="po-name">${title}</div>`:''}${meta}${opts.extra?`<div class="po-extra">${opts.extra}</div>`:''}${offer}</div>`;
 }
 /* Shrink a block only when something would not fit: price or WAS line wider than
    the column, the name running past three lines, or the block running out of its
@@ -4836,6 +4916,8 @@ function render(rebuildInputs=true){
   s.style.setProperty('--name-lines',String(S.nameLines||2));
   if(CLEAN_LAYOUTS[S.layout]&&S.optCanvas==='dark')s.classList.add('cl-dark');
   s.classList.add('bc-'+(S.brandCase||'std'));   // v38 brand letters on classic layouts   // v35 charcoal canvas (clean cards only)
+  if(!cardTextOn('brand'))s.classList.add('ct-nobrand');   // v43: name block loses the brand line
+  if(!cardNameOn())s.classList.add('ct-noname');           // v43: name block loses the product lines
   // IMPORTANT: the original hub used a fixed 1000×625 .slide. Multi-channel
   // layouts must resize the actual DOM canvas as well as the export metadata;
   // otherwise portrait/square/banner artwork is rendered into 1000×625 and
@@ -4844,7 +4926,7 @@ function render(rebuildInputs=true){
   s.style.height=L.h+'px';
   document.getElementById('dimsNote').textContent=`${L.w} × ${L.h} canvas · PNG ${L.w*EXPORT_SCALE} × ${L.h*EXPORT_SCALE}`;
   if(S.page>=pageCount())S.page=0;
-  const P=pageRows();let html='';
+  const P=pageRows().map(cardView);let html='';   // v43: Card text Now price / Discount value
   if(S.layout==='single'){
     const p=P[0];
     html=`<div class="pad"><div class="titlebar"><span class="big">${titleInline()}</span></div>
@@ -4875,13 +4957,13 @@ function render(rebuildInputs=true){
     const cells=[...P];if(!part)while(cells.length<4)cells.push(null);
     html=`<div class="pad"><div class="titlebar"><span class="big">${titleInline()}</span></div>
       <div class="body${part}">${cells.map(p=>p?`<div class="gcard">${imgStamped(p)}
-        <div class="pbrand">${classicBrand(p)}</div><div class="pname">${nameHTML(p)}</div>${gridPriceBlock(p,rsv)}</div>`:`<div class="gcard empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
+        ${productName(p)}${gridPriceBlock(p,rsv)}</div>`:`<div class="gcard empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
   }else if(S.layout==='feature'){
     const part=partialClass(P.length,4),rsv=P.length>1;   // v41
     const cells=[...P];if(!part)while(cells.length<4)cells.push(null);
     html=`<div class="pad"><div class="titlebar"><span class="big">${titleInline()}</span></div>
       <div class="body${part}">${cells.map(p=>p?`<div class="fcell">${imgStamped(p)}<div class="finfo">
-        <div class="pbrand">${classicBrand(p)}</div><div class="pname">${nameHTML(p)}</div><div class="frule"></div>${featurePriceBlock(p,rsv)}</div></div>`:`<div class="fcell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
+        ${productName(p)}<div class="frule"></div>${featurePriceBlock(p,rsv)}</div></div>`:`<div class="fcell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
   }else if(S.layout==='promo'){
     const cells=[...P].slice(0,4);while(cells.length<4)cells.push(null);
     const promoHead=String(S.title||'').trim()?titleInline():'SPECIALS <span class="accent">ON NOW</span>';
@@ -4903,6 +4985,12 @@ function render(rebuildInputs=true){
       <div class="body">${cells.map(p=>p?`<div class="cell">${imgStamped(p)}${productName(p)}${pblock(p,P.length>1)}</div>`:`<div class="cell empty-cell"></div>`).join('')}</div>${footHTML()}</div>`;
   }
   s.innerHTML=html;
+  // v43: Card text → Discount style unticked: classic NOW / SPECIAL pills come off (deal pills such as BUY 2 stay).
+  if(!cardTextOn('style'))s.querySelectorAll('.nowlbl,.gnow,.ftag,.bot-chip,.retail-now').forEach(el=>{
+    if(!/^(NOW|SPECIAL)$/i.test(el.textContent.trim()))return;
+    const par=el.parentElement;el.remove();
+    if(par&&par.classList.contains('gprice-row')&&!par.children.length)par.remove();
+  });
   document.getElementById('pageInfo').textContent=`Page ${S.page+1} of ${pageCount()}`;
   if(rebuildInputs)buildInputs();
   fit();updateLayoutAdvice();updatePreviewHead();updateValidation();updateFileNamePreview();
@@ -5088,7 +5176,8 @@ document.getElementById('autoBalanceToggle').addEventListener('change',e=>{
   U.onchange=()=>{S.showUpcoming=U.checked;put('phf_show_upcoming',U.checked?'on':'off');S.page=0;render(true);};
   // v42.2 Card text: which optional sheet columns show on the slides. Remembered on this device.
   S.cardText={};
-  [['form','ctForm'],['heading','ctHeading'],['ingredients','ctIngredients'],['benefits','ctBenefits'],['promo','ctPromo']].forEach(([k,id])=>{
+  [['brand','ctBrand'],['product','ctProduct'],['size','ctSize'],['form','ctForm'],['now','ctNow'],['style','ctStyle'],
+   ['value','ctValue'],['heading','ctHeading'],['ingredients','ctIngredients'],['benefits','ctBenefits']].forEach(([k,id])=>{
     S.cardText[k]=get('phf_ct_'+k,'on')!=='off';
     const el=document.getElementById(id);el.checked=S.cardText[k];
     el.onchange=()=>{S.cardText[k]=el.checked;put('phf_ct_'+k,el.checked?'on':'off');render(true);};
@@ -5195,8 +5284,8 @@ function looksLikeHTML(text,contentType=''){
 function rowsFromGViz(response){
   const table=response&&response.table;
   if(!table||!Array.isArray(table.cols)||!Array.isArray(table.rows))return [];
-  const head=table.cols.map(c=>String((c&&c.label)||'').trim().toLowerCase());
-  const idx=n=>head.indexOf(n);
+  const head=table.cols.map(c=>sheetHeadKey((c&&c.label)||''));   // v43: "now price" = "now_price"
+  const idx=n=>head.indexOf(sheetHeadKey(n));
   const out=[];
   for(let i=0;i<table.rows.length;i++){
     const cells=(table.rows[i]&&table.rows[i].c)||[];
@@ -5214,14 +5303,15 @@ function rowsFromGViz(response){
     };
     const active=(g('active')||'yes').toLowerCase();
     if(active==='no'||active==='false'||active==='0')continue;
-    if(!g('brand')&&!g('name'))continue;
+    const nm=g('name')||g('product_name')||joinProductSize(g('product'),g('size'));   // v43: product + size columns
+    if(!g('brand')&&!nm)continue;
     let disc=(g('discount_style')||'none').toLowerCase().trim();
     if(!ALLOWED_DISC.has(disc))disc='none';
     const scale=g('image_scale')||g('image scale')||g('scale')||'100';
     // v28 offer dates. gviz tables carry dates as Date(y,m,d) in .v and the sheet's display text in .f
     const pick=(...names)=>{for(const n of names){const v=(typeof gDate==='function'?gDate:g)(n);if(v)return v;}return '';};
-    out.push(normaliseProductRow({brand:g('brand'),name:g('name'),now:g('now_price')||g('now'),
-      disc,dv:g('discount_value'),img:g('image_url'),recImg:g('recommended_image_url'),
+    out.push(normaliseProductRow({brand:g('brand'),name:nm,product:g('product'),size:g('size'),now:g('now_price')||g('now'),
+      disc,dv:g('discount_value'),img:g('image_url')||g('image_id'),recImg:g('recommended_image_url'),
       altImg:g('alternate_candidate_url'),imageReviewStatus:g('image_review_status'),
       imageReviewNote:g('image_review_note'),rrp:g('rrp'),scale,
       start:pick('start_date','start','starts','valid_from','from_date'),
@@ -5522,16 +5612,16 @@ function updateFileNamePreview(){
 }
 /* ---------- v28 email text + advertising record ---------- */
 function plainText(html){const t=document.createElement('textarea');t.innerHTML=String(html||'');return t.value;}
-function offerTextLine(p){
-  const d=priceData(p);
-  const name=[slideBrand(p),displayName(p)].filter(Boolean).join(' ');
+function offerTextLine(p0){
+  const p=cardView(p0),d=priceData(p);   // v43: Copy text / email text say what the slide shows
+  const name=[cardTextOn('brand')?slideBrand(p):'',cardNameOn()?slideNameText(p,false):''].filter(Boolean).join(' ');
   const parts=[];
   if(d.has)parts.push(`now ${offerPrice(p.now)}`);
   if(d.deal)parts.push(d.deal);
   if(d.was)parts.push(`was $${d.was}`);else if(d.rrp&&S.optRRP)parts.push(`RRP $${d.rrp}`);
   const save=retailSaveLabel(p);if(save)parts.push(save.replace(/^SAVE/,'save'));
   const e=offerDates(p).end;if(e)parts.push(`ends ${fmtOfferDate(e)}`);
-  return `${name} — ${parts.join(', ')}`;
+  return parts.length?`${name} — ${parts.join(', ')}`:name;
 }
 function slideAltText(rows){return 'Prahran Health Foods specials: '+rows.map(offerTextLine).join('; ')+'.';}
 function slideTextBlock(rows,file){
