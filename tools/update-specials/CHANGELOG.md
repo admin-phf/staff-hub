@@ -28,31 +28,6 @@ It isn't needed day to day.)
 
 ---
 
-## v44 — 29 Sep 2026
-Health-detail visibility correction for adaptive clean-card layouts.
-- **Health story never disappears:** the density ladder can simplify supporting copy, but every product with health metadata now retains at least one visible health message.
-- **Compact cards:** show the Feature Heading plus one concise Benefits line; Product Form and Ingredients are suppressed first.
-- **Minimal cards:** show a short two-line health summary instead of hiding the complete metadata block. The summary prefers `feature_heading`, then falls back to `key_benefits`, then `key_ingredients`.
-- **Medium / hero cards:** continue to show progressively richer health information where space allows.
-- **Offer readability remains protected:** the system still reduces secondary copy before shrinking the product name, promotional mechanic or price.
-- **Universal correction:** applies to all clean-card POS, portrait TV, email, social and web-banner layouts that use the adaptive card engine.
-- **Version:** `APP_VERSION` is now `44`; release date remains `2026-09-29`.
-
-## v43 — 29 Sep 2026
-Universal readability and spacing correction for the new product metadata introduced in v42.1.
-- **Adaptive information density:** clean cards now decide how much optional metadata to show from the actual rendered card size, rather than forcing Ingredients + Benefits into every template.
-  - **Full:** spacious hero / large cards can show Product Form, Feature Heading, Ingredients and Benefits.
-  - **Medium:** keeps Feature Heading + Benefits; hides Product Form and Ingredients.
-  - **Compact:** keeps Feature Heading only.
-  - **Minimal:** hides optional metadata entirely on extremely small cards.
-- **Core offer protected first:** optional metadata is reduced before the whole offer block is scaled down, preserving larger product names, promotion pills, prices and green offer rules.
-- **Consistent cards within a group:** cards with the same geometry use the same metadata depth, preventing one card from looking dense while the neighbouring card looks sparse.
-- **Controlled copy lengths:** feature headings, Ingredients and Benefits are line-clamped so unusually long spreadsheet copy cannot take over the artwork.
-- **Cleaner hierarchy:** metadata typography is slightly smaller and tighter, with less vertical spacing, while the Feature Heading remains the strongest educational callout.
-- **Universal behaviour:** the correction is geometry-based and therefore applies automatically across POS, portrait TV, email, social and web-banner clean-card layouts without a separate rule for every template.
-- **Classic white layouts remain unchanged.**
-- **Version:** `APP_VERSION` is now `43`; release date remains `2026-09-29`.
-
 ## v42.1 — 29 Sep 2026
 Optional product metadata support, with existing products and layouts unchanged when the new fields are blank.
 - **New spreadsheet / feed columns:** `product_form`, `feature_heading`, `key_ingredients`, `key_benefits`, and `promo_display`.
