@@ -2461,6 +2461,22 @@
      zoneFit() sets every size in px from one unit (the price size); these rules only carry the look. */
   .l-retailfour{--cl-gap:22px;--cl-cgap:16px}   /* no borders: space between products > space inside one */
   .l-pos4row{--cl-gap:18px}
+  /* v47 3 Across + Email layouts on zone cards */
+  .l-pos3row{--cl-pad:14px 18px 10px;--cl-gap:22px;--cl-cpad:14px 16px 16px;--cl-radius:16px;--cl-foot:11px;--cl-fpad:6px;--po-size:60px}
+  .cl-grid.g31{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:minmax(0,1fr)}
+  .cl-grid.g31.partial-1,.cl-grid.g31.partial-2{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+  .cl-grid.g31.partial-1>:nth-child(1){grid-column:3 / span 2}
+  .cl-grid.g31.partial-2>:nth-child(1){grid-column:2 / span 2}
+  .cl-grid.g31.partial-2>:nth-child(2){grid-column:4 / span 2}
+  .slide .cl-card.zc-top{grid-template-rows:minmax(0,1fr)!important}
+  .slide .cl-card.zc-top .zc-info{height:100%!important;justify-content:flex-start}
+  .slide .zc-top .zc{height:100%}
+  .slide .zc-img{flex:1 1 0;min-height:0;position:relative}
+  .slide .zc-img .imgwrap{height:100%!important}
+  .l-botanicaltwo{--cl-gap:36px}
+  .l-botanicalfour{--cl-gap:30px}
+  .l-email6{--cl-gap:16px}
+  .l-retailhero2{--cl-gap:18px}
   .slide .cl-card.zc-card .imgwrap .imgslot{padding:0!important}
   .slide .zc-info{display:flex;flex-direction:column;justify-content:center;min-width:0;height:100%}
   .slide .cl-card.stack .zc-info{justify-content:flex-start;height:auto}
@@ -2605,6 +2621,7 @@
           <button class="btn" data-layout="pos2">2-Up</button>
           <button class="btn" data-layout="retailhero2">Hero + 2</button>
           <button class="btn" data-layout="retailfour">4-Up grid</button>
+          <button class="btn" data-layout="pos3row">3 Across</button>
           <button class="btn" data-layout="pos4row">4 Across</button>
         </div></div>
         <div class="lgroup" data-channel="pos"><span class="lblgrp">Classic white</span><div class="lbtns">
@@ -2655,7 +2672,7 @@
         <label class="fo-select" title="Every card reserves the same space for the product name. Longer names are abbreviated or shortened (size always kept).">Product name
           <select id="optNameLines"><option value="1">1 line</option><option value="2">2 lines</option></select>
         </label>
-        <label class="fo-select" title="Impact: the price, brand and name stay full size; the extra information (product form, feature heading, ingredients, benefits) is made a little smaller, then left off where a card has no room (you're told which). All info: everything shrinks together so every line shows.">Text fit
+        <label class="fo-select" title="Impact: prices stay as large as possible. On zone cards (POS Hero, Hero + 2, 4-Up grid, 3 Across, 4 Across and the Email clean cards) whatever is ticked is always shown — set a little smaller, with long ingredients / benefits shortened with …. On Portrait TV, Social and Web banner, extra information is still left off where a card has no room. All info: every line in full; prices get smaller to make room.">Text fit
           <select id="optTextFit"><option value="impact">Impact (price first)</option><option value="all">All info</option></select>
         </label>
         <label class="fo-select" title="How brand names are written, on every layout. Standard: clean cards in Title Case, classic layouts in CAPITALS. A Brand on slide is kept as typed in Standard and As typed.">Brand letters
@@ -2784,7 +2801,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='46';
+const APP_VERSION='47';
 const APP_DATE='2026-09-29';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -2871,7 +2888,7 @@ const LAYOUTS={
   retailbanner2:{per:2,w:1600,h:500}, retailportrait:{per:4,w:1080,h:1920},
   retailsquare4:{per:4,w:1080,h:1080}, retailsquarehero:{per:1,w:800,h:800},
   // v26 clean-card layouts
-  poshero:{per:1,w:1000,h:625}, pos2:{per:2,w:1000,h:625}, pos4row:{per:4,w:1000,h:625},
+  poshero:{per:1,w:1000,h:625}, pos2:{per:2,w:1000,h:625}, pos4row:{per:4,w:1000,h:625}, pos3row:{per:3,w:1000,h:625},
   tvhero:{per:1,w:1080,h:1920}, tv2:{per:2,w:1080,h:1920}, tv3:{per:3,w:1080,h:1920},
   email6:{per:6,w:1000,h:625}   // v30 clean-card 6-Grid
 };
@@ -2898,6 +2915,7 @@ const LAYOUT_META={
   poshero:{kind:'best',channel:'POS customer screen',note:'One product on a clean card with the largest price. Best for a single standout special at the checkout.'},
   pos2:{kind:'best',channel:'POS customer screen',note:'Two clean cards side by side: pack shot left, bold price right. The clean-card version of 2-Product.'},
   pos4row:{kind:'best',channel:'POS customer screen',note:'Four products in one row with the pack shot above each price. Good for a range or brand promotion.'},
+  pos3row:{kind:'best',channel:'POS customer screen',note:'Three products in one row: brand, product, size and form above each pack shot; heading, benefits and price below. Good for a range or brand promotion.'},
   tvhero:{kind:'best',channel:'Portrait TV',note:'One product filling the portrait screen: large pack shot above a very large price, readable from across the store.'},
   tv2:{kind:'best',channel:'Portrait TV',note:'Two large horizontal cards stacked. Strong distance readability with room for longer names.'},
   tv3:{kind:'best',channel:'Portrait TV',note:'Three horizontal cards stacked. Balances product count with distance readability.'},
@@ -3770,7 +3788,8 @@ function placeZoneStamp(wrap,st){
   // Wide packs (tubs, boxes): the circle sits inside the top-right corner. Narrow bottles: it would cover the
   // cap and label, so it sits beside the shoulder instead, overlapping the edge by a third.
   const narrow=packR-packL<2.2*d,inset=narrow?.33*d:.92*d;
-  const left=Math.max(0,Math.min(packR-inset,wrap.offsetWidth-d)),top=Math.max(packT+(narrow?.05*d:-.18*d),-.9*padT);
+  const minTop=wrap.closest('.zc-img')?0:-.9*padT;   // v47 3 Across: never over the form line above the pack
+  const left=Math.max(0,Math.min(packR-inset,wrap.offsetWidth-d)),top=Math.max(packT+(narrow?.05*d:-.18*d),minTop);
   ['right','top','left'].forEach(p=>st.style.removeProperty(p));
   st.style.setProperty('left',left.toFixed(1)+'px','important');st.style.setProperty('right','auto','important');
   st.style.setProperty('top',top.toFixed(1)+'px','important');st.dataset.anchor='pack';
@@ -4214,6 +4233,10 @@ function validateProducts(){
   // v45: one line for the page when Text fit → Impact left information off (not one per product).
   const left=[...new Set([...(META_TRIMS||new Map()).values()].flat())];
   if(left.length)warnings.push(`Impact: ${left.join(', ').replace(/, ([^,]*)$/,' and $1')} left off this layout so the prices stay large — set Text fit to All info, or pick a larger layout, to show them`);
+  const cut=[...new Set([...(ZONE_CUTS||new Map()).values()].flat())];   // v47 zone cards
+  if(cut.length){const L=cut.join(', ').replace(/, ([^,]*)$/,' and $1');
+    warnings.push(S.textFit==='all'?`Long ${L} shortened with "…" to fit this layout — pick a larger layout, or untick a column in Card text`
+      :`Impact: long ${L} shortened with "…" so the prices stay large — set Text fit to All info to show them in full`);}
   return {errors:[...new Set(errors)],warnings:[...new Set(warnings)],count:rows.length};
 }
 function sourceLabel(){
@@ -4688,6 +4711,7 @@ var NAME_TRIMS=new Map();   // var: safe to read before this line runs
    1 = 90% size · 2 = 80% · 3 = Ingredients left off · 4 = Benefits too · 5 = Feature heading too · 6 = all of it. */
 var META_TRIMS=new Map();
 const META_LEVELS=6;
+var ZONE_CUTS=new Map();   // v47 zone cards: information shortened with "…", per product
 const IMPACT_FLOOR=.85,IMPACT_FLOOR_HERO=.72;   // Impact: price kept at 85% or more of full size (72% on one-product slides, where it is already very large) before information is left off
 function abbreviateName(s){
   return String(s||'')
@@ -5008,6 +5032,7 @@ const CLEAN_LAYOUTS={
   poshero:{grid:'g11',slots:1,pos:true},
   pos2:{grid:'g21',slots:2,pos:true},
   pos4row:{grid:'g41',slots:4,pos:true,stack:true,minImg:.5},
+  pos3row:{grid:'g31',slots:3,pos:true,stack:true},
   tvhero:{grid:'g11',slots:1,stack:true,minImg:.5},
   tv2:{grid:'g12',slots:2},
   tv3:{grid:'g13',slots:3},
@@ -5039,29 +5064,39 @@ function cleanFoot(){
 function cleanSlide(layout,P){
   const cfg=CLEAN_LAYOUTS[layout];
   // v41: 4-up grids (2×2 and 4 across) centre a last page of 1–3 products, keeping the card size
-  const part=cfg.slots===4&&(cfg.grid==='g22'||cfg.grid==='g41')?partialClass(Math.min(P.length,4),4):'';
+  const part=cfg.slots===4&&(cfg.grid==='g22'||cfg.grid==='g41')?partialClass(Math.min(P.length,4),4):
+    cfg.grid==='g31'?partialClass(Math.min(P.length,3),3):'';   // v47: 3 Across centres a short last page too
   const cells=[...P].slice(0,cfg.slots);if(!part)while(cells.length<cfg.slots)cells.push(null);
-  const cards=cells.map((p,i)=>ZONE_LAYOUTS[layout]?zoneCard(p,cfg):cleanCard(p,cfg.hero&&i===0?'cl-hero':'',cfg)).join('');   // v46 zone pilot
+  const zc=ZONE_LAYOUTS[layout]?{...cfg,...ZONE_LAYOUTS[layout]}:null;   // v46/v47 zone cards
+  const cards=cells.map((p,i)=>zc?zoneCard(p,zc,cfg.hero&&i===0?'cl-hero':''):cleanCard(p,cfg.hero&&i===0?'cl-hero':'',cfg)).join('');
   // v27: cards only — the CURRENT SPECIALS header is no longer drawn (cleanHeader kept for reference).
   return `<div class="cl-pad"><div class="cl-grid ${cfg.grid}${part}">${cards}</div>${cleanFoot()}</div>`;
 }
 
-/* ---------- v46 zone cards (pilot: POS screen → Hero, 4-Up grid, 4 Across) ----------
-   Every card on the slide uses one zone map, top to bottom:
+/* ---------- v46/v47 zone cards ----------
+   Every card of one size on the slide uses one zone map, top to bottom:
      brand · product + size · product form · feature heading · ingredients / benefits · (space) ·
      pill · price · rule · WAS / RRP · offer ends
+   (3 Across: brand · product + size · form above the pack shot, everything else below it.)
    Every size comes from one unit u (the price size) and the type scale ZT, taken from the v45 clean card so
    the look carries over. u is the largest size at which the widest price fits the text column and every
    zone fits the card. Zones are the same height on every card, so rows line up by construction, and the
-   pack shot is sized to the height of the zone stack. A zone that is empty on every card, or unticked in
-   Card text, is left out and the rest grow into its space. Text fit → Impact leaves extra information off
-   (smaller first, then Ingredients, Benefits, Feature heading, Product form) before the price drops below
-   `floor` of its size without it. To add a layout: add it here, with stack:true if the pack shot sits
-   above the text. */
+   pack shot is sized to the height of the zone stack (side-by-side cards) or takes the rest of the card.
+   v47: whatever is ticked in Card text is always shown. A zone that is empty on every card, or unticked,
+   is left out and the rest grow into its space. Text fit → Impact keeps the price large by setting the
+   extra information a little smaller and shortening long ingredients / benefits with "…"; All info shows
+   every line in full. Cards of a different size on the same slide (Hero + 2) are fitted as their own group.
+   To add a layout: add it here — stack:true when the pack shot sits above the text, top:true when brand,
+   name and form sit above the pack shot. */
 var ZONE_LAYOUTS={
   poshero:{floor:.72},
+  retailhero2:{floor:.85},
   retailfour:{floor:.85},
-  pos4row:{stack:true,imgMin:.46,floor:.85}
+  pos3row:{stack:true,top:true,imgMin:.42,floor:.85},
+  pos4row:{stack:true,imgMin:.46,floor:.85},
+  botanicaltwo:{stack:true,imgMin:.52,floor:.85},
+  botanicalfour:{floor:.85},
+  email6:{floor:.85}
 };
 const ZT={   // s = font size × u · lh = line height · after = space below, × u
   brand:{s:.40,lh:1.14},prod:{s:.36,lh:1.18},form:{s:.28,lh:1.08},head:{s:.34,lh:1.15},det:{s:.24,lh:1.25},
@@ -5069,16 +5104,22 @@ const ZT={   // s = font size × u · lh = line height · after = space below, �
 };
 const ZONE_AFTER={brandToProd:.04,nameGroup:.28,form:.06,head:.10};
 const ZONE_GAP=[.22,.55];                 // space above the pill: least / most, × u
-const ZONE_DET_LINES={impact:3,all:8};    // lines per Ingredients / Benefits item
-var ZONE_MEMO={key:'',u:0,lvl:0};
+const ZONE_IMG_GAP=.18;                   // 3 Across: space above and below the pack shot, × u
+// Text fit steps for the extra information: size × and lines per Ingredients / Benefits item. Impact takes the
+// first step that keeps the price at `floor` or more of its size without the extra information.
+const ZONE_STEPS={impact:[{det:1,lines:3},{det:.9,lines:3},{det:.9,lines:2},{det:.8,lines:2}],all:[{det:1,lines:8}]};
+const ZONE_HEAD_LINES={impact:2,all:3};
+var ZONE_MEMO=new Map();
 const ZONE_STAMP=1.22;                    // SAVE circle: --po-size = 1.22u → circle = 1.37 × the price size
-function zoneCard(p,cfg){
-  const cls=`cl-card zc-card${cfg.stack?' stack':''}`;
+function zoneCard(p,cfg,extra=''){
+  const cls=`cl-card zc-card${cfg.stack?' stack':''}${cfg.top?' zc-top':''}${extra?' '+extra:''}`;
   if(!p)return `<div class="${cls} empty-cell"></div>`;
   const stamp=cleanSaveCircle(p);
-  return `<div class="${cls}"><div class="imgwrap${stamp?' has-save':''}">${img(p,{pop:true})}${stamp}</div><div class="cl-info zc-info">${zoneBlock(p,!!stamp)}</div></div>`;
+  const pack=`<div class="imgwrap${stamp?' has-save':''}">${img(p,{pop:true})}${stamp}</div>`;
+  if(cfg.top)return `<div class="${cls}"><div class="cl-info zc-info">${zoneBlock(p,!!stamp,pack)}</div></div>`;
+  return `<div class="${cls}">${pack}<div class="cl-info zc-info">${zoneBlock(p,!!stamp)}</div></div>`;
 }
-function zoneBlock(p,hasStamp){
+function zoneBlock(p,hasStamp,pack){
   const d=priceData(p),t=v=>String(v||'').trim();
   const nbh=s=>String(s||'').replace(/([A-Za-z0-9])-(?=[A-Za-z0-9])/g,'$1‑');   // keep Nutra-Life / Ester-C together
   const brand=cardTextOn('brand')?nbh(slideBrand(p)):'',prod=cardNameOn()?nbh(slideNameText(p,true)):'';
@@ -5097,7 +5138,7 @@ function zoneBlock(p,hasStamp){
   const z=(k,inner,attr='')=>`<div class="zc-z zc-${k}" data-z="${k}"${attr}>${inner}</div>`;
   return `<div class="zc" data-key="${ha(productKey(p))}">`+
     z('brand',h(brand),` data-full="${ha(brand)}"`)+z('prod',h(prod),` data-full="${ha(prod)}"`)+
-    z('form',h(form))+z('head',h(head))+
+    z('form',h(form))+(pack?`<div class="zc-img">${pack}</div>`:'')+z('head',h(head))+
     z('det',(ing?`<div class="zc-ing"><strong>Ingredients:</strong> ${h(ing)}</div>`:'')+(ben?`<div class="zc-ben"><strong>Benefits:</strong> ${h(ben)}</div>`:''))+
     z('gap','')+z('pill',pill?`<span class="zc-pilltxt">${h(pill)}</span>`:'')+
     z('price',offer?hero:'',kind?` data-kind="${kind}"`:'')+z('rule',offer?'<i></i>':'')+
@@ -5105,44 +5146,57 @@ function zoneBlock(p,hasStamp){
     `</div>`;
 }
 function zoneFit(slide){
-  const cfg=ZONE_LAYOUTS[S.layout],blocks=[...slide.querySelectorAll('.zc')];
-  if(!cfg||!blocks.length)return;
-  const trimsBefore=JSON.stringify([...NAME_TRIMS]),metaBefore=JSON.stringify([...META_TRIMS]);
-  NAME_TRIMS.clear();META_TRIMS.clear();
+  const cfg=ZONE_LAYOUTS[S.layout],all=[...slide.querySelectorAll('.zc')];
+  if(!cfg||!all.length)return;
+  const trimsBefore=JSON.stringify([...NAME_TRIMS]),metaBefore=JSON.stringify([...ZONE_CUTS]);
+  NAME_TRIMS.clear();META_TRIMS.clear();ZONE_CUTS.clear();
+  // Cards of one size are one group (all four on 4-Up; the hero and the two side cards of Hero + 2).
+  const groups=[];
+  all.forEach(b=>{const c=b.closest('.cl-card'),w=c.offsetWidth,hh=c.offsetHeight,hero=c.classList.contains('cl-hero');
+    let g=groups.find(x=>x.hero===hero&&Math.abs(x.w-w)<=3&&Math.abs(x.h-hh)<=3);
+    if(!g){g={w,h:hh,hero,list:[]};groups.push(g);}g.list.push(b);});
+  const res=groups.map(g=>zoneFitGroup(cfg,g.list,g.hero?'hero':`${g.w}x${g.h}`));
+  slide.dataset.zoneU=res.map(r=>r.u.toFixed(1)).join('/');slide.dataset.zoneLevel=res.map(r=>r.lvl).join('/');
+  if((JSON.stringify([...NAME_TRIMS])!==trimsBefore||JSON.stringify([...ZONE_CUTS])!==metaBefore)&&typeof updateValidation==='function')updateValidation();
+}
+function zoneFitGroup(cfg,blocks,gkey){
   const K=['brand','prod','form','head','det','gap','pill','price','rule','ref','ends'],Z={};
   K.forEach(k=>Z[k]=blocks.map(b=>b.querySelector('.zc-'+k)));
   blocks.forEach(b=>{
-    b.querySelectorAll('.zc-z,.zc-z *').forEach(el=>{el.removeAttribute('style');});
-    b.querySelectorAll('.zc-z').forEach(el=>{el.hidden=false;});
+    b.querySelectorAll('.zc-z').forEach(el=>{el.removeAttribute('style');el.hidden=false;el.querySelectorAll('[style]').forEach(c=>c.removeAttribute('style'));});
+    const im=b.querySelector('.zc-img');if(im)im.removeAttribute('style');
     b.querySelectorAll('.zc-ing,.zc-ben,.zc-head').forEach(el=>{el.hidden=false;if(el.dataset.full!=null)el.innerHTML=el.dataset.full;});
     ['brand','prod'].forEach(k=>{const el=b.querySelector('.zc-'+k);if(el)el.textContent=el.dataset.full||'';});
   });
   const card0=blocks[0].closest('.cl-card'),ccs=getComputedStyle(card0);
   const W=Math.max(40,blocks[0].parentElement.clientWidth);
   const innerH=card0.clientHeight-(parseFloat(ccs.paddingTop)||0)-(parseFloat(ccs.paddingBottom)||0);
-  const availH=cfg.stack?innerH*(1-cfg.imgMin)-(parseFloat(ccs.rowGap)||0):innerH;
+  const availH=cfg.top?innerH*(1-cfg.imgMin):cfg.stack?innerH*(1-cfg.imgMin)-(parseFloat(ccs.rowGap)||0):innerH;
   const filled=el=>!!(el&&(el.textContent.trim()||el.querySelector('i')));
   const any=k=>Z[k].some(filled);
-  const detMax=ZONE_DET_LINES[S.textFit==='all'?'all':'impact'];
+  const fit=S.textFit==='all'?'all':'impact',headMax=ZONE_HEAD_LINES[fit];
   const lines=(el,fs,lh)=>Math.max(1,Math.round(el.scrollHeight/(fs*lh)));
-  // The widest price on the slide sets the upper limit for u (width grows in step with the font size).
+  // The widest price in the group sets the upper limit for u (width grows in step with the font size).
   let uCap=W/3;
   const nums=Z.price.map(el=>el&&el.dataset.kind==='price'&&el.querySelector('.zc-num')).filter(Boolean);
   nums.forEach(n=>{n.parentElement.style.fontSize='100px';});
   nums.map(n=>n.scrollWidth).forEach(w=>{if(w>0)uCap=Math.min(uCap,W*.98/(w/100));});
   nums.forEach(n=>{n.parentElement.style.fontSize='';});
-  const spec=lvl=>({det:lvl===1?.9:lvl===2?.8:1,ing:lvl<3,ben:lvl<4,head:lvl<5,form:lvl<6});
+  const hasInfo=any('det')||any('head')||any('form');
+  // sp.bare = the same card without the extra information: only used to measure how large the price could be.
   const setSpec=sp=>{
-    blocks.forEach(b=>{const i=b.querySelector('.zc-ing'),bn=b.querySelector('.zc-ben');if(i)i.hidden=!sp.ing;if(bn)bn.hidden=!sp.ben;});
     const a={};
-    a.brand=any('brand');a.prod=any('prod');a.form=sp.form&&any('form');a.head=sp.head&&any('head');
-    a.det=blocks.some(b=>[...b.querySelectorAll('.zc-ing,.zc-ben')].some(e=>!e.hidden));
+    a.brand=any('brand');a.prod=any('prod');a.form=!sp.bare&&any('form');a.head=!sp.bare&&any('head');a.det=!sp.bare&&any('det');
     a.pill=any('pill');a.price=any('price');a.rule=any('rule');a.ref=any('ref');a.ends=any('ends');
-    a.gap=(a.brand||a.prod||a.form||a.head||a.det)&&(a.pill||a.price||a.ref);
+    const offer=a.pill||a.price||a.ref;
+    a.gap=offer&&(cfg.top?(a.head||a.det):(a.brand||a.prod||a.form||a.head||a.det));
     K.forEach(k=>Z[k].forEach(el=>{if(el)el.hidden=!a[k];}));
-    const info=['brand','prod','form','head','det'].filter(k=>a[k]),af={};
-    info.forEach((k,i)=>{const nx=info[i+1];
-      af[k]=!nx?0:k==='brand'?(nx==='prod'?ZONE_AFTER.brandToProd:ZONE_AFTER.nameGroup):k==='prod'?ZONE_AFTER.nameGroup:k==='form'?ZONE_AFTER.form:k==='head'?ZONE_AFTER.head:0;});
+    const af={};
+    (cfg.top?[['brand','prod','form'],['head','det']]:[['brand','prod','form','head','det']]).forEach(grp=>{
+      const info=grp.filter(k=>a[k]);
+      info.forEach((k,i)=>{const nx=info[i+1];
+        af[k]=!nx?0:k==='brand'?(nx==='prod'?ZONE_AFTER.brandToProd:ZONE_AFTER.nameGroup):k==='prod'?ZONE_AFTER.nameGroup:k==='form'?ZONE_AFTER.form:k==='head'?ZONE_AFTER.head:0;});});
+    a.topAny=a.brand||a.prod||a.form;
     return {a,af,sp};
   };
   // Height of the whole stack at size u (space above the pill at its least). Also returns the line counts.
@@ -5151,7 +5205,7 @@ function zoneFit(slide){
   const px=v=>v.toFixed(2)+'px',q=v=>Math.round(v*100)/100;
   const measure=(u,st)=>{
     const {a,af,sp}=st;let H=0;const L={};
-    const fp=q(ZT.prod.s*u),fh=q(ZT.head.s*u),fd=q(ZT.det.s*sp.det*u);
+    const fp=q(ZT.prod.s*u),fh=q(ZT.head.s*u),fd=q(ZT.det.s*(sp.det||1)*u);
     // All font sizes are written first, then everything is read: one page layout per step, not one per card.
     const put=(k,f)=>Z[k].forEach(el=>{if(el){el.style.fontSize=px(f);el.style.paddingRight='3px';}});
     if(a.prod)put('prod',fp);if(a.head)put('head',fh);if(a.det)put('det',fd);
@@ -5165,11 +5219,15 @@ function zoneFit(slide){
         n=Math.max(1,...long.map(x=>x[2]));}
       L.prod=Math.min(n,S.nameLines===1?1:2);H+=fp*ZT.prod.lh*L.prod+af.prod*u;}
     if(a.form)H+=ZT.form.s*u*ZT.form.lh+af.form*u;
-    if(a.head){let n=1;Z.head.forEach(el=>{if(filled(el))n=Math.max(n,lines(el,fh,ZT.head.lh));});
-      L.head=Math.min(n,2);H+=fh*ZT.head.lh*L.head+af.head*u;}
+    if(cfg.top)H+=((a.topAny?1:0)+1)*ZONE_IMG_GAP*u;
+    if(a.head){   // a long heading is made smaller (every card together, down to 80%) before it is cut with "…"
+      const cnt=f=>{let n=1;Z.head.forEach(el=>{if(filled(el))n=Math.max(n,lines(el,f,ZT.head.lh));});return n;};
+      let hf=1,n=cnt(fh);
+      while(n>headMax&&hf>.8+1e-6){hf=Math.round((hf-.05)*100)/100;put('head',q(fh*hf));n=cnt(q(fh*hf));}
+      L.headF=hf;L.head=Math.min(n,headMax);H+=q(fh*hf)*ZT.head.lh*L.head+af.head*u;}
     if(a.det){let mx=0;
       Z.det.forEach(el=>{if(!el)return;let hh=0,cnt=0;
-        el.querySelectorAll('.zc-ing,.zc-ben').forEach(it=>{if(it.hidden)return;hh+=Math.min(detMax,lines(it,fd,ZT.det.lh))*fd*ZT.det.lh;cnt++;});
+        el.querySelectorAll('.zc-ing,.zc-ben').forEach(it=>{hh+=Math.min(sp.lines,lines(it,fd,ZT.det.lh))*fd*ZT.det.lh;cnt++;});
         mx=Math.max(mx,hh+Math.max(0,cnt-1)*.45*fd);});
       L.det=mx;H+=mx+af.det*u;}
     if(a.gap)H+=ZONE_GAP[0]*u;
@@ -5180,29 +5238,28 @@ function zoneFit(slide){
     if(a.ends)H+=(ZT.ends.before+ZT.ends.s*ZT.ends.lh)*u;
     return {H,L};
   };
-  const best=lvl=>{
-    const st=setSpec(spec(lvl));
-    if(measure(uCap,st).H<=availH)return {u:uCap,st,lvl};
+  const best=sp=>{
+    const st=setSpec(sp);
+    if(measure(uCap,st).H<=availH)return {u:uCap,sp};
     let lo=4,hi=uCap;
     for(let i=0;i<11;i++){const m=(lo+hi)/2;if(measure(m,st).H<=availH)lo=m;else hi=m;}   // ±0.1px
-    return {u:lo,st,lvl};
+    return {u:lo,sp};
   };
-  // Text fit: Impact keeps the price at `floor` or more of its size without the extra information.
   // The same text on the same card size gives the same answer, so a repeat fit (fonts loaded, pack shots
   // balanced, export) reuses it instead of searching again.
-  const memoKey=[S.layout,W,Math.round(availH),S.textFit,S.nameLines,document.fonts?document.fonts.status:'',blocks.map(b=>b.textContent).join('|')].join('#');
-  let pick;
-  if(ZONE_MEMO.key===memoKey)pick={u:ZONE_MEMO.u,lvl:ZONE_MEMO.lvl};
-  else{
-    const cache={},bestC=l=>cache[l]||(cache[l]=best(l));
-    pick=bestC(0);
-    if(S.textFit!=='all'&&(any('det')||any('head')||any('form'))){
-      const ref=bestC(6).u,ok=l=>bestC(l).u>=cfg.floor*ref-.01;
-      if(!ok(0)){let lo=1,hi=6;while(lo<hi){const m=(lo+hi)>>1;if(ok(m))hi=m;else lo=m+1;}pick=bestC(lo);}   // fewest left off
+  const memoKey=[S.layout,gkey,W,Math.round(availH),fit,S.nameLines,document.fonts?document.fonts.status:'',blocks.map(b=>b.textContent).join('|')].join('#');
+  const steps=ZONE_STEPS[fit];
+  let pick=ZONE_MEMO.get(gkey);
+  if(!pick||pick.key!==memoKey){
+    const cache=[],at=i=>cache[i]||(cache[i]=best(steps[i]));
+    let lvl=0;
+    if(fit==='impact'&&hasInfo){
+      const ref=best({bare:true,det:1,lines:1}).u,ok=i=>at(i).u>=cfg.floor*ref-.01;
+      if(!ok(0)){lvl=steps.length-1;for(let i=1;i<steps.length;i++)if(ok(i)){lvl=i;break;}}
     }
-    ZONE_MEMO={key:memoKey,u:pick.u,lvl:pick.lvl};
+    pick={key:memoKey,u:at(lvl).u,lvl};ZONE_MEMO.set(gkey,pick);
   }
-  const u=pick.u,st=setSpec(spec(pick.lvl)),{a,af,sp}=st,{H,L}=measure(u,st);
+  const u=pick.u,sp=steps[pick.lvl],st=setSpec(sp),{a,af}=st,{H,L}=measure(u,st);
   K.forEach(k=>Z[k].forEach(el=>{if(el)el.style.removeProperty('padding-right');}));
   const set=(el,o)=>{if(el)Object.entries(o).forEach(([k,v])=>el.style.setProperty(k,v));};
   // One-line zones: every card shrinks together (down to 80%) so they stay the same size; then "…".
@@ -5218,11 +5275,15 @@ function zoneFit(slide){
       set(el,{height:px(hh)});});}
   oneLine('form',ZT.form.s*u,ZT.form.s*u*ZT.form.lh);
   if(a.form)Z.form.forEach(el=>set(el,{'margin-bottom':px(af.form*u)}));
-  if(a.head){const fs=q(ZT.head.s*u);Z.head.forEach(el=>{set(el,{'font-size':px(fs),'margin-bottom':px(af.head*u)});
-    if(filled(el))zoneTrimLines(el,L.head,fs*ZT.head.lh);set(el,{height:px(fs*ZT.head.lh*L.head)});});}
+  if(cfg.top)blocks.forEach(b=>{const im=b.querySelector('.zc-img');if(im)set(im,{'margin-top':px(a.topAny?ZONE_IMG_GAP*u:0),'margin-bottom':px(ZONE_IMG_GAP*u)});});
+  const cut={};   // information shortened with "…", per product, for the status line
+  const note=(el,name)=>{const key=el.closest('.zc').dataset.key;if(key)(cut[key]=cut[key]||new Set()).add(name);};
+  if(a.head){const fs=q(q(ZT.head.s*u)*(L.headF||1));Z.head.forEach(el=>{set(el,{'font-size':px(fs),'margin-bottom':px(af.head*u)});
+    if(filled(el)&&zoneTrimLines(el,L.head,fs*ZT.head.lh))note(el,'feature heading');set(el,{height:px(fs*ZT.head.lh*L.head)});});}
   if(a.det){const fs=q(ZT.det.s*sp.det*u);Z.det.forEach(el=>{set(el,{'font-size':px(fs),'margin-bottom':px(af.det*u)});
-    if(el)el.querySelectorAll('.zc-ing,.zc-ben').forEach(it=>{if(!it.hidden)zoneTrimLines(it,detMax,fs*ZT.det.lh);});
+    if(el)el.querySelectorAll('.zc-ing,.zc-ben').forEach(it=>{if(zoneTrimLines(it,sp.lines,fs*ZT.det.lh))note(el,it.classList.contains('zc-ing')?'key ingredients':'key benefits');});
     set(el,{height:px(L.det)});});}
+  Object.entries(cut).forEach(([k,v])=>ZONE_CUTS.set(k,[...(ZONE_CUTS.get(k)||[]),...v]));
   // Space above the pill: side-by-side cards take up to ZONE_GAP[1] of spare height, so the text block (and
   // the pack shot matched to it) grows a little before the stack is centred; stacked cards give the rest to the pack shot.
   const spare=Math.max(0,availH-H),gap=ZONE_GAP[0]*u+(cfg.stack?0:Math.min(spare,(ZONE_GAP[1]-ZONE_GAP[0])*u));
@@ -5239,13 +5300,7 @@ function zoneFit(slide){
   if(a.ends)Z.ends.forEach(el=>set(el,{'margin-top':px(ZT.ends.before*u)}));
   // SAVE circle scales with the price.
   blocks.forEach(b=>{const c=b.closest('.cl-card');if(c)c.style.setProperty('--po-size',px(ZONE_STAMP*u));});
-  // Impact: say what was left off (one line for the page, in the status bar).
-  if(pick.lvl>=3)blocks.forEach(b=>{
-    const left=[pick.lvl>=3&&b.querySelector('.zc-ing')?'key ingredients':'',pick.lvl>=4&&b.querySelector('.zc-ben')?'key benefits':'',
-      pick.lvl>=5&&filled(b.querySelector('.zc-head'))?'feature heading':'',pick.lvl>=6&&filled(b.querySelector('.zc-form'))?'product form':''].filter(Boolean);
-    if(left.length&&b.dataset.key)META_TRIMS.set(b.dataset.key,left);});
-  slide.dataset.zoneU=u.toFixed(1);slide.dataset.zoneLevel=String(pick.lvl);
-  if((JSON.stringify([...NAME_TRIMS])!==trimsBefore||JSON.stringify([...META_TRIMS])!==metaBefore)&&typeof updateValidation==='function')updateValidation();
+  return {u,lvl:pick.lvl};
 }
 /* Longer text than its lines allow: whole words are taken off the end and "…" added, in the text itself (not only
    a CSS clamp), so the PNG export shows exactly what the preview shows. A bold label (Ingredients:) is kept. */

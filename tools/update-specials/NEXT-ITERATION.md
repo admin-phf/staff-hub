@@ -1,4 +1,4 @@
-# Update Specials — notes for the next iteration (after v45)
+# Update Specials — working notes (current: v47)
 
 Working notes agreed with Kenneth before code changes. Measurements are from the 2000×1250 POS export
 (POS screen → 4-Up grid, page with Advance / Diasporal / Basica / Ultra Muscleze, Text fit = Impact).
@@ -67,11 +67,25 @@ fixed share of the text-block height, and the content adapts to the box — neve
   the pack's width (v46).
 - Gutter between cards: 4-Up grid 22px, 4 Across 18px (v46). Other layouts keep theirs until they move to zones.
 - Tick boxes in Card text are how the layout is simplified: unticked or empty zones collapse, the rest grow.
+- v47: **ticked = always shown** on zone cards. Impact never leaves a ticked column off; it sets the extra
+  information smaller and shortens long ingredients / benefits with "…". Prices get smaller if still needed;
+  untick for larger prices. (Fixes: Benefits shown on 4-Up page 1 but missing on page 2.)
+- v47: new POS **3 Across**: brand, product + size and form above the pack shot; everything else below.
+  Pack shot at least 42% of the card.
+- v47: Email clean cards on zones: Hero + 2 (also POS), 2-Up 7:5 (pack above text, at least 52% of the card),
+  4-Up 7:5, 6-Up.
 
-## Open (for Kenneth, after reviewing v46)
-- 4 Across: Feature heading is limited to 2 lines, so long headings end with "…" in that narrow column.
-  Allow 3 lines there, or keep it tight?
-- Hero on Impact leaves Ingredients off to keep the price at ≥72% of its size. Right trade-off?
+## Zone layouts (v47)
+POS: Hero · Hero + 2 · 4-Up grid · 3 Across · 4 Across. Email: Hero + 2 · 2-Up 7:5 · 4-Up 7:5 · 6-Up.
+Not yet: POS 2-Up · Portrait TV (Hero, 2/3/4 Rows) · Social (Hero 4:5, Hero Square, 4-Up Square) · Web banner.
+These still use the v45 fitting, where Impact can leave extra information off.
+
+## Open (for Kenneth, after reviewing v47)
+- Classic white Email layouts (Hero + pick, 2×2 Feature, Grid Cards, 6-Grid, 6-Grid Split, Specials banner)
+  only follow Brand / Product / Size / Now price / Discount tick boxes; they never show form, heading,
+  ingredients or benefits. Each already has a zone-card counterpart under Email → Clean cards (Hero + 2,
+  4-Up 7:5, 6-Up …). Options: leave as is, hide the classic ones from the Email tab, or convert them.
+  (Earlier decision: classic white layouts stay untouched.)
 - Classic 6-Grid thin dividers: keep or remove?
-- Next layouts to bring onto zones (suggested order): POS 2-Up, Hero + 2, then Portrait TV rows (a 4 Across /
-  4-Up card on a portrait canvas), then Email / Social equivalents.
+- Next layouts to bring onto zones (suggested order): POS 2-Up, then Portrait TV rows (a 4 Across / 4-Up card
+  on a portrait canvas), then Social and Web banner.

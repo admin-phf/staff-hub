@@ -28,6 +28,31 @@ It isn't needed day to day.)
 
 ---
 
+## v47 — 30 Sep 2026
+Tick boxes you can rely on, a new 3 Across layout, and the Email clean cards on zones.
+- **Whatever is ticked in Card text is now always shown on zone cards.** In v46, Impact could leave a ticked
+  column off one page and show it on the next (e.g. Benefits on 4-Up page 1 but not page 2), depending on
+  how much room that page's prices left. Now Impact keeps prices large by:
+  - setting the extra information a little smaller (90%, then 80%)
+  - shortening long ingredients / benefits to 3, then 2 lines with "…"
+  If that isn't enough, the prices get smaller. Untick a column for larger prices. All info shows every line
+  in full. The status line says when something was shortened.
+- **Long feature headings** shrink (every card together, down to 80%) before they are shortened with "…".
+  They get 2 lines on Impact, 3 on All info.
+- **New: POS screen → 3 Across.** Three products in a row. Brand, product + size and product form sit above
+  each pack shot. The heading, ingredients, benefits, pill, price and WAS line sit below. The pack shot gets
+  at least 42% of the card. A last page with 1 or 2 products is centred.
+- **Email clean cards now use zones, with every Card text tick box:**
+  - **Hero + 2** (also under POS). The hero and the two side cards are each balanced as their own group.
+  - **2-Up 7:5.** The pack shot now sits above the text: the cards are taller than they are wide, so a
+    side-by-side pack shot was small. The pack gets at least 52% of the card.
+  - **4-Up 7:5.** Side by side, pack shot = text height, like POS 4-Up grid.
+  - **6-Up.**
+  - Wider gaps between cards now the borders are gone.
+- Unchanged, checked pixel-for-pixel against v46: POS 2-Up, Portrait TV, Social, Web banner and every
+  Classic white layout. Portrait TV, Social and Web banner still use the v45 fitting, where Impact leaves
+  extra information off; they follow when they move to zones.
+
 ## v46 — 29 Sep 2026
 Zone cards, pilot on three layouts: **POS screen → Hero, 4-Up grid, 4 Across**. The other 22 layouts are
 unchanged apart from the card borders (checked pixel-for-pixel against v45).
