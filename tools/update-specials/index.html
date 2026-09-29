@@ -2455,6 +2455,14 @@
   }
   /* v43: a little air between Ingredients and Benefits */
   .slide .po-details>div+div{margin-top:.45em}
+  /* v45 Text fit → Impact: steps set by fitOffers (data-meta) when a card is short of room. */
+  .slide .po[data-meta] .po-meta{font-size:.8em}
+  .slide .po[data-meta="1"] .po-meta{font-size:.9em}
+  .slide .po:is([data-meta="3"],[data-meta="4"],[data-meta="5"],[data-meta="6"]) .po-ing{display:none}
+  .slide .po[data-meta="3"] .po-ben{margin-top:0}
+  .slide .po:is([data-meta="4"],[data-meta="5"],[data-meta="6"]) .po-details{display:none}
+  .slide .po:is([data-meta="5"],[data-meta="6"]) .po-feature-head{display:none}
+  .slide .po[data-meta="6"] .po-meta{display:none}
   /* v43 Card text: the fixed name block drops the brand line or the product lines when they're unticked,
      so the text below moves up instead of leaving a gap (the pack shot then matches the shorter text). */
   .slide.ct-nobrand .po-name{height:calc(var(--name-lines,2) * 1.062em)!important;min-height:calc(var(--name-lines,2) * 1.062em)!important;max-height:calc(var(--name-lines,2) * 1.062em)!important}
@@ -2610,6 +2618,9 @@
         <label class="fo-select" title="Every card reserves the same space for the product name. Longer names are abbreviated or shortened (size always kept).">Product name
           <select id="optNameLines"><option value="1">1 line</option><option value="2">2 lines</option></select>
         </label>
+        <label class="fo-select" title="Impact: the price, brand and name stay full size; the extra information (product form, feature heading, ingredients, benefits) is made a little smaller, then left off where a card has no room (you're told which). All info: everything shrinks together so every line shows.">Text fit
+          <select id="optTextFit"><option value="impact">Impact (price first)</option><option value="all">All info</option></select>
+        </label>
         <label class="fo-select" title="How brand names are written, on every layout. Standard: clean cards in Title Case, classic layouts in CAPITALS. A Brand on slide is kept as typed in Standard and As typed.">Brand letters
           <select id="optBrandCase"><option value="std">Standard</option><option value="title">Title Case</option><option value="upper">CAPITALS</option><option value="asis">As typed</option></select>
         </label>
@@ -2736,7 +2747,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='44';
+const APP_VERSION='45';
 const APP_DATE='2026-09-29';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -4136,6 +4147,9 @@ function validateProducts(){
     if(pn==='unread')warnings.push(health&&health.status==='risk'?`Product ${n}: its website blocks the photo, so the pack shot can't be auto-sized either — save the photo in images/`:`Product ${n}: pack shot couldn't be auto-sized (busy or dark photo background) — use Image fine-tune, or a photo on plain white`);
     if(pn==='small')warnings.push(`Product ${n}: pack shot looks small (small photo or lots of empty space) — use a bigger or tighter-cropped photo, or Image fine-tune`);
   });
+  // v45: one line for the page when Text fit → Impact left information off (not one per product).
+  const left=[...new Set([...(META_TRIMS||new Map()).values()].flat())];
+  if(left.length)warnings.push(`Impact: ${left.join(', ').replace(/, ([^,]*)$/,' and $1')} left off this layout so the prices stay large — set Text fit to All info, or pick a larger layout, to show them`);
   return {errors:[...new Set(errors)],warnings:[...new Set(warnings)],count:rows.length};
 }
 function sourceLabel(){
@@ -4524,8 +4538,8 @@ function offerMetaHTML(p){
   let details='';
   if(ing||ben){
     details=`<div class="po-details">`+
-      (ing?`<div><strong>Ingredients:</strong> ${h(ing)}</div>`:'')+
-      (ben?`<div><strong>Benefits:</strong> ${h(ben)}</div>`:'')+
+      (ing?`<div class="po-ing"><strong>Ingredients:</strong> ${h(ing)}</div>`:'')+
+      (ben?`<div class="po-ben"><strong>Benefits:</strong> ${h(ben)}</div>`:'')+
     `</div>`;
   }
   return (formTag||feature||details)?`<div class="po-meta">${formTag}${feature}${details}</div>`:'';
@@ -4562,11 +4576,15 @@ function offerBlock(p,opts={}){
    the column, the name running past three lines, or the block running out of its
    product cell. Runs on the live slide and again right before PNG export. */
 const PO_CELLS='.cl-card';
-function offerOverflows(po){
+/* part: 'w' = only too wide (fixed by smaller type), 'h' = only too tall (v45 Impact: fixed first by leaving
+   extra information off), nothing = either. */
+function offerOverflows(po,part){
   const w=po.clientWidth;if(!w)return false;
-  for(const el of po.querySelectorAll('.po-price,.po-sub,.po-pill,.po-deal,.po-name,.po-meta,.po-form,.po-feature-head,.po-details')){
+  const W=part!=='h',H=part!=='w';
+  if(W)for(const el of po.querySelectorAll('.po-price,.po-sub,.po-pill,.po-deal,.po-name,.po-meta,.po-form,.po-feature-head,.po-details')){
     if(el.scrollWidth>el.clientWidth+1||el.getBoundingClientRect().width>po.getBoundingClientRect().width+1)return true;
   }
+  if(!H){const cell=po.closest(PO_CELLS);return !!cell&&po.getBoundingClientRect().right>cell.getBoundingClientRect().right+1;}
   const dl=po.querySelector('.po-deal');
   if(dl){const lh=parseFloat(getComputedStyle(dl).lineHeight)||1;if(dl.offsetHeight>lh*2.25)return true;}
   const cell=po.closest(PO_CELLS),slide=po.closest('.slide');
@@ -4576,7 +4594,7 @@ function offerOverflows(po){
     // v44: keep a small margin inside the card (3% of its height, at least 6px), so the WAS line never sits
     // on the card's edge.
     const clr=Math.max(6,cell.offsetHeight*.03)*slideScaleOf(cell);
-    if(r.bottom>c.bottom-clr+1||r.right>c.right+1||r.top<c.top+clr-1)return true;
+    if(r.bottom>c.bottom-clr+1||(W&&r.right>c.right+1)||r.top<c.top+clr-1)return true;
     // Stacked cells (pack shot above the text): the text must start below the image slot,
     // never push up into it or hide behind it.
     const iw=cell.querySelector('.imgwrap'),sl=cell.querySelector('.imgslot');
@@ -4602,6 +4620,11 @@ function offerOverflows(po){
      2. shorten the product words but always keep the size at the end:  "Manuka Honey UMF 10+… 500g"
    A Short name (sheet column short_name, or the editor field) replaces the product name when you want full control. */
 var NAME_TRIMS=new Map();   // var: safe to read before this line runs
+/* v45 Text fit → Impact. Steps for the extra information when a card is short of room:
+   1 = 90% size · 2 = 80% · 3 = Ingredients left off · 4 = Benefits too · 5 = Feature heading too · 6 = all of it. */
+var META_TRIMS=new Map();
+const META_LEVELS=6;
+const IMPACT_FLOOR=.85,IMPACT_FLOOR_HERO=.72;   // Impact: price kept at 85% or more of full size (72% on one-product slides, where it is already very large) before information is left off
 function abbreviateName(s){
   return String(s||'')
     .replace(/\bveg(?:etarian|etable|e)?\s*cap(?:sule)?s\b/gi,'vcaps')
@@ -4797,11 +4820,31 @@ function fitOffers(root){
   const groups=new Map();
   const trimsBefore=JSON.stringify([...NAME_TRIMS]);
   NAME_TRIMS.clear();
+  const metaBefore=JSON.stringify([...META_TRIMS]);META_TRIMS.clear();
+  const levels=new Map(),impact=S.textFit!=='all',floorK=slide.querySelectorAll('.po').length===1?IMPACT_FLOOR_HERO:IMPACT_FLOOR;
   slide.querySelectorAll('.po').forEach(po=>{
-    po.style.fontSize='';
+    po.style.fontSize='';delete po.dataset.meta;
     const target=parseFloat(getComputedStyle(po).fontSize)||60;
     let size=target;const min=target*0.5;
     applyNameBoundary(po);fitDealBig(po);
+    // v45 Text fit → Impact: the extra information gives way first (a little smaller, then Ingredients,
+    // Benefits and the Feature heading are left off), so the price, brand and name keep their full size.
+    // Too wide (a price wider than its column) is only fixed by smaller type, so that comes first. Then the
+    // card keeps as much of the extra information as fits while the price stays at least IMPACT_FLOOR of
+    // that size; only if even the price, brand and name alone don't fit does the type go smaller still.
+    let lvl=0;
+    if(impact&&po.querySelector('.po-meta')){
+      const setSize=v=>{size=v;po.style.fontSize=v.toFixed(2)+'px';applyNameBoundary(po);fitDealBig(po);};
+      for(let i=0;i<30&&size>min&&offerOverflows(po,'w');i++)setSize(Math.max(min,size*0.95));
+      const full=size,floor=Math.max(min,full*floorK);
+      for(lvl=0;lvl<=META_LEVELS;lvl++){
+        if(lvl)po.dataset.meta=String(lvl);else delete po.dataset.meta;
+        setSize(full);
+        for(let i=0;i<30&&size>floor&&offerOverflows(po);i++)setSize(Math.max(floor,size*0.95));
+        if(!offerOverflows(po))break;
+      }
+      lvl=Math.min(lvl,META_LEVELS);
+    }
     for(let i=0;i<30&&size>min&&offerOverflows(po);i++){
       size=Math.max(min,size*0.95);
       po.style.fontSize=size.toFixed(2)+'px';
@@ -4809,15 +4852,20 @@ function fitOffers(root){
     }
     const k=target.toFixed(1);
     groups.set(k,Math.min(groups.has(k)?groups.get(k):Infinity,size));
+    levels.set(k,Math.max(levels.get(k)||0,lvl));
   });
   slide.querySelectorAll('.po').forEach(po=>{
-    po.style.fontSize='';
+    po.style.fontSize='';delete po.dataset.meta;
     const k=(parseFloat(getComputedStyle(po).fontSize)||60).toFixed(1);
     if(groups.has(k))po.style.fontSize=groups.get(k).toFixed(2)+'px';
+    const lvl=levels.get(k)||0;   // cards of one size show the same information
+    if(lvl&&po.querySelector('.po-meta')){po.dataset.meta=String(lvl);
+      const left=[lvl>=3&&po.querySelector('.po-ing')?'key ingredients':'',lvl>=4&&po.querySelector('.po-ben')?'key benefits':'',lvl>=5&&po.querySelector('.po-feature-head')?'feature heading':'',lvl>=6&&po.querySelector('.po-form')?'product form':''].filter(Boolean);
+      if(left.length&&po.dataset.key)META_TRIMS.set(po.dataset.key,left);}
     applyNameBoundary(po);fitDealBig(po);   // final size may leave room for more of the name
   });
   equaliseOfferCards(slide);
-  if(JSON.stringify([...NAME_TRIMS])!==trimsBefore&&typeof updateValidation==='function')updateValidation();
+  if((JSON.stringify([...NAME_TRIMS])!==trimsBefore||JSON.stringify([...META_TRIMS])!==metaBefore)&&typeof updateValidation==='function')updateValidation();
 }
 /* v31: make matching cards even. Cards of the same size and type (all 4 in a row, all 6 in a grid,
    the two side cards of Hero + 2 …) get the same space for the product name, the price or deal,
@@ -5185,6 +5233,9 @@ document.getElementById('autoBalanceToggle').addEventListener('change',e=>{
   S.nameLines=get('phf_name_lines','2')==='1'?1:2;
   const NL=document.getElementById('optNameLines');NL.value=String(S.nameLines);
   NL.onchange=()=>{S.nameLines=NL.value==='1'?1:2;put('phf_name_lines',String(S.nameLines));render(false);};
+  S.textFit=get('phf_text_fit','impact')==='all'?'all':'impact';   // v45
+  const TF=document.getElementById('optTextFit');TF.value=S.textFit;
+  TF.onchange=()=>{S.textFit=TF.value==='all'?'all':'impact';put('phf_text_fit',S.textFit);render(false);};
   S.optPop=get('phf_opt_pop','on')!=='off';
   const PP=document.getElementById('optPop');PP.checked=S.optPop;
   PP.onchange=()=>{S.optPop=PP.checked;put('phf_opt_pop',PP.checked?'on':'off');render(false);};

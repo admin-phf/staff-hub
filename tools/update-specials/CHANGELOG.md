@@ -28,6 +28,23 @@ It isn't needed day to day.)
 
 ---
 
+## v45 — 29 Sep 2026
+Big prices back, with the extra information kept wherever it fits. Classic layouts are unchanged.
+- **Text fit** (Card options, remembered on each device): **Impact (price first)** is the new default;
+  **All info** is v44 exactly.
+  - In v44, a card short of room made *everything* smaller, so the price, brand and name lost 20–40% of their
+    size to make room for the ingredients and benefits.
+  - With **Impact** the price is kept at 85% or more of its full size (72% on one-product slides, where it is
+    already very large). The extra information gives way first, in this order, and only as far as needed:
+    90% size → 80% size → Ingredients left off → Benefits left off → Feature heading left off → Product form left off.
+  - Cards of the same size keep the same lines, so rows still line up.
+  - One line under the preview says what was left off on that layout, e.g. "Impact: key ingredients and key
+    benefits left off this layout so the prices stay large".
+  - Price sizes on the review specials (All info → Impact): 4-Up grid 38 → 49, 4 Across 34 → 42, Hero + 2 36 → 42,
+    Portrait TV 3 Rows 79 → 101, 4 Rows 64 → 103, Web banner 61 → 78, Hero 74 → 81 with everything still shown.
+    Roomy layouts such as 2-Up and 6-Up keep every line.
+- The Ingredients and Benefits lines now have their own classes (`po-ing`, `po-ben`).
+
 ## v44 — 29 Sep 2026
 Refinements from the v43 design review. Classic layouts are unchanged apart from the 6-Grid fix.
 - **Brand and product lines sit level across every row of cards** (4-Up grid, 4 Across, 6-Up, 4-Up 7:5,
