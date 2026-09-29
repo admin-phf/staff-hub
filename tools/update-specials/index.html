@@ -2214,6 +2214,10 @@
   .footer-opts .fo-title{font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-right:2px}
   .fo-select{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--ink)}
   .fo-select select{font:inherit;font-size:12.5px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:#fff}
+  /* v42.2 Card text tick boxes + File names */
+  .fo-select input[type=number]{font:inherit;font-size:12.5px;width:64px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:#fff}
+  .fn-preview{flex-basis:100%;font:11.5px/1.35 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--muted);word-break:break-all}
+  .ct-off{font-weight:600;color:var(--red);font-size:10.5px;margin-left:4px}
   .foot .terms .foot-label{font-weight:700!important;color:#3a3a3d!important}
   .cl-foot .foot-label{font-weight:700;color:var(--cl-ink)}
   .slide .po-ends{font-weight:800;font-size:.2em;line-height:1.2;letter-spacing:.05em;text-transform:uppercase;color:#6a6f6c;margin-top:.55em;white-space:nowrap}
@@ -2410,55 +2414,41 @@
   .l-four .body.partial-1,.l-four .body.partial-2,.l-gridcards .body.partial-1,.l-gridcards .body.partial-2,
   .l-feature .body.partial-1,.l-feature .body.partial-2{align-content:center!important;justify-content:center!important}
 
-  /* ---------- v43 adaptive product metadata ----------
-     Product education is useful, but it must never overpower the pack shot or offer. Metadata now has
-     a universal density ladder based on the actual card geometry: full -> medium -> compact -> minimal.
-     Spacious hero cards can show the complete story; tighter multi-product cards automatically reduce
-     secondary copy before the core brand / product / price hierarchy is allowed to shrink. */
-  .slide .po-meta{width:100%;min-width:0;margin:0 0 .20em;overflow:hidden}
-  .slide .po-form{
-    font-size:.20em;font-weight:800;text-transform:uppercase;color:var(--po-green);letter-spacing:.055em;
-    line-height:1.1;margin:0 0 .13em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+  /* ---------- v42.1 optional product metadata ----------
+     These blocks are emitted only when their source fields are populated, so existing products retain
+     the v42 card anatomy unchanged. The sizing is relative to each offer block and participates in fitOffers. */
+  .slide .po-meta{width:100%;min-width:0;margin:0 0 .28em}
+  /* Product Form Pill / Tag */
+  .slide .po-form {
+    font-size: 0.28em;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--po-green);
+    letter-spacing: 0.05em;
+    margin-bottom: 0.2em;
   }
-  .slide .po-feature-head{
-    font-size:.30em;font-weight:800;color:var(--po-ink);line-height:1.12;margin:0 0 .17em;text-transform:uppercase;
-    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-wrap:balance
+
+  /* Feature Heading */
+  .slide .po-feature-head {
+    font-size: 0.34em;
+    font-weight: 800;
+    color: var(--po-ink);
+    line-height: 1.15;
+    margin-bottom: 0.25em;
+    text-transform: uppercase;
   }
-  .slide .po-details{
-    font-size:.205em;line-height:1.22;color:var(--muted);margin:.10em 0 0;font-family:Arial,Helvetica,sans-serif
+
+  /* Key Ingredients & Benefits Subcopy */
+  .slide .po-details {
+    font-size: 0.24em;
+    line-height: 1.25;
+    color: var(--muted);
+    margin-top: 0.35em;
+    font-family: Arial, Helvetica, sans-serif;
   }
-  .slide .po-detail{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
-  .slide .po-detail+.po-detail{margin-top:.08em}
-  .slide .po-details strong{color:var(--brandink);font-weight:700}
-
-  /* v44 health-story floor. Density may simplify copy, but it must never make the useful health message vanish. */
-  .slide .po-health-min{display:none}
-
-  /* Medium cards keep the consumer-facing health story and drop only the most technical line. */
-  .slide .po[data-meta-density="medium"] .po-form,
-  .slide .po[data-meta-density="medium"] .po-ing,
-  .slide .po[data-meta-density="medium"] .po-health-min{display:none}
-  .slide .po[data-meta-density="medium"] .po-meta{margin-bottom:.15em}
-  .slide .po[data-meta-density="medium"] .po-feature-head{font-size:.29em;margin-bottom:.11em}
-  .slide .po[data-meta-density="medium"] .po-benefit{-webkit-line-clamp:2}
-
-  /* Compact cards retain a clear health headline plus one concise benefit line. */
-  .slide .po[data-meta-density="compact"] .po-form,
-  .slide .po[data-meta-density="compact"] .po-ing,
-  .slide .po[data-meta-density="compact"] .po-health-min{display:none}
-  .slide .po[data-meta-density="compact"] .po-meta{margin-bottom:.11em}
-  .slide .po[data-meta-density="compact"] .po-feature-head{font-size:.265em;line-height:1.08;margin-bottom:.08em;-webkit-line-clamp:2}
-  .slide .po[data-meta-density="compact"] .po-details{display:block;font-size:.18em;line-height:1.16;margin-top:0}
-  .slide .po[data-meta-density="compact"] .po-benefit{-webkit-line-clamp:1}
-
-  /* Minimal cards still show one short health summary instead of removing metadata completely. */
-  .slide .po[data-meta-density="minimal"] .po-form,
-  .slide .po[data-meta-density="minimal"] .po-feature-head,
-  .slide .po[data-meta-density="minimal"] .po-details{display:none}
-  .slide .po[data-meta-density="minimal"] .po-meta{display:block;margin-bottom:.09em}
-  .slide .po[data-meta-density="minimal"] .po-health-min{
-    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;
-    font-size:.235em;font-weight:800;line-height:1.08;text-transform:uppercase;color:var(--po-ink);text-wrap:balance
+  .slide .po-details strong {
+    color: var(--brandink);
+    font-weight: 700;
   }
 
   /* ---------- v26 channel picker (editor UI) ---------- */
@@ -2624,6 +2614,20 @@
           <select id="optScope"><option value="">Not stated</option><option value="instore">In-store only</option><option value="both">In-store &amp; online</option></select>
         </label>
       </div>
+      <div class="footer-opts" aria-label="Card text columns">
+        <span class="fo-title" title="Which optional sheet columns show on the slides, on every layout. Unticked columns are left off the slides but stay in each product's fields, so you can still edit them.">Card text</span>
+        <label class="auto-balance-toggle" title="Sheet column product_form, e.g. 60 Veg Caps. Shown on clean cards."><input type="checkbox" id="ctForm" checked> Product form</label>
+        <label class="auto-balance-toggle" title="Sheet column feature_heading, e.g. ADVANCED LIPOSOMAL C. Shown on clean cards."><input type="checkbox" id="ctHeading" checked> Feature heading</label>
+        <label class="auto-balance-toggle" title="Sheet column key_ingredients. Shown on clean cards."><input type="checkbox" id="ctIngredients" checked> Ingredients</label>
+        <label class="auto-balance-toggle" title="Sheet column key_benefits. Shown on clean cards."><input type="checkbox" id="ctBenefits" checked> Benefits</label>
+        <label class="auto-balance-toggle" title="Sheet column promo_display. Replaces the deal wording on every layout. Untick to use the normal deal wording from the sheet."><input type="checkbox" id="ctPromo" checked> Promo display</label>
+      </div>
+      <div class="footer-opts" aria-label="File names">
+        <span class="fo-title" title="Slide PNGs are named {number}-{layout}_{products}-{seconds}.png, e.g. 003-phf_pos_4-up_BioCeuticalsLiposomalC_TheracurminTriple-010.png">File names</span>
+        <label class="fo-select" title="Number of the first slide. 001 and 002 are kept for your fixed slides (logo, cash tender).">Start at <input type="number" id="fnStart" min="0" max="999" step="1" value="3"></label>
+        <label class="fo-select" title="How long each slide shows on screen, in seconds. The last part of the name, e.g. -010.">Seconds <input type="number" id="fnSecs" min="1" max="999" step="1" value="10"></label>
+        <span class="fn-preview" id="fileNamePreview"></span>
+      </div>
     </div>
 
     <div class="panel">
@@ -2718,7 +2722,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='44';
+const APP_VERSION='42.2';
 const APP_DATE='2026-09-29';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -3098,7 +3102,8 @@ function priceHTML(now){
 function priceData(p){
   // v42.1: promo_display is presentation-only. It overrides the displayed deal/promo line
   // without changing dv, so SAVE/WAS calculations and the source discount data remain intact.
-  const promo=String(p.promoDisplay||'').trim();
+  // v42.2: ignored when Promo display is unticked in Card text.
+  const promo=cardTextOn('promo')?String(p.promoDisplay||'').trim():'';
   const deal=promo?offerText(promo):(p.disc==='deal'?dealText(p.dv):'');   // v41: BUY 4+ FOR $60 EA
   const was=p.disc==='was'?moneyText(p.dv):'';
   const rrp=moneyText(p.rrp);
@@ -4276,11 +4281,11 @@ function buildInputs(){
       <label title="Optional. Shown on clean cards exactly as you type it — e.g. BioCeuticals, PRANA ON. The Brand above still finds the photo file.">Brand on slide <span style="font-weight:500;color:var(--muted)">(optional)</span></label><input type="text" data-gi="${gi}" data-k="brandShow" value="${ha(p.brandShow||'')}" placeholder="${ha(slideBrand({brand:p.brand})||'Leave blank to use the brand')}">
       <label>Product name</label><input type="text" data-gi="${gi}" data-k="name" value="${ha(p.name)}">
       <label title="Optional. Used on clean cards instead of the product name — e.g. Kyolic 120c">Short name on slide <span style="font-weight:500;color:var(--muted)">(optional)</span></label><input type="text" data-gi="${gi}" data-k="short" value="${ha(p.short||'')}" placeholder="${ha(displayName(p)!==unitTidy(p.name)?displayName(p):'Leave blank to use the product name')}">
-      <label>Product Form</label><input type="text" data-gi="${gi}" data-k="productForm" value="${ha(p.productForm||'')}" placeholder="e.g. 60 Veg Caps, Liquid 500ml">
-      <label>Feature Heading</label><input type="text" data-gi="${gi}" data-k="featureHeading" value="${ha(p.featureHeading||'')}" placeholder="e.g. High-Potency Antioxidant">
-      <label>Key Ingredients</label><input type="text" data-gi="${gi}" data-k="keyIngredients" value="${ha(p.keyIngredients||'')}" placeholder="e.g. Quercetin 500mg, Zinc 15mg">
-      <label>Key Benefits</label><input type="text" data-gi="${gi}" data-k="keyBenefits" value="${ha(p.keyBenefits||'')}" placeholder="e.g. Immune Support & Recovery">
-      <label>Promo Display Override</label><input type="text" data-gi="${gi}" data-k="promoDisplay" value="${ha(p.promoDisplay||'')}" placeholder="e.g. SPECIAL BUY 2 FOR $50">
+      <label>Product Form${cardTextOffTag('form')}</label><input type="text" data-gi="${gi}" data-k="productForm" value="${ha(p.productForm||'')}" placeholder="e.g. 60 Veg Caps, Liquid 500ml">
+      <label>Feature Heading${cardTextOffTag('heading')}</label><input type="text" data-gi="${gi}" data-k="featureHeading" value="${ha(p.featureHeading||'')}" placeholder="e.g. High-Potency Antioxidant">
+      <label>Key Ingredients${cardTextOffTag('ingredients')}</label><input type="text" data-gi="${gi}" data-k="keyIngredients" value="${ha(p.keyIngredients||'')}" placeholder="e.g. Quercetin 500mg, Zinc 15mg">
+      <label>Key Benefits${cardTextOffTag('benefits')}</label><input type="text" data-gi="${gi}" data-k="keyBenefits" value="${ha(p.keyBenefits||'')}" placeholder="e.g. Immune Support & Recovery">
+      <label>Promo Display Override${cardTextOffTag('promo')}</label><input type="text" data-gi="${gi}" data-k="promoDisplay" value="${ha(p.promoDisplay||'')}" placeholder="e.g. SPECIAL BUY 2 FOR $50">
       <div class="mini"><div><label>NOW price</label>
         <input type="text" inputmode="decimal" data-gi="${gi}" data-k="now" value="${ha(p.now)}"></div>
       <div><label>RRP (optional)</label>
@@ -4430,73 +4435,22 @@ function slideBrand(p){
   return brandCaseText(p?p.brand:'',m,true);
 }
 function classicBrand(p){const o=String(p&&p.brandShow||'').trim();return h(brandCaseText(o||(p?p.brand:''),S.brandCase||'std',false));}
+/* v42.2 Card text: tick boxes choose which optional columns show on the slides (every layout).
+   Unticked values stay on the product row and in the editor fields; they're just not drawn. */
+function cardTextOn(k){return !(S.cardText&&S.cardText[k]===false);}
+function cardTextOffTag(k){return cardTextOn(k)?'':'<span class="ct-off">not shown · unticked in Card text</span>';}
 function offerMetaHTML(p){
-  const formTag=p.productForm?`<div class="po-form">${h(p.productForm)}</div>`:'';
-  const feature=p.featureHeading?`<div class="po-feature-head">${h(p.featureHeading)}</div>`:'';
+  const formTag=cardTextOn('form')&&p.productForm?`<div class="po-form">${h(p.productForm)}</div>`:'';
+  const feature=cardTextOn('heading')&&p.featureHeading?`<div class="po-feature-head">${h(p.featureHeading)}</div>`:'';
+  const ing=cardTextOn('ingredients')?p.keyIngredients:'',ben=cardTextOn('benefits')?p.keyBenefits:'';
   let details='';
-  if(p.keyIngredients||p.keyBenefits){
+  if(ing||ben){
     details=`<div class="po-details">`+
-      (p.keyIngredients?`<div class="po-detail po-ing"><strong>Ingredients:</strong> ${h(p.keyIngredients)}</div>`:'')+
-      (p.keyBenefits?`<div class="po-detail po-benefit"><strong>Benefits:</strong> ${h(p.keyBenefits)}</div>`:'')+
+      (ing?`<div><strong>Ingredients:</strong> ${h(ing)}</div>`:'')+
+      (ben?`<div><strong>Benefits:</strong> ${h(ben)}</div>`:'')+
     `</div>`;
   }
-  // v44: even the smallest card keeps one useful health message. Prefer the curated feature heading,
-  // then Benefits, then Ingredients as a final fallback. It is only displayed at minimal density.
-  const healthSummary=String(p.featureHeading||p.keyBenefits||p.keyIngredients||'').trim();
-  const healthMin=healthSummary?`<div class="po-health-min">${h(healthSummary)}</div>`:'';
-  return (formTag||feature||details||healthMin)?`<div class="po-meta">${formTag}${feature}${details}${healthMin}</div>`:'';
-}
-
-/* v44 metadata density ladder.
-   Optional education copy adapts to the *actual rendered card*, not to a hard-coded layout name. This keeps
-   the behaviour universal across POS, portrait TV, email, social and banner templates, including future
-   layouts that reuse clean cards. The offer itself is always protected first. */
-const META_DENSITIES=['full','medium','compact','minimal'];
-function metaDensityIndex(v){const i=META_DENSITIES.indexOf(v);return i<0?0:i;}
-function setMetaDensity(po,level){
-  if(!po||!po.querySelector('.po-meta')){if(po)delete po.dataset.metaDensity;return;}
-  po.dataset.metaDensity=META_DENSITIES.includes(level)?level:'full';
-}
-function baseMetaDensity(po){
-  if(!po||!po.querySelector('.po-meta'))return 'minimal';
-  const card=po.closest('.cl-card'),info=po.closest('.cl-info')||po.parentElement;
-  const w=(info&&info.clientWidth)||po.clientWidth||0,h=(card&&card.clientHeight)||po.clientHeight||0;
-  const stack=!!(card&&card.classList.contains('stack'));
-  if(stack){
-    if(w<150||h<190)return 'minimal';
-    if(w<270||h<360)return 'compact';
-    if(w<390||h<560)return 'medium';
-    return 'full';
-  }
-  if(w<145||h<140)return 'minimal';
-  if(w<205||h<220)return 'compact';
-  if(w<320||h<340)return 'medium';
-  return 'full';
-}
-function metadataGroups(slide){
-  const groups=[];
-  slide.querySelectorAll('.cl-card .po').forEach(po=>{
-    if(!po.querySelector('.po-meta'))return;
-    const card=po.closest('.cl-card'),w=card.offsetWidth,h=card.offsetHeight,st=card.classList.contains('stack');
-    let g=groups.find(x=>x.st===st&&Math.abs(x.w-w)<=3&&Math.abs(x.h-h)<=3);
-    if(!g){g={w,h,st,list:[]};groups.push(g);}
-    g.list.push(po);
-  });
-  return groups;
-}
-function prepareMetadataDensity(slide){
-  const all=[...slide.querySelectorAll('.po')];
-  all.forEach(po=>setMetaDensity(po,baseMetaDensity(po)));
-  // Matching cards use one shared information depth, so a page never looks as though some products
-  // received a different design treatment simply because their copy is shorter.
-  metadataGroups(slide).forEach(g=>{
-    let idx=Math.max(...g.list.map(po=>metaDensityIndex(po.dataset.metaDensity)));
-    g.list.forEach(po=>setMetaDensity(po,META_DENSITIES[idx]));
-    // If the optional copy still crowds the cell, reduce that whole card group before reducing price size.
-    while(idx<META_DENSITIES.length-1&&g.list.some(offerOverflows)){
-      idx++;g.list.forEach(po=>setMetaDensity(po,META_DENSITIES[idx]));
-    }
-  });
+  return (formTag||feature||details)?`<div class="po-meta">${formTag}${feature}${details}</div>`:'';
 }
 function offerBlock(p,opts={}){
   const d=priceData(p);
@@ -4737,11 +4691,7 @@ function scheduleClassicText(root){
 function fitOffers(root){
   const slide=root&&root.querySelectorAll?root:document.getElementById('slide');
   if(!slide)return;
-  slide.querySelectorAll('.po-name,.po-meta,.po-anchor,.po-foot').forEach(el=>{el.style.minHeight='';el.style.paddingTop='';el.style.marginTop='';});
-  // v44: start from the full offer size and simplify optional metadata while preserving at least one health message.
-  // This happens before any global font shrinking, so product / price readability wins over secondary copy.
-  slide.querySelectorAll('.po').forEach(po=>{po.style.fontSize='';applyNameBoundary(po);fitDealBig(po);});
-  prepareMetadataDensity(slide);
+  slide.querySelectorAll('.po-name,.po-anchor,.po-foot').forEach(el=>{el.style.minHeight='';el.style.paddingTop='';el.style.marginTop='';});
   // 1) fit each block on its own, 2) blocks of the same role share the smallest
   // fitted size so every price on the slide reads at one consistent size.
   const groups=new Map();
@@ -4784,7 +4734,7 @@ function equaliseOfferCards(slide){
   });
   groups.forEach(g=>{
     if(g.list.length<2)return;
-    ['.po-name','.po-meta','.po-anchor','.po-foot'].forEach(sel=>{
+    ['.po-name','.po-anchor','.po-foot'].forEach(sel=>{
       const els=g.list.map(po=>po.querySelector(sel)).filter(Boolean);
       if(els.length<2)return;
       const max=Math.max(...els.map(el=>el.offsetHeight));
@@ -4955,7 +4905,7 @@ function render(rebuildInputs=true){
   s.innerHTML=html;
   document.getElementById('pageInfo').textContent=`Page ${S.page+1} of ${pageCount()}`;
   if(rebuildInputs)buildInputs();
-  fit();updateLayoutAdvice();updatePreviewHead();updateValidation();
+  fit();updateLayoutAdvice();updatePreviewHead();updateValidation();updateFileNamePreview();
   if(CLEAN_LAYOUTS[S.layout]){scheduleFitOffers(s);placeSaveCircles(s);}
   else scheduleClassicText(s);   // v38
   scheduleAutoBalance(s);
@@ -5136,6 +5086,20 @@ document.getElementById('autoBalanceToggle').addEventListener('change',e=>{
   R.onchange=()=>{S.optRRP=R.checked;put('phf_opt_rrp',R.checked?'on':'off');render(false);};
   Sc.onchange=()=>{S.optScope=Sc.value;put('phf_opt_scope',Sc.value);render(false);};
   U.onchange=()=>{S.showUpcoming=U.checked;put('phf_show_upcoming',U.checked?'on':'off');S.page=0;render(true);};
+  // v42.2 Card text: which optional sheet columns show on the slides. Remembered on this device.
+  S.cardText={};
+  [['form','ctForm'],['heading','ctHeading'],['ingredients','ctIngredients'],['benefits','ctBenefits'],['promo','ctPromo']].forEach(([k,id])=>{
+    S.cardText[k]=get('phf_ct_'+k,'on')!=='off';
+    const el=document.getElementById(id);el.checked=S.cardText[k];
+    el.onchange=()=>{S.cardText[k]=el.checked;put('phf_ct_'+k,el.checked?'on':'off');render(true);};
+  });
+  // v42.2 File names: first slide number and seconds on screen. Remembered on this device.
+  const num=(v,d,lo,hi)=>{const n=parseInt(v,10);return Number.isFinite(n)?Math.min(hi,Math.max(lo,n)):d;};
+  S.fnStart=num(get('phf_fn_start','3'),3,0,999);S.fnSecs=num(get('phf_fn_secs','10'),10,1,999);
+  const FS=document.getElementById('fnStart'),FT=document.getElementById('fnSecs');
+  FS.value=S.fnStart;FT.value=S.fnSecs;
+  FS.onchange=()=>{S.fnStart=num(FS.value,3,0,999);FS.value=S.fnStart;put('phf_fn_start',String(S.fnStart));updateFileNamePreview();};
+  FT.onchange=()=>{S.fnSecs=num(FT.value,10,1,999);FT.value=S.fnSecs;put('phf_fn_secs',String(S.fnSecs));updateFileNamePreview();};
   // A screen left open overnight drops yesterday's expired specials automatically.
   let day=todayNum();
   setInterval(()=>{const t=todayNum();if(t!==day){day=t;S.page=0;render(true);}},10*60*1000);
@@ -5501,15 +5465,61 @@ async function captureCurrentPage(scale=EXPORT_SCALE){
 function canvasBlob(canvas){return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('PNG creation failed')),'image/png'));}
 function downloadBlob(blob,name){const a=document.createElement('a');a.download=name;a.href=URL.createObjectURL(blob);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);}
 function fileStem(){
-  // e.g. phf_pos_2-product_2026-09-28  ·  phf_tv_4-rows_easter_2026-09-28
+  // e.g. phf_pos_2-product_2026-09-28  ·  phf_tv_4-rows_easter_2026-09-28   (ZIP, email text and record)
   const slug=v=>String(v||'').toLowerCase().replace(/×/g,'x').replace(/\+/g,' plus ').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
-  const btn=layoutButtonFor(S.layout);
-  const layout=slug(btn?btn.textContent:S.layout)||S.layout;
   const title=slug(S.title).slice(0,30);
   const d=new Date(),ds=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  return `phf_${S.channel||'pos'}_${layout}${title?'_'+title:''}_${ds}`;
+  return `${fileLayoutId()}${title?'_'+title:''}_${ds}`;
 }
 function pageSuffix(i){return '_p'+String(i+1).padStart(2,'0');}
+/* ---------- v42.2 slide file names ----------
+   {number}-{layout}_{products}-{seconds}.png, e.g.
+   003-phf_pos_4-up_BioCeuticalsUltraCleanEPADHAPlus_LiposomalC_TheracurminTriple_UltraMusclezeNight-010.png
+   · number = Start at + page (Download this slide and Download all use the same numbers)
+   · products in slide order; the brand is added only when it changes; a product that appears more
+     than once in the specials gets its size added (NutritionCarePolybac8_75g / …Polybac8_30c)
+   · Short name wins over the product name. The only hyphens are the two separators and any inside the
+     layout name, so split on the first and last hyphen to read the number and the seconds. */
+function fileLayoutId(){
+  const slug=v=>String(v||'').toLowerCase().replace(/×/g,'x').replace(/\+/g,' plus ').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+  const btn=layoutButtonFor(S.layout);
+  return `phf_${S.channel||'pos'}_${slug(btn?btn.textContent:S.layout)||S.layout}`;
+}
+function fnWord(str){
+  // "UltraClean EPA/DHA Plus" → UltraCleanEPADHAPlus · keeps capitals (PranaON, AdvantAGE) and decimals (1.1kg)
+  return String(str||'').normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[®™©]/g,'').replace(/&/g,' And ').replace(/\+/g,' Plus ')
+    .split(/[^A-Za-z0-9.]+/)
+    .map(w=>w.replace(/(\d)\.(?=\d)/g,'$1\u0001').replace(/\./g,'').replace(/\u0001/g,'.'))
+    .filter(Boolean).map(w=>w[0].toUpperCase()+w.slice(1)).join('');
+}
+function fnBrand(p){const o=String(p&&p.brandShow||'').trim();return fnWord(o||brandCaseText(p?p.brand:'','std',true));}
+function fnProduct(p){
+  const nm=String(p&&p.short||'').trim()?unitTidy(p.short):displayName(p),i=nm.indexOf(',');
+  return {base:fnWord(i<0?nm:nm.slice(0,i)),size:fnWord(i<0?'':nm.slice(i+1))};
+}
+function slideFileName(rows,pageIndex){
+  const key=p=>`${fnBrand(p)}|${fnProduct(p).base}`.toLowerCase(),counts=new Map();
+  activeRows().forEach(p=>{const k=key(p);counts.set(k,(counts.get(k)||0)+1);});
+  const seq=String((Number.isFinite(S.fnStart)?S.fnStart:3)+pageIndex).padStart(3,'0');
+  const secs=String(Number.isFinite(S.fnSecs)?S.fnSecs:10).padStart(3,'0');
+  const lay=fileLayoutId();
+  let prev='',prod=rows.map(p=>{
+    const b=fnBrand(p),{base,size}=fnProduct(p);
+    let t=base;
+    if(counts.get(key(p))>1&&size)t+='_'+size;
+    if(b&&b!==prev)t=b+t;
+    prev=b;return t;
+  }).filter(Boolean).join('_');
+  const room=150-`${seq}-${lay}_-${secs}.png`.length;
+  if(prod.length>room)prod=prod.slice(0,room).replace(/_[^_]*$/,'');
+  return `${seq}-${lay}${prod?'_'+prod:''}-${secs}.png`;
+}
+function updateFileNamePreview(){
+  const el=document.getElementById('fileNamePreview');if(!el)return;
+  const rows=pageRows();
+  el.textContent=rows.length?`This slide: ${slideFileName(rows,S.page)}`:'';
+}
 /* ---------- v28 email text + advertising record ---------- */
 function plainText(html){const t=document.createElement('textarea');t.innerHTML=String(html||'');return t.value;}
 function offerTextLine(p){
@@ -5572,7 +5582,7 @@ async function exportPage(){
     if(msg&&!confirm(msg))return;
     btn.textContent='Creating PNG…';
     const canvas=await captureCurrentPage(),blob=await canvasBlob(canvas);
-    downloadBlob(blob,`${fileStem()}${pageSuffix(S.page)}${endsTag(pageRows())}.png`);
+    downloadBlob(blob,slideFileName(pageRows(),S.page));
   }catch(e){alert('The PNG could not be created. Check the Image safety net panel; a remote image host may be blocking export.');}
   finally{const btn=document.getElementById('downloadBtn');btn.disabled=false;btn.textContent='Download this slide';fit();}
 }
@@ -5591,7 +5601,7 @@ document.getElementById('downloadAll').onclick=async()=>{
       btn.textContent=`Creating ZIP ${i+1}/${total}…`;S.page=i;render(false);
       await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
       const canvas=await captureCurrentPage(),blob=await canvasBlob(canvas);
-      const rows=[...pageRows()],file=`${fileStem()}${pageSuffix(i)}${endsTag(rows)}.png`;
+      const rows=[...pageRows()],file=slideFileName(rows,i);
       zip.file(file,blob);entries.push({page:i+1,file,rows});
     }
     // v28: email text / alt text and a record of exactly what was advertised.
