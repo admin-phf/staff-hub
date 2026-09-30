@@ -91,7 +91,7 @@
     const box=els.orderOverrideBox;if(!box)return;const mismatches=orderLinkMismatches();
     if(!mismatches.length){box.classList.add('hidden');box.innerHTML='';return;}
     box.classList.remove('hidden');
-    const invoiceNos=[...new Set((state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').map(d=>invoiceDocMeta(d).number).filter(Boolean))],primary=invoiceNos[0]||'CURRENT',order=cleanText(state.posParsed&&state.posParsed.orderNumber)||'CURRENT',mergedName=`oborne_invoice_{${primary}}_(${order}).txt`;
+    const invoiceNos=[...new Set((state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').map(d=>invoiceDocMeta(d).number).filter(Boolean))],primary=invoiceNos[0]||'CURRENT',order=cleanText(state.posParsed&&state.posParsed.orderNumber)||'CURRENT',mergedName=PHF.posImport.importFilename(invoiceNos,order);
     box.innerHTML=`<div class="order-override-title"><strong>Invoice → POS order link</strong><span>${mismatches.length}/${mismatches.length} auto-linked</span></div><p class="order-override-help">CH2 used a Customer PO that differs from the uploaded POS order. All uploaded supplier invoices are reconciled against this one POS order and exported as one combined POSActive TXT. The original CH2 invoice numbers and Customer POs remain unchanged in the audit and in each import row. Combined import: <span class="override-ref">${escapeHtml(mergedName)}</span>.</p><div class="order-override-list">${mismatches.map(x=>`<div class="order-override-row"><div class="order-override-meta"><b>Invoice ${escapeHtml(x.invoiceNumber)}</b><br>CH2 Customer PO: <span class="override-ref">${escapeHtml(x.customerPo)}</span><br>POSActive order: <span class="override-ref">${escapeHtml(x.posOrder)}</span></div><div class="order-override-actions"><span class="order-override-badge">AUTO POS ORDER LINK ACTIVE</span></div></div>`).join('')}</div>`;
   }
   function setProgress(pct){els.progress.classList.remove('hidden');els.progressBar.style.width=`${Math.max(0,Math.min(100,pct))}%`;}
@@ -599,7 +599,7 @@
         if(focus&&focus.key)requestAnimationFrame(()=>{
           const attr=focus.kind==='add'?'data-unpack-qty-key':'data-unpack-total-key';
           const selector=focus.kind==='add'?'.unpack-qty-input':'.unpack-qty-total';
-          const target=[...els.tableBody.querySelectorAll(selector)].find(el=>String(el.getAttribute(attr)||'')===String(focus.key));
+          const target=[...els.tableWrap.querySelectorAll(selector)].find(el=>String(el.getAttribute(attr)||'')===String(focus.key));
           if(target){target.focus();if(typeof target.select==='function')target.select();}
         });
       }else schedulePosColumnSizing();
@@ -705,10 +705,29 @@
     total=Math.ceil(widths.reduce((a,b)=>a+b,0));
     const group=ensurePosColgroup(),cols=[...group.children];cols.forEach((col,i)=>{col.style.width=`${Math.round(widths[i])}px`;});
     els.table.style.width=`${total}px`;els.table.style.minWidth=`${total}px`;
+    const completed=els.tableFoot.querySelector('.pos-completed-table');
+    if(completed){completed.querySelector('colgroup')?.remove();completed.prepend(group.cloneNode(true));completed.style.width=`${total}px`;completed.style.minWidth=`${total}px`;}
+    scheduleStickyLayout();
   }
   function schedulePosColumnSizing(){
     clearTimeout(posResizeTimer);posResizeTimer=setTimeout(()=>requestAnimationFrame(measurePosColumns),35);
   }
+  let stickyFrame=0;
+  function scheduleStickyLayout(){
+    if(stickyFrame)return;
+    stickyFrame=requestAnimationFrame(()=>{stickyFrame=0;
+      const toolbar=document.querySelector('.result-controls-sticky'),wrap=els.tableWrap;if(!toolbar||!wrap)return;
+      const top=parseFloat(getComputedStyle(toolbar).top)||0,height=toolbar.getBoundingClientRect().height;
+      wrap.style.setProperty('--toolbar-bottom',`${Math.ceil(top+height+8)}px`);
+      const overlap=Math.max(0,toolbar.getBoundingClientRect().bottom+4-wrap.getBoundingClientRect().top);
+      wrap.style.setProperty('--header-offset',`${Math.ceil(overlap)}px`);
+      const total=els.tableFoot.querySelector('.pos-total-row');wrap.style.setProperty('--totals-height',`${Math.ceil(total?.getBoundingClientRect().height||34)}px`);
+    });
+  }
+  const toolbar=document.querySelector('.result-controls-sticky');
+  if(toolbar&&'ResizeObserver' in global)new ResizeObserver(scheduleStickyLayout).observe(toolbar);
+  global.addEventListener('scroll',scheduleStickyLayout,{passive:true});
+  global.addEventListener('resize',scheduleStickyLayout,{passive:true});
   function ensurePosResizeObserver(){
     if(posResizeObserver||!els.tableWrap)return;
     if('ResizeObserver' in global){posResizeObserver=new ResizeObserver(()=>{if(state.previewView==='pos')schedulePosColumnSizing();});posResizeObserver.observe(els.tableWrap);}
@@ -757,8 +776,8 @@
     els.downloadBtn.classList.remove('hidden');
     els.downloadBtn.textContent=labels[state.previewView]||'Download Current View';
     const posLinkBlocked=false;
-    els.downloadBtn.disabled=!ready;
-    els.downloadBtn.title=!ready?'Export is blocked until all integrity checks pass.':`Download the ${state.previewView==='pos'?'POSActive 15-column tab-delimited import file; only ticked/accounted POS Layout rows are supplied, with Found quantities applied':'exceptions workbook'}.`;
+    els.downloadBtn.disabled=state.previewView==='pos'?!state.result:!ready;
+    els.downloadBtn.title=state.previewView==='pos'?'Download the POSActive 15-column TXT. Entered Found quantities are included; pricing and matching issues remain review notes.':!ready?'Excel export is blocked until all integrity checks pass.':'Download the exceptions workbook.';
   }
   function setViewButtons(){
     const map={exceptions:els.viewExceptionsBtn,all:els.viewAllBtn,pos:els.viewPosBtn};
@@ -807,7 +826,7 @@
     const sections=posPreviewSections(detailBySourceRow);
     const progress=updateChecklistUi(baseRows,detailBySourceRow);
     const renderPosRow=(pos,zebraIndex=0)=>{
-      const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(Math.max(0,(Number(pos&&pos.posIndex)||1)-1)),notSupplied=!detail||Number(detail.suppliedQty||0)<=0;
+      const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(Math.max(0,(Number(pos&&pos.posIndex)||1)-1)),notSupplied=(!detail||Number(detail.suppliedQty||0)<=0)&&unpackCountFor(pos)<=0;
       const checkKey=unpackIdentity(pos),unpackDone=state.unpackChecked.has(checkKey),rowClasses=[zebraIndex%2?'pos-row-even':'pos-row-odd',notSupplied?'pos-not-supplied':'',unpackDone?'unpack-checked':''].filter(Boolean).join(' ');
       const cells=POS_VIEW_COLUMNS.map(c=>{
         const v=posColumnValue(pos,c,detail);let html='',extraCls='',title='';
@@ -854,8 +873,8 @@
     };
     const sectionHtml=[];let zebraIndex=0;
     if(sections.remaining.length){sectionHtml.push(`<tr class="pos-section-row pos-section-remaining"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Remaining / to check</strong><span>${sections.remaining.length} item${sections.remaining.length===1?'':'s'}</span></td></tr>`);for(const pos of sections.remaining)sectionHtml.push(renderPosRow(pos,zebraIndex++));}
-    if(sections.complete.length){sectionHtml.push(`<tr class="pos-section-row pos-section-complete"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Completed / accounted</strong><span>${sections.complete.length} item${sections.complete.length===1?'':'s'} · untick a row to clear Found and return it to Remaining</span></td></tr>`);for(const pos of sections.complete)sectionHtml.push(renderPosRow(pos,zebraIndex++));}
-    els.tableBody.innerHTML=sectionHtml.length?sectionHtml.join(''):`<tr><td colspan="${POS_VIEW_COLUMNS.length}">No POS order rows available.</td></tr>`;
+    const completedHtml=sections.complete.map(pos=>renderPosRow(pos,zebraIndex++)).join('');
+    els.tableBody.innerHTML=sectionHtml.length?sectionHtml.join(''):`<tr><td colspan="${POS_VIEW_COLUMNS.length}">${sections.complete.length?'All POS order rows are accounted for. See Completed below.':'No POS order rows available.'}</td></tr>`;
 
     els.tableBody.onclick=e=>{
       const btn=e.target.closest('.unpack-check');if(!btn)return;e.preventDefault();e.stopPropagation();
@@ -904,7 +923,7 @@
       if(e.key==='Enter'&&(add||found)){
         e.preventDefault();
         if(add){
-          const inputs=[...els.tableBody.querySelectorAll('.unpack-qty-input')],idx=inputs.indexOf(add),next=idx>=0?inputs[idx+1]:null;
+          const inputs=[...els.tableWrap.querySelectorAll('.unpack-qty-input')],idx=inputs.indexOf(add),next=idx>=0?inputs[idx+1]:null;
           commitQtyInput(add);
           if(next)requestAnimationFrame(()=>{next.focus();if(typeof next.select==='function')next.select();});
         }else commitFoundInput(found);
@@ -921,7 +940,12 @@
       }
       else{els.tableFoot.innerHTML='';renderPosBalance(null);}
     }
-    ensurePosResizeObserver();schedulePosColumnSizing();
+    if(completedHtml){
+      els.tableFoot.insertAdjacentHTML('afterbegin',`<tr class="pos-completed-dock-row"><td colspan="${POS_VIEW_COLUMNS.length}" class="pos-completed-dock-cell"><div class="pos-completed-title"><strong>Completed / accounted</strong> ${sections.complete.length} items · untick to clear Found and return to Remaining</div><div class="pos-completed-scroll"><table class="pos-preview-table pos-completed-table"><tbody>${completedHtml}</tbody></table></div></td></tr>`);
+      const body=els.tableFoot.querySelector('.pos-completed-table tbody');
+      for(const name of ['onclick','onkeydown','onfocusout','onchange'])body[name]=els.tableBody[name];
+    }
+    ensurePosResizeObserver();schedulePosColumnSizing();scheduleStickyLayout();
   }
   function renderPreview(r){if(state.previewView==='pos')renderPosTable();else renderReconTable(r);setViewButtons();}
 
@@ -987,7 +1011,7 @@
   els.downloadBtn.onclick=async()=>{
     const activeKey=document.activeElement;if(activeKey&&activeKey.matches('.import-key-input'))commitImportKey(activeKey);
     commitActiveReceivingInput();
-    if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok||state.previewView==='all')return;
+    if(!state.result||!state.docs.length||!state.refs||(state.previewView!=='pos'&&(!state.runIntegrity||!state.runIntegrity.ok))||state.previewView==='all')return;
     els.downloadBtn.disabled=true;els.downloadBtn.textContent=state.previewView==='pos'?'Building merged TXT…':'Building Excel…';
     try{
       const exportResult=await PHF.exportView(state.previewView,state.docs,state.refs,state.posParsed,state.result,posExportOptions());

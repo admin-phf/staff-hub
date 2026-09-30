@@ -75,6 +75,11 @@
   function weightedAverage(rows,key,weightKey='qtySupplied'){let n=0,d=0;for(const r of rows||[]){const v=r[key],w=Number(r[weightKey]??0);if(v!=null&&Number.isFinite(Number(v))&&Number.isFinite(w)&&w!==0){n+=Number(v)*w;d+=w;}}return d?n/d:null;}
 
   function reconcile(posOrder,invoiceDocuments,refs){
+    invoiceDocuments.forEach(doc=>{doc.rows=(doc.rows||[]).map(row=>{
+      if(row.normalWholesale!=null)return row;
+      const rec=bridgeForInvoice(row,refs).rec||{},ws=rec.POS_CH2_WHOLESALE_EX_GST;
+      return ws!=null?{...row,invoiceNormalWholesale:null,normalWholesale:ws,normalWholesaleSource:'POS MASTER CH2_WHOLESALE_EX_GST'}:row;
+    });});
     const posRows=posOrder.rows||[],invoiceRows=[],warnings=[];
     invoiceDocuments.forEach(doc=>{if(doc.warning)warnings.push(`${doc.sourceFile}: ${doc.warning}`);const docRows=(doc.rows||[]);docRows.forEach(r=>invoiceRows.push(r));if(doc.cancelled&&doc.cancelled.length)warnings.push(`${doc.sourceFile}: ${doc.cancelled.length} supplier line(s) were marked C (cancelled/backordered) and correctly excluded from billed totals.`);if(doc.skipped&&doc.skipped.length)warnings.push(`${doc.sourceFile}: ${doc.skipped.length} candidate line(s) could not be confidently classified as billed or cancelled and should be reviewed.`);if(doc.integrity&&doc.integrity.footerFound===false)warnings.push(`${doc.sourceFile}: footer totals were not machine-readable; line arithmetic was still checked.`);const missingDisc=docRows.filter(r=>r.discountPct==null).length,missingWs=docRows.filter(r=>r.normalWholesale==null).length;if(missingDisc)warnings.push(`${doc.sourceFile}: ${missingDisc} billed line(s) did not print a CH2 discount %. These remain blank and are marked NO CHECK, not 0%.`);if(missingWs)warnings.push(`${doc.sourceFile}: ${missingWs} billed line(s) did not print Normal W/S. Wholesale/discount price checks requiring Normal W/S are marked NO CHECK.`);});
 

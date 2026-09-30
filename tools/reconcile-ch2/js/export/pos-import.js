@@ -46,8 +46,8 @@
 
   function masterRecordForPos(pos,refs){
     const master=refs&&refs.master;if(!master)return null;
-    const b=digits(pos&&pos.barcode);if(b&&master.byBarcode&&master.byBarcode.has(b))return master.byBarcode.get(b);
     const p=digits(pos&&pos.plu);if(p&&master.byPlu&&master.byPlu.has(p))return master.byPlu.get(p);
+    const b=digits(pos&&pos.barcode);if(b&&master.byBarcode&&master.byBarcode.has(b))return master.byBarcode.get(b);
     return null;
   }
   function canonicalIdentity(pos,refs){
@@ -201,7 +201,7 @@
     if(ext!=null&&gst>0&&Math.abs(round(ext*0.10,2)-round(gst,2))>0.011)pushIssue(errors,`Invoice line ${ln}: GST is not 10% of Extended ex GST.`);
     if(ext!=null&&total!=null&&Math.abs(round(ext+gst,2)-round(total,2))>0.011)pushIssue(errors,`Invoice line ${ln}: Extended ex GST + GST does not equal Total.`);
     if(q===0)warnings.push(`Invoice line ${ln}: excluded because supplied quantity is zero.`);
-    if(unit===0)warnings.push(`Invoice line ${ln}: excluded because it is a free/bonus line (unit price 0.0000). Key it manually if required.`);
+    if(unit===0)warnings.push(`Invoice line ${ln}: free/bonus line included when received.`);
   }
 
   function sameCommercialTerms(rows){
@@ -211,7 +211,7 @@
   function allocateReceiving(rows,target,errors,label){
     const src=(rows||[]).slice().sort((a,b)=>(n(a&&a.invoiceLine)||0)-(n(b&&b.invoiceLine)||0)),original=round(src.reduce((a,r)=>a+(n(r&&r.qtySupplied)||0),0),3),t=round(Math.max(0,n(target)||0),3);
     if(Math.abs(t-original)<=0.0005)return new Map(src.map(r=>[invoiceKey(r),n(r.qtySupplied)||0]));
-    if(src.length>1&&!sameCommercialTerms(src)){pushIssue(errors,`${label}: receiving quantity was changed from ${qtyText(original)} to ${qtyText(t)}, but this POS item spans multiple invoice lines with different price/discount terms. Adjust it manually rather than guessing how to allocate the quantity.`);return null;}
+    if(src.length>1&&!sameCommercialTerms(src))pushIssue(errors,`${label}: Found quantity allocated in invoice-line order across different commercial terms; review the allocation.`);
     const out=new Map();let remaining=t;
     for(let i=0;i<src.length;i++){
       const r=src[i],orig=Math.max(0,n(r.qtySupplied)||0),q=i===src.length-1?remaining:Math.min(orig,remaining);out.set(invoiceKey(r),round(Math.max(0,q),3));remaining=round(Math.max(0,remaining-q),3);
@@ -235,8 +235,30 @@
     else pushIssue(warnings,`${lineLabel(pos,index)}: MASTER IDENTITY REVIEW — CH2 product ${pc} differs from this order row's current master identifiers and independent evidence is limited. Review this row; export remains available.`);
   }
 
+  function importFilename(invoiceNumbers,orderNumber){
+    const numbers=[...new Set((invoiceNumbers||[]).map(clean).filter(Boolean))];
+    return `oborne_invoice${numbers.length>1?'s':''}_{${numbers.length?numbers.map(safePart).join('+'):'CURRENT'}}_(${safePart(orderNumber)}).txt`;
+  }
+  function pricedInvoiceRow(inv,pos,refs,warnings){
+    const rec=masterRecordForPos(pos,refs)||{};let unit=n(inv.unitPriceExGst),ws=n(inv.normalWholesale),disc=n(inv.discountPct);
+    if(ws==null){ws=n(rec.POS_CH2_WHOLESALE_EX_GST);if(ws!=null)warnings.push(`Line ${lineText(inv.invoiceLine)}: Normal W/S supplied by POS master CH2_WHOLESALE_EX_GST.`);}
+    if(unit==null){unit=n(pos.expectedUnit)??n(pos.lastPrice)??n(rec.POS_LAST_PRICE);warnings.push(`Line ${lineText(inv.invoiceLine)}: missing invoice unit cost uses existing POS cost.`);}
+    if(ws==null)ws=n(pos.normalWholesale)??n(rec.POS_WSP_EXCGST);
+    if(disc==null&&ws!=null&&ws!==0&&unit!=null)disc=round((1-unit/ws)*100,2);
+    if(ws==null&&unit!=null&&disc!=null&&disc<100)ws=unit/(1-disc/100);
+    if(unit==null&&ws!=null&&disc!=null)unit=ws*(1-disc/100);
+    if(unit==null||ws==null||disc==null)warnings.push(`Line ${lineText(inv.invoiceLine)}: unresolved price/discount values export as zero for user review.`);
+    return {...inv,unitPriceExGst:unit??0,normalWholesale:ws??unit??0,discountPct:disc??0};
+  }
+  function manualReceivingRow(pos,refs,group,index,found,warnings){
+    const rec=masterRecordForPos(pos,refs)||{},ws=n(rec.POS_CH2_WHOLESALE_EX_GST)??n(pos.normalWholesale)??n(rec.POS_WSP_EXCGST);
+    const unit=n(pos.expectedUnit)??n(pos.lastPrice)??n(rec.POS_LAST_PRICE)??ws??0;
+    const disc=ws&&unit!=null?round((1-unit/ws)*100,2):0,gstPct=n(pos.gstPct)??n(rec.POS_GST_TAX_PC)??0,extended=round(unit*found,2),gst=round(extended*gstPct/100,2);
+    warnings.push(`${lineLabel(pos,index)}: USER RECEIVING OVERRIDE — Found ${qtyText(found)} included using existing POS/master prices; no parsed invoice row. Invoice ${group.number} is used for routing only.`);
+    return {sourceFile:'USER RECEIVING',invoiceNumber:group.number,invoiceLine:100000+index+1,productCode:rec.MASTER_CODE||'',supplierSku:pos.subId||rec.POS_SUB_ID||'',description:pos.description,qtySupplied:found,normalWholesale:ws??unit,unitPriceExGst:unit,discountPct:disc,gstPct,extendedExGst:extended,gstAmount:gst,totalIncGst:round(extended+gst,2),manualReceiving:true};
+  }
   function buildInvoicePayload(group,refs,posOrder,reconciliation,options={}){
-    const errors=[],warnings=[],posRows=sortedPos(posOrder),details=detailBySourceRow(reconciliation),contexts=[],invoiceToContext=new Map(),allocation=new Map(),receivingChanges=[],omittedNotSupplied=[];
+    const errors=[],warnings=[],posRows=sortedPos(posOrder),details=detailBySourceRow(reconciliation),contexts=[],invoiceToContext=new Map(),allocation=new Map(),receivingChanges=[],omittedNotSupplied=[],manualRows=[];
     const groupNums=group&&group.numbers instanceof Set?group.numbers:new Set([clean(group&&group.number)].filter(Boolean)),unmatched=((reconciliation&&reconciliation.unmatchedInvoice)||[]).filter(r=>groupNums.has(invoiceNo(r))||group.sourceFiles.has(clean(r&&r.sourceFile)));
     if(unmatched.length){
       pushIssue(warnings,`INVOICE-ONLY REVIEW — Invoice ${group.number}: ${unmatched.length} billed line${unmatched.length===1?' is':'s are'} not present in the uploaded POS order and will be omitted from the POSActive TXT. Export remains available; review or receive these lines manually.`);
@@ -252,7 +274,7 @@
       const recv=receivingOverride(options,pos),invoiceQty=round(invRows.reduce((a,r)=>a+(n(r&&r.qtySupplied)||0),0),3);
       if(recv.touched){
         const found=Math.max(0,round(recv.value||0,3));
-        if(!invRows.length&&found>0){pushIssue(errors,`${lineLabel(pos,index)}: Found is ${qtyText(found)}, but CH2 did not invoice this product. There is no invoice price/discount line to build safely; receive this row manually in POSActive.`);continue;}
+        if(!invRows.length&&found>0){const manual=manualReceivingRow(pos,refs,group,index,found,warnings);invRows.push(manual);manualRows.push(manual);invoiceToContext.set(invoiceKey(manual),ctx);receivingChanges.push({pos,index,invoiceQty:0,found});}
         if(invRows.length){const map=allocateReceiving(invRows,found,errors,lineLabel(pos,index));if(map){for(const [k,v] of map)allocation.set(k,v);if(Math.abs(found-invoiceQty)>0.0005)receivingChanges.push({pos,index,invoiceQty,found});}}
       }
     }
@@ -262,10 +284,11 @@
     const sourceTotals={qty:sumQty(invoiceRows),ext:sum(invoiceRows,'extendedExGst'),gst:sum(invoiceRows,'gstAmount'),total:sum(invoiceRows,'totalIncGst')};
     const records=[];
 
-    for(const inv of invoiceRows){
+    for(const sourceInv of [...invoiceRows,...manualRows]){
+      const inv=pricedInvoiceRow(sourceInv,invoiceToContext.get(invoiceKey(sourceInv))?.pos||{},refs,warnings);
       const key=invoiceKey(inv),ctx=invoiceToContext.get(key);if(!ctx)continue;
       const originalQty=Math.max(0,n(inv&&inv.qtySupplied)||0),unit=n(inv&&inv.unitPriceExGst),disc=n(inv&&inv.discountPct),normalWs=n(inv&&inv.normalWholesale);
-      if(originalQty<=0||unit==null||unit===0)continue;
+      if(originalQty<=0)continue;
       if(disc==null){pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)}: Disc % is missing; POSActive cannot derive WS Price safely.`);continue;}
       if(normalWs==null){pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)}: Normal W/S is missing; POSActive import validation cannot confirm WS Price.`);continue;}
       const outQty=allocation.has(key)?allocation.get(key):originalQty;
@@ -284,7 +307,7 @@
       if(/[A-Za-z]/.test(subId)&&/\s/.test(subId)&&/\b(?:ORDER|PER|SKU|PROMO|SPECIAL|FREE|OFF|DEAL|BUY|SAVE)\b/i.test(subId))warnings.push(`Invoice line ${lineText(inv.invoiceLine)} · ${lineLabel(ctx.pos,ctx.index)}: REVIEW SUB ID "${subId}" — it resembles ordering/promotion text rather than a stable supplier product code.`);
       if(!subId)pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)}: Sub ID cannot be resolved from the POS order or CH2 product code.`);
       if(subId&&subId!==ch2Code)warnings.push(`IMPORT SUB ID — CH2 ${ch2Code} uses ${importIdentity.source} key ${subId} for ${description}.`);
-      const predWs=round(round(ext/outQty,2)/(1-disc/100),2),wsRounded=round(normalWs,2),wsDiff=round(predWs-wsRounded,2);
+      const predWs=disc===100?round(normalWs,2):round(round(ext/outQty,2)/(1-disc/100),2),wsRounded=round(normalWs,2),wsDiff=round(predWs-wsRounded,2);
       if(Math.abs(wsDiff)>0.011)pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)}: predicted POSActive WS ${predWs.toFixed(2)} differs from Normal W/S ${wsRounded.toFixed(2)} by more than 1c.`);
       else if(Math.abs(wsDiff)>0.0001)warnings.push(`Invoice line ${lineText(inv.invoiceLine)}: POSActive WS is expected to round to ${predWs.toFixed(2)} vs invoice Normal W/S ${wsRounded.toFixed(2)} (1c rounding).`);
       records.push({
@@ -340,7 +363,7 @@
   function parseTsv(text){return String(text||'').split('\r\n').filter((x,i,a)=>x!==''||i<a.length-1).map(line=>line.split('\t'));}
 
   function validatePayload(payload){
-    const errors=[...(payload&&payload.errors||[])],warnings=[...(payload&&payload.warnings||[])],rows=(payload&&payload.rows)||[],text=payload&&payload.text||'';
+    const errors=[],warnings=[...(payload&&payload.warnings||[]),...(payload&&payload.errors||[]).map(x=>`REVIEW — ${x}`)],rows=(payload&&payload.rows)||[],text=payload&&payload.text||'';
     if(rows.length<2)pushIssue(errors,'POSActive import contains no product rows.');
     const h=rows[0]||[];if(h.length!==CONTRACT.columns||!CONTRACT.headers.every((x,i)=>h[i]===x))pushIssue(errors,'POSActive header does not exactly match the proven 15-column contract.');
     for(let i=1;i<rows.length;i++)if((rows[i]||[]).length!==CONTRACT.columns){pushIssue(errors,`Generated POSActive row ${i+1} has ${(rows[i]||[]).length} fields instead of ${CONTRACT.columns}.`);break;}
@@ -369,8 +392,8 @@
   }
 
   function buildLegacyFiles(invoiceDocs,refs,posOrder,reconciliation,options={}){
-    const grouped=groupDocuments(invoiceDocs,posOrder,options);if(grouped.errors.length)return {ok:false,errors:grouped.errors,warnings:grouped.warnings||[],files:[]};
-    const errors=[],warnings=[...(grouped.warnings||[])],orderNo=clean(posOrder&&posOrder.orderNumber||reconciliation&&reconciliation.orderNumber),groups=grouped.groups||[];
+    const grouped=groupDocuments(invoiceDocs,posOrder,options);if(!grouped.groups.length)return {ok:false,errors:grouped.errors,warnings:grouped.warnings||[],files:[]};
+    const errors=[],warnings=[...(grouped.warnings||[]),...grouped.errors.map(x=>`REVIEW — ${x}`)],orderNo=clean(posOrder&&posOrder.orderNumber||reconciliation&&reconciliation.orderNumber),groups=grouped.groups||[];
     const numbers=[...new Set(groups.map(g=>clean(g&&g.number)).filter(Boolean))],primary=numbers[0]||'CURRENT',sourceFiles=new Set(),docs=[];
     for(const g of groups){for(const f of g.sourceFiles||[])sourceFiles.add(f);for(const d of g.docs||[])docs.push(d);}
     const mergedGroup={number:primary,numbers:new Set(numbers),sourceFiles,docs,orderLinks:groups.map(g=>g.orderLink).filter(Boolean)};
@@ -379,7 +402,7 @@
     for(const [key,rows] of keyRows)if(rows.size>1)warnings.push(`DUPLICATE IMPORT KEY "${key}" is used by ${rows.size} different POS order rows. Review the selected keys; export remains available.`);
     if(numbers.length>1)warnings.unshift(`MERGED POSACTIVE IMPORT — ${numbers.length} supplier invoices (${numbers.join(', ')}) are combined into one 15-column TXT for POS order ${orderNo}. Each product row retains its original supplier Invoice No.`);
     const invoicePart=numbers.length>1?numbers.map(safePart).join('+'):safePart(primary);
-    const file={filename:`oborne_invoice${numbers.length>1?'s':''}_{${invoicePart}}_(${safePart(orderNo)}).txt`,...payload,validation,invoiceNumbers:numbers};
+    const file={filename:importFilename(numbers,orderNo),...payload,validation,invoiceNumbers:numbers};
     return {ok:errors.length===0,errors,warnings,files:[file],invoiceNumbers:numbers};
   }
 
@@ -392,5 +415,5 @@
     const f=built.files[0];downloadBlob(new Blob([f.text],{type:'text/plain;charset=utf-8'}),f.filename);return {filename:f.filename,files:1,rows:f.records.length,columns:15,validation:f.validation,warnings:built.warnings,receivingAdjustments:f.receivingChanges.length,totals:f.totals,sourceTotals:f.sourceTotals,invoiceNumbers:f.invoiceNumbers||[]};
   }
 
-  PHF.posImport={CONTRACT,groupDocuments,buildLegacyFiles,validatePayload,exportLegacyPosImport,makeTsv,parseTsv,resolveImportIdentity,reviewImportKeys,exportKeyReview};
+  PHF.posImport={importFilename,CONTRACT,groupDocuments,buildLegacyFiles,validatePayload,exportLegacyPosImport,makeTsv,parseTsv,resolveImportIdentity,reviewImportKeys,exportKeyReview};
 })(window);

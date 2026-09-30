@@ -1,3 +1,20 @@
+# Prahran Health Foods — CH2 Reconciler v2.6.28
+
+## v2.6.28 — Sticky receiving and user-directed import
+
+- Download controls and column headings remain sticky without covering each other, with offsets measured after resize and scrolling.
+- Completed/accounted rows appear in a bounded sticky pane immediately above live totals. Editing, sorting, undo and receiving controls remain available.
+- Displayed and downloaded merged TXT filenames share one naming function and include every invoice number. A missing order-number column can use one unambiguous order reference in the filename/heading.
+- Missing invoice Normal W/S uses POS master CH2_WHOLESALE_EX_GST, retaining source provenance. POS-only products are indexed for receiving/reference lookups; existing browser reference caches are refreshed automatically.
+- Plain alphanumeric supplier SKUs are recognised in PDF line detection alongside hyphenated SKUs.
+- Entered positive Found quantities for rows without parsed invoice lines are included using existing POS/master costs and GST. They appear in live totals and the merged TXT, with review notes. They are associated with the first uploaded invoice for routing; original invoice audit rows are unchanged.
+- Missing pricing and commercial validation differences are review warnings rather than TXT download blockers. A changed count spanning different commercial terms is allocated in source-line order and flagged. Received free/bonus lines are included.
+- Structural TSV checks remain in place. The 15-column import, 43-column reconciliation, RRP behavior, original order sequence and all existing features remain intact.
+
+The provided JJ Finger Brush master record (PLU 918662) has no CH2 code or CH2 wholesale; manual receiving falls back to existing POS cost. Original PDFs and the POS order were not supplied for this update, so their exact extraction cannot be reproduced from the generated TXT alone.
+
+Validation: JavaScript syntax checks pass for every application script. Focused regression checks preserve all 106 rows and totals in the supplied generated TXT, and verify merged filenames, reference wholesale fallback, missing discount derivation, manual receiving totals, zero receiving omission, changed quantities spanning different prices, plain/hyphenated supplier SKU parsing, and the 15-column CRLF contract. Every original application file and named function is retained. Visual browser verification could not run because the test browser was unavailable; POSActive import acceptance still needs checking in the store application.
+
 # Prahran Health Foods — CH2 Reconciler v2.6.27
 
 ## v2.6.27 — POSActive balancing check

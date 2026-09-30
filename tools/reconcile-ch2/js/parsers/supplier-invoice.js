@@ -16,7 +16,7 @@
   function isMoney(v){return /^-?(?:(?:\d{1,3}(?:,\d{3})*|\d+)?\.\d{2,4})-?$/.test(clean(v).replace('$',''));}
   function isCode(v){return /^\d{6,8}$/.test(clean(v));}
   function isLine(v){return /^\d+\.\d{3}$/.test(clean(v));}
-  function looksSku(v){const s=clean(v).toUpperCase();return s.length>=4&&s.length<=60&&!s.includes(' ')&&/^[A-Z0-9][A-Z0-9._/+\-]*-[A-Z0-9._/+\-]+$/.test(s);}
+  function looksSku(v){const s=clean(v).toUpperCase();return s.length>=2&&s.length<=60&&!s.includes(' ')&&!isMoney(s)&&!isQty(s)&&!isLine(s)&&!isCode(s)&&/^[A-Z0-9][A-Z0-9._/+\-]*$/.test(s)&&(/[A-Z]/.test(s)&&(/[0-9]/.test(s)||s.includes('-')));}
   function isFooter(v){const s=clean(v).toUpperCase();return FOOTER_MARKERS.some(x=>s.includes(x));}
   function parseRrpWs(text){
     const s=clean(text);let rrp=null,normalWs=null,m=s.match(/\bRRP\s*:?\s*\$?([\d,.]+)/i);if(m)rrp=num(m[1]);
