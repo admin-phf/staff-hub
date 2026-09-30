@@ -15,6 +15,97 @@
   function levenshteinRatio(a,b){a=normText(a);b=normText(b);if(a===b)return a?100:0;if(!a||!b)return 0;if(a.length>b.length){const t=a;a=b;b=t;}let prev=Array.from({length:a.length+1},(_,i)=>i),cur=new Array(a.length+1);for(let j=1;j<=b.length;j++){cur[0]=j;for(let i=1;i<=a.length;i++)cur[i]=Math.min(cur[i-1]+1,prev[i]+1,prev[i-1]+(a[i-1]===b[j-1]?0:1));const t=prev;prev=cur;cur=t;}const d=prev[a.length],mx=Math.max(a.length,b.length);return mx?((mx-d)/mx)*100:100;}
   function descriptionScore(a,b){return Math.max(tokenDice(a,b),levenshteinRatio(a,b));}
   function priceCloseness(a,b){if(a==null||b==null)return 0;const d=Math.abs(Number(a)-Number(b));if(d<=0.011)return 300;if(d<=0.05)return 240;if(d<=0.25)return 120;if(d<=1)return 40;if(d<=3)return 10;return 0;}
+  function toNum(v){if(typeof v==='number')return Number.isFinite(v)?v:null;let s=clean(v).replace(/[$,%]/g,'').replace(/,/g,'');if(!s)return null;if(/^\.\d+$/.test(s))s='0'+s;const n=Number(s);return Number.isFinite(n)?n:null;}
+  function compact(v){return normText(v).replace(/\s+/g,'');}
+
+  // v2.6.28 — Normal W/S backfill.
+  // Some CH2 invoice lines are billed without printing NORMAL W/S. Without it the line
+  // loses its strongest matching signal and cannot be priced for POSActive. The missing
+  // value is taken from the POS master reference column CH2_WHOLESALE_EX_GST for the
+  // invoice CH2 product code. If the reference has no numeric wholesale for that code,
+  // the value printed on the invoice itself is used: Unit Price ex GST ÷ (1 − Disc %).
+  // Printed values are never overwritten, and every filled row records its source.
+  const WS_SOURCE_INVOICE='INVOICE',WS_SOURCE_REFERENCE='REFERENCE CH2_WHOLESALE_EX_GST',WS_SOURCE_DERIVED='DERIVED UNIT ÷ (1 − DISC %)',WS_SOURCE_MISSING='MISSING';
+  function referenceWholesaleForCode(code,refs){
+    const master=refs&&refs.master;if(!master||!code)return null;
+    const primary=master.byCode&&typeof master.byCode.get==='function'?master.byCode.get(code):null,pv=toNum(primary&&primary.POS_CH2_WHOLESALE_EX_GST);
+    if(pv!=null&&pv>0)return pv;
+    const all=(master.byCodeAll&&typeof master.byCodeAll.get==='function'&&master.byCodeAll.get(code))||[];
+    const values=[...new Set(all.map(r=>toNum(r&&r.POS_CH2_WHOLESALE_EX_GST)).filter(v=>v!=null&&v>0).map(v=>round(v,4)))];
+    return values.length?values[0]:null;
+  }
+  function backfillInvoiceWholesale(invoiceDocuments,refs){
+    const filled=[],missing=[];
+    for(const doc of invoiceDocuments||[]){
+      if(!doc||doc.type==='CREDIT_NOTE')continue;
+      for(const row of doc.rows||[]){
+        if(!row)continue;
+        if(row.normalWholesaleSource){if(row.normalWholesaleSource===WS_SOURCE_MISSING)missing.push(row);else if(row.normalWholesaleSource!==WS_SOURCE_INVOICE)filled.push(row);continue;}
+        if(toNum(row.normalWholesale)!=null){row.normalWholesaleSource=WS_SOURCE_INVOICE;continue;}
+        let ws=referenceWholesaleForCode(digits(row.productCode),refs),source=ws!=null?WS_SOURCE_REFERENCE:'';
+        if(ws==null){
+          const unit=toNum(row.unitPriceExGst),disc=toNum(row.discountPct);
+          if(unit!=null&&unit>0&&disc!=null&&disc>=0&&disc<100){ws=unit/(1-disc/100);source=WS_SOURCE_DERIVED;}
+        }
+        if(ws==null){row.normalWholesaleSource=WS_SOURCE_MISSING;missing.push(row);continue;}
+        row.invoicePrintedNormalWholesale=null;
+        row.normalWholesale=round(ws,source===WS_SOURCE_DERIVED?2:4);
+        row.normalWholesaleSource=source;filled.push(row);
+      }
+    }
+    return {filled,missing};
+  }
+
+  // POS product brand (compact, e.g. JACK N JILL → JACKNJILL) from every aligned-master
+  // record for the exact POS PLU/barcode, including records without a CH2 code.
+  function posBrandCompact(pos,refs){
+    const master=refs&&refs.master;if(!master||!pos)return '';
+    const plu=digits(pos.plu),bc=digits(pos.barcode),recs=[];
+    const push=r=>{if(r)recs.push(r);};
+    if(plu){for(const r of (master.byPluAll&&typeof master.byPluAll.get==='function'&&master.byPluAll.get(plu))||[])push(r);if(master.byPlu&&typeof master.byPlu.get==='function')push(master.byPlu.get(plu));}
+    if(bc){for(const r of (master.byBarcodeAll&&typeof master.byBarcodeAll.get==='function'&&master.byBarcodeAll.get(bc))||[])push(r);if(master.byBarcode&&typeof master.byBarcode.get==='function')push(master.byBarcode.get(bc));}
+    for(const r of recs){const b=compact(r.POS_BRAND||r.POS_MASTER_BRAND);if(b.length>=3)return b;}
+    return '';
+  }
+  function wholesaleClose(a,b){const x=toNum(a),y=toNum(b);if(x==null||y==null||y<=0)return false;const d=Math.abs(x-y);return d<=0.05||d/y<=0.03;}
+
+  // v2.6.28 — conservative invoice-sequence gap fallback for leftovers only.
+  // CH2 picks and invoices the POS order in sequence. When one invoice line is left
+  // unmatched between two confidently matched neighbours (e.g. lines 82 and 84), and the
+  // POS rows between those neighbours' POS rows contain the unmatched ordered product
+  // (e.g. POS row 78), they are paired only with corroborating quantity / W/S / brand /
+  // description evidence. This never replaces an existing match and is labelled LOW
+  // confidence so it remains visible for review.
+  function sequenceGapFallback(groups,posRows,refs,usedG,usedP,assigned){
+    const lineOf=g=>{const lines=(g.rows||[]).map(r=>toNum(r&&r.invoiceLine)).filter(v=>v!=null);return lines.length?Math.min(...lines):null;};
+    const invOf=g=>clean(g.representative&&g.representative.invoiceNumber)||clean(g.representative&&g.representative.sourceFile);
+    const anchors=[];
+    for(const [gi,p] of assigned){if(p.confidence==='LOW')continue;const line=lineOf(groups[gi]);if(line==null)continue;anchors.push({gi,pi:p.pi,line,inv:invOf(groups[gi])});}
+    const proposals=[];
+    groups.forEach((g,gi)=>{
+      if(usedG.has(gi))return;const line=lineOf(g);if(line==null)return;const inv=invOf(g);
+      let prev=null,next=null;
+      for(const a of anchors){if(a.inv!==inv)continue;if(a.line<line&&(!prev||a.line>prev.line))prev=a;if(a.line>line&&(!next||a.line<next.line))next=a;}
+      if(!prev||!next||next.pi<=prev.pi)return;
+      const gapPos=[];for(let pi=prev.pi+1;pi<next.pi;pi++)if(!usedP.has(pi))gapPos.push(pi);
+      if(!gapPos.length)return;
+      const gapGroups=groups.map((x,xi)=>({x,xi})).filter(({x,xi})=>!usedG.has(xi)&&invOf(x)===inv&&(()=>{const l=lineOf(x);return l!=null&&l>prev.line&&l<next.line;})());
+      const invRep=g.representative,scored=gapPos.map(pi=>{
+        const pos=posRows[pi],qtySame=Math.abs(Number(invRep.qtySupplied||0)-Number(pos.orderedQty||0))<0.0001,ws=wholesaleClose(invRep.normalWholesale,pos.normalWholesale);
+        const brand=posBrandCompact(pos,refs),brandOk=!!brand&&compact(invRep.description).startsWith(brand),desc=descriptionScore(invRep.description,pos.description);
+        const signals=[qtySame,ws,brandOk,desc>=20].filter(Boolean).length;
+        const oneToOne=gapGroups.length===1&&gapPos.length===1;
+        const ok=oneToOne?signals>=2:(signals>=3||(ws&&(brandOk||desc>=35)));
+        return {pi,ok,signals,desc,qtySame,ws,brandOk};
+      }).filter(x=>x.ok).sort((a,b)=>b.signals-a.signals||b.desc-a.desc);
+      if(!scored.length)return;
+      if(scored.length>1&&scored[0].signals===scored[1].signals&&Math.abs(scored[0].desc-scored[1].desc)<5)return;
+      const best=scored[0],why=[best.qtySame?'QTY':'',best.ws?'W/S':'',best.brandOk?'BRAND':'',best.desc>=20?'DESCRIPTION':''].filter(Boolean).join(' + ');
+      proposals.push({gi,pi:best.pi,score:best.signals*100+best.desc,desc:best.desc,accepted:true,confidence:'LOW',method:`INVOICE SEQUENCE GAP (LINES ${prev.line}–${next.line}) + ${why}`});
+    });
+    proposals.sort((a,b)=>b.score-a.score);
+    for(const p of proposals){if(usedG.has(p.gi)||usedP.has(p.pi))continue;usedG.add(p.gi);usedP.add(p.pi);assigned.set(p.gi,p);}
+  }
 
   function bridgeForInvoice(inv,refs){
     const code=digits(inv.productCode),master=refs&&refs.master,supplier=refs&&refs.supplier;
@@ -70,18 +161,20 @@
     });
     relaxed.sort((a,b)=>b.score-a.score);
     for(const p of relaxed){if(usedG.has(p.gi)||usedP.has(p.pi))continue;usedG.add(p.gi);usedP.add(p.pi);assigned.set(p.gi,p);}
+    sequenceGapFallback(groups,posRows,refs,usedG,usedP,assigned);
     return assigned;
   }
   function weightedAverage(rows,key,weightKey='qtySupplied'){let n=0,d=0;for(const r of rows||[]){const v=r[key],w=Number(r[weightKey]??0);if(v!=null&&Number.isFinite(Number(v))&&Number.isFinite(w)&&w!==0){n+=Number(v)*w;d+=w;}}return d?n/d:null;}
 
   function reconcile(posOrder,invoiceDocuments,refs){
-    invoiceDocuments.forEach(doc=>{doc.rows=(doc.rows||[]).map(row=>{
-      if(row.normalWholesale!=null)return row;
-      const rec=bridgeForInvoice(row,refs).rec||{},ws=rec.POS_CH2_WHOLESALE_EX_GST;
-      return ws!=null?{...row,invoiceNormalWholesale:null,normalWholesale:ws,normalWholesaleSource:'POS MASTER CH2_WHOLESALE_EX_GST'}:row;
-    });});
     const posRows=posOrder.rows||[],invoiceRows=[],warnings=[];
-    invoiceDocuments.forEach(doc=>{if(doc.warning)warnings.push(`${doc.sourceFile}: ${doc.warning}`);const docRows=(doc.rows||[]);docRows.forEach(r=>invoiceRows.push(r));if(doc.cancelled&&doc.cancelled.length)warnings.push(`${doc.sourceFile}: ${doc.cancelled.length} supplier line(s) were marked C (cancelled/backordered) and correctly excluded from billed totals.`);if(doc.skipped&&doc.skipped.length)warnings.push(`${doc.sourceFile}: ${doc.skipped.length} candidate line(s) could not be confidently classified as billed or cancelled and should be reviewed.`);if(doc.integrity&&doc.integrity.footerFound===false)warnings.push(`${doc.sourceFile}: footer totals were not machine-readable; line arithmetic was still checked.`);const missingDisc=docRows.filter(r=>r.discountPct==null).length,missingWs=docRows.filter(r=>r.normalWholesale==null).length;if(missingDisc)warnings.push(`${doc.sourceFile}: ${missingDisc} billed line(s) did not print a CH2 discount %. These remain blank and are marked NO CHECK, not 0%.`);if(missingWs)warnings.push(`${doc.sourceFile}: ${missingWs} billed line(s) did not print Normal W/S. Wholesale/discount price checks requiring Normal W/S are marked NO CHECK.`);});
+    const wsFill=backfillInvoiceWholesale(invoiceDocuments,refs);
+    if(wsFill.filled.length){
+      const fromRef=wsFill.filled.filter(r=>r.normalWholesaleSource===WS_SOURCE_REFERENCE),derived=wsFill.filled.filter(r=>r.normalWholesaleSource===WS_SOURCE_DERIVED);
+      const sample=wsFill.filled.slice(0,8).map(r=>`line ${Number.isFinite(Number(r.invoiceLine))?Number(r.invoiceLine):'?'} ${clean(r.description)||digits(r.productCode)} = ${Number(r.normalWholesale).toFixed(2)} (${r.normalWholesaleSource===WS_SOURCE_REFERENCE?'reference':'unit ÷ disc'})`);
+      warnings.push(`CH2 W/S FILLED — ${wsFill.filled.length} billed invoice line${wsFill.filled.length===1?'':'s'} did not print Normal W/S. ${fromRef.length?`${fromRef.length} filled from POS master CH2_WHOLESALE_EX_GST`:''}${fromRef.length&&derived.length?'; ':''}${derived.length?`${derived.length} derived from the printed Unit Price ex GST and Disc %`:''}. Used for matching, pricing checks and the POSActive Normal WS field: ${sample.join('; ')}${wsFill.filled.length>sample.length?'; …':''}.`);
+    }
+    invoiceDocuments.forEach(doc=>{if(doc.warning)warnings.push(`${doc.sourceFile}: ${doc.warning}`);const docRows=(doc.rows||[]);docRows.forEach(r=>invoiceRows.push(r));if(doc.cancelled&&doc.cancelled.length)warnings.push(`${doc.sourceFile}: ${doc.cancelled.length} supplier line(s) were marked C (cancelled/backordered) and correctly excluded from billed totals.`);if(doc.skipped&&doc.skipped.length)warnings.push(`${doc.sourceFile}: ${doc.skipped.length} candidate line(s) could not be confidently classified as billed or cancelled and should be reviewed.`);if(doc.integrity&&doc.integrity.footerFound===false)warnings.push(`${doc.sourceFile}: footer totals were not machine-readable; line arithmetic was still checked.`);const missingDisc=docRows.filter(r=>r.discountPct==null).length,missingWs=docRows.filter(r=>r.normalWholesale==null).length;if(missingDisc)warnings.push(`${doc.sourceFile}: ${missingDisc} billed line(s) did not print a CH2 discount %. These remain blank and are marked NO CHECK, not 0%.`);if(missingWs)warnings.push(`${doc.sourceFile}: ${missingWs} billed line(s) did not print Normal W/S and no POS master CH2_WHOLESALE_EX_GST or printed discount was available to fill it. Wholesale/discount price checks requiring Normal W/S are marked NO CHECK.`);});
 
     const matchedByPos=new Map(),unmatchedInvoice=[],groups=groupInvoiceRows(invoiceRows),assignments=assignGroups(groups,posRows,refs);
     groups.forEach((g,gi)=>{
@@ -118,5 +211,7 @@
   }
 
   PHF.reconcile=reconcile;
+  PHF.backfillInvoiceWholesale=backfillInvoiceWholesale;
+  PHF.WHOLESALE_SOURCES=Object.freeze({INVOICE:WS_SOURCE_INVOICE,REFERENCE:WS_SOURCE_REFERENCE,DERIVED:WS_SOURCE_DERIVED,MISSING:WS_SOURCE_MISSING});
   PHF._descriptionScore=descriptionScore;
 })(window);

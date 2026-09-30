@@ -41,7 +41,7 @@
       const record={SOURCE_SHEET:chosen.name,SOURCE_ROW:r+1,MASTER_CODE:code,POS_SUPPLIER_RAW:clean(valueAt(row,cols.supplier)),POS_SUPPLIER_NAME:clean(valueAt(row,cols.supplierName)),POS_SUPPLIER_NUMBER:digits(valueAt(row,cols.supplierNumber)),POS_MASTER_BARCODE:barcode(displayedIdentifier(valueAt(row,cols.barcode),valueAt(display,cols.barcode))),POS_PLU:clean(displayedIdentifier(valueAt(row,cols.plu),valueAt(display,cols.plu))).replace(/\.0+$/,''),POS_SUB_ID:clean(displayedIdentifier(valueAt(row,cols.posSubId),valueAt(display,cols.posSubId))),POS_BRAND:clean(valueAt(row,cols.brand)),POS_DESCR:clean(valueAt(row,cols.descr)),POS_WSP_EXCGST:num(valueAt(row,cols.wsp)),POS_CH2_WHOLESALE_EX_GST:num(valueAt(row,cols.ch2Wholesale)),POS_LAST_PRICE:num(valueAt(row,cols.last)),POS_GST_TAX_PC:num(valueAt(row,cols.gst)),POS_RRP_INCGST:num(valueAt(row,cols.rrp))};
       if(code){if(!byCodeAll.has(code))byCodeAll.set(code,[]);byCodeAll.get(code).push(record);
       if(byCode.has(code)){duplicates++;if(recordQuality(record)>recordQuality(byCode.get(code)))byCode.set(code,record);}else byCode.set(code,record);}
-      const bc=record.POS_MASTER_BARCODE;if(bc){if(!byBarcodeAll.has(bc))byBarcodeAll.set(bc,[]);byBarcodeAll.get(bc).push(record);}if(bc&&!byBarcode.has(bc))byBarcode.set(bc,record);const plu=digits(record.POS_PLU);if(plu){if(!byPluAll.has(plu))byPluAll.set(plu,[]);byPluAll.get(plu).push(record);}if(plu&&!byPlu.has(plu))byPlu.set(plu,record);const sid=clean(record.POS_SUB_ID).toUpperCase();if(sid){if(!byPosSubId.has(sid))byPosSubId.set(sid,[]);byPosSubId.get(sid).push(record);}
+      const bc=record.POS_MASTER_BARCODE;if(bc){if(!byBarcodeAll.has(bc))byBarcodeAll.set(bc,[]);byBarcodeAll.get(bc).push(record);}if(bc&&code&&!byBarcode.has(bc))byBarcode.set(bc,record);const plu=digits(record.POS_PLU);if(plu){if(!byPluAll.has(plu))byPluAll.set(plu,[]);byPluAll.get(plu).push(record);}if(plu&&code&&!byPlu.has(plu))byPlu.set(plu,record);const sid=clean(record.POS_SUB_ID).toUpperCase();if(sid&&code){if(!byPosSubId.has(sid))byPosSubId.set(sid,[]);byPosSubId.get(sid).push(record);}
     }
     const fuzzy=[];for(const rec of byCode.values())if(clean(rec.POS_DESCR))fuzzy.push(rec);
     return {byCode,byCodeAll,byBarcode,byPlu,byBarcodeAll,byPluAll,byPosSubId,fuzzy,info:{sheet:chosen.name,headerRow:chosen.h.row+1,records:byCode.size,duplicates}};
@@ -87,7 +87,7 @@
   async function status(){const [master,supplier]=await Promise.all([load('posMaster'),load('supplierMerge')]);return {master,supplier};}
   async function parseStored(){
     const st=await status();if(!st.master)throw new Error('POS/master reference data is not loaded on this computer. Open Admin and load the latest merged_alligned_pos_supplier_uhp_full workbook.');if(!st.supplier)throw new Error('Supplier/discount reference data is not loaded on this computer. Open Admin and load the POS DB & SUPPLIER MERGE workbook or the SRC_POS_ONGOING_DISCOUNTS CSV.');
-    const cacheKey=JSON.stringify(["v2.6.28",st.master.name,st.master.size,st.master.savedAt,st.supplier.name,st.supplier.size,st.supplier.savedAt]);
+    const cacheKey=JSON.stringify([st.master.name,st.master.size,st.master.savedAt,st.supplier.name,st.supplier.size,st.supplier.savedAt]);
     if(parsedCache&&parsedCache.key===cacheKey)return parsedCache.value;
     const stored=await load('parsedReferenceCache');
     if(stored&&stored.cacheKey===cacheKey&&stored.master&&stored.supplier){const value={master:stored.master,supplier:stored.supplier,meta:st};parsedCache={key:cacheKey,value};return value;}

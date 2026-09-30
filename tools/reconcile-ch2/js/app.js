@@ -4,7 +4,7 @@
   const state={pos:null,invoices:[],result:null,previewView:'pos',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackManualChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null,receivingMigratedFrom266:false,orderOverrides:new Map(),importKeys:new Map(),importKeyReviews:new Map(),posSortKey:'__pos_order_index',posSortDir:'asc'};
   const els={
     referenceReady:document.querySelector('#referenceReady'),referenceDot:document.querySelector('#referenceDot'),buildLabel:document.querySelector('#buildLabel'),
-    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),orderOverrideBox:document.querySelector('#orderOverrideBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),fullDownloadBtn:document.querySelector('#fullDownloadBtn'),fullCsvDownloadBtn:document.querySelector('#fullCsvDownloadBtn'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posBalancePanel:document.querySelector('#posBalancePanel'),keyReviewBtn:document.querySelector('#keyReviewBtn'),importKeySummary:document.querySelector('#importKeySummary'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn')
+    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),orderOverrideBox:document.querySelector('#orderOverrideBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),fullDownloadBtn:document.querySelector('#fullDownloadBtn'),fullCsvDownloadBtn:document.querySelector('#fullCsvDownloadBtn'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posBalancePanel:document.querySelector('#posBalancePanel'),keyReviewBtn:document.querySelector('#keyReviewBtn'),importKeySummary:document.querySelector('#importKeySummary'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn'),resultControls:document.querySelector('.result-controls-sticky')
   };
 
   const RECON_COLUMNS=[
@@ -50,6 +50,56 @@
   const posMeasureCanvas=document.createElement('canvas');
   const posMeasureCtx=posMeasureCanvas.getContext('2d');
   let posResizeObserver=null,posResizeTimer=0,posReceivingRenderTimer=0;
+  let stickyFrame=0,stickyObserver=null,stickyListening=false;
+
+  // v2.6.28 — non-overlapping sticky layers.
+  // The download/view bar is sticky to the page, while the result table header/footer are
+  // sticky inside their own scroll box. Without coordination the page-level bar slides over
+  // the table header. These CSS variables move the table header to sit directly under the
+  // bar (and lift the footer/Completed dock to the visible viewport bottom) for any page
+  // scroll position, so both the bar and the column headings remain visible together.
+  const STICKY_VARS=['--result-sticky-top','--result-sticky-bottom','--result-head-h','--result-foot-h','--result-dock-h'];
+  function updateStickyOffsets(){
+    stickyFrame=0;
+    const wrap=els.tableWrap;if(!wrap)return;
+    if(!state.result||!els.results||els.results.classList.contains('hidden')){for(const v of STICKY_VARS)wrap.style.removeProperty(v);return;}
+    const rect=wrap.getBoundingClientRect(),portTop=rect.top+(wrap.clientTop||0),portBottom=portTop+wrap.clientHeight;
+    const viewH=global.innerHeight||document.documentElement.clientHeight||0;
+    const controls=els.resultControls,cr=controls&&controls.getClientRects().length?controls.getBoundingClientRect():null;
+    const headH=els.tableHead?Math.ceil(els.tableHead.getBoundingClientRect().height):0;
+    const footH=els.tableFoot?Math.ceil(els.tableFoot.getBoundingClientRect().height):0;
+    const dock=els.tableBody?els.tableBody.querySelector('tr.pos-section-complete'):null,dockH=dock?Math.ceil(dock.getBoundingClientRect().height):0;
+    const room=Math.max(0,wrap.clientHeight-headH-footH);
+    let top=cr&&cr.height?Math.max(0,Math.ceil(cr.bottom-portTop)):0;top=Math.min(top,room);
+    let bottom=Math.max(0,Math.ceil(portBottom-viewH));bottom=Math.min(bottom,Math.max(0,room-top));
+    const set=(k,v)=>{const val=`${Math.max(0,Math.round(v))}px`;if(wrap.style.getPropertyValue(k)!==val)wrap.style.setProperty(k,val);};
+    set('--result-sticky-top',top);set('--result-sticky-bottom',bottom);set('--result-head-h',headH);set('--result-foot-h',footH);set('--result-dock-h',dockH);
+  }
+  function scheduleStickyOffsets(){if(stickyFrame)return;stickyFrame=requestAnimationFrame(updateStickyOffsets);}
+  function ensureStickyTracking(){
+    if(!stickyListening){
+      stickyListening=true;
+      global.addEventListener('scroll',scheduleStickyOffsets,{passive:true,capture:true});
+      global.addEventListener('resize',scheduleStickyOffsets,{passive:true});
+    }
+    if(!stickyObserver&&'ResizeObserver' in global){
+      stickyObserver=new ResizeObserver(scheduleStickyOffsets);
+      for(const el of [els.resultControls,els.tableWrap,els.tableHead,els.tableFoot,els.results])if(el)stickyObserver.observe(el);
+    }
+    scheduleStickyOffsets();
+  }
+  function completedSectionOffset(){
+    const wrap=els.tableWrap,row=els.tableBody&&els.tableBody.querySelector('tr.pos-section-complete');if(!wrap||!row)return null;
+    const cs=getComputedStyle(wrap),top=parseFloat(cs.getPropertyValue('--result-sticky-top'))||0,head=parseFloat(cs.getPropertyValue('--result-head-h'))||0;
+    return Math.max(0,row.offsetTop-top-head);
+  }
+  function jumpCompletedSection(){
+    // Jump straight to the Completed / accounted rows, or back to the top of Remaining when
+    // the Completed section is already in view, so staff never need to scroll to the end.
+    const wrap=els.tableWrap,offset=completedSectionOffset();if(!wrap||offset==null)return;
+    const target=Math.min(offset,Math.max(0,wrap.scrollHeight-wrap.clientHeight)),inCompleted=target>0&&wrap.scrollTop>=target-2;
+    wrap.scrollTo({top:inCompleted?0:target,behavior:'smooth'});
+  }
 
   function validExt(file,allowed){const ext='.'+(file.name.split('.').pop()||'').toLowerCase();return allowed.includes(ext);}
   function prettySize(bytes){if(bytes<1024)return `${bytes} B`;if(bytes<1024*1024)return `${(bytes/1024).toFixed(1)} KB`;return `${(bytes/1024/1024).toFixed(1)} MB`;}
@@ -91,7 +141,9 @@
     const box=els.orderOverrideBox;if(!box)return;const mismatches=orderLinkMismatches();
     if(!mismatches.length){box.classList.add('hidden');box.innerHTML='';return;}
     box.classList.remove('hidden');
-    const invoiceNos=[...new Set((state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').map(d=>invoiceDocMeta(d).number).filter(Boolean))],primary=invoiceNos[0]||'CURRENT',order=cleanText(state.posParsed&&state.posParsed.orderNumber)||'CURRENT',mergedName=PHF.posImport.importFilename(invoiceNos,order);
+    const invoiceNos=[...new Set((state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').map(d=>invoiceDocMeta(d).number).filter(Boolean))],primary=invoiceNos[0]||'CURRENT',order=cleanText(state.posParsed&&state.posParsed.orderNumber)||'CURRENT';
+    // v2.6.28 — show exactly the auto-generated download name (plural + every invoice number when merged).
+    const mergedName=PHF.posImport&&typeof PHF.posImport.importFilename==='function'?PHF.posImport.importFilename(invoiceNos,order):`oborne_invoice_{${primary}}_(${order}).txt`;
     box.innerHTML=`<div class="order-override-title"><strong>Invoice → POS order link</strong><span>${mismatches.length}/${mismatches.length} auto-linked</span></div><p class="order-override-help">CH2 used a Customer PO that differs from the uploaded POS order. All uploaded supplier invoices are reconciled against this one POS order and exported as one combined POSActive TXT. The original CH2 invoice numbers and Customer POs remain unchanged in the audit and in each import row. Combined import: <span class="override-ref">${escapeHtml(mergedName)}</span>.</p><div class="order-override-list">${mismatches.map(x=>`<div class="order-override-row"><div class="order-override-meta"><b>Invoice ${escapeHtml(x.invoiceNumber)}</b><br>CH2 Customer PO: <span class="override-ref">${escapeHtml(x.customerPo)}</span><br>POSActive order: <span class="override-ref">${escapeHtml(x.posOrder)}</span></div><div class="order-override-actions"><span class="order-override-badge">AUTO POS ORDER LINK ACTIVE</span></div></div>`).join('')}</div>`;
   }
   function setProgress(pct){els.progress.classList.remove('hidden');els.progressBar.style.width=`${Math.max(0,Math.min(100,pct))}%`;}
@@ -311,17 +363,22 @@
     },0);
     const invoiceOnlyRows=(state.result&&state.result.unmatchedInvoice)||[];
     const invoiceOnlyTotal=invoiceOnlyRows.reduce((sum,row)=>sum+(numberValue(row&&row.totalIncGst)||0),0);
-    const notInvoicedDetails=((state.result&&state.result.detail)||[]).filter(detail=>!Array.isArray(detail&&detail.invoiceRows)||!detail.invoiceRows.length);
-    let notInvoicedTotal=0;
+    // v2.6.28 — not-invoiced rows that staff received (Found > 0) are exported as manual
+    // receiving lines, so they are reported separately from genuinely not-supplied rows.
+    const manualRecords=records.filter(record=>record&&record.manualReceiving),manualRows=new Set(manualRecords.map(record=>String(record.pos&&record.pos.sourceRow!=null?record.pos.sourceRow:'')));
+    const manualTotal=manualRecords.reduce((sum,record)=>sum+(numberValue(record.total)||0),0);
+    let notInvoicedTotal=0,notInvoicedCount=0;
     for(const pos of rows||[]){
       const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''));
       if(detail&&Array.isArray(detail.invoiceRows)&&detail.invoiceRows.length)continue;
+      if(manualRows.has(String(pos&&pos.sourceRow!=null?pos.sourceRow:'')))continue;
+      notInvoicedCount++;
       const raw=pos.raw||{},qtyNow=numberValue(raw.qty)??numberValue(pos.orderedQty)??0;
       const currentPrice=numberValue(raw.last_price)??numberValue(pos.expectedUnit)??0;
       const gstPct=Math.max(0,numberValue(raw.gst_tax_pc)??numberValue(pos.gstPct)??0);
       notInvoicedTotal+=currentPrice*qtyNow*(1+gstPct/100);
     }
-    return {current,matchedCurrent,adjusted,adjustedEx,adjustedGst,supplierInvoiceTotal,invoiceOnlyCount:invoiceOnlyRows.length,invoiceOnlyTotal,notInvoicedCount:notInvoicedDetails.length,notInvoicedTotal,recordCount:records.length};
+    return {current,matchedCurrent,adjusted,adjustedEx,adjustedGst,supplierInvoiceTotal,invoiceOnlyCount:invoiceOnlyRows.length,invoiceOnlyTotal,notInvoicedCount,notInvoicedTotal,manualCount:manualRecords.length,manualTotal,recordCount:records.length};
   }
 
   function renderPosBalance(totals){
@@ -330,6 +387,7 @@
     const exportBalances=totals.adjusted!=null&&totals.adjustedEx!=null&&totals.adjustedGst!=null&&Math.abs((totals.adjustedEx+totals.adjustedGst)-totals.adjusted)<=.02;
     const cautions=[];
     if(totals.invoiceOnlyCount)cautions.push(`${totals.invoiceOnlyCount} billed invoice-only product${totals.invoiceOnlyCount===1?' is':'s are'} omitted from the POSActive import (${money(totals.invoiceOnlyTotal)} inc GST) because no matching POS-order row exists.`);
+    if(totals.manualCount)cautions.push(`${totals.manualCount} not-invoiced POS-order product${totals.manualCount===1?' was':'s were'} manually received with a Found quantity and ${totals.manualCount===1?'is':'are'} included in the TXT and totals (${money(totals.manualTotal)} inc GST) using POS master CH2_WHOLESALE_EX_GST / POS pricing. Confirm with the supplier that ${totals.manualCount===1?'it was':'they were'} delivered.`);
     if(totals.notInvoicedCount)cautions.push(`${totals.notInvoicedCount} POS-order product${totals.notInvoicedCount===1?' was':'s were'} not invoiced (${money(totals.notInvoicedTotal)} at current ordered value). The TXT cannot clear absent/zero-quantity rows, so confirm they are zero or unticked in POSActive.`);
     if(orderLinkMismatches().length)cautions.push('The invoice Customer PO differs from the uploaded POS order. Confirm the open POSActive order number before comparing totals.');
     const card=(label,value,note,cls='')=>`<div class="pos-balance-card ${cls}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></div>`;
@@ -599,7 +657,7 @@
         if(focus&&focus.key)requestAnimationFrame(()=>{
           const attr=focus.kind==='add'?'data-unpack-qty-key':'data-unpack-total-key';
           const selector=focus.kind==='add'?'.unpack-qty-input':'.unpack-qty-total';
-          const target=[...els.tableWrap.querySelectorAll(selector)].find(el=>String(el.getAttribute(attr)||'')===String(focus.key));
+          const target=[...els.tableBody.querySelectorAll(selector)].find(el=>String(el.getAttribute(attr)||'')===String(focus.key));
           if(target){target.focus();if(typeof target.select==='function')target.select();}
         });
       }else schedulePosColumnSizing();
@@ -705,29 +763,10 @@
     total=Math.ceil(widths.reduce((a,b)=>a+b,0));
     const group=ensurePosColgroup(),cols=[...group.children];cols.forEach((col,i)=>{col.style.width=`${Math.round(widths[i])}px`;});
     els.table.style.width=`${total}px`;els.table.style.minWidth=`${total}px`;
-    const completed=els.tableFoot.querySelector('.pos-completed-table');
-    if(completed){completed.querySelector('colgroup')?.remove();completed.prepend(group.cloneNode(true));completed.style.width=`${total}px`;completed.style.minWidth=`${total}px`;}
-    scheduleStickyLayout();
   }
   function schedulePosColumnSizing(){
     clearTimeout(posResizeTimer);posResizeTimer=setTimeout(()=>requestAnimationFrame(measurePosColumns),35);
   }
-  let stickyFrame=0;
-  function scheduleStickyLayout(){
-    if(stickyFrame)return;
-    stickyFrame=requestAnimationFrame(()=>{stickyFrame=0;
-      const toolbar=document.querySelector('.result-controls-sticky'),wrap=els.tableWrap;if(!toolbar||!wrap)return;
-      const top=parseFloat(getComputedStyle(toolbar).top)||0,height=toolbar.getBoundingClientRect().height;
-      wrap.style.setProperty('--toolbar-bottom',`${Math.ceil(top+height+8)}px`);
-      const overlap=Math.max(0,toolbar.getBoundingClientRect().bottom+4-wrap.getBoundingClientRect().top);
-      wrap.style.setProperty('--header-offset',`${Math.ceil(overlap)}px`);
-      const total=els.tableFoot.querySelector('.pos-total-row');wrap.style.setProperty('--totals-height',`${Math.ceil(total?.getBoundingClientRect().height||34)}px`);
-    });
-  }
-  const toolbar=document.querySelector('.result-controls-sticky');
-  if(toolbar&&'ResizeObserver' in global)new ResizeObserver(scheduleStickyLayout).observe(toolbar);
-  global.addEventListener('scroll',scheduleStickyLayout,{passive:true});
-  global.addEventListener('resize',scheduleStickyLayout,{passive:true});
   function ensurePosResizeObserver(){
     if(posResizeObserver||!els.tableWrap)return;
     if('ResizeObserver' in global){posResizeObserver=new ResizeObserver(()=>{if(state.previewView==='pos')schedulePosColumnSizing();});posResizeObserver.observe(els.tableWrap);}
@@ -776,8 +815,8 @@
     els.downloadBtn.classList.remove('hidden');
     els.downloadBtn.textContent=labels[state.previewView]||'Download Current View';
     const posLinkBlocked=false;
-    els.downloadBtn.disabled=state.previewView==='pos'?!state.result:!ready;
-    els.downloadBtn.title=state.previewView==='pos'?'Download the POSActive 15-column TXT. Entered Found quantities are included; pricing and matching issues remain review notes.':!ready?'Excel export is blocked until all integrity checks pass.':'Download the exceptions workbook.';
+    els.downloadBtn.disabled=!ready;
+    els.downloadBtn.title=!ready?'Export is blocked until all integrity checks pass.':`Download the ${state.previewView==='pos'?'POSActive 15-column tab-delimited import file; only ticked/accounted POS Layout rows are supplied, with Found quantities applied':'exceptions workbook'}.`;
   }
   function setViewButtons(){
     const map={exceptions:els.viewExceptionsBtn,all:els.viewAllBtn,pos:els.viewPosBtn};
@@ -791,6 +830,7 @@
     const extras=r.unmatchedInvoice.map(x=>({status:'NOT ORDERED / UNMATCHED',posDescription:x.description,orderedQty:null,suppliedQty:x.qtySupplied,expectedUnit:null,actualUnit:x.unitPriceExGst,unitVariance:null,missedTotal:0,matchConfidence:'',hasException:true}));
     const rows=[...display,...extras];
     els.tableBody.innerHTML=rows.length?rows.map(x=>`<tr><td>${pill(x.status)}</td><td>${escapeHtml(x.posDescription)}</td><td class="num">${qty(x.orderedQty)}</td><td class="num">${qty(x.suppliedQty)}</td><td class="num">${money(x.expectedUnit)}</td><td class="num">${money(x.actualUnit,4)}</td><td class="num">${money(x.unitVariance,4)}</td><td class="num">${money(x.missedTotal)}</td><td class="center">${x.matchConfidence?escapeHtml(x.matchConfidence):'<span class="muted">—</span>'}</td></tr>`).join(''):'<tr><td colspan="9">No exceptions found.</td></tr>';
+    ensureStickyTracking();
   }
   function renderPosTable(){
     refreshImportKeyReview();
@@ -826,8 +866,12 @@
     const sections=posPreviewSections(detailBySourceRow);
     const progress=updateChecklistUi(baseRows,detailBySourceRow);
     const renderPosRow=(pos,zebraIndex=0)=>{
-      const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(Math.max(0,(Number(pos&&pos.posIndex)||1)-1)),notSupplied=(!detail||Number(detail.suppliedQty||0)<=0)&&unpackCountFor(pos)<=0;
-      const checkKey=unpackIdentity(pos),unpackDone=state.unpackChecked.has(checkKey),rowClasses=[zebraIndex%2?'pos-row-even':'pos-row-odd',notSupplied?'pos-not-supplied':'',unpackDone?'unpack-checked':''].filter(Boolean).join(' ');
+      const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(Math.max(0,(Number(pos&&pos.posIndex)||1)-1)),notSupplied=!detail||Number(detail.suppliedQty||0)<=0;
+      const checkKey=unpackIdentity(pos),unpackDone=state.unpackChecked.has(checkKey);
+      // v2.6.28 — a not-invoiced row that staff physically received (Found > 0) is exported
+      // as a manual POSActive line, so it is shown as live stock rather than struck through.
+      const manualReceived=notSupplied&&state.unpackCounts.has(checkKey)&&unpackCountFor(pos)>0;
+      const rowClasses=[zebraIndex%2?'pos-row-even':'pos-row-odd',notSupplied&&!manualReceived?'pos-not-supplied':'',manualReceived?'pos-manual-received':'',unpackDone?'unpack-checked':''].filter(Boolean).join(' ');
       const cells=POS_VIEW_COLUMNS.map(c=>{
         const v=posColumnValue(pos,c,detail);let html='',extraCls='',title='';
         if(c.kind==='check'){
@@ -869,14 +913,16 @@
         } else {html=escapeHtml(v);if(v)title=String(v);}
         const cls=[c.cls||'',c.kind==='number'?'num':'',c.kind==='bool'?'pos-bool-cell center':'',c.align==='center'?'center':'',extraCls].filter(Boolean).join(' ');return `<td${cls?` class="${cls}"`:''}${title?` title="${escapeHtml(title)}"`:''}>${html}</td>`;
       }).join('');
-      return `<tr${rowClasses?` class="${rowClasses}"`:''}${notSupplied?' data-not-supplied="1"':''}>${cells}</tr>`;
+      const rowTitle=manualReceived?' title="Manually received — not on the CH2 invoice. Added to the POSActive TXT and totals using POS master CH2_WHOLESALE_EX_GST / POS pricing and the matched discount rule."':'';
+      return `<tr${rowClasses?` class="${rowClasses}"`:''}${notSupplied?' data-not-supplied="1"':''}${manualReceived?' data-manual-received="1"':''}${rowTitle}>${cells}</tr>`;
     };
     const sectionHtml=[];let zebraIndex=0;
     if(sections.remaining.length){sectionHtml.push(`<tr class="pos-section-row pos-section-remaining"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Remaining / to check</strong><span>${sections.remaining.length} item${sections.remaining.length===1?'':'s'}</span></td></tr>`);for(const pos of sections.remaining)sectionHtml.push(renderPosRow(pos,zebraIndex++));}
-    const completedHtml=sections.complete.map(pos=>renderPosRow(pos,zebraIndex++)).join('');
-    els.tableBody.innerHTML=sectionHtml.length?sectionHtml.join(''):`<tr><td colspan="${POS_VIEW_COLUMNS.length}">${sections.complete.length?'All POS order rows are accounted for. See Completed below.':'No POS order rows available.'}</td></tr>`;
+    if(sections.complete.length){sectionHtml.push(`<tr class="pos-section-row pos-section-complete" data-jump-completed="1" title="Click to jump between Completed / accounted rows and the top of Remaining"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Completed / accounted</strong><span>${sections.complete.length} item${sections.complete.length===1?'':'s'} · untick a row to clear Found and return it to Remaining · click this bar to jump ↕</span></td></tr>`);for(const pos of sections.complete)sectionHtml.push(renderPosRow(pos,zebraIndex++));}
+    els.tableBody.innerHTML=sectionHtml.length?sectionHtml.join(''):`<tr><td colspan="${POS_VIEW_COLUMNS.length}">No POS order rows available.</td></tr>`;
 
     els.tableBody.onclick=e=>{
+      const jump=e.target.closest('[data-jump-completed]');if(jump){e.preventDefault();jumpCompletedSection();return;}
       const btn=e.target.closest('.unpack-check');if(!btn)return;e.preventDefault();e.stopPropagation();
       const key=decodeUnpackKey(btn.dataset.unpackKey||'');if(!key)return;
       const pos=baseRows.find(r=>unpackIdentity(r)===key);if(!pos)return;
@@ -923,7 +969,7 @@
       if(e.key==='Enter'&&(add||found)){
         e.preventDefault();
         if(add){
-          const inputs=[...els.tableWrap.querySelectorAll('.unpack-qty-input')],idx=inputs.indexOf(add),next=idx>=0?inputs[idx+1]:null;
+          const inputs=[...els.tableBody.querySelectorAll('.unpack-qty-input')],idx=inputs.indexOf(add),next=idx>=0?inputs[idx+1]:null;
           commitQtyInput(add);
           if(next)requestAnimationFrame(()=>{next.focus();if(typeof next.select==='function')next.select();});
         }else commitFoundInput(found);
@@ -936,16 +982,11 @@
       if(baseRows.length){
         const totals=posTotals(baseRows,detailBySourceRow),foundTotal=baseRows.reduce((sum,pos)=>sum+(state.unpackCounts.has(unpackIdentity(pos))?unpackCountFor(pos):0),0),foundIndex=POS_VIEW_COLUMNS.findIndex(c=>c.key==='__unpack_total'),lastBlock=5,leftSpan=Math.max(1,foundIndex-1),middleSpan=Math.max(0,POS_VIEW_COLUMNS.length-lastBlock-(leftSpan+2));
         renderPosBalance(totals);
-        els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="${leftSpan}" class="pos-total-left"><strong>Current Order</strong><span>${baseRows.length.toLocaleString()} product line${baseRows.length===1?'':'s'} · <b data-check-progress>accounted ${progress.checked}/${progress.total} · unchecked ${progress.remaining}</b> · exact counts or manually ticked rows move below Remaining after a short delay · under/over counts stay in Remaining until resolved or manually ticked · unticking a row clears Found and returns it to Remaining · untouched + unticked rows = not supplied by default · entered Found always controls the download qty · grey rows = not invoiced · Add Qty 0 = accounted / not supplied</span></td><td class="pos-found-total-label" title="Total units physically found across all touched POS rows">Found total</td><td class="pos-found-total-value num" title="Total units physically found across all touched POS rows">${displayUnpackCount(foundTotal)}</td>${middleSpan?`<td colspan="${middleSpan}" class="pos-total-spacer"></td>`:''}<td colspan="2" class="pos-total-label" title="Both totals include GST. Adjusted Total mirrors the POSActive import total and applies any Found receiving quantities.">Current / Adjusted Total inc GST</td><td class="pos-total-current" title="Current POS order total including GST">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted" title="Live POSActive import total including GST; Found quantities applied">${money(totals.adjusted)}</td></tr>`;
+        els.tableFoot.innerHTML=`<tr class="pos-total-row"><td colspan="${leftSpan}" class="pos-total-left"><strong>Current Order</strong><span>${baseRows.length.toLocaleString()} product line${baseRows.length===1?'':'s'} · <b data-check-progress>accounted ${progress.checked}/${progress.total} · unchecked ${progress.remaining}</b> · exact counts or manually ticked rows move below Remaining after a short delay · under/over counts stay in Remaining until resolved or manually ticked · unticking a row clears Found and returns it to Remaining · untouched + unticked rows = not supplied by default · entered Found always controls the download qty · grey rows = not invoiced (Found &gt; 0 adds a manual POSActive line) · Add Qty 0 = accounted / not supplied</span></td><td class="pos-found-total-label" title="Total units physically found across all touched POS rows">Found total</td><td class="pos-found-total-value num" title="Total units physically found across all touched POS rows">${displayUnpackCount(foundTotal)}</td>${middleSpan?`<td colspan="${middleSpan}" class="pos-total-spacer"></td>`:''}<td colspan="2" class="pos-total-label" title="Both totals include GST. Adjusted Total mirrors the POSActive import total and applies any Found receiving quantities.">Current / Adjusted Total inc GST</td><td class="pos-total-current" title="Current POS order total including GST">${money(totals.current)}</td><td colspan="2" class="pos-total-adjusted" title="Live POSActive import total including GST; Found quantities applied">${money(totals.adjusted)}</td></tr>`;
       }
       else{els.tableFoot.innerHTML='';renderPosBalance(null);}
     }
-    if(completedHtml){
-      els.tableFoot.insertAdjacentHTML('afterbegin',`<tr class="pos-completed-dock-row"><td colspan="${POS_VIEW_COLUMNS.length}" class="pos-completed-dock-cell"><div class="pos-completed-title"><strong>Completed / accounted</strong> ${sections.complete.length} items · untick to clear Found and return to Remaining</div><div class="pos-completed-scroll"><table class="pos-preview-table pos-completed-table"><tbody>${completedHtml}</tbody></table></div></td></tr>`);
-      const body=els.tableFoot.querySelector('.pos-completed-table tbody');
-      for(const name of ['onclick','onkeydown','onfocusout','onchange'])body[name]=els.tableBody[name];
-    }
-    ensurePosResizeObserver();schedulePosColumnSizing();scheduleStickyLayout();
+    ensurePosResizeObserver();schedulePosColumnSizing();ensureStickyTracking();
   }
   function renderPreview(r){if(state.previewView==='pos')renderPosTable();else renderReconTable(r);setViewButtons();}
 
@@ -1011,7 +1052,7 @@
   els.downloadBtn.onclick=async()=>{
     const activeKey=document.activeElement;if(activeKey&&activeKey.matches('.import-key-input'))commitImportKey(activeKey);
     commitActiveReceivingInput();
-    if(!state.result||!state.docs.length||!state.refs||(state.previewView!=='pos'&&(!state.runIntegrity||!state.runIntegrity.ok))||state.previewView==='all')return;
+    if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok||state.previewView==='all')return;
     els.downloadBtn.disabled=true;els.downloadBtn.textContent=state.previewView==='pos'?'Building merged TXT…':'Building Excel…';
     try{
       const exportResult=await PHF.exportView(state.previewView,state.docs,state.refs,state.posParsed,state.result,posExportOptions());
@@ -1050,7 +1091,7 @@
     state.previewView=view;renderPreview(state.result);
     // Always open a view at its first POS row / first column. This avoids a previous
     // horizontal or vertical scroll position making the POS sequence look out of order.
-    if(els.tableWrap)requestAnimationFrame(()=>{els.tableWrap.scrollTop=0;els.tableWrap.scrollLeft=0;});
+    if(els.tableWrap)requestAnimationFrame(()=>{els.tableWrap.scrollTop=0;els.tableWrap.scrollLeft=0;scheduleStickyOffsets();});
   }
   if(els.viewExceptionsBtn)els.viewExceptionsBtn.onclick=()=>setPreviewView('exceptions');
   if(els.viewAllBtn)els.viewAllBtn.onclick=()=>setPreviewView('all');
@@ -1061,7 +1102,11 @@
     for(let i=0;i<rows.length;i++){
       const pos=rows[i],detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(i);
       if(detail&&Number(detail.suppliedQty||0)>0)continue;
-      const key=unpackIdentity(pos);state.unpackCounts.set(key,0);state.unpackChecked.add(key);moved++;
+      const key=unpackIdentity(pos);
+      // A not-invoiced row that staff already counted (Found > 0) is a manual receipt;
+      // the bulk action must not silently reset the user's physical count to zero.
+      if(state.unpackCounts.has(key)&&unpackCountFor(pos)>0)continue;
+      state.unpackCounts.set(key,0);state.unpackChecked.add(key);moved++;
     }
     saveUnpackCounts();saveUnpackChecklist();
     scheduleReceivingRender();

@@ -140,10 +140,6 @@
     }
     if(!rows.length)throw new Error('The POS order was recognised, but no ordered product lines were found.');
     const orderNumbers=[...new Set(rows.map(x=>x.orderNumber).filter(Boolean))];
-    if(!orderNumbers.length){
-      const refs=[...new Set((file.name+' '+chosen.matrix.slice(0,chosen.headerRow).flat().join(' ')).match(/\b\d{3,4}-\d{6,9}\b/g)||[])];
-      if(refs.length===1){orderNumbers.push(refs[0]);rows.forEach(row=>{row.orderNumber=refs[0];});}
-    }
     return {
       type:'POS_ORDER',sourceFile:file.name,sheetName:chosen.sheetName,headerRow:chosen.headerRow+1,
       orderNumber:orderNumbers.length===1?orderNumbers[0]:orderNumbers.join(', '),rows,

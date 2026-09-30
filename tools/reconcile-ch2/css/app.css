@@ -427,11 +427,40 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 @media(max-width:1100px){.pos-balance-grid{grid-template-columns:repeat(3,minmax(140px,1fr))}.pos-balance-card:nth-child(3){border-right:0}.pos-balance-heading>div{display:block}.pos-balance-heading>div span{display:block;margin-top:2px}.pos-balance-equation{align-items:flex-start;flex-direction:column}.pos-balance-equation span{text-align:left}}
 @media(max-width:620px){.pos-balance-grid{grid-template-columns:repeat(2,minmax(120px,1fr))}.pos-balance-card:nth-child(3){border-right:1px solid #dbe3e9}.pos-balance-card:nth-child(even){border-right:0}}
 
-/* v2.6.28: toolbar, headings, completed rows and totals stay visible independently. */
-.results .table-wrap.preview-pos{position:sticky;top:var(--toolbar-bottom,72px);height:calc(100dvh - var(--toolbar-bottom,72px) - 16px);max-height:calc(100dvh - var(--toolbar-bottom,72px) - 16px);min-height:260px;}
-.results .preview-pos thead th{top:var(--header-offset,0px);z-index:8;}
-.results .preview-pos .pos-completed-dock-cell{position:sticky!important;bottom:var(--totals-height,34px)!important;z-index:7;padding:0!important;background:#fff!important;}
-.pos-completed-title{padding:8px 10px;background:#1e3a5f;color:#e6cd74;font-size:11px;}
-.pos-completed-scroll{max-height:24vh;overflow-y:auto;overflow-x:hidden;}
-.results .preview-pos .pos-completed-table td{position:static!important;padding:7px 8px;background:inherit;box-shadow:none;border:0;}
-.results .preview-pos .pos-completed-table{table-layout:fixed;}
+/* v2.6.28 — coordinated sticky layers.
+   The download/view bar stays sticky to the page and the table header is offset by JS
+   (--result-sticky-top) so it always sits directly beneath the bar instead of sliding
+   under it. The POS footer and the Completed / accounted dock are lifted to the visible
+   viewport bottom (--result-sticky-bottom) when the table box extends below the window. */
+.results .table-wrap{--result-sticky-top:0px;--result-sticky-bottom:0px;--result-head-h:0px;--result-foot-h:0px;--result-dock-h:0px}
+.results .table-wrap thead th{top:var(--result-sticky-top,0px)}
+.results .preview-pos thead th{position:sticky;top:var(--result-sticky-top,0px);z-index:6}
+.results .preview-pos tfoot td{position:sticky;bottom:var(--result-sticky-bottom,0px);z-index:5}
+.result-controls-sticky{z-index:30;background:#fff}
+/* Mask the small gap above the stuck bar so table rows never peek through it. */
+.result-controls-sticky::before{content:'';position:absolute;left:-2px;right:-2px;top:-8px;height:8px;background:#fff;pointer-events:none}
+
+/* Completed / accounted section bar: docks above the footer while the completed rows are
+   further down, and pins under the column header once staff scroll into that section. */
+.results .preview-pos tbody tr.pos-section-complete>td{
+  position:sticky!important;
+  top:calc(var(--result-sticky-top,0px) + var(--result-head-h,0px));
+  bottom:calc(var(--result-sticky-bottom,0px) + var(--result-foot-h,0px));
+  z-index:4;
+  cursor:pointer;
+  box-shadow:0 -2px 6px rgba(15,31,51,.18),0 2px 6px rgba(15,31,51,.18);
+}
+.results .preview-pos tbody tr.pos-section-complete:hover>td{background:#244670!important}
+.results .preview-pos tbody tr.pos-section-complete>td:focus-visible{outline:2px solid #E6CD74;outline-offset:-2px}
+
+/* Keyboard/Enter navigation never parks the active row under a sticky layer. */
+.table-wrap.preview-pos{
+  scroll-padding-top:calc(var(--result-sticky-top,0px) + var(--result-head-h,0px) + var(--result-dock-h,0px) + 4px);
+  scroll-padding-bottom:calc(var(--result-sticky-bottom,0px) + var(--result-foot-h,0px) + var(--result-dock-h,0px) + 4px);
+}
+
+/* Not-invoiced POS rows that staff physically received (Found > 0) are live receiving lines. */
+.results .preview-pos tbody tr.pos-manual-received>td,
+.results .preview-pos tbody tr.pos-manual-received>td>*{text-decoration:none!important;opacity:1!important}
+.results .preview-pos tbody tr.pos-manual-received>td:first-child{box-shadow:inset 3px 0 0 #ef1982}
+.results .preview-pos tbody tr.pos-manual-received td.pos-desc{font-style:italic}

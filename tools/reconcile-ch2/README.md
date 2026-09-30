@@ -1,21 +1,20 @@
 # Prahran Health Foods — CH2 Reconciler v2.6.28
 
-## v2.6.28 — Sticky receiving and user-directed import
+## v2.6.28 — non-overlapping sticky layers, W/S backfill, manual receiving
 
-- Download controls and column headings remain sticky without covering each other, with offsets measured after resize and scrolling.
-- Completed/accounted rows appear in a bounded sticky pane immediately above live totals. Editing, sorting, undo and receiving controls remain available.
-- Displayed and downloaded merged TXT filenames share one naming function and include every invoice number. A missing order-number column can use one unambiguous order reference in the filename/heading.
-- Missing invoice Normal W/S uses POS master CH2_WHOLESALE_EX_GST, retaining source provenance. POS-only products are indexed for receiving/reference lookups; existing browser reference caches are refreshed automatically.
-- Plain alphanumeric supplier SKUs are recognised in PDF line detection alongside hyphenated SKUs.
-- Entered positive Found quantities for rows without parsed invoice lines are included using existing POS/master costs and GST. They appear in live totals and the merged TXT, with review notes. They are associated with the first uploaded invoice for routing; original invoice audit rows are unchanged.
-- Missing pricing and commercial validation differences are review warnings rather than TXT download blockers. A changed count spanning different commercial terms is allocated in source-line order and flagged. Received free/bonus lines are included.
-- Structural TSV checks remain in place. The 15-column import, 43-column reconciliation, RRP behavior, original order sequence and all existing features remain intact.
+- **Sticky fix:** the Download/View bar and the POS Layout column header are both sticky and no longer overlap. The table header is offset to sit directly beneath the sticky bar at any page scroll position; the footer totals row is lifted to the visible window bottom when the table box extends below the screen. Exceptions / All lines headers follow the same rule. The bar is fully opaque with a small mask above it so rows never ghost through.
+- **Sticky Completed / accounted:** once rows are completed, the Completed section bar docks directly above the footer while the completed rows are further down, and pins beneath the column header once you scroll into that section. Click the bar to jump to the completed rows; click again to return to the top of Remaining. Enter/focus navigation respects the sticky layers.
+- **Missing CH2 Normal W/S:** a billed invoice line that does not print NORMAL W/S is filled from the POS master reference column `CH2_WHOLESALE_EX_GST` for its CH2 code. When the reference has no numeric wholesale for that code, it is derived from the printed Unit Price ex GST ÷ (1 − Disc %). Printed values are never overwritten; every filled line is listed in Review notes and used for matching, pricing checks and the POSActive Normal WS field.
+- **Matching fallback for invoiced items left unmatched (e.g. JJ FINGER BRUSH):** after all existing passes, an unmatched invoice line that sits between two confidently matched neighbours (e.g. lines 82 and 84) is paired with the unmatched POS row between those neighbours' POS rows (e.g. POS row 78) when quantity / W/S / brand / description evidence corroborates it. It never replaces an existing match and is labelled LOW confidence (`INVOICE SEQUENCE GAP …`) for review.
+- **User is king — manual receiving:** ticking a not-invoiced POS row and entering Found > 0 no longer blocks the POSActive download. The row is exported as a manual receiving line (primary invoice number, line number after the highest billed line) priced from POS master `CH2_WHOLESALE_EX_GST` → POS order AdjWSPrc → master POS_WSP_EXCGST, less the matched discount rule (or the POS order's own discount), with the order's GST %. It is included in the live Adjusted total, the balancing panel and the TXT, and the row shows as live (pink edge) rather than struck through. `Remove not supplied` no longer resets a row you already counted.
+- Receiving a different Found across multiple CH2 lines with different terms now allocates in invoice-line order with a review note instead of blocking. A filled (not printed) W/S that differs slightly from the invoice arithmetic is a review note, not a block.
+- The Invoice → POS order panel now shows the exact auto-generated TXT filename (plural + all invoice numbers when merged).
+- The 15-column POSActive contract, 43-column reconciliation workbook/CSV, key review, receiving rules and all earlier behaviour are otherwise unchanged.
 
-The provided JJ Finger Brush master record (PLU 918662) has no CH2 code or CH2 wholesale; manual receiving falls back to existing POS cost. Original PDFs and the POS order were not supplied for this update, so their exact extraction cannot be reproduced from the generated TXT alone.
+Suggested commit summary:
 
-Validation: JavaScript syntax checks pass for every application script. Focused regression checks preserve all 106 rows and totals in the supplied generated TXT, and verify merged filenames, reference wholesale fallback, missing discount derivation, manual receiving totals, zero receiving omission, changed quantities spanning different prices, plain/hyphenated supplier SKU parsing, and the 15-column CRLF contract. Every original application file and named function is retained. Visual browser verification could not run because the test browser was unavailable; POSActive import acceptance still needs checking in the store application.
+`v2.6.28: Fix sticky overlap, dock Completed section, backfill CH2 W/S and allow manual receiving lines`
 
-# Prahran Health Foods — CH2 Reconciler v2.6.27
 
 ## v2.6.27 — POSActive balancing check
 
