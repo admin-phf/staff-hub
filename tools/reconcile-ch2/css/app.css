@@ -464,3 +464,19 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .results .preview-pos tbody tr.pos-manual-received>td>*{text-decoration:none!important;opacity:1!important}
 .results .preview-pos tbody tr.pos-manual-received>td:first-child{box-shadow:inset 3px 0 0 #ef1982}
 .results .preview-pos tbody tr.pos-manual-received td.pos-desc{font-style:italic}
+
+/* v2.6.29 — sticky receiving actions, view-driven primary download, derived Sub ID. */
+.result-controls-sticky .btn.view-primary{order:-1}
+.receiving-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-left:10px;margin-left:2px;border-left:1px solid var(--line)}
+.receiving-actions .pos-check-progress{font-size:12px;font-weight:900;color:#0b3e78;white-space:nowrap;margin-right:2px}
+.receiving-actions .btn.small{padding:7px 10px;font-size:11.5px;white-space:nowrap}
+#removeNotSuppliedBtn{border-color:#c6cbd0}
+.results .preview-pos td.pos-subid-derived{font-style:italic;color:#46627a}
+@media(max-width:760px){.receiving-actions{border-left:0;padding-left:0;margin-left:0;width:100%}}
+/* Manually received not-invoiced rows count as normal rows (no strike-through / grey). */
+.results .preview-pos tbody tr.pos-manual-received td.pos-desc{font-style:normal}
+/* Keep downloads + receiving actions + view picker on one sticky line on desktop widths. */
+.result-controls-sticky{gap:6px;padding:7px 9px}
+.result-controls-sticky>.btn{padding:8px 12px;font-size:12.5px;white-space:nowrap}
+.result-controls-sticky .view-picker{gap:5px}
+.result-controls-sticky .view-picker .btn.small{padding:6px 9px}

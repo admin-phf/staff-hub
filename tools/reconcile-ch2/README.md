@@ -1,4 +1,19 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.28
+# Prahran Health Foods — CH2 Reconciler v2.6.29
+
+## v2.6.29 — invoiced non-CH2-master items, sticky receiving actions, view-driven download
+
+- **Invoiced items that are not CH2 products in the aligned master (e.g. JJ FINGER BRUSH, CH2 line 83, code 2635641):** matched by the invoice-sequence fallback with MEDIUM confidence when the single line/row gap has three or more corroborating signals (qty, W/S, brand, description). CH2 Line, CH2 ITEM CODE, POS Brand and prices now populate like any other matched row; verified on invoices 74141235 + 74147128 against order 103-0021647.
+- **Second W/S pass after matching:** when CH2 prints no Normal W/S, the matched POS product's master `CH2_WHOLESALE_EX_GST` is used; if CH2 printed neither Normal W/S nor a Disc %, the line was billed at wholesale, so Normal W/S = Unit Price ex GST (the POSActive TXT exports 0.00% discount for that line). Every filled line is listed in Review notes.
+- **POS Sub ID column:** when the POS order has a blank Sub ID for an invoiced row, the column shows the key the POSActive TXT will use (aligned-master Sub ID or CH2 supplier code), in italics with a tooltip naming its source.
+- **POS Brand / discount rules** now resolve for POS products whose aligned-master record has no CH2 code (exact barcode/PLU record), in POS Layout and the reconciliation workbook.
+- **Manual receiving rows:** a struck-through not-invoiced row becomes a normal counted row the moment Found > 0 (no delayed re-render), and returns to struck-through if unticked/cleared.
+- **Sticky receiving actions:** Accounted progress, Tick all / Untick all, Clear qty and Remove not supplied now live in the sticky download bar (POS Layout only), so they stay available while scrolling.
+- **Green primary download follows the view** and is shown first: POS layout → `Download POSActive Import.txt`, Exceptions → `Download Exceptions.xlsx`, All lines → `Download Full Reconciliation.xlsx`.
+- All v2.6.28 behaviour, the 15-column POSActive contract and the 43-column workbook are otherwise unchanged.
+
+Suggested commit summary:
+
+`v2.6.29: Match non-master invoiced items, sticky receiving actions, view-driven primary download`
 
 ## v2.6.28 — non-overlapping sticky layers, W/S backfill, manual receiving
 

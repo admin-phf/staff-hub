@@ -347,6 +347,8 @@
       // matched POS row's master/order wholesale. Missing data is a review note, not a block.
       const lnText=lineText(inv.invoiceLine);
       if(normalWs==null&&disc!=null&&disc>=0&&disc<100){normalWs=round(unit/(1-disc/100),2);wsSource='DERIVED UNIT ÷ (1 − DISC %)';warnings.push(`Invoice line ${lnText}: Normal W/S not printed; ${fixed(normalWs,2)} derived from Unit Price ÷ (1 − ${fixed(disc,2)}%).`);}
+      // v2.6.29 — CH2 printed neither Normal W/S nor Disc %: the line was billed at wholesale.
+      if(normalWs==null&&disc==null){normalWs=round(unit,2);disc=0;wsSource='UNIT PRICE (NO DISC % PRINTED)';warnings.push(`Invoice line ${lnText}: CH2 printed no Normal W/S or Disc %; exported with Normal WS = Unit Price ${fixed(normalWs,2)} and 0.00% discount.`);}
       if(normalWs==null){const fb=posWholesaleFallback(ctx.pos,refs);if(fb.value!=null){normalWs=round(fb.value,2);wsSource=fb.source;warnings.push(`Invoice line ${lnText} · ${lineLabel(ctx.pos,ctx.index)}: Normal W/S not printed; ${fixed(normalWs,2)} used from ${fb.source}.`);}}
       if(disc==null&&normalWs!=null&&normalWs>0){const d=round((1-unit/normalWs)*100,2);if(d>=0&&d<100){disc=d;warnings.push(`Invoice line ${lnText}: Disc % not printed; ${fixed(disc,2)}% derived from Unit Price ÷ Normal W/S for POSActive.`);}}
       if(disc==null||normalWs==null||normalWs<=0){normalWs=round(unit,2);disc=0;wsSource=wsSource||'UNIT PRICE (NO W/S OR DISC %)';pushIssue(warnings,`Invoice line ${lnText}: Normal W/S and Disc % could not be confirmed; exported with Normal WS = Unit Price ${fixed(unit,2)} and 0% discount. Review AdjWSPrc in POSActive.`);}

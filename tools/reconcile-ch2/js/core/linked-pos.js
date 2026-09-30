@@ -99,7 +99,11 @@
   }
 
   function lineCount(v){const n=num(v);if(n==null)return clean(v);return Number.isInteger(n)?String(n):String(n).replace(/0+$/,'').replace(/\.$/,'');}
-  function posReference(pos,refs){const b=bc(pos&&pos.barcode);if(b&&refs.master.byBarcode.has(b))return refs.master.byBarcode.get(b);const s=numericCodeOnly(pos&&pos.subId);if(s&&refs.master.byCode.has(s))return refs.master.byCode.get(s);const p=digits(pos&&pos.plu);if(p&&refs.master.byPlu&&refs.master.byPlu.has(p))return refs.master.byPlu.get(p);return {};}
+  function posReference(pos,refs){const b=bc(pos&&pos.barcode);if(b&&refs.master.byBarcode.has(b))return refs.master.byBarcode.get(b);const s=numericCodeOnly(pos&&pos.subId);if(s&&refs.master.byCode.has(s))return refs.master.byCode.get(s);const p=digits(pos&&pos.plu);if(p&&refs.master.byPlu&&refs.master.byPlu.has(p))return refs.master.byPlu.get(p);
+    // v2.6.29 — POS products without a CH2 code in the aligned master (e.g. UHP-matched
+    // lines such as JJ FINGER BRUSH) still resolve to their exact barcode/PLU record, so
+    // POS brand and brand discount rules are available like any other product.
+    const all=typeof PHF._posMasterRecords==='function'?PHF._posMasterRecords(pos,refs):[];return all.find(r=>clean(r&&r.POS_BRAND))||all[0]||{};}
   function statusFor(pos,invs){const ordered=num(pos&&pos.orderedQty)||0,supplied=round(sumRows(invs,'qtySupplied'),3)||0;if(!invs.length)return `NOT INVOICED / SHORT SHIPPED — ORDERED ${ordered} / SUPPLIED 0`;const conf=lowestConfidence(invs),auditMissing=invs.some(r=>r.discountPct==null||r.normalWholesale==null);if(supplied<ordered-0.0001)return `MATCHED / SHORT SUPPLIED — ORDERED ${ordered} / SUPPLIED ${supplied}`;if(supplied>ordered+0.0001)return `MATCHED / OVER SUPPLIED — ORDERED ${ordered} / SUPPLIED ${supplied}`;if(conf==='LOW')return 'MATCHED - REVIEW (LOW CONFIDENCE)';if(auditMissing)return 'MATCHED - REVIEW (CH2 AUDIT DATA MISSING)';return 'MATCHED';}
   function docInvoiceRowsForDetail(detail,doc){return (detail&&detail.invoiceRows||[]).filter(r=>clean(r.sourceFile)===clean(doc.sourceFile));}
   function docMeta(doc,posOrder){const first=(doc.rows||[])[0]||{},m=doc.meta||{};return {orderDate:clean(first.orderDate||m.orderDate||first.invoiceDate||m.invoiceDate),invoiceDate:clean(first.invoiceDate||m.invoiceDate),invoiceNumber:clean(first.invoiceNumber||m.invoiceNumber),customerPo:clean(first.customerPo||m.customerPo||(posOrder&&posOrder.orderNumber))};}

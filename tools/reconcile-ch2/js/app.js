@@ -4,7 +4,7 @@
   const state={pos:null,invoices:[],result:null,previewView:'pos',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackManualChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null,receivingMigratedFrom266:false,orderOverrides:new Map(),importKeys:new Map(),importKeyReviews:new Map(),posSortKey:'__pos_order_index',posSortDir:'asc'};
   const els={
     referenceReady:document.querySelector('#referenceReady'),referenceDot:document.querySelector('#referenceDot'),buildLabel:document.querySelector('#buildLabel'),
-    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),orderOverrideBox:document.querySelector('#orderOverrideBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),fullDownloadBtn:document.querySelector('#fullDownloadBtn'),fullCsvDownloadBtn:document.querySelector('#fullCsvDownloadBtn'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posBalancePanel:document.querySelector('#posBalancePanel'),keyReviewBtn:document.querySelector('#keyReviewBtn'),importKeySummary:document.querySelector('#importKeySummary'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn'),resultControls:document.querySelector('.result-controls-sticky')
+    posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),orderOverrideBox:document.querySelector('#orderOverrideBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),fullDownloadBtn:document.querySelector('#fullDownloadBtn'),fullCsvDownloadBtn:document.querySelector('#fullCsvDownloadBtn'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posBalancePanel:document.querySelector('#posBalancePanel'),keyReviewBtn:document.querySelector('#keyReviewBtn'),importKeySummary:document.querySelector('#importKeySummary'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn'),resultControls:document.querySelector('.result-controls-sticky'),receivingActions:document.querySelector('#receivingActions'),tickAllBtn:document.querySelector('#tickAllBtn'),clearQtyBtn:document.querySelector('#clearQtyBtn')
   };
 
   const RECON_COLUMNS=[
@@ -158,7 +158,9 @@
     const bc=refDigits(pos.barcode);if(bc&&master.byBarcode&&master.byBarcode.has(bc))return master.byBarcode.get(bc)||{};
     const sub=refNumericCode(pos.subId);if(sub&&master.byCode&&master.byCode.has(sub))return master.byCode.get(sub)||{};
     const plu=refDigits(pos.plu);if(plu&&master.byPlu&&master.byPlu.has(plu))return master.byPlu.get(plu)||{};
-    return {};
+    // v2.6.29 — exact barcode/PLU records without a CH2 code (e.g. UHP-matched products).
+    const all=typeof PHF._posMasterRecords==='function'?PHF._posMasterRecords(pos,state.refs):[];
+    return all.find(r=>cleanText(r&&r.POS_BRAND))||all[0]||{};
   }
   function normalWholesaleForPos(pos,detail){
     const invoiceWs=numberValue(detail&&detail.invoiceNormalWholesale);if(invoiceWs!=null)return invoiceWs;
@@ -260,7 +262,13 @@
     if(c.key==='__invoice_discount')return weightedInvoiceValue(detail,'discountPct');
     if(c.key==='main_id')return pos.barcode??'';
     if(c.key==='plu')return pos.plu??'';
-    if(c.key==='sub_id')return pos.subId??'';
+    if(c.key==='sub_id'){
+      // v2.6.29 — when the POS order carries no Sub ID, show the key the POSActive TXT will
+      // use for this invoiced row (aligned-master Sub ID or CH2 supplier code) instead of blank.
+      const own=cleanText(pos.subId);if(own)return pos.subId;
+      if(detail&&Array.isArray(detail.invoiceRows)&&detail.invoiceRows.length){const id=importIdentityFor(pos,detail);return (id&&id.importSubId)||'';}
+      return '';
+    }
     if(c.key==='descr')return pos.description??'';
     // POS receiving view rule: AdjCatPrc and AdjDPrc are the same expected cost,
     // calculated as Normal W/S per unit ex GST less the matched supplier discount rule.
@@ -606,7 +614,7 @@
     input.value='';
     const tr=input.closest('tr'),out=tr&&tr.querySelector('.unpack-qty-total');
     if(out&&total!=null)updateUnpackTotalElement(out,key,total,expected);
-    updateRowSelectionVisual(tr,complete);
+    updateRowSelectionVisual(tr,complete);if(total!=null)updateManualReceivedVisual(tr,total);
     // Under/over counts remain in Remaining. Exact counts (or explicit zero) move only
     // after the short delay, giving staff time to correct a mistaken entry first.
     scheduleReceivingRender();
@@ -624,7 +632,7 @@
     const complete=manual||explicitZero||receivingCountMatches(total,expected);
     if(complete)state.unpackChecked.add(key);else state.unpackChecked.delete(key);
     saveUnpackChecklist();updateUnpackTotalElement(input,key,total,expected);
-    updateRowSelectionVisual(input.closest('tr'),complete);
+    updateRowSelectionVisual(input.closest('tr'),complete);updateManualReceivedVisual(input.closest('tr'),total);
     scheduleReceivingRender();
     return true;
   }
@@ -662,6 +670,14 @@
         });
       }else schedulePosColumnSizing();
     },delay);
+  }
+  // A not-invoiced (struck-through) row becomes a normal, counted row as soon as staff enter
+  // a positive Found quantity — immediately, without waiting for the delayed re-render.
+  function updateManualReceivedVisual(tr,total){
+    if(!tr||tr.dataset.notSupplied!=='1')return;
+    const received=Number(total)>0;
+    tr.classList.toggle('pos-not-supplied',!received);tr.classList.toggle('pos-manual-received',received);
+    if(received)tr.dataset.manualReceived='1';else delete tr.dataset.manualReceived;
   }
   function updateRowSelectionVisual(tr,selected){
     if(!tr)return;
@@ -793,6 +809,10 @@
   function kpi(label,value,cls=''){return `<div class="kpi ${cls}"><div class="n">${escapeHtml(value)}</div><div class="l">${escapeHtml(label)}</div></div>`;}
   function updateDownloadButton(){
     const ready=!!(state.runIntegrity&&state.runIntegrity.ok);
+    // v2.6.29 — the green primary button (shown first) is the download for the current view:
+    // POS layout → POSActive Import.txt · Exceptions → Exceptions.xlsx · All lines → Full Reconciliation.xlsx.
+    const viewPrimary=state.previewView==='all'?els.fullDownloadBtn:els.downloadBtn;
+    for(const b of [els.fullDownloadBtn,els.fullCsvDownloadBtn,els.downloadBtn,els.keyReviewBtn]){if(!b)continue;const on=b===viewPrimary;b.classList.toggle('primary',on);b.classList.toggle('view-primary',on);}
     if(els.fullDownloadBtn){
       els.fullDownloadBtn.textContent='Download Full Reconciliation.xlsx';
       els.fullDownloadBtn.disabled=!ready;
@@ -824,7 +844,7 @@
     updateDownloadButton();
   }
   function renderReconTable(r){
-    if(els.posTools)els.posTools.classList.add('hidden');renderPosBalance(null);els.tableWrap.classList.remove('preview-pos');els.table.classList.remove('pos-preview-table');clearPosColumnSizing();if(els.tableFoot)els.tableFoot.innerHTML='';
+    if(els.posTools)els.posTools.classList.add('hidden');if(els.receivingActions)els.receivingActions.classList.add('hidden');renderPosBalance(null);els.tableWrap.classList.remove('preview-pos');els.table.classList.remove('pos-preview-table');clearPosColumnSizing();if(els.tableFoot)els.tableFoot.innerHTML='';
     els.tableHead.innerHTML=`<tr>${RECON_COLUMNS.map(c=>`<th${c.kind==='number'?' class="num"':c.kind==='center'?' class="center"':''}>${escapeHtml(c.label)}</th>`).join('')}</tr>`;
     const display=state.previewView==='all'?r.detail:r.detail.filter(x=>x.hasException||x.matchConfidence==='LOW');
     const extras=r.unmatchedInvoice.map(x=>({status:'NOT ORDERED / UNMATCHED',posDescription:x.description,orderedQty:null,suppliedQty:x.qtySupplied,expectedUnit:null,actualUnit:x.unitPriceExGst,unitVariance:null,missedTotal:0,matchConfidence:'',hasException:true}));
@@ -835,6 +855,7 @@
   function renderPosTable(){
     refreshImportKeyReview();
     if(els.posTools)els.posTools.classList.remove('hidden');
+    if(els.receivingActions)els.receivingActions.classList.remove('hidden');
     els.tableWrap.classList.add('preview-pos');els.table.classList.add('pos-preview-table');
     const baseRows=sortedPosRows();const detailBySourceRow=posDetailMap();
     // A tick means this row is accounted for/completed. Export quantity is independent:
@@ -856,6 +877,7 @@
     if(state.receivingMigratedFrom266){state.receivingMigratedFrom266=false;stateChanged=true;}
     if(stateChanged){saveUnpackCounts();saveUnpackChecklist();}
     const selectedCount=baseRows.reduce((n,pos)=>n+(state.unpackChecked.has(unpackIdentity(pos))?1:0),0),allSelected=baseRows.length>0&&selectedCount===baseRows.length,partSelected=selectedCount>0&&!allSelected;
+    if(els.tickAllBtn){els.tickAllBtn.textContent=allSelected?'Untick all':'Tick all';els.tickAllBtn.title=allSelected?'Untick all — clear all Found quantities and return rows to Remaining':'Tick all — untouched rows use expected CH2 supplied qty';}
     els.tableHead.innerHTML=`<tr>${POS_VIEW_COLUMNS.map(c=>{
       const cls=[c.kind==='check'?'unpack-head':'',c.kind==='bool'?'pos-bool-head':'',(['number','qtyinput','qtytotal'].includes(c.kind))?'num':'',(c.kind==='bool'||c.kind==='check'||c.align==='center')?'center':''].filter(Boolean).join(' ');
       if(c.kind==='check')return `<th class="${cls}" title="Tick all / untick all POS rows for the POSActive download"><div class="pos-header-stack"><button type="button" class="unpack-check unpack-check-all ${allSelected?'checked':''} ${partSelected?'partial':''}" data-toggle-all aria-pressed="${allSelected?'true':'false'}" title="${allSelected?'Untick all — clear all Found quantities and return rows to Remaining':'Tick all — untouched rows use expected CH2 supplied qty'}"><span aria-hidden="true">${allSelected?'✓':partSelected?'−':''}</span></button><span class="pos-header-mini-label">All</span></div></th>`;
@@ -910,7 +932,10 @@
             title=`${targetLabel}: ${Number(move.target).toFixed(2)} · ${move.symbol} ${Math.abs(move.diff).toFixed(2)}`;
             html=`<span class="pos-price-value">${html}</span><span class="price-arrow" aria-hidden="true">${move.symbol}</span>`;
           }
-        } else {html=escapeHtml(v);if(v)title=String(v);}
+        } else {
+          html=escapeHtml(v);if(v)title=String(v);
+          if(c.key==='sub_id'&&v&&!cleanText(pos.subId)){const id=importIdentityFor(pos,detail);extraCls=' pos-subid-derived';title=`POS order Sub ID is blank · POSActive import key ${v} from ${id&&id.source?id.source:'invoice'}. Add this Sub ID to the product in POSActive if the import does not match it.`;}
+        }
         const cls=[c.cls||'',c.kind==='number'?'num':'',c.kind==='bool'?'pos-bool-cell center':'',c.align==='center'?'center':'',extraCls].filter(Boolean).join(' ');return `<td${cls?` class="${cls}"`:''}${title?` title="${escapeHtml(title)}"`:''}>${html}</td>`;
       }).join('');
       const rowTitle=manualReceived?' title="Manually received — not on the CH2 invoice. Added to the POSActive TXT and totals using POS master CH2_WHOLESALE_EX_GST / POS pricing and the matched discount rule."':'';
@@ -929,7 +954,7 @@
       const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||null;
       const checked=!state.unpackChecked.has(key),tr=btn.closest('tr');
       setUnpackComplete(pos,detail,checked);updateRowSelectionVisual(tr,checked);
-      if(!checked){const found=tr&&tr.querySelector('.unpack-qty-total');if(found)updateUnpackTotalElement(found,key,0,unpackExpectedQty(pos,detail));}
+      if(!checked){const found=tr&&tr.querySelector('.unpack-qty-total');if(found)updateUnpackTotalElement(found,key,0,unpackExpectedQty(pos,detail));updateManualReceivedVisual(tr,0);}
       scheduleReceivingRender();
     };
     els.tableHead.onclick=e=>{
@@ -948,6 +973,7 @@
         }
         saveUnpackCounts();saveUnpackChecklist();
         for(const tr of els.tableBody.querySelectorAll('tr')){const b=tr.querySelector('.unpack-check[data-unpack-key]');if(!b)continue;const k=decodeUnpackKey(b.dataset.unpackKey||'');updateRowSelectionVisual(tr,state.unpackChecked.has(k));}
+        if(els.tickAllBtn)els.tickAllBtn.textContent=selectAll?'Untick all':'Tick all';
         toggle.classList.toggle('checked',selectAll);toggle.classList.remove('partial');toggle.setAttribute('aria-pressed',selectAll?'true':'false');const mark=toggle.querySelector('span');if(mark)mark.textContent=selectAll?'✓':'';
         scheduleReceivingRender();
         return;
@@ -1096,6 +1122,9 @@
   if(els.viewExceptionsBtn)els.viewExceptionsBtn.onclick=()=>setPreviewView('exceptions');
   if(els.viewAllBtn)els.viewAllBtn.onclick=()=>setPreviewView('all');
   if(els.viewPosBtn)els.viewPosBtn.onclick=()=>setPreviewView('pos');
+  // Sticky-bar receiving shortcuts reuse the exact header actions (same state handling).
+  if(els.tickAllBtn)els.tickAllBtn.onclick=()=>{commitActiveReceivingInput();const t=els.tableHead&&els.tableHead.querySelector('[data-toggle-all]');if(t)t.click();};
+  if(els.clearQtyBtn)els.clearQtyBtn.onclick=()=>{commitActiveReceivingInput();const t=els.tableHead&&els.tableHead.querySelector('[data-clear-qty]');if(t)t.click();};
   if(els.removeNotSuppliedBtn)els.removeNotSuppliedBtn.onclick=()=>{
     commitActiveReceivingInput();
     const detailBySourceRow=posDetailMap(),rows=sortedPosRows();let moved=0;
