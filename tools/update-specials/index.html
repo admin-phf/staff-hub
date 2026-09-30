@@ -2492,6 +2492,24 @@
   .slide:is(.zc-centre,.zc-centre-top) .zc-card.stack :is(.zc-brand,.zc-prod,.zc-form){text-align:center}
   .slide.zc-centre .zc-card.stack :is(.zc-head,.zc-det,.zc-ref,.zc-ends){text-align:center}
   .slide.zc-centre .zc-card.stack :is(.zc-pill,.zc-price,.zc-rule){justify-content:center}
+  .slide .zc-pline{display:flex;align-items:flex-end;overflow:visible!important}
+  .slide .zc-pline i{display:block;background:var(--po-green);border-radius:1px}
+  .slide:is(.zc-centre,.zc-centre-top) .zc-card.stack .zc-pline{justify-content:center}
+  .slide .zc-rows>span{display:block;white-space:nowrap}
+  /* v49 Soft cards */
+  .slide.cs-soft:not(.cl-dark) .cl-card.zc-card{background:#F5F4F0!important;border-radius:14px!important}
+  .slide.cs-soft .zc-brand{color:#62686E;font-weight:700;letter-spacing:-.005em}
+  .slide.cs-soft .zc-prod{color:#4F5861;font-weight:800;letter-spacing:-.012em}
+  .slide.cs-soft .zc-head{color:#19212B!important;text-transform:none!important;font-weight:700;letter-spacing:-.006em!important}
+  .slide.cs-soft .zc-price{color:#19212B}
+  .slide.cs-soft .zc-ref{color:#6B7178;font-weight:800}
+  .slide.cs-soft .zc-ref s{text-decoration:line-through;text-decoration-thickness:.09em;letter-spacing:0}
+  .slide.cs-soft .zc-form{color:#6a6f6c}
+  .slide.cs-soft:is(.l-retailfour,.l-botanicalfour,.l-email6,.l-retailhero2,.l-pos3row,.l-pos4row){--cl-gap:14px}
+  .slide.cs-soft:is(.l-tv2,.l-tv3,.l-retailportrait,.l-botanicaltwo){--cl-gap:22px}
+  .slide.cs-soft.l-retailfour{--cl-cpad:16px 20px}
+  .slide.cs-soft.l-email6{--cl-cpad:14px 14px 14px 12px}
+  .slide.cs-soft.l-retailhero2{--cl-cpad:14px 18px}
   .slide .cl-card.zc-card .imgwrap .imgslot{padding:0!important}
   .slide .zc-info{display:flex;flex-direction:column;justify-content:center;min-width:0;height:100%}
   .slide .cl-card.stack .zc-info{justify-content:flex-start;height:auto}
@@ -2690,6 +2708,9 @@
         <label class="fo-select" title="Impact: prices stay as large as possible. On zone cards (POS Hero, Hero + 2, 4-Up grid, 3 Across, 4 Across and the Email clean cards) whatever is ticked is always shown — set a little smaller, with long ingredients / benefits shortened with …. On Portrait TV, Social and Web banner, extra information is still left off where a card has no room. All info: every line in full; prices get smaller to make room.">Text fit
           <select id="optTextFit"><option value="impact">Impact (price first)</option><option value="all">All info</option></select>
         </label>
+        <label class="fo-select" title="Zone-card layouts. Soft cards: warm off-white cards, lighter grey brand and product heading with a green underline, sentence-case feature line, price underline fitted to the price, grey WAS with the amount struck through. Clean white: the v48 look.">Card style
+          <select id="optCardStyle"><option value="soft">Soft cards</option><option value="clean">Clean white</option></select>
+        </label>
         <label class="fo-select" title="Where the green accent goes. Feature heading: the heading is set like the product form line (small, green, letter-spaced) and the product form turns grey. Ingredients &amp; Benefits: those labels are green and the heading is grey like the product name, so it never competes with the brand.">Green accent
           <select id="optAccent"><option value="head">Feature heading</option><option value="labels">Ingredients &amp; Benefits</option></select>
         </label>
@@ -2822,8 +2843,8 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='48';
-const APP_DATE='2026-09-29';
+const APP_VERSION='49';
+const APP_DATE='2026-09-30';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
    (e.g. tools/update-specials-beta/) labels itself BETA and loads product
@@ -3885,7 +3906,17 @@ function notePackShots(slide){
 const POP_MAX=2400,POP_VIBRANCE=.16,POP_S=.12,POP_CLARITY=.35;
 function absURL(u){try{return new URL(u,location.href).href;}catch(e){return String(u||'');}}
 function popSourceOf(u){return POP_ORIGINAL.get(u)||u;}
-function popWanted(img){return !!(S.optPop&&img&&img.closest&&img.closest('.slide .imgslot'));}   // v38: every layout
+/* v49: a processed copy is made per mode — 'p' Pop pack shots, 't' tinted to the Soft card colour (a multiply baked
+   into the pixels, so a white photo background becomes the card colour in the preview and in the PNG alike). */
+const CARD_TINT=[245,244,240];   // #F5F4F0, the Soft card fill
+function popMode(img){
+  if(!img||!img.closest||!img.closest('.slide .imgslot'))return '';
+  return (S.optPop?'p':'')+(img.closest('.slide.cs-soft:not(.cl-dark) .zc-card')?'t':'');
+}
+function popWanted(img){return !!popMode(img);}   // v38: every layout
+function popKey(src,mode){return src+'#'+mode;}
+function tintPixels(d,t){const fr=t[0]/255,fg=t[1]/255,fb=t[2]/255;for(let i=0;i<d.length;i+=4){d[i]*=fr;d[i+1]*=fg;d[i+2]*=fb;}}
+function loadPlainImage(src){return new Promise(res=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>res(null);setTimeout(()=>res(im.complete&&im.naturalWidth?im:null),3500);im.src=src;});}
 /* v35 clean backdrop: many supplier photos sit on a light grey / off-white box that shows as a
    pale rectangle on the white card. If the photo's border is mostly one neutral near-white tone
    (230–253), that tone is lifted to white, with a soft shoulder above it on greyer backdrops, so white caps keep their
@@ -3932,8 +3963,10 @@ function popPixels(d,w,h){
     d[i]=L+(r-L)*f;d[i+1]=L+(g-L)*f;d[i+2]=L+(b-L)*f;
   }
 }
-async function makePopVersion(img,src){
+async function makePopVersion(img,src,mode='p',needOriginal=false){
   try{
+    if(needOriginal){   // the photo on screen is already a processed copy: start again from the original
+      img=isRemoteURL(src)?await corsAnalysisCopy(src):await loadPlainImage(src);if(!img)return null;}
     const nw=img.naturalWidth,nh=img.naturalHeight;if(!nw||!nh)return null;
     const r=Math.min(1,POP_MAX/Math.max(nw,nh)),w=Math.max(1,Math.round(nw*r)),h=Math.max(1,Math.round(nh*r));
     const grab=source=>{   // a fresh canvas each time: a blocked photo 'taints' the canvas it touches
@@ -3945,41 +3978,46 @@ async function makePopVersion(img,src){
     if(!g&&isRemoteURL(src)){const copy=await corsAnalysisCopy(src);if(copy)g=grab(copy);}
     if(!g)return null;   // the photo's website blocks reading it: shown as it is
     await new Promise(res=>setTimeout(res,0));
-    popPixels(g.data.data,w,h);
+    if(mode.includes('p'))popPixels(g.data.data,w,h);
+    if(mode.includes('t'))tintPixels(g.data.data,CARD_TINT);
     g.ctx.putImageData(g.data,0,0);
     const blob=await new Promise(res=>g.c.toBlob(res,'image/png'));
     return blob?URL.createObjectURL(blob):null;
   }catch(e){return null;}
 }
 function schedulePop(img){
-  const src=img.currentSrc||img.src;
-  if(!src||POP_ORIGINAL.has(src)||POP_FAILED.has(src))return;
-  if(POP_CACHE.has(src)){swapToPop(img,src);return;}
-  let job=POP_BUSY.get(src);
+  const cur=img.currentSrc||img.src,src=popSourceOf(cur),mode=popMode(img);
+  if(!src||!mode)return;
+  const key=popKey(src,mode);
+  if(POP_FAILED.has(key)||POP_CACHE.get(key)===cur)return;
+  if(POP_CACHE.has(key)){swapToPop(img,src,mode);return;}
+  let job=POP_BUSY.get(key);
   if(!job){
-    job=makePopVersion(img,src).then(u=>{
-      if(u){POP_CACHE.set(src,u);POP_ORIGINAL.set(u,src);}else POP_FAILED.add(src);
-      POP_BUSY.delete(src);return u;
+    job=makePopVersion(img,src,mode,cur!==src).then(u=>{
+      if(u){POP_CACHE.set(key,u);POP_ORIGINAL.set(u,src);}else POP_FAILED.add(key);
+      POP_BUSY.delete(key);return u;
     });
-    POP_BUSY.set(src,job);
+    POP_BUSY.set(key,job);
   }
-  job.then(u=>{if(u)swapToPop(img,src);});
+  job.then(u=>{if(u)swapToPop(img,src,mode);});
 }
-function swapToPop(img,src){
-  if(!img.isConnected||!popWanted(img)||(img.currentSrc||img.src)!==src)return;
-  const u=POP_CACHE.get(src);if(!u)return;
+function swapToPop(img,src,mode){
+  if(!img.isConnected||popMode(img)!==mode||popSourceOf(img.currentSrc||img.src)!==src)return;
+  const u=POP_CACHE.get(popKey(src,mode));if(!u||(img.currentSrc||img.src)===u)return;
   img.dataset.popOf=src;img.src=u;   // the load event re-balances the slide
 }
+function popPending(im){const m=popMode(im);return m?POP_BUSY.get(popKey(popSourceOf(im.currentSrc||im.src),m)):null;}
+function popStale(im){const m=popMode(im);if(!m)return false;const cur=im.currentSrc||im.src,u=POP_CACHE.get(popKey(popSourceOf(cur),m));return !!u&&u!==cur;}
 /* Export: finish any pop still being made, so the PNG always matches the preview. */
 async function settlePop(root){
   let changed=false;
   for(let k=0;k<3;k++){
-    const busy=[...root.querySelectorAll('.imgslot img')].map(im=>POP_BUSY.get(im.currentSrc||im.src)).filter(Boolean);
-    const stale=[...root.querySelectorAll('.imgslot img')].filter(im=>popWanted(im)&&POP_CACHE.has(im.currentSrc||im.src));
+    const busy=[...root.querySelectorAll('.imgslot img')].map(popPending).filter(Boolean);
+    const stale=[...root.querySelectorAll('.imgslot img')].filter(popStale);
     if(!busy.length&&!stale.length)break;
     changed=true;
     await Promise.all(busy);
-    stale.forEach(im=>swapToPop(im,im.currentSrc||im.src));
+    stale.forEach(im=>swapToPop(im,popSourceOf(im.currentSrc||im.src),popMode(im)));
     await new Promise(res=>setTimeout(res,20));
     await waitForImages(root);
   }
@@ -4057,7 +4095,7 @@ function img(p,opts={}){
   const encoded=encodeURIComponent(JSON.stringify(candidates));
   // v34: clean cards show the ready-made 'popped' copy straight away (no flicker on re-render)
   let show=url;
-  if(opts.pop&&S.optPop){const u=POP_CACHE.get(absURL(url));if(u)show=u;}
+  if(opts.pop){const m=(S.optPop?'p':'')+(opts.tint?'t':'');if(m){const u=POP_CACHE.get(popKey(absURL(url),m));if(u)show=u;}}   // v49 modes
   return `<div class="imgslot"><img src="${ha(show)}" data-product-key="${ha(key)}" data-image-candidates="${ha(encoded)}" data-candidate-index="0" data-manual-scale="${manual}" data-auto-status="pending" style="--img-scale:${manual};--img-shift-x:0px;--img-shift-y:0px" onload="handleImageLoad(this)" onerror="handleImageError(this)"></div>`;
 }
 function imgStamped(p){
@@ -4571,7 +4609,7 @@ function offerPrice(now){
 function offerSubLines(p,opts={}){
   const d=priceData(p),lines=[];
   if(d.has&&d.deal)lines.push(h(d.deal));
-  const ref=d.was?`WAS $${h(d.was)}`:(d.rrp&&S.optRRP?`RRP $${h(d.rrp)}${!d.has&&d.deal?' EACH':''}`:'');   // v35: multi-buy RRP is per item
+  const ref=d.was?(opts.strike?`WAS <s>$${h(d.was)}</s>`:`WAS $${h(d.was)}`):(d.rrp&&S.optRRP?`RRP $${h(d.rrp)}${!d.has&&d.deal?' EACH':''}`:'');   // v35: multi-buy RRP is per item · v49 strike = only the amount
   let save='';
   if(!opts.noSave&&p.disc==='save$'){const v=numberFrom(p.dv);if(Number.isFinite(v)&&v>0)save=`SAVE $${h(savingText(v))}`;}
   if(!opts.noSave&&p.disc==='save%'){const v=numberFrom(p.dv);if(Number.isFinite(v)&&v>0)save=`SAVE ${h(savingText(v))}%`;}
@@ -5127,7 +5165,28 @@ const ZT={   // s = font size × u · lh = line height · after = space below, �
   brand:{s:.40,lh:1.14},prod:{s:.36,lh:1.18},form:{s:.28,lh:1.08},head:{s:.34,lh:1.15},det:{s:.24,lh:1.25},
   pill:{s:.40,box:1.42,after:.05},price:{s:1},rule:{m:.10,w:4.3},ref:{s:.40,lh:1.08},ends:{s:.24,lh:1.2,before:.06}
 };
+/* v49 Card style → Soft cards: warm off-white cards; lighter two-row heading (brand grey, product + size slate,
+   larger than the brand) with a green underline fitted to the name; sentence-case feature line; price underline
+   fitted to the price; muted WAS line with only the amount struck through. */
+const ZT_SOFT={...ZT,brand:{s:.30,lh:1.2},prod:{s:.40,lh:1.15},pline:{m:.07,after:.24},head:{s:.30,lh:1.2},
+  pill:{s:.38,box:1.38,after:.05},ref:{s:.30,lh:1.15}};
 const ZONE_AFTER={brandToProd:.04,nameGroup:.28,form:.06,head:.10};
+/* Sentence case for the feature line: "Cellular Energy & Heart Support" → "Cellular energy & heart support".
+   Words with a digit, a single letter or two or more capitals (D3, 24-Hour, EPA/DHA, BCM-95®, UltraMag®) are kept. */
+function sentenceCase(t){
+  const src=String(t||'').trim();if(!src)return '';
+  const allCaps=src===src.toUpperCase()&&/[A-Z]{2}/.test(src);
+  const part=w=>{const letters=w.replace(/[^A-Za-z]/g,'');
+    if(/\d/.test(w)||letters.length<=1)return w;
+    if(!allCaps&&(letters.match(/[A-Z]/g)||[]).length>=2)return w;
+    return w.toLowerCase();};
+  let quoted=false;                        // words inside quotes keep their capitals: 'The Mother'
+  const out=src.split(/(\s+)/).map(w=>{if(/^\s*$/.test(w))return w;
+    const opens=/^["'‘“]/.test(w),closes=/["'’”][^A-Za-z0-9]*$/.test(w)&&(quoted||opens)&&w.length>1;
+    const keep=quoted||opens;quoted=keep&&!closes;
+    return keep?w:w.split('-').map(part).join('-');}).join('');
+  return out.replace(/^([^A-Za-z0-9]*)([a-z])/,(m,a,b)=>a+b.toUpperCase());   // "45 billion …" keeps its lower case
+}
 const ZONE_GAP=[.22,.55];                 // space above the pill: least / most, × u
 const ZONE_IMG_GAP=.18;                   // 3 Across: space above and below the pack shot, × u
 // Text fit steps for the extra information: size × and lines per Ingredients / Benefits item. Impact takes the
@@ -5140,7 +5199,7 @@ function zoneCard(p,cfg,extra=''){
   const cls=`cl-card zc-card${cfg.stack?' stack':''}${cfg.top?' zc-top':''}${extra?' '+extra:''}`;
   if(!p)return `<div class="${cls} empty-cell"></div>`;
   const stamp=cleanSaveCircle(p);
-  const pack=`<div class="imgwrap${stamp?' has-save':''}">${img(p,{pop:true})}${stamp}</div>`;
+  const pack=`<div class="imgwrap${stamp?' has-save':''}">${img(p,{pop:true,tint:S.cardStyle!=='clean'&&S.optCanvas!=='dark'})}${stamp}</div>`;
   if(cfg.top)return `<div class="${cls}"><div class="cl-info zc-info">${zoneBlock(p,!!stamp,pack)}</div></div>`;
   return `<div class="${cls}">${pack}<div class="cl-info zc-info">${zoneBlock(p,!!stamp)}</div></div>`;
 }
@@ -5148,21 +5207,24 @@ function zoneBlock(p,hasStamp,pack){
   const d=priceData(p),t=v=>String(v||'').trim();
   const nbh=s=>String(s||'').replace(/([A-Za-z0-9])-(?=[A-Za-z0-9])/g,'$1‑');   // keep Nutra-Life / Ester-C together
   const brand=cardTextOn('brand')?nbh(slideBrand(p)):'',prod=cardNameOn()?nbh(slideNameText(p,true)):'';
-  const form=cardTextOn('form')?t(p.productForm):'',head=cardTextOn('heading')?t(p.featureHeading):'';
+  const soft=S.cardStyle!=='clean';   // v49
+  const form=cardTextOn('form')?t(p.productForm):'',head=cardTextOn('heading')?(soft?sentenceCase(p.featureHeading):t(p.featureHeading)):'';
   const ing=cardTextOn('ingredients')?t(p.keyIngredients):'',ben=cardTextOn('benefits')?t(p.keyBenefits):'';
   const sd=!d.has&&d.deal?splitDeal(d.deal):null;
   let hero='',kind='';
   if(d.has){hero=`<span class="zc-num">${h(offerPrice(p.now))}</span>`;kind='price';}
   else if(sd&&sd.amount){hero=`<span class="zc-num">${h(sd.hero)}${sd.per?`<span class="zc-per">${h(sd.per)}</span>`:''}</span>`;kind='price';}
   else if(sd&&sd.percent){hero=`<span class="zc-num zc-pct"><span class="zc-pct-v">${h(sd.hero)}</span><span class="zc-pct-s">${h(sd.sublabel||'OFF')}</span></span>`;kind='price';}
-  else if(sd){hero=`<span class="zc-deal">${h(sd.hero)}</span>`;kind='deal';}
-  const subs=offerSubLines(p,{noSave:hasStamp});
+  else if(sd){const rows=String(sd.hero).split(/\s+\/\s+/).filter(Boolean);   // v49: "SINGLE $4.95 / BOX 12 $53.45" → two rows
+    const rc=r=>soft?r.replace(/\b[A-Z]{2,}\b/g,w=>/^(RRP|GST|OFF)$/.test(w)?w:/^(OF|FOR|OR|AND|PER|EACH)$/.test(w)?w.toLowerCase():w[0]+w.slice(1).toLowerCase()):r;   // Soft cards: "Single $4.95" / "Box 12 $53.45"
+    hero=rows.length>1?`<span class="zc-deal zc-rows">${rows.map(r=>`<span>${h(rc(r))}</span>`).join('')}</span>`:`<span class="zc-deal">${h(sd.hero)}</span>`;kind='deal';}
+  const subs=offerSubLines(p,{noSave:hasStamp,strike:soft});
   const offer=!!(hero||subs.length);
   const pill=offer?(sd&&sd.lead?sd.lead:(cardTextOn('style')?(d.has?'NOW':'SPECIAL'):'')):'';
   const ends=offerDates(p).end;
   const z=(k,inner,attr='')=>`<div class="zc-z zc-${k}" data-z="${k}"${attr}>${inner}</div>`;
   return `<div class="zc" data-key="${ha(productKey(p))}">`+
-    z('brand',h(brand),` data-full="${ha(brand)}"`)+z('prod',h(prod),` data-full="${ha(prod)}"`)+
+    z('brand',h(brand),` data-full="${ha(brand)}"`)+z('prod',h(prod),` data-full="${ha(prod)}"`)+z('pline','<i></i>')+
     z('form',h(form))+(pack?`<div class="zc-img">${pack}</div>`:'')+z('head',h(head))+
     z('det',(ing?`<div class="zc-ing"><strong>Ingredients:</strong> ${h(ing)}</div>`:'')+(ben?`<div class="zc-ben"><strong>Benefits:</strong> ${h(ben)}</div>`:''))+
     z('gap','')+z('pill',pill?`<span class="zc-pilltxt">${h(pill)}</span>`:'')+
@@ -5185,7 +5247,8 @@ function zoneFit(slide){
   if((JSON.stringify([...NAME_TRIMS])!==trimsBefore||JSON.stringify([...ZONE_CUTS])!==metaBefore)&&typeof updateValidation==='function')updateValidation();
 }
 function zoneFitGroup(cfg,blocks,gkey){
-  const K=['brand','prod','form','head','det','gap','pill','price','rule','ref','ends'],Z={};
+  const soft=S.cardStyle!=='clean',T=soft?ZT_SOFT:ZT;   // v49 Card style
+  const K=['brand','prod','pline','form','head','det','gap','pill','price','rule','ref','ends'],Z={};
   K.forEach(k=>Z[k]=blocks.map(b=>b.querySelector('.zc-'+k)));
   blocks.forEach(b=>{
     b.querySelectorAll('.zc-z').forEach(el=>{el.removeAttribute('style');el.hidden=false;el.querySelectorAll('[style]').forEach(c=>c.removeAttribute('style'));});
@@ -5201,7 +5264,7 @@ function zoneFitGroup(cfg,blocks,gkey){
   const any=k=>Z[k].some(filled);
   const fit=S.textFit==='all'?'all':'impact',headMax=ZONE_HEAD_LINES[fit];
   // v48: a green feature heading is set like the product form line (smaller, letter-spaced); a grey one keeps its size.
-  const HD=S.accent==='labels'?{s:.34,lh:1.15}:{s:.30,lh:1.14};
+  const HD=soft?T.head:S.accent==='labels'?{s:.34,lh:1.15}:{s:.30,lh:1.14};
   const lines=(el,fs,lh)=>Math.max(1,Math.round(el.scrollHeight/(fs*lh)));
   // The widest price in the group sets the upper limit for u (width grows in step with the font size).
   let uCap=W/3;
@@ -5217,6 +5280,7 @@ function zoneFitGroup(cfg,blocks,gkey){
     a.pill=any('pill');a.price=any('price');a.rule=any('rule');a.ref=any('ref');a.ends=any('ends');
     const offer=a.pill||a.price||a.ref;
     a.gap=offer&&(cfg.top?(a.head||a.det):(a.brand||a.prod||a.form||a.head||a.det));
+    a.pline=soft&&a.prod;   // v49: underline under product + size
     K.forEach(k=>Z[k].forEach(el=>{if(el)el.hidden=!a[k];}));
     const af={};
     (cfg.top?[['brand','prod','form'],['head','det']]:[['brand','prod','form','head','det']]).forEach(grp=>{
@@ -5224,6 +5288,7 @@ function zoneFitGroup(cfg,blocks,gkey){
       info.forEach((k,i)=>{const nx=info[i+1];
         af[k]=!nx?0:k==='brand'?(nx==='prod'?ZONE_AFTER.brandToProd:ZONE_AFTER.nameGroup):k==='prod'?ZONE_AFTER.nameGroup:k==='form'?ZONE_AFTER.form:k==='head'?ZONE_AFTER.head:0;});});
     a.topAny=a.brand||a.prod||a.form;
+    if(a.pline){af.pline=af.prod?T.pline.after:0;af.prod=0;}   // then the usual space to the next line
     return {a,af,sp};
   };
   // Height of the whole stack at size u (space above the pill at its least). Also returns the line counts.
@@ -5232,20 +5297,21 @@ function zoneFitGroup(cfg,blocks,gkey){
   const px=v=>v.toFixed(2)+'px',q=v=>Math.round(v*100)/100;
   const measure=(u,st)=>{
     const {a,af,sp}=st;let H=0;const L={};
-    const fp=q(ZT.prod.s*u),fh=q(HD.s*u),fd=q(ZT.det.s*(sp.det||1)*u);
+    const fp=q(T.prod.s*u),fh=q(HD.s*u),fd=q(T.det.s*(sp.det||1)*u);
     // All font sizes are written first, then everything is read: one page layout per step, not one per card.
     const put=(k,f)=>Z[k].forEach(el=>{if(el){el.style.fontSize=px(f);el.style.paddingRight='3px';}});
     if(a.prod)put('prod',fp);if(a.head)put('head',fh);if(a.det)put('det',fd);
-    if(a.brand)H+=ZT.brand.s*u*ZT.brand.lh+af.brand*u;
+    if(a.brand)H+=T.brand.s*u*T.brand.lh+af.brand*u;
     if(a.prod){let n=1;const long=[];
-      Z.prod.forEach(el=>{if(!el||!el.dataset.full)return;const c=lines(el,fp,ZT.prod.lh);if(c>1)long.push([el,c]);});
+      Z.prod.forEach(el=>{if(!el||!el.dataset.full)return;const c=lines(el,fp,T.prod.lh);if(c>1)long.push([el,c]);});
       if(long.length){   // a common abbreviation (capsules → caps …) that brings a name onto one line is used
         long.forEach(([el])=>{el.textContent=abbreviateName(el.dataset.full);});
-        long.forEach(([el,c],i)=>{long[i][2]=lines(el,fp,ZT.prod.lh)===1?1:c;});
+        long.forEach(([el,c],i)=>{long[i][2]=lines(el,fp,T.prod.lh)===1?1:c;});
         long.forEach(([el])=>{el.textContent=el.dataset.full;});
         n=Math.max(1,...long.map(x=>x[2]));}
-      L.prod=Math.min(n,S.nameLines===1?1:2);H+=fp*ZT.prod.lh*L.prod+af.prod*u;}
-    if(a.form)H+=ZT.form.s*u*ZT.form.lh+af.form*u;
+      L.prod=Math.min(n,S.nameLines===1?1:2);H+=fp*T.prod.lh*L.prod+af.prod*u;}
+    if(a.pline)H+=(T.pline.m+af.pline)*u+Math.max(1.5,.035*u);
+    if(a.form)H+=T.form.s*u*T.form.lh+af.form*u;
     if(cfg.top)H+=((a.topAny?1:0)+1)*ZONE_IMG_GAP*u;
     if(a.head){   // a long heading is made smaller (every card together, down to 80%) before it is cut with "…"
       const cnt=f=>{let n=1;Z.head.forEach(el=>{if(filled(el))n=Math.max(n,lines(el,f,HD.lh));});return n;};
@@ -5254,15 +5320,15 @@ function zoneFitGroup(cfg,blocks,gkey){
       L.headF=hf;L.head=Math.min(n,headMax);H+=q(fh*hf)*HD.lh*L.head+af.head*u;}
     if(a.det){let mx=0;
       Z.det.forEach(el=>{if(!el)return;let hh=0,cnt=0;
-        el.querySelectorAll('.zc-ing,.zc-ben').forEach(it=>{hh+=Math.min(sp.lines,lines(it,fd,ZT.det.lh))*fd*ZT.det.lh;cnt++;});
+        el.querySelectorAll('.zc-ing,.zc-ben').forEach(it=>{hh+=Math.min(sp.lines,lines(it,fd,T.det.lh))*fd*T.det.lh;cnt++;});
         mx=Math.max(mx,hh+Math.max(0,cnt-1)*.45*fd);});
       L.det=mx;H+=mx+af.det*u;}
     if(a.gap)H+=ZONE_GAP[0]*u;
-    if(a.pill)H+=(ZT.pill.s*ZT.pill.box+ZT.pill.after)*u;
-    if(a.price)H+=ZT.price.s*u;
-    if(a.rule)H+=2*ZT.rule.m*u+Math.min(6,Math.max(2.5,.065*u));
-    if(a.ref){L.ref=Math.max(1,...Z.ref.map(el=>el?el.children.length:0));H+=ZT.ref.s*u*ZT.ref.lh*L.ref;}
-    if(a.ends)H+=(ZT.ends.before+ZT.ends.s*ZT.ends.lh)*u;
+    if(a.pill)H+=(T.pill.s*T.pill.box+T.pill.after)*u;
+    if(a.price)H+=T.price.s*u;
+    if(a.rule)H+=2*T.rule.m*u+Math.min(6,Math.max(2.5,.065*u));
+    if(a.ref){L.ref=Math.max(1,...Z.ref.map(el=>el?el.children.length:0));H+=T.ref.s*u*T.ref.lh*L.ref;}
+    if(a.ends)H+=(T.ends.before+T.ends.s*T.ends.lh)*u;
     return {H,L};
   };
   const best=sp=>{
@@ -5274,7 +5340,7 @@ function zoneFitGroup(cfg,blocks,gkey){
   };
   // The same text on the same card size gives the same answer, so a repeat fit (fonts loaded, pack shots
   // balanced, export) reuses it instead of searching again.
-  const memoKey=[S.layout,gkey,W,Math.round(availH),fit,S.nameLines,S.accent,S.stackAlign,document.fonts?document.fonts.status:'',blocks.map(b=>b.textContent).join('|')].join('#');
+  const memoKey=[S.layout,gkey,W,Math.round(availH),fit,S.nameLines,S.accent,S.stackAlign,S.cardStyle,document.fonts?document.fonts.status:'',blocks.map(b=>b.textContent).join('|')].join('#');
   const steps=ZONE_STEPS[fit];
   let pick=ZONE_MEMO.get(gkey);
   if(!pick||pick.key!==memoKey){
@@ -5294,37 +5360,47 @@ function zoneFitGroup(cfg,blocks,gkey){
     Z[k].forEach(el=>{if(!filled(el))return;set(el,{'font-size':px(fs),'line-height':px(hh)});
       [el,...el.children].forEach(c=>{if(c.scrollWidth>W+.5)f=Math.min(f,W/c.scrollWidth);});});
     f=Math.max(.8,f);Z[k].forEach(el=>set(el,{'font-size':px(fs*f),'line-height':px(hh),height:px(hh)}));};
-  oneLine('brand',ZT.brand.s*u,ZT.brand.s*u*ZT.brand.lh);
+  oneLine('brand',T.brand.s*u,T.brand.s*u*T.brand.lh);
   if(a.brand)Z.brand.forEach(el=>set(el,{'margin-bottom':px(af.brand*u)}));
-  if(a.prod){const fs=q(ZT.prod.s*u),hh=fs*ZT.prod.lh*L.prod;
-    Z.prod.forEach(el=>{if(!el)return;set(el,{'font-size':px(fs),'line-height':String(ZT.prod.lh),'-webkit-line-clamp':String(L.prod),'margin-bottom':px(af.prod*u)});
-      if(el.dataset.full){const stt=zoneFitName(el,el.dataset.full,L.prod,fs*ZT.prod.lh);const key=el.closest('.zc').dataset.key;if(key)NAME_TRIMS.set(key,stt);}
+  if(a.prod){const fs=q(T.prod.s*u),hh=fs*T.prod.lh*L.prod;
+    Z.prod.forEach(el=>{if(!el)return;set(el,{'font-size':px(fs),'line-height':String(T.prod.lh),'-webkit-line-clamp':String(L.prod),'margin-bottom':px(af.prod*u)});
+      if(el.dataset.full){const stt=zoneFitName(el,el.dataset.full,L.prod,fs*T.prod.lh);const key=el.closest('.zc').dataset.key;if(key)NAME_TRIMS.set(key,stt);}
       set(el,{height:px(hh)});});}
-  oneLine('form',ZT.form.s*u,ZT.form.s*u*ZT.form.lh);
+  if(a.pline){const th=Math.max(1.5,.035*u),k=slideScaleOf(blocks[0]);
+    Z.pline.forEach((el,i)=>{set(el,{height:px(th),'margin-top':px(T.pline.m*u),'margin-bottom':px(af.pline*u)});
+      const pr=Z.prod[i],bar=el&&el.querySelector('i');if(!pr||!bar)return;
+      // fitted to the name's own width, and lifted to sit right under a name shorter than the reserved lines
+      const lh=q(T.prod.s*u)*T.prod.lh,n=Math.max(1,Math.round(zoneTextHeight(pr)/k/lh)),up=Math.max(0,L.prod-n)*lh;
+      set(bar,{width:px(Math.min(W,zoneTextWidth(pr)/k)),height:px(th),transform:`translateY(${(-up).toFixed(2)}px)`});});}
+  oneLine('form',T.form.s*u,T.form.s*u*T.form.lh);
   if(a.form)Z.form.forEach(el=>set(el,{'margin-bottom':px(af.form*u)}));
   if(cfg.top)blocks.forEach(b=>{const im=b.querySelector('.zc-img');if(im)set(im,{'margin-top':px(a.topAny?ZONE_IMG_GAP*u:0),'margin-bottom':px(ZONE_IMG_GAP*u)});});
   const cut={};   // information shortened with "…", per product, for the status line
   const note=(el,name)=>{const key=el.closest('.zc').dataset.key;if(key)(cut[key]=cut[key]||new Set()).add(name);};
   if(a.head){const fs=q(q(HD.s*u)*(L.headF||1));Z.head.forEach(el=>{set(el,{'font-size':px(fs),'line-height':String(HD.lh),'margin-bottom':px(af.head*u)});
     if(filled(el)&&zoneTrimLines(el,L.head,fs*HD.lh))note(el,'feature heading');set(el,{height:px(fs*HD.lh*L.head)});});}
-  if(a.det){const fs=q(ZT.det.s*sp.det*u);Z.det.forEach(el=>{set(el,{'font-size':px(fs),'margin-bottom':px(af.det*u)});
-    if(el)el.querySelectorAll('.zc-ing,.zc-ben').forEach(it=>{if(zoneTrimLines(it,sp.lines,fs*ZT.det.lh))note(el,it.classList.contains('zc-ing')?'key ingredients':'key benefits');});
+  if(a.det){const fs=q(T.det.s*sp.det*u);Z.det.forEach(el=>{set(el,{'font-size':px(fs),'margin-bottom':px(af.det*u)});
+    if(el)el.querySelectorAll('.zc-ing,.zc-ben').forEach(it=>{if(zoneTrimLines(it,sp.lines,fs*T.det.lh))note(el,it.classList.contains('zc-ing')?'key ingredients':'key benefits');});
     set(el,{height:px(L.det)});});}
   Object.entries(cut).forEach(([k,v])=>ZONE_CUTS.set(k,[...(ZONE_CUTS.get(k)||[]),...v]));
   // Space above the pill: side-by-side cards take up to ZONE_GAP[1] of spare height, so the text block (and
   // the pack shot matched to it) grows a little before the stack is centred; stacked cards give the rest to the pack shot.
   const spare=Math.max(0,availH-H),gap=ZONE_GAP[0]*u+(cfg.stack?0:Math.min(spare,(ZONE_GAP[1]-ZONE_GAP[0])*u));
   if(a.gap)Z.gap.forEach(el=>set(el,{height:px(gap)}));
-  if(a.pill){const fs=ZT.pill.s*u;Z.pill.forEach(el=>{set(el,{'font-size':px(fs),height:px(fs*ZT.pill.box),'margin-bottom':px(ZT.pill.after*u)});
+  if(a.pill){const fs=T.pill.s*u;Z.pill.forEach(el=>{set(el,{'font-size':px(fs),height:px(fs*T.pill.box),'margin-bottom':px(T.pill.after*u)});
     const tx=el&&el.firstElementChild;if(tx&&tx.scrollWidth>W)set(tx,{'font-size':px(fs*Math.max(.6,W/tx.scrollWidth))});});}
   if(a.price)Z.price.forEach(el=>{if(!el)return;set(el,{'font-size':px(u),height:px(u)});
     const dl=el.querySelector('.zc-deal');if(dl)zoneFitDeal(dl,u,W);});
-  if(a.rule){const th=Math.min(6,Math.max(2.5,.065*u));Z.rule.forEach(el=>{set(el,{height:px(th+2*ZT.rule.m*u)});
-    const i=el&&el.querySelector('i');if(i)set(i,{width:px(Math.min(W,ZT.rule.w*u)),height:px(th)});});}
-  oneLine('ref',ZT.ref.s*u,ZT.ref.s*u*ZT.ref.lh);
-  if(a.ref)Z.ref.forEach(el=>set(el,{height:px(ZT.ref.s*u*ZT.ref.lh*L.ref)}));
-  oneLine('ends',ZT.ends.s*u,ZT.ends.s*u*ZT.ends.lh);
-  if(a.ends)Z.ends.forEach(el=>set(el,{'margin-top':px(ZT.ends.before*u)}));
+  if(a.rule){const th=soft?Math.max(2,.04*u):Math.min(6,Math.max(2.5,.065*u)),k=slideScaleOf(blocks[0]);
+    Z.rule.forEach((el,i)=>{set(el,{height:px(th+2*T.rule.m*u)});
+      const bar=el&&el.querySelector('i');if(!bar)return;
+      let w=T.rule.w*u;   // v49 Soft cards: fitted to the price / offer actually shown
+      if(soft){const pz=Z.price[i],c=pz&&pz.firstElementChild;if(c)w=zoneTextWidth(c)/k;}
+      set(bar,{width:px(Math.min(W,w)),height:px(th)});});}
+  oneLine('ref',T.ref.s*u,T.ref.s*u*T.ref.lh);
+  if(a.ref)Z.ref.forEach(el=>set(el,{height:px(T.ref.s*u*T.ref.lh*L.ref)}));
+  oneLine('ends',T.ends.s*u,T.ends.s*u*T.ends.lh);
+  if(a.ends)Z.ends.forEach(el=>set(el,{'margin-top':px(T.ends.before*u)}));
   // SAVE circle scales with the price.
   blocks.forEach(b=>{const c=b.closest('.cl-card');if(c)c.style.setProperty('--po-size',px(ZONE_STAMP*u));});
   return {u,lvl:pick.lvl};
@@ -5357,10 +5433,26 @@ function zoneFitName(el,full,maxLines,lineH){
   el.style.setProperty('-webkit-line-clamp',String(maxLines));
   return r;
 }
+/* v49: rendered height of an element's text (first line top to last line bottom). */
+function zoneTextHeight(el){
+  const r=document.createRange();r.selectNodeContents(el);
+  const rs=[...r.getClientRects()].filter(x=>x.height>0);if(!rs.length)return 0;
+  return Math.max(...rs.map(x=>x.bottom))-Math.min(...rs.map(x=>x.top));
+}
+/* v49: rendered width of an element's text (widest line), for the underlines. */
+function zoneTextWidth(el){
+  const r=document.createRange();r.selectNodeContents(el);
+  const rs=[...r.getClientRects()].filter(x=>x.width>0);if(!rs.length)return 0;
+  return Math.max(...rs.map(x=>x.right))-Math.min(...rs.map(x=>x.left));
+}
 /* Deal wording in the price zone (GET 1 FREE, SINGLE $4.95 / BOX 12 $53.45): one line as large as fits (up to
    80% of the price size), else two lines within the price zone — whichever gives the larger type. */
 function zoneFitDeal(el,u,W){
   const fits=()=>el.scrollWidth<=W+.5;
+  if(el.classList.contains('zc-rows')){   // v49: two price rows, each on its own line, sharing the price zone
+    let g=.49;el.style.fontSize=(g*u).toFixed(2)+'px';
+    while(g>.26&&(![...el.children].every(c=>c.scrollWidth<=W+.5)||el.offsetHeight>u+.5)){g-=.01;el.style.fontSize=(g*u).toFixed(2)+'px';}
+    return;}
   el.style.whiteSpace='nowrap';let f=.8;el.style.fontSize=(f*u).toFixed(2)+'px';
   while(f>.36&&!fits()){f-=.02;el.style.fontSize=(f*u).toFixed(2)+'px';}
   if(f>=.6)return;
@@ -5380,6 +5472,7 @@ function render(rebuildInputs=true){
   s.classList.add('bc-'+(S.brandCase||'std'));   // v38 brand letters on classic layouts   // v35 charcoal canvas (clean cards only)
   if(!cardTextOn('brand'))s.classList.add('ct-nobrand');   // v43: name block loses the brand line
   s.classList.add(S.accent==='labels'?'acc-labels':'acc-head');   // v48 green accent
+  if(ZONE_LAYOUTS[S.layout]&&S.cardStyle!=='clean')s.classList.add('cs-soft');   // v49 Soft cards
   if(ZONE_LAYOUTS[S.layout]&&ZONE_LAYOUTS[S.layout].stack&&S.stackAlign!=='left')s.classList.add(S.stackAlign==='top'?'zc-centre-top':'zc-centre');   // v48
   if(!cardNameOn())s.classList.add('ct-noname');           // v43: name block loses the product lines
   // IMPORTANT: the original hub used a fixed 1000×625 .slide. Multi-channel
@@ -5623,6 +5716,9 @@ document.getElementById('autoBalanceToggle').addEventListener('change',e=>{
   S.nameLines=get('phf_name_lines','2')==='1'?1:2;
   const NL=document.getElementById('optNameLines');NL.value=String(S.nameLines);
   NL.onchange=()=>{S.nameLines=NL.value==='1'?1:2;put('phf_name_lines',String(S.nameLines));render(false);};
+  S.cardStyle=get('phf_card_style','soft')==='clean'?'clean':'soft';   // v49
+  const CS=document.getElementById('optCardStyle');CS.value=S.cardStyle;
+  CS.onchange=()=>{S.cardStyle=CS.value==='clean'?'clean':'soft';put('phf_card_style',S.cardStyle);render(true);};
   S.accent=get('phf_accent','head')==='labels'?'labels':'head';   // v48
   const AC=document.getElementById('optAccent');AC.value=S.accent;
   AC.onchange=()=>{S.accent=AC.value==='labels'?'labels':'head';put('phf_accent',S.accent);render(false);};

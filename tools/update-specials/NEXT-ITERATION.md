@@ -1,4 +1,4 @@
-# Update Specials — working notes (current: v48)
+# Update Specials — working notes (current: v49)
 
 Working notes agreed with Kenneth before code changes. Measurements are from the 2000×1250 POS export
 (POS screen → 4-Up grid, page with Advance / Diasporal / Basica / Ultra Muscleze, Text fit = Impact).
@@ -81,13 +81,27 @@ fixed share of the text-block height, and the content adapts to the box — neve
 - v48: **pack-above cards centred** by default (Centre / Top centred / Left option).
 - v48: **Portrait TV** Hero, 2, 3 and 4 Rows on zones, with every tick box.
 
-## Zone layouts (v48)
+- v49: **Soft cards** from Kenneth's design spec (mock images + written rules): warm off-white cards
+  (#F5F4F0, 14px corners) on white; brand #62686E on its own row; product + size #4F5861 together; feature
+  heading in sentence case, charcoal; price #19212B strongest. Thin green line under the product name and
+  under the price, each fitted to the text actually drawn. WAS smaller and grey, strike on the amount only.
+  Two-price offers split at " / " into rows. White photo backgrounds toned to the card colour (baked into
+  pixels, because the PNG export can't do blend modes). **Clean white** keeps v48 exactly.
+  For the agreed look, untick Product form, Key ingredients, Key benefits.
+
+## Zone layouts (v49)
 POS: Hero · Hero + 2 · 4-Up grid · 3 Across · 4 Across. Email: Hero + 2 · 2-Up 7:5 · 4-Up 7:5 · 6-Up.
 Portrait TV: Hero · 2 Rows · 3 Rows · 4 Rows.
 Not yet: POS 2-Up · Social (Hero 4:5, Hero Square, 4-Up Square) · Web banner.
 These still use the v45 fitting, where Impact can leave extra information off.
 
-## Open (for Kenneth, after reviewing v47)
+## Open (for Kenneth, after reviewing v49)
+- Soft cards: "Box 12" is shown as typed in the sheet (the spec example says "Box of 12"); change the wording
+  in the sheet or the Promo Display Override if wanted.
+- Feature headings are sentence-cased on Soft cards; proper nouns typed in Title Case (e.g. a place name)
+  become lower case unless they're in capitals or quotes. Edit the heading if one reads wrong.
+- Soft cards on the Charcoal canvas keep the white panels (no off-white, no photo toning).
+
 - Classic white Email layouts (Hero + pick, 2×2 Feature, Grid Cards, 6-Grid, 6-Grid Split, Specials banner)
   only follow Brand / Product / Size / Now price / Discount tick boxes; they never show form, heading,
   ingredients or benefits. Each already has a zone-card counterpart under Email → Clean cards (Hero + 2,

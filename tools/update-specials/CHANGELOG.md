@@ -28,6 +28,27 @@ It isn't needed day to day.)
 
 ---
 
+## v49 — 30 Sep 2026
+Soft cards: the agreed POS look (warm off-white cards, lighter headings, fitted green lines).
+- **Card style** (Card options, remembered on each device): **Soft cards** (new default) or **Clean white**
+  (exactly as v48). Applies to every zone layout: POS Hero, Hero + 2, 4-Up grid, 3 Across, 4 Across; Email
+  Hero + 2, 2-Up 7:5, 4-Up 7:5, 6-Up; Portrait TV Hero, 2, 3 and 4 Rows. Classic layouts are unchanged.
+- **Cards:** warm off-white (#F5F4F0) with rounded corners on a white canvas, no borders. White photo
+  backgrounds are toned to the card colour, so packs no longer sit in white boxes (also in the PNG export).
+- **Headings:** brand on its own row in medium grey (#62686E); product and size together beneath it in
+  slate grey (#4F5861); both lighter than the price (#19212B).
+- **Green line under the product name,** fitted to the width of the name as it's actually drawn (widest line
+  if it wraps), close beneath it. Recalculated whenever wording, size or layout changes.
+- **Feature heading** in readable sentence case ("Cellular energy & heart support"), dark charcoal.
+  Words in capitals (EPA/DHA, BCM-95) and words in quotes ('The Mother') keep their capitals.
+- **Price line** fitted to the price or offer width (was the full text width).
+- **Two-price offers** split onto their own rows at " / ": "Single $4.95" / "Box 12 $53.45", each row
+  sized to fit.
+- **WAS price:** smaller, muted grey; only the dollar amount is struck through ("WAS" isn't), and the strike
+  ends at the last digit.
+- To match the agreed design, untick **Product form**, **Key ingredients** and **Key benefits** in Card text
+  (they still work if ticked).
+
 ## v48 — 30 Sep 2026
 Calmer headings, centred pack-above cards, and Portrait TV on zones.
 - **Green accent** (Card options, remembered on each device):
