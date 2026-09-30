@@ -199,7 +199,7 @@
   function reconcile(posOrder,invoiceDocuments,refs){
     const posRows=posOrder.rows||[],invoiceRows=[],warnings=[];
     backfillInvoiceWholesale(invoiceDocuments,refs);
-    invoiceDocuments.forEach(doc=>{if(doc.warning)warnings.push(`${doc.sourceFile}: ${doc.warning}`);const docRows=(doc.rows||[]);docRows.forEach(r=>invoiceRows.push(r));if(doc.cancelled&&doc.cancelled.length)warnings.push(`${doc.sourceFile}: ${doc.cancelled.length} supplier line(s) were marked C (cancelled/backordered) and correctly excluded from billed totals.`);if(doc.skipped&&doc.skipped.length)warnings.push(`${doc.sourceFile}: ${doc.skipped.length} candidate line(s) could not be confidently classified as billed or cancelled and should be reviewed.`);if(doc.integrity&&doc.integrity.footerFound===false)warnings.push(`${doc.sourceFile}: footer totals were not machine-readable; line arithmetic was still checked.`);const missingDisc=docRows.filter(r=>r.discountPct==null).length,missingWs=docRows.filter(r=>r.normalWholesale==null).length;if(missingDisc)warnings.push(`${doc.sourceFile}: ${missingDisc} billed line(s) did not print a CH2 discount %. These remain blank and are marked NO CHECK, not 0%.`);});
+    invoiceDocuments.forEach(doc=>{if(doc.warning)warnings.push(`${doc.sourceFile}: ${doc.warning}`);const docRows=(doc.rows||[]);docRows.forEach(r=>invoiceRows.push(r));if(doc.cancelled&&doc.cancelled.length)warnings.push(`${doc.sourceFile}: ${doc.cancelled.length} supplier line(s) were marked C (cancelled/backordered) and correctly excluded from billed totals.`);if(doc.skipped&&doc.skipped.length)warnings.push(`${doc.sourceFile}: ${doc.skipped.length} candidate line(s) could not be confidently classified as billed or cancelled and should be reviewed.`);if(doc.integrity&&doc.integrity.footerFound===false)warnings.push(`${doc.sourceFile}: footer totals were not machine-readable; line arithmetic was still checked.`);});
 
     const matchedByPos=new Map(),unmatchedInvoice=[],groups=groupInvoiceRows(invoiceRows),assignments=assignGroups(groups,posRows,refs);
     backfillMatchedWholesale(groups,assignments,posRows,refs);
@@ -211,7 +211,22 @@
         const sample=filled.slice(0,8).map(r=>`line ${Number.isFinite(Number(r.invoiceLine))?Number(r.invoiceLine):'?'} ${clean(r.description)||digits(r.productCode)} = ${Number(r.normalWholesale).toFixed(2)}`);
         warnings.push(`CH2 W/S FILLED — ${filled.length} billed invoice line${filled.length===1?'':'s'} did not print Normal W/S: ${counts}. Used for pricing checks and the POSActive Normal WS field: ${sample.join('; ')}${filled.length>sample.length?'; …':''}.`);
       }
-      invoiceDocuments.forEach(doc=>{const missingWs=(doc&&doc.rows||[]).filter(r=>r.normalWholesale==null).length;if(missingWs)warnings.push(`${doc.sourceFile}: ${missingWs} billed line(s) did not print Normal W/S and no POS master CH2_WHOLESALE_EX_GST, printed discount or unit price was available to fill it. Wholesale/discount price checks requiring Normal W/S are marked NO CHECK.`);});
+      // v2.6.31 — Disc % not printed: the effective CH2 discount is 1 − Unit Price ÷ Normal W/S
+      // (0.00% when CH2 billed at wholesale), so every matched line carries a discount figure
+      // for POS Layout, the discount audit and the POSActive TXT.
+      const derivedDisc=[];
+      for(const r of invoiceRows){
+        if(!r||toNum(r.discountPct)!=null)continue;
+        const u=toNum(r.unitPriceExGst),w=toNum(r.normalWholesale);if(u==null||u<=0||w==null||w<=0)continue;
+        const d=round((1-u/w)*100,2);if(d==null||d<-0.005||d>=100)continue;
+        r.discountPct=Math.max(0,d);r.discountSource='DERIVED UNIT ÷ NORMAL W/S';derivedDisc.push(r);
+      }
+      if(derivedDisc.length)warnings.push(`CH2 DISC % DERIVED — ${derivedDisc.length} billed invoice line${derivedDisc.length===1?'':'s'} did not print a Disc %; the effective discount (1 − Unit Price ÷ Normal W/S) is used: ${derivedDisc.slice(0,8).map(r=>`line ${Number.isFinite(Number(r.invoiceLine))?Number(r.invoiceLine):'?'} ${clean(r.description)||digits(r.productCode)} = ${Number(r.discountPct).toFixed(2)}%`).join('; ')}${derivedDisc.length>8?'; …':''}.`);
+      invoiceDocuments.forEach(doc=>{
+        const rows=(doc&&doc.rows)||[],missingWs=rows.filter(r=>r.normalWholesale==null).length,missingDisc=rows.filter(r=>r.discountPct==null).length;
+        if(missingDisc)warnings.push(`${doc.sourceFile}: ${missingDisc} billed line(s) did not print a CH2 discount % and it could not be derived (no Normal W/S). These remain blank and are marked NO CHECK, not 0%.`);
+        if(missingWs)warnings.push(`${doc.sourceFile}: ${missingWs} billed line(s) did not print Normal W/S and no POS master CH2_WHOLESALE_EX_GST, printed discount or unit price was available to fill it. Wholesale/discount price checks requiring Normal W/S are marked NO CHECK.`);
+      });
     }
     groups.forEach((g,gi)=>{
       const match=assignments.get(gi);

@@ -1,7 +1,7 @@
 (function(global){
   'use strict';
   const PHF=global.PHFReconcile||{};
-  const state={pos:null,invoices:[],result:null,previewView:'pos',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackManualChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null,receivingMigratedFrom266:false,orderOverrides:new Map(),importKeys:new Map(),importKeyReviews:new Map(),posSortKey:'__pos_order_index',posSortDir:'asc'};
+  const state={pos:null,invoices:[],result:null,previewView:'pos',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackManualChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null,receivingMigratedFrom266:false,orderOverrides:new Map(),importKeys:new Map(),importKeyReviews:new Map(),posSortKey:'__pos_order_index',posSortDir:'asc',posSortExplicit:false};
   const els={
     referenceReady:document.querySelector('#referenceReady'),referenceDot:document.querySelector('#referenceDot'),buildLabel:document.querySelector('#buildLabel'),
     posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),orderOverrideBox:document.querySelector('#orderOverrideBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),fullDownloadBtn:document.querySelector('#fullDownloadBtn'),fullCsvDownloadBtn:document.querySelector('#fullCsvDownloadBtn'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posBalancePanel:document.querySelector('#posBalancePanel'),keyReviewBtn:document.querySelector('#keyReviewBtn'),importKeySummary:document.querySelector('#importKeySummary'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn'),resultControls:document.querySelector('.result-controls-sticky'),receivingActions:document.querySelector('#receivingActions'),tickAllBtn:document.querySelector('#tickAllBtn'),clearQtyBtn:document.querySelector('#clearQtyBtn')
@@ -58,7 +58,10 @@
   // the table header. These CSS variables move the table header to sit directly under the
   // bar (and lift the footer/Completed dock to the visible viewport bottom) for any page
   // scroll position, so both the bar and the column headings remain visible together.
-  const STICKY_VARS=['--result-sticky-top','--result-sticky-bottom','--result-head-h','--result-foot-h','--result-dock-h'];
+  const STICKY_VARS=['--result-sticky-top','--result-sticky-bottom','--result-head-h','--result-foot-h','--result-dock-h','--result-dockbar-h'];
+  // v2.6.31 — the docked Completed panel shows the bar, its headings and at least this many
+  // completed products above the footer while staff work through Remaining.
+  const DOCK_COMPLETED_ROWS=4;
   function updateStickyOffsets(){
     stickyFrame=0;
     const wrap=els.tableWrap;if(!wrap)return;
@@ -68,12 +71,29 @@
     const controls=els.resultControls,cr=controls&&controls.getClientRects().length?controls.getBoundingClientRect():null;
     const headH=els.tableHead?Math.ceil(els.tableHead.getBoundingClientRect().height):0;
     const footH=els.tableFoot?Math.ceil(els.tableFoot.getBoundingClientRect().height):0;
-    const dock=els.tableBody?els.tableBody.querySelector('tr.pos-section-complete'):null,dockH=dock?Math.ceil(dock.getBoundingClientRect().height):0;
+    const dock=els.tableBody?els.tableBody.querySelector('tr.pos-section-complete'):null,dockBarH=dock?Math.ceil(dock.getBoundingClientRect().height):0;
     const room=Math.max(0,wrap.clientHeight-headH-footH);
     let top=cr&&cr.height?Math.max(0,Math.ceil(cr.bottom-portTop)):0;top=Math.min(top,room);
     let bottom=Math.max(0,Math.ceil(portBottom-viewH));bottom=Math.min(bottom,Math.max(0,room-top));
+    // Stack the docked Completed panel from the footer upwards: each member's bottom offset is
+    // the height of the members below it. It never takes more than ~55% of the table area that
+    // is actually visible (it shrinks while the page is scrolled so the table is partly off-screen).
+    const members=els.tableBody?[...els.tableBody.querySelectorAll('tr.pos-dock-member')]:[],heights=members.map(tr=>Math.ceil(tr.getBoundingClientRect().height));
+    const visibleRoom=Math.max(0,room-top-bottom),maxDock=Math.max(dockBarH,visibleRoom*.55);let used=0,keep=0;
+    for(let i=0;i<members.length;i++){if(i===0||used+heights[i]<=maxDock){used+=heights[i];keep=i+1;}else break;}
+    // The Completed headings are only docked together with at least one completed product.
+    if(keep===2&&members[1]&&members[1].classList.contains('pos-section-head'))keep=1;
+    let below=0;
+    for(let i=members.length-1;i>=0;i--){
+      const tr=members[i];
+      if(i>=keep){if(!tr.hasAttribute('data-dock-off'))tr.setAttribute('data-dock-off','1');continue;}
+      if(tr.hasAttribute('data-dock-off'))tr.removeAttribute('data-dock-off');
+      const v=`${below}px`;if(tr.style.getPropertyValue('--dock-bottom')!==v)tr.style.setProperty('--dock-bottom',v);
+      below+=heights[i];
+    }
+    const dockH=below;
     const set=(k,v)=>{const val=`${Math.max(0,Math.round(v))}px`;if(wrap.style.getPropertyValue(k)!==val)wrap.style.setProperty(k,val);};
-    set('--result-sticky-top',top);set('--result-sticky-bottom',bottom);set('--result-head-h',headH);set('--result-foot-h',footH);set('--result-dock-h',dockH);
+    set('--result-sticky-top',top);set('--result-sticky-bottom',bottom);set('--result-head-h',headH);set('--result-foot-h',footH);set('--result-dock-h',dockH);set('--result-dockbar-h',dockBarH);
   }
   function scheduleStickyOffsets(){if(stickyFrame)return;stickyFrame=requestAnimationFrame(updateStickyOffsets);}
   function ensureStickyTracking(){
@@ -84,7 +104,7 @@
     }
     if(!stickyObserver&&'ResizeObserver' in global){
       stickyObserver=new ResizeObserver(scheduleStickyOffsets);
-      for(const el of [els.resultControls,els.tableWrap,els.tableHead,els.tableFoot,els.results])if(el)stickyObserver.observe(el);
+      for(const el of [els.resultControls,els.tableWrap,els.tableHead,els.tableFoot,els.results,els.table,els.tableBody])if(el)stickyObserver.observe(el);
     }
     scheduleStickyOffsets();
   }
@@ -235,6 +255,10 @@
     setStatus('Import key updated for this run. Confirm the same supplier key exists in POSActive. Download remains available.','warn');
   }
   function posSubIdReviewNotes(){
+    // v2.6.31 — Sub IDs are existing POSActive data and are exported exactly as stored,
+    // including spaces and % $ " (e.g. `3 PER SKU 25%`). They are no longer a review note;
+    // POSActive order matching is checked by the POSActive match check instead.
+    if(SUB_ID_REVIEW_DISABLED)return [];
     if(!state.result||!state.posParsed)return [];
     const notes=[],rows=sortedPosRows(),details=posDetailMap();
     for(let i=0;i<rows.length;i++){
@@ -250,6 +274,7 @@
     }
     return notes;
   }
+  const SUB_ID_REVIEW_DISABLED=true;
   function posColumnValue(pos,c,detail=null){
     if(!pos||!c)return '';
     if(c.key==='__import_sub_id')return importIdentityFor(pos,detail).importSubId;
@@ -330,7 +355,7 @@
     // proven 15-column exporter so short/over/zero Found quantities are reflected in
     // the footer exactly the same way they will be in the downloaded file.  Column 14
     // is Total inc GST, so this value is explicitly GST-inclusive.
-    let adjusted=null,adjustedEx=null,adjustedGst=null,supplierInvoiceTotal=null,records=[];
+    let adjusted=null,adjustedEx=null,adjustedGst=null,supplierInvoiceTotal=null,records=[],matchCheck=null;
     try{
       if(PHF.posImport&&typeof PHF.posImport.buildLegacyFiles==='function'&&state.docs&&state.docs.length&&state.posParsed&&state.result){
         const built=PHF.posImport.buildLegacyFiles(state.docs,state.refs,state.posParsed,state.result,posExportOptions());
@@ -340,6 +365,7 @@
           adjustedGst=built.files.reduce((sum,file)=>sum+(numberValue(file&&file.totals&&file.totals.gst)||0),0);
           supplierInvoiceTotal=built.files.reduce((sum,file)=>sum+(numberValue(file&&file.sourceTotals&&file.sourceTotals.total)||0),0);
           records=built.files.flatMap(file=>Array.isArray(file&&file.records)?file.records:[]);
+          matchCheck=built.files[0]&&built.files[0].matchCheck||null;
         }
       }
     }catch(err){console.warn('Could not calculate live POSActive import total',err);}
@@ -390,7 +416,8 @@
       const gstPct=Math.max(0,numberValue(raw.gst_tax_pc)??numberValue(pos.gstPct)??0);
       notInvoicedTotal+=currentPrice*qtyNow*(1+gstPct/100);
     }
-    return {current,matchedCurrent,adjusted,adjustedEx,adjustedGst,supplierInvoiceTotal,invoiceOnlyCount:invoiceOnlyRows.length,invoiceOnlyTotal,invoiceOnlyReceivedCount:receivedInvoiceOnly.length,invoiceOnlyReceivedTotal,notInvoicedCount,notInvoicedTotal,manualCount:manualRecords.length,manualTotal,recordCount:records.length};
+    return {current,matchedCurrent,adjusted,adjustedEx,adjustedGst,supplierInvoiceTotal,invoiceOnlyCount:invoiceOnlyRows.length,invoiceOnlyTotal,invoiceOnlyReceivedCount:receivedInvoiceOnly.length,invoiceOnlyReceivedTotal,matchCheck,
+      invoiceOnlyAll:invoiceOnlyEntries().map(e=>({line:e.inv&&e.inv.invoiceLine,invoiceNumber:e.inv&&e.inv.invoiceNumber,description:cleanText(e.pos&&e.pos.description)||cleanText(e.inv&&e.inv.description),total:numberValue(e.inv&&e.inv.totalIncGst)||0,ticked:receivedInvoiceOnlyKeys.has(String(e.pos&&e.pos.sourceRow))})),notInvoicedCount,notInvoicedTotal,manualCount:manualRecords.length,manualTotal,recordCount:records.length};
   }
 
   function renderPosBalance(totals){
@@ -405,6 +432,11 @@
     if(orderLinkMismatches().length)cautions.push('The invoice Customer PO differs from the uploaded POS order. Confirm the open POSActive order number before comparing totals.');
     const card=(label,value,note,cls='')=>`<div class="pos-balance-card ${cls}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></div>`;
     box.classList.remove('hidden');
+    // v2.6.31 — reconcile the supplier invoice total to the lines that are on the POS order and
+    // the invoice-only lines, and predict POSActive's supplier-order Sub ID match.
+    const io=totals.invoiceOnlyAll||[],ioTotal=io.reduce((a,x)=>a+x.total,0),orderLinesTotal=totals.supplierInvoiceTotal!=null?totals.supplierInvoiceTotal-ioTotal:null;
+    const invoiceEquation=io.length&&totals.supplierInvoiceTotal!=null?`<div class="pos-balance-reconcile"><strong>Supplier invoice ${money(totals.supplierInvoiceTotal)} = lines on POS order ${money(orderLinesTotal)} + not on POS order ${money(ioTotal)}</strong><span>${io.map(x=>`${escapeHtml(x.description)} · line ${escapeHtml(x.line)} · ${money(x.total)} · ${x.ticked?'included':'not ticked (excluded)'}`).join(' &nbsp;|&nbsp; ')}</span></div>`:'';
+    const mc=totals.matchCheck,matchBlock=mc&&mc.total?`<div class="pos-match-check ${mc.mismatches.length?'bad':'good'}"><div class="pos-match-head"><strong>POSActive match check</strong><span>${mc.matched} of ${mc.total} TXT line${mc.total===1?'':'s'} match a Sub ID on POS order ${escapeHtml(mc.orderNumber||'')}${mc.mismatches.length?` · POSActive will report ${mc.mismatches.length} as “Invoice items do not match suppliers order items”`:' · no POSActive matching warning expected'}</span></div>${mc.mismatches.length?`<div class="pos-match-list">${mc.mismatches.map(m=>`<div class="pos-match-item"><b>Line ${escapeHtml(m.line)} · ${escapeHtml(m.posDescription||m.description)}</b><span class="pos-match-key">Sub ID ${escapeHtml(m.subId||'(blank)')}</span><span class="pos-match-reason">${escapeHtml(m.reason)}</span><small>${escapeHtml(m.advice)}</small></div>`).join('')}</div>`:''}</div>`:'';
     box.innerHTML=`<div class="pos-balance-heading"><div><strong>POSActive balancing check</strong><span>These figures come from the exact TXT payload currently ready to download.</span></div><span class="pos-balance-status ${exportBalances?'pass':'review'}">${exportBalances?'FILE BALANCES':'REVIEW'}</span></div><div class="pos-balance-grid">${[
       card('Expected POSActive total',money(totals.adjusted),'Use when CP Inc GST is ON','primary'),
       card('CP Inc GST off',money(totals.adjustedEx),'Expected ex-GST footer'),
@@ -412,7 +444,7 @@
       card('Same imported rows—old prices',money(totals.matchedCurrent),'Current POS prices and import quantities'),
       card('Full current POS order',money(totals.current),'Every ordered row, inc GST'),
       card('Supplier invoice total',money(totals.supplierInvoiceTotal),'Before invoice-only omissions or receiving changes')
-    ].join('')}</div><div class="pos-balance-equation"><strong>${money(totals.adjustedEx)} ex GST + ${money(totals.adjustedGst)} GST = ${money(totals.adjusted)} expected in POSActive</strong><span>Compare like-for-like: same order, same included rows and the same CP Inc GST setting.</span></div>${cautions.length?`<div class="pos-balance-cautions">${cautions.map(x=>`<span>${escapeHtml(x)}</span>`).join('')}</div>`:''}`;
+    ].join('')}</div><div class="pos-balance-equation"><strong>${money(totals.adjustedEx)} ex GST + ${money(totals.adjustedGst)} GST = ${money(totals.adjusted)} expected in POSActive</strong><span>Compare like-for-like: same order, same included rows and the same CP Inc GST setting.</span></div>${invoiceEquation}${matchBlock}${cautions.length?`<div class="pos-balance-cautions">${cautions.map(x=>`<span>${escapeHtml(x)}</span>`).join('')}</div>`:''}`;
   }
 
   // v2.6.30 — billed invoice lines that are not on the POS order are appended to POS
@@ -461,7 +493,8 @@
     state.unpackManualChecked=new Set();
     state.unpackCounts=new Map();
     state.receivingMigratedFrom266=false;
-    state.posSortKey='__pos_order_index';state.posSortDir='asc';
+    state.posSortKey='__pos_order_index';state.posSortDir='asc';state.posSortExplicit=false;
+    completionStamps.clear();
     state.unpackKey=unpackStorageKey();
     state.unpackCountsKey=unpackCountsStorageKey();
   }
@@ -578,13 +611,21 @@
       return cmp*dir;
     });
   }
+  // v2.6.31 — Completed rows are listed most recently completed first (so the docked
+  // Completed panel shows what was just checked) until staff click a column heading.
+  const completionStamps=new Map();let completionStamp=0;
   function posPreviewSections(detailBySourceRow){
     const base=sortedPosRows(),remaining=[],complete=[];
     for(let i=0;i<base.length;i++){
       const pos=base[i],detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(i);
       (unpackRowComplete(pos,detail)?complete:remaining).push(pos);
     }
-    return {remaining:sortPosPreviewRows(remaining,detailBySourceRow),complete:sortPosPreviewRows(complete,detailBySourceRow)};
+    const completeKeys=new Set(complete.map(unpackIdentity));
+    for(const key of [...completionStamps.keys()])if(!completeKeys.has(key))completionStamps.delete(key);
+    let stamp=0;for(const key of completeKeys)if(!completionStamps.has(key)){if(!stamp)stamp=++completionStamp;completionStamps.set(key,stamp);}
+    let completeSorted=sortPosPreviewRows(complete,detailBySourceRow);
+    if(!state.posSortExplicit)completeSorted=completeSorted.slice().sort((a,b)=>(completionStamps.get(unpackIdentity(b))||0)-(completionStamps.get(unpackIdentity(a))||0)||((Number(a&&a.posIndex)||0)-(Number(b&&b.posIndex)||0)));
+    return {remaining:sortPosPreviewRows(remaining,detailBySourceRow),complete:completeSorted};
   }
   function completionCount(rows,detailBySourceRow){
     let done=0;for(let i=0;i<(rows||[]).length;i++){const pos=rows[i],detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(i);if(unpackRowComplete(pos,detail))done++;}return done;
@@ -895,7 +936,7 @@
     }
     if(state.receivingMigratedFrom266){state.receivingMigratedFrom266=false;stateChanged=true;}
     if(stateChanged){saveUnpackCounts();saveUnpackChecklist();}
-    const selectedCount=baseRows.reduce((n,pos)=>n+(state.unpackChecked.has(unpackIdentity(pos))?1:0),0),allSelected=baseRows.length>0&&selectedCount===baseRows.length,partSelected=selectedCount>0&&!allSelected;
+    const orderBaseRows=baseRows.filter(pos=>!(pos&&pos.invoiceOnly)),selectedCount=baseRows.reduce((n,pos)=>n+(state.unpackChecked.has(unpackIdentity(pos))?1:0),0),allSelected=orderBaseRows.length>0&&orderBaseRows.every(pos=>state.unpackChecked.has(unpackIdentity(pos))),partSelected=selectedCount>0&&!allSelected;
     if(els.tickAllBtn){els.tickAllBtn.textContent=allSelected?'Untick all':'Tick all';els.tickAllBtn.title=allSelected?'Untick all — clear all Found quantities and return rows to Remaining':'Tick all — untouched rows use expected CH2 supplied qty';}
     // v2.6.30 — one header-cell builder for the main sticky header and the Completed section
     // header row, so both carry the same sortable headings (sorting applies to both sections).
@@ -911,13 +952,13 @@
     els.tableHead.innerHTML=`<tr>${POS_VIEW_COLUMNS.map(c=>headerCell(c,true)).join('')}</tr>`;
     const sections=posPreviewSections(detailBySourceRow);
     const progress=updateChecklistUi(baseRows,detailBySourceRow);
-    const renderPosRow=(pos,zebraIndex=0)=>{
+    const renderPosRow=(pos,zebraIndex=0,dockRow=false)=>{
       const detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(Math.max(0,(Number(pos&&pos.posIndex)||1)-1)),notSupplied=!detail||Number(detail.suppliedQty||0)<=0;
       const checkKey=unpackIdentity(pos),unpackDone=state.unpackChecked.has(checkKey);
       // v2.6.28 — a not-invoiced row that staff physically received (Found > 0) is exported
       // as a manual POSActive line, so it is shown as live stock rather than struck through.
       const manualReceived=notSupplied&&state.unpackCounts.has(checkKey)&&unpackCountFor(pos)>0;
-      const rowClasses=[zebraIndex%2?'pos-row-even':'pos-row-odd',notSupplied&&!manualReceived?'pos-not-supplied':'',manualReceived?'pos-manual-received':'',pos&&pos.invoiceOnly?'pos-invoice-only':'',unpackDone?'unpack-checked':''].filter(Boolean).join(' ');
+      const rowClasses=[zebraIndex%2?'pos-row-even':'pos-row-odd',notSupplied&&!manualReceived?'pos-not-supplied':'',manualReceived?'pos-manual-received':'',pos&&pos.invoiceOnly?'pos-invoice-only':'',unpackDone?'unpack-checked':'',dockRow?'pos-dock-member pos-dock-row':''].filter(Boolean).join(' ');
       const cells=POS_VIEW_COLUMNS.map(c=>{
         const v=posColumnValue(pos,c,detail);let html='',extraCls='',title='';
         if(c.kind==='check'){
@@ -967,11 +1008,11 @@
     };
     const sectionHtml=[];let zebraIndex=0;
     if(sections.remaining.length){sectionHtml.push(`<tr class="pos-section-row pos-section-remaining"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Remaining / to check</strong><span>${sections.remaining.length} item${sections.remaining.length===1?'':'s'}</span></td></tr>`);for(const pos of sections.remaining)sectionHtml.push(renderPosRow(pos,zebraIndex++));}
-    if(sections.complete.length){sectionHtml.push(`<tr class="pos-section-row pos-section-complete" data-jump-completed="1" title="Click to jump between Completed / accounted rows and the top of Remaining"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Completed / accounted</strong><span>${sections.complete.length} item${sections.complete.length===1?'':'s'} · untick a row to clear Found and return it to Remaining · click this bar to jump ↕</span></td></tr>`);sectionHtml.push(`<tr class="pos-section-head" aria-label="Completed section column headings">${POS_VIEW_COLUMNS.map(c=>headerCell(c,false)).join('')}</tr>`);for(const pos of sections.complete)sectionHtml.push(renderPosRow(pos,zebraIndex++));}
+    if(sections.complete.length){sectionHtml.push(`<tr class="pos-section-row pos-section-complete pos-dock-member" data-jump-completed="1" title="Click to jump between Completed / accounted rows and the top of Remaining"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Completed / accounted</strong><span>${sections.complete.length} item${sections.complete.length===1?'':'s'}${state.posSortExplicit?'':' · most recently checked first'} · untick a row to clear Found and return it to Remaining · click this bar to jump ↕</span></td></tr>`);sectionHtml.push(`<tr class="pos-section-head pos-dock-member" aria-label="Completed section column headings">${POS_VIEW_COLUMNS.map(c=>headerCell(c,false)).join('')}</tr>`);sections.complete.forEach((pos,i)=>sectionHtml.push(renderPosRow(pos,zebraIndex++,i<DOCK_COMPLETED_ROWS)));}
     els.tableBody.innerHTML=sectionHtml.length?sectionHtml.join(''):`<tr><td colspan="${POS_VIEW_COLUMNS.length}">No POS order rows available.</td></tr>`;
 
     const sortPosBy=key=>{
-      if(!key)return;
+      if(!key)return;state.posSortExplicit=true;
       if(state.posSortKey===key)state.posSortDir=state.posSortDir==='asc'?'desc':'asc';else{state.posSortKey=key;state.posSortDir='asc';}
       renderPosTable();
     };
@@ -991,9 +1032,12 @@
       const toggle=e.target.closest('[data-toggle-all]'),clear=e.target.closest('[data-clear-qty]'),sort=e.target.closest('[data-sort-key]');
       if(toggle){
         e.preventDefault();e.stopPropagation();
-        const currentlyAll=baseRows.length>0&&baseRows.every(pos=>state.unpackChecked.has(unpackIdentity(pos))),selectAll=!currentlyAll;
+        // v2.6.31 — Tick all covers the POS-order rows. Invoice-only (INV, not on the order)
+        // rows are left for a deliberate tick because POSActive cannot match them to the order.
+        const orderRows=baseRows.filter(pos=>!(pos&&pos.invoiceOnly)),currentlyAll=orderRows.length>0&&orderRows.every(pos=>state.unpackChecked.has(unpackIdentity(pos))),selectAll=!currentlyAll;
         for(let i=0;i<baseRows.length;i++){
           const pos=baseRows[i],key=unpackIdentity(pos),detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(i);
+          if(selectAll&&pos&&pos.invoiceOnly)continue;
           if(selectAll){
             if(!state.unpackCounts.has(key))state.unpackCounts.set(key,unpackExpectedQty(pos,detail));
             state.unpackManualChecked.add(key);state.unpackChecked.add(key);
@@ -1040,7 +1084,7 @@
       }
       else{els.tableFoot.innerHTML='';renderPosBalance(null);}
     }
-    ensurePosResizeObserver();schedulePosColumnSizing();ensureStickyTracking();
+    ensurePosResizeObserver();schedulePosColumnSizing();updateStickyOffsets();ensureStickyTracking();
   }
   function renderPreview(r){if(state.previewView==='pos')renderPosTable();else renderReconTable(r);setViewButtons();}
 
@@ -1112,6 +1156,11 @@
       const exportResult=await PHF.exportView(state.previewView,state.docs,state.refs,state.posParsed,state.result,posExportOptions());
       const label=state.previewView==='pos'?'POSActive merged import file':'exceptions Excel';
       const warningCount=state.previewView==='pos'&&exportResult&&Array.isArray(exportResult.warnings)?exportResult.warnings.length:0;
+      const mc=state.previewView==='pos'&&exportResult&&exportResult.matchCheck;
+      if(mc&&mc.mismatches&&mc.mismatches.length){
+        setStatus(`${label} generated · ${mc.matched}/${mc.total} lines match Sub IDs on POS order ${mc.orderNumber}. POSActive will flag ${mc.mismatches.length}: ${mc.mismatches.map(m=>`line ${m.line} ${m.posDescription||m.description} (${m.reason.toLowerCase()})`).join('; ')}. See the POSActive match check above the table for the fix.`,'warn');
+        return;
+      }
       const receivingAdjustments=state.previewView==='pos'&&exportResult?Number(exportResult.receivingAdjustments||0):0;
       if(warningCount||receivingAdjustments){
         const parts=[];if(receivingAdjustments)parts.push(`${receivingAdjustments} POS Layout receiving adjustment${receivingAdjustments===1?'':'s'} applied`);if(warningCount)parts.push(`${warningCount} validation note${warningCount===1?'':'s'}`);

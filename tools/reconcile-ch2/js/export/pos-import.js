@@ -92,7 +92,8 @@
     if(manual&&manual!==orderSubId)issues.push('User-selected key differs from the uploaded order. Confirm this key exists in POSActive; editing this field only changes the TXT.');
     if(masterSubIds.length>1)issues.push('Aligned master has multiple Sub IDs for this product; no alternative was selected automatically.');
     else if(masterSubIds.length===1&&orderSubId&&masterSubIds[0]!==orderSubId)issues.push('Aligned master Sub ID differs from the order. The order key is retained unless you enter an override.');
-    if(/["$%]/.test(importSubId))issues.push('Special characters are preserved literally and do not block export.');
+    // v2.6.31 — Sub IDs are existing POSActive data. Spaces, %, $, " and other characters are
+    // exported exactly as stored (e.g. `3 PER SKU 25%`) and are not a review condition.
     if(!importSubId)issues.push('No single import key could be resolved.');
     return {barcode,plu,orderSubId,masterSubIds,masterCandidates:candidates,invoiceCodes:codes,invoiceSupplierCodes:supplierCodes,importSubId,source,issues,status:issues.length?'REVIEW':'ORDER KEY',masterLinked:candidates.length>0};
   }
@@ -404,11 +405,9 @@
       if(/["$%]/.test(rawSupplierCode))warnings.push(`Invoice line ${lineText(inv.invoiceLine)}: POSActive-forbidden quote / dollar / percent character removed from Supplier Code for import only; reconciliation data is unchanged.`);
       if(/["$%]/.test(rawDescription))warnings.push(`Invoice line ${lineText(inv.invoiceLine)}: POSActive-forbidden quote / dollar / percent character removed from Description for import only; reconciliation data is unchanged.`);
       if(/[\t\r\n]/.test(subId))pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)} · ${lineLabel(ctx.pos,ctx.index)}: Sub ID contains a TAB or line break, which would corrupt the 15-column POSActive file. Correct the POS Sub ID before export.`);
-      if(/["$%]/.test(subId)){
-        const found=[...new Set((subId.match(/["$%]/g)||[]))],masterSub=code(ctx.identity.masterSubId);
-        warnings.push(`Invoice line ${lineText(inv.invoiceLine)} · ${lineLabel(ctx.pos,ctx.index)}: REVIEW POS SUB ID "${subId}" — contains special character${found.length===1?'':'s'} ${found.map(x=>`[${x}]`).join(' ')}. POSActive permits these characters, so export is allowed and the literal Sub ID is preserved. CH2 ITEM CODE is ${ch2Code||'not resolved'}.${masterSub&&normCode(masterSub)!==normCode(subId)?` Master/reference Sub ID is "${masterSub}".`:''} If POSActive reports a supplier-order mismatch, verify that this POS Sub ID is the intended supplier key.`);
-      }
-      if(/[A-Za-z]/.test(subId)&&/\s/.test(subId)&&/\b(?:ORDER|PER|SKU|PROMO|SPECIAL|FREE|OFF|DEAL|BUY|SAVE)\b/i.test(subId))warnings.push(`Invoice line ${lineText(inv.invoiceLine)} · ${lineLabel(ctx.pos,ctx.index)}: REVIEW SUB ID "${subId}" — it resembles ordering/promotion text rather than a stable supplier product code.`);
+      // v2.6.31 — the Sub ID (column 5) is written exactly as stored in POSActive, including
+      // spaces and % $ " characters (e.g. `3 PER SKU 25%`). Only TAB/CR/LF are refused above
+      // because they would split the tab-delimited record.
       if(!subId)pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)}: Sub ID cannot be resolved from the POS order or CH2 product code.`);
       if(subId&&subId!==ch2Code)warnings.push(`IMPORT SUB ID — CH2 ${ch2Code} uses ${importIdentity.source} key ${subId} for ${description}.`);
       const predWs=round(round(ext/outQty,2)/(1-disc/100),2),wsRounded=round(normalWs,2),wsDiff=round(predWs-wsRounded,2);
@@ -460,7 +459,29 @@
       r.invoiceNo,r.line,r.ch2Code,r.supplierCode,r.subId,r.description,qtyText(r.qty),qtyText(r.qtySupplied),fixed(r.normalWs,2),fixed(r.unitPrice,4),fixed(r.rebate,2),fixed(r.extended,2),fixed(r.gst,2),fixed(r.total,2),fixed(r.disc,2)
     ])];
     const text=makeTsv(rows);
-    return {group,rows,records,text,totals,sourceTotals,receivingChanges,errors,warnings};
+    // v2.6.31 — predict POSActive's "Invoice items do not match suppliers order items" check.
+    const matchCheck=posActiveMatchCheck(records,posOrder);
+    if(matchCheck.mismatches.length){
+      warnings.unshift(`POSACTIVE MATCH CHECK — ${matchCheck.mismatches.length} of ${matchCheck.total} TXT line${matchCheck.total===1?'':'s'} ${matchCheck.mismatches.length===1?'has a Sub ID':'have Sub IDs'} that ${matchCheck.mismatches.length===1?'is':'are'} not on POS order ${matchCheck.orderNumber}. POSActive will report ${matchCheck.mismatches.length===1?'it':'them'} as not matching the supplier order: ${matchCheck.mismatches.map(m=>`line ${m.line} ${m.description} [${m.subId||'blank'}] — ${m.reason}`).join('; ')}.`);
+    }
+    return {group,rows,records,text,totals,sourceTotals,receivingChanges,errors,warnings,matchCheck};
+  }
+
+  // Every TXT line is matched by POSActive against the Sub IDs on the open supplier order.
+  // A line whose Sub ID is not on the uploaded POS order will be reported by POSActive's
+  // Matching Status check, so it is identified here with the reason and the fix.
+  function posActiveMatchCheck(records,posOrder){
+    const orderNo=clean(posOrder&&posOrder.orderNumber),orderKeys=new Set(((posOrder&&posOrder.rows)||[]).map(p=>clean(p&&p.subId)).filter(Boolean)),mismatches=[];
+    for(const r of records||[]){
+      const key=clean(r&&r.subId),pos=(r&&r.pos)||{},name=clean(pos.description)||clean(r&&r.description);
+      if(key&&orderKeys.has(key))continue;
+      let reason,advice;
+      if(pos.invoiceOnly){reason='NOT ON POS ORDER';advice=`Add ${name} to POSActive order ${orderNo} (Sub ID ${key||'blank'}), re-export the order and run again — or untick it here and receive it separately.`;}
+      else if(!clean(pos.subId)){reason='POS ORDER ROW HAS NO SUB ID';advice=`Set a Sub ID for ${name} (PLU ${clean(pos.plu)||'?'}) in POSActive — e.g. CH2 code ${clean(r&&r.ch2Code)||key} — then re-export the order and run again. The TXT currently sends ${key||'blank'} (${clean(r&&r.importIdentity&&r.importIdentity.source)||'fallback'}).`;}
+      else{reason='SUB ID DIFFERS FROM ORDER';advice=`The order row has Sub ID "${clean(pos.subId)}" but the TXT sends "${key}". Use the order's Sub ID or update POSActive.`;}
+      mismatches.push({invoiceNo:r.invoiceNo,line:r.line,subId:key,description:clean(r.description),posDescription:name,reason,advice,total:n(r.total)||0,invoiceOnly:!!pos.invoiceOnly,manual:!!r.manualReceiving,sourceRow:pos.sourceRow});
+    }
+    return {total:(records||[]).length,matched:(records||[]).length-mismatches.length,mismatches,orderNumber:orderNo};
   }
 
   function makeTsv(rows){
@@ -503,9 +524,6 @@
       }
       const subId=String(row[4]||'');
       if(/[\t\r\n]/.test(subId))pushIssue(errors,`Serialized POSActive row ${i+1} Sub ID contains a TAB or line break.`);
-      if(/["$%]/.test(subId)&&!warnings.some(w=>String(w).includes(`POS Sub ID "${subId}"`))){
-        pushIssue(warnings,`Serialized POSActive row ${i+1} POS Sub ID "${subId}" contains a quote, dollar or percent character. POSActive permits these characters; the literal key is preserved and export remains enabled.`);
-      }
     }
     return {ok:errors.length===0,errors,warnings};
   }
@@ -538,8 +556,8 @@
   async function exportLegacyPosImport(invoiceDocs,refs,posOrder,reconciliation,options={}){
     const built=buildLegacyFiles(invoiceDocs,refs,posOrder,reconciliation,options);if(!built.ok)throw new Error(errorMessage(built.errors));
     if(built.files.length!==1)throw new Error('POSActive export expected exactly one merged TXT file. Refresh and run the reconciliation again.');
-    const f=built.files[0];downloadBlob(new Blob([f.text],{type:'text/plain;charset=utf-8'}),f.filename);return {filename:f.filename,files:1,rows:f.records.length,columns:15,validation:f.validation,warnings:built.warnings,receivingAdjustments:f.receivingChanges.length,totals:f.totals,sourceTotals:f.sourceTotals,invoiceNumbers:f.invoiceNumbers||[]};
+    const f=built.files[0];downloadBlob(new Blob([f.text],{type:'text/plain;charset=utf-8'}),f.filename);return {filename:f.filename,files:1,rows:f.records.length,columns:15,validation:f.validation,warnings:built.warnings,receivingAdjustments:f.receivingChanges.length,totals:f.totals,sourceTotals:f.sourceTotals,invoiceNumbers:f.invoiceNumbers||[],matchCheck:f.matchCheck||null};
   }
 
-  PHF.posImport={CONTRACT,groupDocuments,buildLegacyFiles,validatePayload,exportLegacyPosImport,makeTsv,parseTsv,resolveImportIdentity,reviewImportKeys,exportKeyReview,importFilename,masterRecordsForPos,posWholesaleFallback,invoiceOnlyKey,invoiceOnlyEntries};
+  PHF.posImport={CONTRACT,groupDocuments,buildLegacyFiles,validatePayload,exportLegacyPosImport,makeTsv,parseTsv,resolveImportIdentity,reviewImportKeys,exportKeyReview,importFilename,masterRecordsForPos,posWholesaleFallback,invoiceOnlyKey,invoiceOnlyEntries,posActiveMatchCheck};
 })(window);

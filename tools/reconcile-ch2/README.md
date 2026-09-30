@@ -1,4 +1,19 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.30
+# Prahran Health Foods — CH2 Reconciler v2.6.31
+
+## v2.6.31 — POSActive match check, literal Sub IDs, docked Completed panel, derived Disc %
+
+- **POSActive match check:** before download, every TXT line's Sub ID is checked against the Sub IDs on the uploaded POS order — the same test behind POSActive's "Invoice items do not match suppliers order items" warning. Mismatches are listed above the table with the reason and fix: `NOT ON POS ORDER` (add it to the POSActive order and re-export), `POS ORDER ROW HAS NO SUB ID` (set a Sub ID in POSActive, e.g. the CH2 code) or `SUB ID DIFFERS FROM ORDER`. Verified: it predicts the 3 lines POSActive flagged for order 103-0021647 (PUKKA line 31, ORA MAG3 line 35, JJ FINGER BRUSH line 83).
+- **Literal Sub IDs:** Sub IDs are existing POSActive data and are written to column 5 exactly as stored, including spaces and `%` `$` `"` (e.g. `3 PER SKU 25%`). Special-character and promotion-text review notes are removed. Only TAB/CR/LF remain refused (they would split the file).
+- **Invoice reconciliation line:** the balancing panel states `Supplier invoice = lines on POS order + not on POS order`, listing each invoice-only line with its total and whether it is included.
+- **Tick all** now ticks the POS-order rows only; `INV` rows (billed but not on the POS order) are ticked individually, once they are on the POSActive order.
+- **Docked Completed panel:** the Completed bar, its headings and the first 4 completed products stay docked above the footer while working through Remaining (shrinking automatically if little of the table is on screen). Completed rows are listed most recently checked first until a heading is clicked.
+- **Derived Disc %:** when CH2 prints no Disc %, the effective discount (1 − Unit Price ÷ Normal W/S) is used everywhere — e.g. JJ FINGER BRUSH shows 0.00% against the expected 8.00% (red, below expected) and the audit reports DISCOUNT LOW.
+- **Headings** are centred horizontally and vertically; resolved Sub IDs (e.g. JJ) use the same styling as every other value, with the source in the tooltip.
+- All v2.6.30 behaviour, the 15-column POSActive contract and the 43-column workbook are otherwise unchanged.
+
+Suggested commit summary:
+
+`v2.6.31: Add POSActive Sub ID match check, keep Sub IDs literal, dock Completed panel`
 
 ## v2.6.30 — invoice-only receiving (balances to the supplier invoice), wrapped headings, Completed headings
 

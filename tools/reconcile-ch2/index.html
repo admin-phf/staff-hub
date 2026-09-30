@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Prahran Health Foods — Reconcile CH2 Order</title>
-  <link rel="stylesheet" href="./css/app.css?v=2630">
+  <link rel="stylesheet" href="./css/app.css?v=2631">
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
@@ -75,7 +75,7 @@
       <div class="order-override-panel hidden" id="orderOverrideBox" aria-live="polite"></div>
       <div class="notice hidden" id="importKeySummary" aria-live="polite"></div>
       <div class="pos-tools hidden" id="posTools">
-        <span class="pos-tools-note">Receiving checklist · Add Qty accumulates in Found · Enter moves to the next Add Qty row · exact Found = invoiced/supplied qty completes automatically · under/over counts stay in Remaining until resolved or manually ticked · if an exact count is later corrected short/over it returns to Remaining; only a left-checkbox manual acceptance stays completed · unticking a row clears Found so a miscount can be restarted · unticked rows are treated as not supplied in the POSActive download · a ticked not-invoiced row with Found &gt; 0 is added to the POSActive download as a manual receiving line · enter 0 to clear Found and account for none supplied · Clear qty is above Add Qty · click sortable column headings to reorder Remaining and Completed sections · Total inc GST = receiving qty × AdjCatPrc + GST · POS Index preserves the original POS-order sequence · CH2 Line identifies supplier invoice lines · Found: red = under, grey = correct, green = over</span>
+        <span class="pos-tools-note">Receiving checklist · Add Qty accumulates in Found · Enter moves to the next Add Qty row · exact Found = invoiced/supplied qty completes automatically · under/over counts stay in Remaining until resolved or manually ticked · if an exact count is later corrected short/over it returns to Remaining; only a left-checkbox manual acceptance stays completed · unticking a row clears Found so a miscount can be restarted · unticked rows are treated as not supplied in the POSActive download · a ticked not-invoiced row with Found &gt; 0 is added to the POSActive download as a manual receiving line · Tick all covers POS-order rows; tick INV rows (billed but not on the POS order) individually once they are on the POSActive order · enter 0 to clear Found and account for none supplied · Clear qty is above Add Qty · click sortable column headings to reorder Remaining and Completed sections · Total inc GST = receiving qty × AdjCatPrc + GST · POS Index preserves the original POS-order sequence · CH2 Line identifies supplier invoice lines · Found: red = under, grey = correct, green = over</span>
       </div>
       <div class="pos-balance-panel hidden" id="posBalancePanel" aria-live="polite"></div>
       <div class="actions result-actions result-controls-sticky" aria-label="Reconciliation downloads and views">
@@ -110,16 +110,16 @@
     </section>
   </main>
 
-  <script src="./js/reference/reference-config.js?v=2630"></script>
-  <script src="./js/reference/reference-data.js?v=2630"></script>
-  <script src="./js/core/schema.js?v=2630"></script>
-  <script src="./js/core/integrity.js?v=2630"></script>
-  <script src="./js/parsers/pos-order.js?v=2630"></script>
-  <script src="./js/parsers/supplier-invoice.js?v=2630"></script>
-  <script src="./js/core/reconcile.js?v=2630"></script>
-  <script src="./js/core/linked-pos.js?v=2630"></script>
-  <script src="./js/export/pos-import.js?v=2630"></script>
-  <script src="./js/export/report.js?v=2630"></script>
-  <script src="./js/app.js?v=2630"></script>
+  <script src="./js/reference/reference-config.js?v=2631"></script>
+  <script src="./js/reference/reference-data.js?v=2631"></script>
+  <script src="./js/core/schema.js?v=2631"></script>
+  <script src="./js/core/integrity.js?v=2631"></script>
+  <script src="./js/parsers/pos-order.js?v=2631"></script>
+  <script src="./js/parsers/supplier-invoice.js?v=2631"></script>
+  <script src="./js/core/reconcile.js?v=2631"></script>
+  <script src="./js/core/linked-pos.js?v=2631"></script>
+  <script src="./js/export/pos-import.js?v=2631"></script>
+  <script src="./js/export/report.js?v=2631"></script>
+  <script src="./js/app.js?v=2631"></script>
 </body>
 </html>

@@ -445,7 +445,7 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .results .preview-pos tbody tr.pos-section-complete>td{
   position:sticky!important;
   top:calc(var(--result-sticky-top,0px) + var(--result-head-h,0px));
-  bottom:calc(var(--result-sticky-bottom,0px) + var(--result-foot-h,0px));
+  bottom:calc(var(--result-sticky-bottom,0px) + var(--result-foot-h,0px) + var(--dock-bottom,0px));
   z-index:4;
   cursor:pointer;
   box-shadow:0 -2px 6px rgba(15,31,51,.18),0 2px 6px rgba(15,31,51,.18);
@@ -503,3 +503,46 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .results .preview-pos tbody tr.pos-invoice-only td.pos-order-index{color:#8a5200;font-weight:900;letter-spacing:.02em}
 .build-label.build-stale{color:var(--red);font-weight:800}
 .stale-build-notice{margin:0 0 12px}
+
+/* v2.6.31 — docked Completed panel: bar + headings + the first (most recently checked)
+   completed products stay above the footer while working through Remaining. */
+.results .preview-pos tbody tr.pos-dock-row:not([data-dock-off])>td,
+.results .preview-pos tbody tr.pos-section-head.pos-dock-member:not([data-dock-off])>th{
+  position:sticky!important;top:auto;
+  bottom:calc(var(--result-sticky-bottom,0px) + var(--result-foot-h,0px) + var(--dock-bottom,0px));
+  z-index:3;
+}
+.results .preview-pos tbody tr.pos-dock-row.pos-row-odd>td{background-color:#E9F0F5}
+.results .preview-pos tbody tr.pos-dock-row.pos-row-even>td{background-color:#F5F5F5}
+.results .preview-pos tbody tr.pos-dock-row.pos-row-odd>td.price-same{background-color:#E9F0F5!important}
+.results .preview-pos tbody tr.pos-dock-row.pos-row-even>td.price-same{background-color:#F5F5F5!important}
+.table-wrap.preview-pos{
+  scroll-padding-top:calc(var(--result-sticky-top,0px) + var(--result-head-h,0px) + var(--result-dockbar-h,0px) + 4px);
+  scroll-padding-bottom:calc(var(--result-sticky-bottom,0px) + var(--result-foot-h,0px) + var(--result-dock-h,0px) + 4px);
+}
+
+/* Headings: centred horizontally and vertically in the main and Completed heading rows. */
+.results .preview-pos thead th,
+.results .preview-pos tbody tr.pos-section-head>th{text-align:center!important;vertical-align:middle!important}
+.results .preview-pos thead th .pos-sort-button,
+.results .preview-pos tbody tr.pos-section-head>th .pos-sort-button{text-align:center!important}
+.results .preview-pos thead th .pos-header-stack{justify-content:center;align-items:center}
+
+/* Sub IDs resolved from the master / invoice (e.g. JJ FINGER BRUSH) look like any other
+   extracted value; the tooltip still explains the source. */
+.results .preview-pos td.pos-subid-derived{font-style:normal;color:inherit}
+
+/* v2.6.31 — invoice reconciliation line and POSActive Sub ID match check. */
+.pos-balance-reconcile{display:flex;flex-direction:column;gap:3px;padding:7px 11px;background:#f3f7fb;border-top:1px solid #dbe3e9;color:#1E3A5F;font-size:11.5px}
+.pos-balance-reconcile span{color:#53616d;font-size:10.5px}
+.pos-match-check{border-top:1px solid #dbe3e9;padding:8px 11px;font-size:11.5px}
+.pos-match-check.good{background:#E6F4EA;color:#0F6B36}
+.pos-match-check.bad{background:#FCE8E6;color:#8f1d19}
+.pos-match-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.pos-match-head strong{font-size:12.5px}
+.pos-match-list{display:grid;gap:5px;margin-top:6px}
+.pos-match-item{display:grid;grid-template-columns:minmax(220px,1.3fr) minmax(120px,.6fr) minmax(150px,.7fr) minmax(260px,2fr);gap:10px;align-items:baseline;padding:5px 8px;background:#fff;border:1px solid #f1c7c7;border-radius:6px;color:#3c2a2a}
+.pos-match-key{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px}
+.pos-match-reason{font-weight:900;font-size:10.5px;letter-spacing:.03em;color:#C5221F}
+.pos-match-item small{color:#5f4b4b;font-size:10.5px;line-height:1.35}
+@media(max-width:1100px){.pos-match-item{grid-template-columns:1fr}}
