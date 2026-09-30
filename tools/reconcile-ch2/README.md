@@ -1,4 +1,17 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.29
+# Prahran Health Foods — CH2 Reconciler v2.6.30
+
+## v2.6.30 — invoice-only receiving (balances to the supplier invoice), wrapped headings, Completed headings
+
+- **Balancing:** billed invoice lines that are not on the uploaded POS order (e.g. PUKKA Three Mint line 31, ORA MAG3 Mood line 35) now appear in POS Layout as `INV` rows (amber edge) built from the aligned master for their CH2 code. Tick them or enter Found to include them in the POSActive TXT and totals; untouched + unticked still means not supplied. With every row ticked the Expected POSActive total equals the supplier invoice total (verified: $7,353.94 for invoices 74141235 + 74147128 / order 103-0021647).
+- The balancing panel now reports invoice-only lines as omitted only while unticked, and separately lists included invoice-only lines (POSActive can only apply them if the product is on the open order).
+- **Headings wrap** between words (never mid-word) in the main header; column widths now only need each heading's longest word plus its sort arrow.
+- **Completed section headings:** a sortable heading row sits directly under the Completed / accounted bar. Sorting from either heading row reorders both sections.
+- **Stale deployment guard:** if `index.html` is older than the loaded scripts, the page shows a red notice and the build label says `index.html out of date`.
+- All v2.6.29 behaviour, the 15-column POSActive contract and the 43-column workbook are otherwise unchanged.
+
+Suggested commit summary:
+
+`v2.6.30: Receive invoice-only lines, wrap headings, add Completed section headings`
 
 ## v2.6.29 — invoiced non-CH2-master items, sticky receiving actions, view-driven download
 

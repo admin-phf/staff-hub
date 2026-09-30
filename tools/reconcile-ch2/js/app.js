@@ -119,7 +119,7 @@
   }
   function posExportOptions(){
     const receivingBySourceRow={},selectedBySourceRow={},detailBySourceRow=posDetailMap();
-    const rows=(state.posParsed&&state.posParsed.rows)||[];
+    const rows=sortedPosRows();
     for(let i=0;i<rows.length;i++){
       const pos=rows[i],key=unpackIdentity(pos),sourceKey=String(pos&&pos.sourceRow!=null?pos.sourceRow:'');
       if(!sourceKey)continue;
@@ -253,7 +253,7 @@
   function posColumnValue(pos,c,detail=null){
     if(!pos||!c)return '';
     if(c.key==='__import_sub_id')return importIdentityFor(pos,detail).importSubId;
-    if(c.key==='__pos_order_index')return Number(pos.posIndex||0)||'';
+    if(c.key==='__pos_order_index')return pos.invoiceOnly?'INV':(Number(pos.posIndex||0)||'');
     if(c.key==='__invoice_line')return invoiceLineDisplay(detail);
     if(c.key==='__ch2_item_code')return ch2ItemCodeDisplay(detail);
     if(c.key==='__row_total_inc_gst')return posRowTotalIncGst(pos,detail);
@@ -285,6 +285,7 @@
       const key=String(d&&d.sourceRow!=null?d.sourceRow:'');
       if(key&&!map.has(key))map.set(key,d);
     }
+    for(const e of invoiceOnlyEntries())if(!map.has(e.detail.sourceRow))map.set(e.detail.sourceRow,e.detail);
     return map;
   }
   function weightedInvoiceValue(detail,key){
@@ -369,8 +370,11 @@
       const gstPct=Math.max(0,numberValue(raw.gst_tax_pc)??numberValue(pos.gstPct)??0);
       return sum+currentPrice*qtySupplied*(1+gstPct/100);
     },0);
-    const invoiceOnlyRows=(state.result&&state.result.unmatchedInvoice)||[];
+    // Invoice-only lines are omitted only while they are not ticked/counted in POS Layout.
+    const receivedInvoiceOnly=records.filter(record=>record&&record.invoiceOnly),receivedInvoiceOnlyKeys=new Set(receivedInvoiceOnly.map(record=>String(record.pos&&record.pos.sourceRow)));
+    const invoiceOnlyRows=invoiceOnlyEntries().filter(e=>!receivedInvoiceOnlyKeys.has(String(e.pos.sourceRow))).map(e=>e.inv);
     const invoiceOnlyTotal=invoiceOnlyRows.reduce((sum,row)=>sum+(numberValue(row&&row.totalIncGst)||0),0);
+    const invoiceOnlyReceivedTotal=receivedInvoiceOnly.reduce((sum,record)=>sum+(numberValue(record.total)||0),0);
     // v2.6.28 — not-invoiced rows that staff received (Found > 0) are exported as manual
     // receiving lines, so they are reported separately from genuinely not-supplied rows.
     const manualRecords=records.filter(record=>record&&record.manualReceiving),manualRows=new Set(manualRecords.map(record=>String(record.pos&&record.pos.sourceRow!=null?record.pos.sourceRow:'')));
@@ -386,7 +390,7 @@
       const gstPct=Math.max(0,numberValue(raw.gst_tax_pc)??numberValue(pos.gstPct)??0);
       notInvoicedTotal+=currentPrice*qtyNow*(1+gstPct/100);
     }
-    return {current,matchedCurrent,adjusted,adjustedEx,adjustedGst,supplierInvoiceTotal,invoiceOnlyCount:invoiceOnlyRows.length,invoiceOnlyTotal,notInvoicedCount,notInvoicedTotal,manualCount:manualRecords.length,manualTotal,recordCount:records.length};
+    return {current,matchedCurrent,adjusted,adjustedEx,adjustedGst,supplierInvoiceTotal,invoiceOnlyCount:invoiceOnlyRows.length,invoiceOnlyTotal,invoiceOnlyReceivedCount:receivedInvoiceOnly.length,invoiceOnlyReceivedTotal,notInvoicedCount,notInvoicedTotal,manualCount:manualRecords.length,manualTotal,recordCount:records.length};
   }
 
   function renderPosBalance(totals){
@@ -394,7 +398,8 @@
     if(!totals){box.classList.add('hidden');box.innerHTML='';return;}
     const exportBalances=totals.adjusted!=null&&totals.adjustedEx!=null&&totals.adjustedGst!=null&&Math.abs((totals.adjustedEx+totals.adjustedGst)-totals.adjusted)<=.02;
     const cautions=[];
-    if(totals.invoiceOnlyCount)cautions.push(`${totals.invoiceOnlyCount} billed invoice-only product${totals.invoiceOnlyCount===1?' is':'s are'} omitted from the POSActive import (${money(totals.invoiceOnlyTotal)} inc GST) because no matching POS-order row exists.`);
+    if(totals.invoiceOnlyCount)cautions.push(`${totals.invoiceOnlyCount} billed invoice-only product${totals.invoiceOnlyCount===1?' is':'s are'} not on the POS order and not ticked, so ${totals.invoiceOnlyCount===1?'it is':'they are'} omitted from the POSActive import (${money(totals.invoiceOnlyTotal)} inc GST). Tick the INV rows in POS Layout to include them — this is the difference to the supplier invoice total.`);
+    if(totals.invoiceOnlyReceivedCount)cautions.push(`${totals.invoiceOnlyReceivedCount} invoice-only product${totals.invoiceOnlyReceivedCount===1?' is':'s are'} included (${money(totals.invoiceOnlyReceivedTotal)} inc GST) although not on the POS order. POSActive can only apply ${totals.invoiceOnlyReceivedCount===1?'it':'them'} if the product is on the open order; add ${totals.invoiceOnlyReceivedCount===1?'it':'them'} to the order first if the import rejects ${totals.invoiceOnlyReceivedCount===1?'it':'them'}.`);
     if(totals.manualCount)cautions.push(`${totals.manualCount} not-invoiced POS-order product${totals.manualCount===1?' was':'s were'} manually received with a Found quantity and ${totals.manualCount===1?'is':'are'} included in the TXT and totals (${money(totals.manualTotal)} inc GST) using POS master CH2_WHOLESALE_EX_GST / POS pricing. Confirm with the supplier that ${totals.manualCount===1?'it was':'they were'} delivered.`);
     if(totals.notInvoicedCount)cautions.push(`${totals.notInvoicedCount} POS-order product${totals.notInvoicedCount===1?' was':'s were'} not invoiced (${money(totals.notInvoicedTotal)} at current ordered value). The TXT cannot clear absent/zero-quantity rows, so confirm they are zero or unticked in POSActive.`);
     if(orderLinkMismatches().length)cautions.push('The invoice Customer PO differs from the uploaded POS order. Confirm the open POSActive order number before comparing totals.');
@@ -410,12 +415,21 @@
     ].join('')}</div><div class="pos-balance-equation"><strong>${money(totals.adjustedEx)} ex GST + ${money(totals.adjustedGst)} GST = ${money(totals.adjusted)} expected in POSActive</strong><span>Compare like-for-like: same order, same included rows and the same CP Inc GST setting.</span></div>${cautions.length?`<div class="pos-balance-cautions">${cautions.map(x=>`<span>${escapeHtml(x)}</span>`).join('')}</div>`:''}`;
   }
 
+  // v2.6.30 — billed invoice lines that are not on the POS order are appended to POS
+  // Layout as receivable rows (cached per reconciliation result).
+  let invoiceOnlyCache={result:null,entries:[]};
+  function invoiceOnlyEntries(){
+    if(!state.result||!state.posParsed||!PHF.posImport||typeof PHF.posImport.invoiceOnlyEntries!=='function')return [];
+    if(invoiceOnlyCache.result!==state.result)invoiceOnlyCache={result:state.result,entries:PHF.posImport.invoiceOnlyEntries(state.result,state.refs,state.posParsed)};
+    return invoiceOnlyCache.entries;
+  }
   function sortedPosRows(){
-    return ((state.posParsed&&state.posParsed.rows)||[]).slice().sort((a,b)=>{
+    const order=((state.posParsed&&state.posParsed.rows)||[]).slice().sort((a,b)=>{
       const ar=Number(a&&a.sourceRow),br=Number(b&&b.sourceRow);
       if(Number.isFinite(ar)&&Number.isFinite(br)&&ar!==br)return ar-br;
       return Number(a&&a.posIndex||0)-Number(b&&b.posIndex||0);
     });
+    return order.concat(invoiceOnlyEntries().map(e=>e.pos));
   }
   function unpackIdentity(pos){
     return String((pos&&pos.identity)||[pos&&pos.sourceRow,pos&&pos.plu,pos&&pos.barcode,pos&&pos.description].map(v=>String(v??'').trim()).join('|'));
@@ -547,6 +561,7 @@
     if(!c)return '';
     if(c.kind==='qtytotal')return unpackCountFor(pos);
     if(c.kind==='check')return state.unpackChecked.has(unpackIdentity(pos))?1:0;
+    if(c.key==='__pos_order_index')return Number(pos&&pos.posIndex)||0;
     const v=posColumnValue(pos,c,detail);
     if(c.kind==='number')return numberValue(v)??Number.NEGATIVE_INFINITY;
     return cleanText(v);
@@ -724,7 +739,11 @@
     const hpad=(parseFloat(headStyle.paddingLeft)||0)+(parseFloat(headStyle.paddingRight)||0)+6;
     const widths=POS_VIEW_COLUMNS.map((c,i)=>{
       let maxText=0;
-      posMeasureCtx.font=headFont;maxText=Math.max(maxText,posMeasureCtx.measureText(c.label).width+hpad);
+      // v2.6.30 — headings wrap between words, so a column only needs its longest heading
+      // word plus the sort arrow (kept together) rather than the whole heading on one line.
+      posMeasureCtx.font=headFont;
+      const arrowW=c.sortable===false?0:posMeasureCtx.measureText('\u00a0↕').width,longestWord=Math.max(0,...String(c.label).split(/\s+/).filter(Boolean).map(w=>posMeasureCtx.measureText(w).width));
+      maxText=Math.max(maxText,Math.ceil(longestWord+arrowW+hpad));
       posMeasureCtx.font=bodyFont;
       for(let r=0;r<rows.length;r++){
         const pos=rows[r],detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(r),notSupplied=!detail||Number(detail.suppliedQty||0)<=0;
@@ -878,13 +897,18 @@
     if(stateChanged){saveUnpackCounts();saveUnpackChecklist();}
     const selectedCount=baseRows.reduce((n,pos)=>n+(state.unpackChecked.has(unpackIdentity(pos))?1:0),0),allSelected=baseRows.length>0&&selectedCount===baseRows.length,partSelected=selectedCount>0&&!allSelected;
     if(els.tickAllBtn){els.tickAllBtn.textContent=allSelected?'Untick all':'Tick all';els.tickAllBtn.title=allSelected?'Untick all — clear all Found quantities and return rows to Remaining':'Tick all — untouched rows use expected CH2 supplied qty';}
-    els.tableHead.innerHTML=`<tr>${POS_VIEW_COLUMNS.map(c=>{
+    // v2.6.30 — one header-cell builder for the main sticky header and the Completed section
+    // header row, so both carry the same sortable headings (sorting applies to both sections).
+    const headerCell=(c,withControls)=>{
       const cls=[c.kind==='check'?'unpack-head':'',c.kind==='bool'?'pos-bool-head':'',(['number','qtyinput','qtytotal'].includes(c.kind))?'num':'',(c.kind==='bool'||c.kind==='check'||c.align==='center')?'center':''].filter(Boolean).join(' ');
+      if(!withControls&&c.kind==='check')return `<th class="${cls}" scope="col">✓</th>`;
+      if(!withControls&&c.kind==='qtyinput')return `<th class="${cls}" scope="col">${escapeHtml(c.label)}</th>`;
       if(c.kind==='check')return `<th class="${cls}" title="Tick all / untick all POS rows for the POSActive download"><div class="pos-header-stack"><button type="button" class="unpack-check unpack-check-all ${allSelected?'checked':''} ${partSelected?'partial':''}" data-toggle-all aria-pressed="${allSelected?'true':'false'}" title="${allSelected?'Untick all — clear all Found quantities and return rows to Remaining':'Tick all — untouched rows use expected CH2 supplied qty'}"><span aria-hidden="true">${allSelected?'✓':partSelected?'−':''}</span></button><span class="pos-header-mini-label">All</span></div></th>`;
       if(c.kind==='qtyinput')return `<th class="${cls}"><div class="pos-header-stack"><span>${escapeHtml(c.label)}</span><button type="button" class="pos-header-action" data-clear-qty title="Clear all Found quantities and receiving selections">Clear qty</button></div></th>`;
       const sortable=c.sortable!==false,active=sortable&&state.posSortKey===c.key,arrow=active?(state.posSortDir==='desc'?'▼':'▲'):'↕';
-      return `<th${cls?` class="${cls}"`:''}>${sortable?`<button type="button" class="pos-sort-button ${active?'active':''}" data-sort-key="${escapeHtml(c.key)}" title="Sort by ${escapeHtml(c.label)}">${escapeHtml(c.label)} <span aria-hidden="true">${arrow}</span></button>`:escapeHtml(c.label)}</th>`;
-    }).join('')}</tr>`;
+      return `<th${cls?` class="${cls}"`:''}>${sortable?`<button type="button" class="pos-sort-button ${active?'active':''}" data-sort-key="${escapeHtml(c.key)}" title="Sort by ${escapeHtml(c.label)}">${escapeHtml(c.label)}&nbsp;<span aria-hidden="true">${arrow}</span></button>`:escapeHtml(c.label)}</th>`;
+    };
+    els.tableHead.innerHTML=`<tr>${POS_VIEW_COLUMNS.map(c=>headerCell(c,true)).join('')}</tr>`;
     const sections=posPreviewSections(detailBySourceRow);
     const progress=updateChecklistUi(baseRows,detailBySourceRow);
     const renderPosRow=(pos,zebraIndex=0)=>{
@@ -893,7 +917,7 @@
       // v2.6.28 — a not-invoiced row that staff physically received (Found > 0) is exported
       // as a manual POSActive line, so it is shown as live stock rather than struck through.
       const manualReceived=notSupplied&&state.unpackCounts.has(checkKey)&&unpackCountFor(pos)>0;
-      const rowClasses=[zebraIndex%2?'pos-row-even':'pos-row-odd',notSupplied&&!manualReceived?'pos-not-supplied':'',manualReceived?'pos-manual-received':'',unpackDone?'unpack-checked':''].filter(Boolean).join(' ');
+      const rowClasses=[zebraIndex%2?'pos-row-even':'pos-row-odd',notSupplied&&!manualReceived?'pos-not-supplied':'',manualReceived?'pos-manual-received':'',pos&&pos.invoiceOnly?'pos-invoice-only':'',unpackDone?'unpack-checked':''].filter(Boolean).join(' ');
       const cells=POS_VIEW_COLUMNS.map(c=>{
         const v=posColumnValue(pos,c,detail);let html='',extraCls='',title='';
         if(c.kind==='check'){
@@ -938,15 +962,21 @@
         }
         const cls=[c.cls||'',c.kind==='number'?'num':'',c.kind==='bool'?'pos-bool-cell center':'',c.align==='center'?'center':'',extraCls].filter(Boolean).join(' ');return `<td${cls?` class="${cls}"`:''}${title?` title="${escapeHtml(title)}"`:''}>${html}</td>`;
       }).join('');
-      const rowTitle=manualReceived?' title="Manually received — not on the CH2 invoice. Added to the POSActive TXT and totals using POS master CH2_WHOLESALE_EX_GST / POS pricing and the matched discount rule."':'';
+      const rowTitle=manualReceived?' title="Manually received — not on the CH2 invoice. Added to the POSActive TXT and totals using POS master CH2_WHOLESALE_EX_GST / POS pricing and the matched discount rule."':pos&&pos.invoiceOnly?' title="Invoice only — billed by CH2 but not on the uploaded POS order. Tick it (or enter Found) to include it in the POSActive TXT and totals; POSActive can only apply it if the product is on the open order."':'';
       return `<tr${rowClasses?` class="${rowClasses}"`:''}${notSupplied?' data-not-supplied="1"':''}${manualReceived?' data-manual-received="1"':''}${rowTitle}>${cells}</tr>`;
     };
     const sectionHtml=[];let zebraIndex=0;
     if(sections.remaining.length){sectionHtml.push(`<tr class="pos-section-row pos-section-remaining"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Remaining / to check</strong><span>${sections.remaining.length} item${sections.remaining.length===1?'':'s'}</span></td></tr>`);for(const pos of sections.remaining)sectionHtml.push(renderPosRow(pos,zebraIndex++));}
-    if(sections.complete.length){sectionHtml.push(`<tr class="pos-section-row pos-section-complete" data-jump-completed="1" title="Click to jump between Completed / accounted rows and the top of Remaining"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Completed / accounted</strong><span>${sections.complete.length} item${sections.complete.length===1?'':'s'} · untick a row to clear Found and return it to Remaining · click this bar to jump ↕</span></td></tr>`);for(const pos of sections.complete)sectionHtml.push(renderPosRow(pos,zebraIndex++));}
+    if(sections.complete.length){sectionHtml.push(`<tr class="pos-section-row pos-section-complete" data-jump-completed="1" title="Click to jump between Completed / accounted rows and the top of Remaining"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Completed / accounted</strong><span>${sections.complete.length} item${sections.complete.length===1?'':'s'} · untick a row to clear Found and return it to Remaining · click this bar to jump ↕</span></td></tr>`);sectionHtml.push(`<tr class="pos-section-head" aria-label="Completed section column headings">${POS_VIEW_COLUMNS.map(c=>headerCell(c,false)).join('')}</tr>`);for(const pos of sections.complete)sectionHtml.push(renderPosRow(pos,zebraIndex++));}
     els.tableBody.innerHTML=sectionHtml.length?sectionHtml.join(''):`<tr><td colspan="${POS_VIEW_COLUMNS.length}">No POS order rows available.</td></tr>`;
 
+    const sortPosBy=key=>{
+      if(!key)return;
+      if(state.posSortKey===key)state.posSortDir=state.posSortDir==='asc'?'desc':'asc';else{state.posSortKey=key;state.posSortDir='asc';}
+      renderPosTable();
+    };
     els.tableBody.onclick=e=>{
+      const sectionSort=e.target.closest('[data-sort-key]');if(sectionSort){e.preventDefault();e.stopPropagation();sortPosBy(String(sectionSort.dataset.sortKey||''));return;}
       const jump=e.target.closest('[data-jump-completed]');if(jump){e.preventDefault();jumpCompletedSection();return;}
       const btn=e.target.closest('.unpack-check');if(!btn)return;e.preventDefault();e.stopPropagation();
       const key=decodeUnpackKey(btn.dataset.unpackKey||'');if(!key)return;
@@ -984,9 +1014,7 @@
         return;
       }
       if(sort){
-        e.preventDefault();e.stopPropagation();const key=String(sort.dataset.sortKey||'');if(!key)return;
-        if(state.posSortKey===key)state.posSortDir=state.posSortDir==='asc'?'desc':'asc';else{state.posSortKey=key;state.posSortDir='asc';}
-        renderPosTable();
+        e.preventDefault();e.stopPropagation();sortPosBy(String(sort.dataset.sortKey||''));
       }
     };
     els.tableBody.onkeydown=e=>{
@@ -1152,5 +1180,13 @@
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')commitActiveReceivingInput();});
   global.addEventListener('pagehide',commitActiveReceivingInput);
   if(els.buildLabel&&PHF.schema&&PHF.schema.BUILD)els.buildLabel.textContent=`v${PHF.schema.BUILD.version} · ${PHF.schema.BUILD.name}`;
+  // v2.6.30 — a partially deployed build (new scripts, old index.html) silently loses the
+  // sticky receiving actions. Say so plainly at the top of the page.
+  if(!els.receivingActions){
+    console.warn('Reconcile CH2: index.html is older than the loaded scripts; redeploy index.html.');
+    if(els.buildLabel){els.buildLabel.textContent+=' · index.html out of date';els.buildLabel.classList.add('build-stale');}
+    const strip=document.querySelector('#referenceStrip');
+    if(strip){const warn=document.createElement('div');warn.className='notice bad stale-build-notice';warn.textContent=`index.html is older than the loaded scripts (v${PHF.schema&&PHF.schema.BUILD?PHF.schema.BUILD.version:'?'}). Re-upload index.html from the same release so every control and fix loads.`;strip.parentNode.insertBefore(warn,strip);}
+  }
   refreshReferenceStatus();
 })(window);

@@ -480,3 +480,26 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .result-controls-sticky>.btn{padding:8px 12px;font-size:12.5px;white-space:nowrap}
 .result-controls-sticky .view-picker{gap:5px}
 .result-controls-sticky .view-picker .btn.small{padding:6px 9px}
+
+/* v2.6.30 — wrapped column headings, Completed section headings, invoice-only rows. */
+.results .preview-pos thead th,
+.results .preview-pos tbody tr.pos-section-head>th{
+  white-space:normal!important;overflow:visible!important;text-overflow:clip!important;
+  overflow-wrap:normal;word-break:keep-all;hyphens:none;line-height:1.15;vertical-align:middle;
+  padding-top:5px;padding-bottom:5px;
+}
+.results .preview-pos .pos-sort-button{white-space:normal;line-height:1.15;display:inline-block;width:100%}
+.results .preview-pos .pos-sort-button span{white-space:nowrap}
+.results .preview-pos tbody tr.pos-section-head>th{
+  position:static!important;background:#2A4B73;color:#E6CD74;border:0!important;
+  font-size:12px;font-weight:700;text-transform:none;letter-spacing:0;
+}
+.results .preview-pos tbody tr.pos-section-head:hover{background:transparent}
+.results .preview-pos tbody tr.pos-section-head .pos-sort-button,
+.results .preview-pos tbody tr.pos-section-head .pos-sort-button.active,
+.results .preview-pos tbody tr.pos-section-head .pos-sort-button:hover{color:inherit}
+.results .preview-pos tbody tr.pos-section-head .pos-sort-button span{color:inherit;opacity:.65}
+.results .preview-pos tbody tr.pos-invoice-only>td:first-child{box-shadow:inset 3px 0 0 #d58b00}
+.results .preview-pos tbody tr.pos-invoice-only td.pos-order-index{color:#8a5200;font-weight:900;letter-spacing:.02em}
+.build-label.build-stale{color:var(--red);font-weight:800}
+.stale-build-notice{margin:0 0 12px}

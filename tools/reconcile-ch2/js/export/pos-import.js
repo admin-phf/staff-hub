@@ -151,7 +151,31 @@
     const semantic=(confidence==='HIGH'||confidence==='MEDIUM')&&desc>=70&&ws&&(rrp||desc>=82);
     return {ok:direct||semantic,direct,semantic,desc,ws,rrp,confidence,method};
   }
-  function lineLabel(pos,index){return `POS row ${index+1}${clean(pos&&pos.description)?` (${clean(pos.description)})`:''}`;}
+  function lineLabel(pos,index){if(pos&&pos.invoiceOnly)return `Invoice-only line${clean(pos.description)?` (${clean(pos.description)})`:''}`;return `POS row ${index+1}${clean(pos&&pos.description)?` (${clean(pos.description)})`:''}`;}
+
+  // v2.6.30 — invoice-only lines: billed by CH2 but not present on the uploaded POS order.
+  // They are offered in POS Layout as receivable rows (unticked = not supplied, like every
+  // other row). The pseudo POS row is built from the aligned master for the CH2 code so the
+  // POSActive key, brand and current POS prices are available.
+  function invoiceOnlyKey(inv){return `INV:${invoiceKey(inv)}`;}
+  function invoiceOnlyPos(inv,refs,posIndex){
+    const recs=masterCandidatesForInvoiceRow(inv,refs),rec=recs.find(r=>digits(r&&r.POS_MASTER_BARCODE)||clean(r&&r.POS_PLU))||recs[0]||{};
+    const key=invoiceOnlyKey(inv),gst=n(inv&&inv.gstPct)??n(rec.POS_GST_TAX_PC)??0,ws=n(rec.POS_WSP_EXCGST),last=n(rec.POS_LAST_PRICE),rrp=n(rec.POS_RRP_INCGST);
+    const raw={qty:0,or_qty:0,units:1,gst_tax_pc:gst,adjwsprce:ws??'',adjrrprce:rrp??'',adjcatprce:last??'',adjdprce:last??'',last_price:last??'',mupc:'',gppc:''};
+    return {invoiceOnly:true,posIndex,sourceRow:key,identity:key,orderNumber:'',plu:code(rec.POS_PLU),barcode:digits(rec.POS_MASTER_BARCODE),subId:'',masterSubId:clean(rec.POS_SUB_ID),
+      description:clean(rec.POS_DESCR)||clean(inv&&inv.description),gstPct:gst,orderedQty:0,normalWholesale:ws,expectedUnit:last,expectedDiscountPct:(ws&&last!=null)?(1-last/ws)*100:null,lastPrice:last,rrp,
+      supplier:digits(rec.POS_SUPPLIER_NUMBER)||digits(rec.POS_SUPPLIER_RAW),company:clean(rec.POS_SUPPLIER_NAME),raw};
+  }
+  function invoiceOnlyEntries(reconciliation,refs,posOrder){
+    const base=((posOrder&&posOrder.rows)||[]).length;
+    return ((reconciliation&&reconciliation.unmatchedInvoice)||[]).filter(inv=>inv&&(n(inv.qtySupplied)||0)>0&&(n(inv.unitPriceExGst)||0)!==0).map((inv,i)=>{
+      const pos=invoiceOnlyPos(inv,refs,base+i+1),row={...inv,matchConfidence:'',matchMethod:'INVOICE ONLY — NOT ON POS ORDER'},q=n(inv.qtySupplied)||0,ws=n(inv.normalWholesale);
+      const detail={invoiceOnly:true,posIndex:pos.posIndex,sourceRow:pos.sourceRow,identity:pos.identity,plu:pos.plu,barcode:pos.barcode,subId:'',posDescription:pos.description,orderedQty:0,suppliedQty:q,qtyVariance:q,
+        invoiceNormalWholesale:ws!=null?round(ws,2):null,actualDiscountPct:n(inv.discountPct),actualUnit:n(inv.unitPriceExGst),status:'INVOICE ONLY / NOT ON POS ORDER',hasException:true,
+        invoiceNumbers:invoiceNo(inv),sourceFiles:clean(inv.sourceFile),matchConfidence:'',matchMethods:row.matchMethod,invoiceRows:[row]};
+      return {pos,detail,inv};
+    });
+  }
 
   function overrideTarget(options,invoiceNumber){
     const o=options&&options.orderOverrides;if(!o)return '';
@@ -312,9 +336,28 @@
   function buildInvoicePayload(group,refs,posOrder,reconciliation,options={}){
     const errors=[],warnings=[],posRows=sortedPos(posOrder),details=detailBySourceRow(reconciliation),contexts=[],invoiceToContext=new Map(),allocation=new Map(),receivingChanges=[],omittedNotSupplied=[],manualContexts=[];
     const groupNums=group&&group.numbers instanceof Set?group.numbers:new Set([clean(group&&group.number)].filter(Boolean)),unmatched=((reconciliation&&reconciliation.unmatchedInvoice)||[]).filter(r=>groupNums.has(invoiceNo(r))||group.sourceFiles.has(clean(r&&r.sourceFile)));
+    // v2.6.30 — invoice-only lines ticked / counted in POS Layout are received like any
+    // other line; unreceived ones are omitted (as before) and listed.
+    const invoiceOnlyOmitted=[],invoiceOnlyReceived=[];
     if(unmatched.length){
-      pushIssue(warnings,`INVOICE-ONLY REVIEW — Invoice ${group.number}: ${unmatched.length} billed line${unmatched.length===1?' is':'s are'} not present in the uploaded POS order and will be omitted from the POSActive TXT. Export remains available; review or receive these lines manually.`);
-      for(const inv of unmatched.slice(0,12))pushIssue(warnings,`Omitted invoice ${invoiceNo(inv)||group.number} line ${lineText(inv&&inv.invoiceLine)||'?'} · CH2 ${digits(inv&&inv.productCode)||'no code'} · ${sanitizeText(inv&&inv.description)||'no description'}.`);
+      const entries=new Map(invoiceOnlyEntries(reconciliation,refs,posOrder).map(e=>[invoiceKey(e.inv),e]));
+      for(const inv of unmatched){
+        const e=entries.get(invoiceKey(inv)),recv=e?receivingOverride(options,e.pos):{touched:false,value:null},found=recv.touched?Math.max(0,round(recv.value||0,3)):0;
+        if(!e||found<=0){invoiceOnlyOmitted.push(inv);continue;}
+        const ctx={pos:e.pos,index:-1,detail:e.detail,identity:canonicalIdentity(e.pos,refs),invRows:[inv],invoiceOnly:true};
+        contexts.push(ctx);invoiceToContext.set(invoiceKey(inv),ctx);validateSourceInvoiceRow(inv,errors,warnings);
+        const map=allocateReceiving([inv],found,errors,lineLabel(e.pos,-1),warnings);if(map)for(const [k,v] of map)allocation.set(k,v);
+        const q=n(inv.qtySupplied)||0;if(Math.abs(found-q)>0.0005)receivingChanges.push({pos:e.pos,index:-1,invoiceQty:q,found});
+        invoiceOnlyReceived.push({inv,found,pos:e.pos});
+      }
+      if(invoiceOnlyReceived.length){
+        warnings.push(`INVOICE-ONLY RECEIVED — ${invoiceOnlyReceived.length} billed line${invoiceOnlyReceived.length===1?' is':'s are'} not on POS order ${clean(posOrder&&posOrder.orderNumber)||''} but ${invoiceOnlyReceived.length===1?'was':'were'} ticked/counted in POS Layout and ${invoiceOnlyReceived.length===1?'is':'are'} included in the POSActive TXT. POSActive can only apply a line whose Sub ID exists on the open order; add the product to the order first if the import rejects it.`);
+        for(const x of invoiceOnlyReceived.slice(0,12))warnings.push(`Included invoice-only ${invoiceNo(x.inv)||group.number} line ${lineText(x.inv&&x.inv.invoiceLine)||'?'} · CH2 ${digits(x.inv&&x.inv.productCode)||'no code'} · ${sanitizeText(x.inv&&x.inv.description)||'no description'} · Found ${qtyText(x.found)}.`);
+      }
+      if(invoiceOnlyOmitted.length){
+        pushIssue(warnings,`INVOICE-ONLY REVIEW — Invoice ${group.number}: ${invoiceOnlyOmitted.length} billed line${invoiceOnlyOmitted.length===1?' is':'s are'} not present in the uploaded POS order and ${invoiceOnlyOmitted.length===1?'was':'were'} not ticked/counted in POS Layout, so ${invoiceOnlyOmitted.length===1?'it is':'they are'} omitted from the POSActive TXT. Tick them in POS Layout to include them.`);
+        for(const inv of invoiceOnlyOmitted.slice(0,12))pushIssue(warnings,`Omitted invoice ${invoiceNo(inv)||group.number} line ${lineText(inv&&inv.invoiceLine)||'?'} · CH2 ${digits(inv&&inv.productCode)||'no code'} · ${sanitizeText(inv&&inv.description)||'no description'}.`);
+      }
     }
 
     for(let index=0;index<posRows.length;index++){
@@ -377,7 +420,7 @@
       records.push({
         invoiceNo:invoiceNo(inv)||group.number,line:lineText(inv.invoiceLine),ch2Code,supplierCode,subId,description,
         qty:outQty,qtySupplied:outQty,normalWs:wsRounded,unitPrice:unit,rebate:0,extended:ext,gst,total,disc,
-        sourceQty:originalQty,receivingAdjusted:adjusted,pos:ctx.pos,importIdentity
+        sourceQty:originalQty,receivingAdjusted:adjusted,pos:ctx.pos,importIdentity,invoiceOnly:!!ctx.invoiceOnly
       });
     }
 
@@ -406,7 +449,7 @@
     if(!receivingChanges.length){
       if(Math.abs(totals.qty-sourceTotals.qty)>0.001||Math.abs(totals.ext-sourceTotals.ext)>0.02||Math.abs(totals.gst-sourceTotals.gst)>0.02||Math.abs(totals.total-sourceTotals.total)>0.02){
         const msg=`Invoice ${group.number}: generated file totals do not equal the parsed invoice totals.`;
-        if(unmatched.length)pushIssue(warnings,`${msg} This is expected because ${unmatched.length} invoice-only line${unmatched.length===1?' was':'s were'} omitted.`);else pushIssue(errors,msg);
+        if(invoiceOnlyOmitted.length)pushIssue(warnings,`${msg} This is expected because ${invoiceOnlyOmitted.length} invoice-only line${invoiceOnlyOmitted.length===1?' was':'s were'} omitted.`);else pushIssue(errors,msg);
       }
     }else{
       warnings.push(`POS LAYOUT RECEIVING APPLIED — ${receivingChanges.length} product${receivingChanges.length===1?'':'s'} use Found quantities instead of CH2 supplied quantities. POSActive import total becomes ${totals.total.toFixed(2)} vs supplier invoice ${sourceTotals.total.toFixed(2)}; the full reconciliation workbook remains unchanged and preserves the original invoice.`);
@@ -498,5 +541,5 @@
     const f=built.files[0];downloadBlob(new Blob([f.text],{type:'text/plain;charset=utf-8'}),f.filename);return {filename:f.filename,files:1,rows:f.records.length,columns:15,validation:f.validation,warnings:built.warnings,receivingAdjustments:f.receivingChanges.length,totals:f.totals,sourceTotals:f.sourceTotals,invoiceNumbers:f.invoiceNumbers||[]};
   }
 
-  PHF.posImport={CONTRACT,groupDocuments,buildLegacyFiles,validatePayload,exportLegacyPosImport,makeTsv,parseTsv,resolveImportIdentity,reviewImportKeys,exportKeyReview,importFilename,masterRecordsForPos,posWholesaleFallback};
+  PHF.posImport={CONTRACT,groupDocuments,buildLegacyFiles,validatePayload,exportLegacyPosImport,makeTsv,parseTsv,resolveImportIdentity,reviewImportKeys,exportKeyReview,importFilename,masterRecordsForPos,posWholesaleFallback,invoiceOnlyKey,invoiceOnlyEntries};
 })(window);
