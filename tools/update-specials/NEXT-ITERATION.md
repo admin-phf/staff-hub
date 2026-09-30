@@ -1,4 +1,4 @@
-# Update Specials — working notes (current: v49)
+# Update Specials — working notes (current: v50)
 
 Working notes agreed with Kenneth before code changes. Measurements are from the 2000×1250 POS export
 (POS screen → 4-Up grid, page with Advance / Diasporal / Basica / Ultra Muscleze, Text fit = Impact).
@@ -89,13 +89,44 @@ fixed share of the text-block height, and the content adapts to the box — neve
   pixels, because the PNG export can't do blend modes). **Clean white** keeps v48 exactly.
   For the agreed look, untick Product form, Key ingredients, Key benefits.
 
-## Zone layouts (v49)
+- v50 (from the v49 design review, Claude's and Gemini's merged): content and offer clarity on the clean cards,
+  plus staff checks. Classic white untouched (pixel-identical to v49).
+  - Multi-buy totals get an each-price line ("$72.50 each"); per-item multi-buys (EA) unchanged.
+  - Sizes on cards and in the email text: 60c → 60 caps, 150t → 150 tabs, trailing "Pack" dropped (→ "sachets"
+    when the form says so); number and unit never split. Sheet, photo names and slide file names untouched.
+  - A name left as only a size after the brand is removed keeps its product words (Tru Niagen, 30 caps).
+  - Product form: bracketed size that repeats the Size column removed; Pwd / Tabs / Caps written out.
+  - SAVE circle on zone cards avoids printed areas, using a printing-density map from the photo analysis
+    (`busy` in `analyseReadableImage()`, used by `placeZoneStamp()`; threshold `STAMP_BUSY_OK`).
+  - No-discount pill option (NOW default · SPECIAL · none). Email / Social / Web banner footers enlarged.
+  - Staff: health-wording check (`CLAIM_RULES`), practitioner-only flag (`practitioner_only`), offer checks,
+    dimmed options that don't apply, ° on older-fitting layouts, Show zones overlay, design review All pages,
+    five new record columns.
+  - Kept from the review but not done: POS / Portrait TV footer sizes (they show at full size); card
+    gutters (Soft card fills already group each product, so the v46 2× spacing rule applies to Clean white only).
+  - Rejected points from the second review stay out: uppercase brands, white cards with shadows, real-world pack
+    scale, "If symptoms persist" on every ad (not required under the 2021 Code), invented benefit copy.
+
+## Zone layouts (v50)
 POS: Hero · Hero + 2 · 4-Up grid · 3 Across · 4 Across. Email: Hero + 2 · 2-Up 7:5 · 4-Up 7:5 · 6-Up.
 Portrait TV: Hero · 2 Rows · 3 Rows · 4 Rows.
 Not yet: POS 2-Up · Social (Hero 4:5, Hero Square, 4-Up Square) · Web banner.
-These still use the v45 fitting, where Impact can leave extra information off.
+These still use the v45 fitting, where Impact can leave extra information off. Since v50 their layout buttons
+are marked ° with a tooltip saying so.
 
-## Open (for Kenneth, after reviewing v49)
+## Open (for Kenneth, after reviewing v50)
+- Check a page or two of real exports for the v50 SAVE circle placement (bags and boxes especially). It was tested
+  on pack shots cut from the v49 export, where the photo under the old circle had been painted over.
+- Photo backgrounds: the v49 review saw a light grey box behind Diasporal on Soft cards. It couldn't be reproduced
+  from the exported pack shots. If it shows with the original photo, save a cut-out (transparent PNG) in images/.
+- No-discount pill: NOW is still the default. Switch to SPECIAL or No pill if you'd rather not imply a reduction
+  on products without a WAS price (Designs for Health, PranaON Power Plant Protein, Herbatint on the current sheet).
+- Advance CoQ10 "BUY 2, GET 1 FREE" has no NOW price in the sheet, so no price is shown. Add the single price.
+- Add `practitioner_only` (and `end_date` for deals) to the sheet, and to the Apps Script feed's published columns.
+- Health wording flagged on the current sheet (e.g. "Relieves…", "reduces cold duration", "27x more bioavailable",
+  "40x antioxidants", "IBS bloating", "Practitioner …"): check each against the pack / ARTG entry, or keep Key
+  ingredients and Key benefits unticked as in the agreed look.
+- Units: sizes keep the store's "ml" style; switch to "mL" only if wanted (one line in `cardSizeTidy()`).
 - Soft cards: "Box 12" is shown as typed in the sheet (the spec example says "Box of 12"); change the wording
   in the sheet or the Promo Display Override if wanted.
 - Feature headings are sentence-cased on Soft cards; proper nouns typed in Title Case (e.g. a place name)
@@ -108,5 +139,5 @@ These still use the v45 fitting, where Impact can leave extra information off.
   4-Up 7:5, 6-Up …). Options: leave as is, hide the classic ones from the Email tab, or convert them.
   (Earlier decision: classic white layouts stay untouched.)
 - Classic 6-Grid thin dividers: keep or remove?
-- Next layouts to bring onto zones (suggested order): POS 2-Up, then Portrait TV rows (a 4 Across / 4-Up card
-  on a portrait canvas), then Social and Web banner.
+- Next layouts to bring onto zones (suggested order): POS 2-Up (add `pos2` to `ZONE_LAYOUTS`), then Social
+  4-Up Square and Hero 4:5, then Web banner 2-Up. Portrait TV has been on zones since v48.

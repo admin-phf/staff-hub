@@ -28,6 +28,75 @@ It isn't needed day to day.)
 
 ---
 
+## v50 — 30 Sep 2026
+Clearer offers and names on the clean cards, advertising checks for staff, and a design review that can cover every page.
+Classic white layouts are unchanged (checked pixel-for-pixel against v49).
+
+**Artwork (clean cards: Soft cards and Clean white, and the older clean-card layouts)**
+- **Multi-buy totals say what one costs.** `BUY 2 FOR $145.00` now has **$72.50 each** under the price (Basica:
+  **$42.50 each**). It's worked out from the deal wording. An uneven total, such as $85.01 for 2, is rounded to the
+  cent and a staff warning says so. Multi-buys priced per item (`BUY 4+ FOR $60.00 EA`) are unchanged.
+- **Pack sizes as customers read them.** 60c → **60 caps**, 150t → **150 tabs**, and a trailing "Pack" after a size is
+  dropped: "Diasporal, 50×5.5g Pack" → **Diasporal, 50×5.5g sachets**, because its product form says sachets.
+  - A size's number and word no longer split across lines ("60 caps" and "1.1kg Bag" stay together). A long name
+    now breaks after the comma.
+  - The sheet, the editor fields, photo file names and slide file names keep the text exactly as typed.
+- **A name is never just a size.** "Tru Niagen, 30c" showed only **30c** once the repeated brand was taken off. It
+  now reads **Tru Niagen, 30 caps**. Brands with `NAME_DESCRIPTORS` wording (Vital All-In-One) are unchanged.
+- **Product form tidied** when ticked: a size in brackets that repeats the Size column is left off ("Plant-Based
+  Mass Gainer Powder (2.5kg)" → "Plant-Based Mass Gainer Powder"). Pwd, Tabs and Caps are written out.
+- **SAVE circle keeps off printed text (zone cards).** The tool now measures how busy each part of the pack is with
+  printing. When the usual top-right spot would cover lettering (a box's logo, a bag's "BONUS 10%" banner), the
+  circle moves to the plainest nearby spot: along the top edge, down the side, a little higher, or across the corner.
+  It stays inside the photo column. Lids, caps and shoulders keep the usual spot.
+- **No-discount pill** (Card options, remembered on each device). For products with a price but no discount:
+  **NOW** (as before, the default), **SPECIAL**, or **No pill**. NOW can suggest a reduced price when no earlier price is
+  shown. Clean cards only; classic layouts keep NOW.
+- **Larger footers where images are shown small.**
+  - Email: 6-Up and Hero + 2 go to 13px, and 2-Up / 4-Up 7:5 to 19px.
+  - Social: 4-Up Square 20px, Hero 4:5 22px, Hero Square 16px.
+  - Web banner: 16px.
+  - The terms and "Always read the label…" now wrap to two lines on some of these layouts.
+  - POS and Portrait TV are unchanged (they show at full size).
+
+**Staff editor**
+- **Health wording check.** When the feature heading, key ingredients or key benefits are shown, words that can
+  read as a therapeutic, comparative or clinical claim are flagged, for example:
+  - relieves, reduces, restores, eases, treats, prevents
+  - clinically, proven
+  - "27x", "40x"
+  - IBS, allergy, sleeplessness
+  - "Practitioner"
+
+  One warning line counts them. Each product card lists the words under Key Benefits: "Check against the pack / ARTG
+  wording". Nothing is changed automatically.
+- **Practitioner-only packs.** New tick box on each product card, or an optional sheet column `practitioner_only`
+  (yes / no; `practitioner` also works). On the Email, Social and Web banner channels a warning reminds staff to
+  confirm the supplier allows advertising to the public. If you use the Apps Script feed, add the column to what it
+  publishes.
+- **More offer checks:**
+  - `BUY 2, GET 1 FREE` with no NOW price (customers can't see what they pay).
+  - Deals on this page with no end date.
+  - NOW pills on this page with no earlier price.
+- **Options that do nothing on the current layout are dimmed** and say "No effect on this layout" (for example Card
+  style on a classic layout).
+- **Layouts on the older text fitting are marked °** (POS 2-Up, Social, Web banner). Their buttons explain that ticked
+  information can be left off where a card has no room. The Text fit tooltip no longer says Portrait TV uses the
+  older fitting (it moved to zones in v48).
+- **Show zones** (top of the preview, remembered on each device): outlines every text zone on zone-card layouts,
+  labelled. Anything shortened with "…" is outlined in red. Preview only; never in the PNG.
+- **Design review: Page 1 of each / All pages.** The new choice beside the button makes every page of every layout.
+  Each page is labelled "page 2 of 5", and the cover still shows page 1 of each. The file ends `_all-pages.pdf`. It
+  asks first, with the page count and roughly how long it will take. If the PDF maker can't load, the ZIP now holds
+  JPEG images.
+- **Email text matches the cards:** tidied sizes, deal prices with cents ("BUY 2 FOR $145.00"), and "$72.50 each" on
+  multi-buy totals. Clean-card layouts only; classic layouts' email text is unchanged.
+- **Advertising record** (`…_record.csv`) has five new columns at the end: `each_price`, `claims_flags`,
+  `practitioner_only`, `card_style`, `text_fit`. Existing columns are unchanged.
+
+**Needs checking with real photos:** the circle placement and photo backgrounds were tested on pack shots cut from
+the v49 export, not the original photo files. Check a few pages, especially bags and boxes, before the first run.
+
 ## v49 — 30 Sep 2026
 Soft cards: the agreed POS look (warm off-white cards, lighter headings, fitted green lines).
 - **Card style** (Card options, remembered on each device): **Soft cards** (new default) or **Clean white**
