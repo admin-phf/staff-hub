@@ -2505,34 +2505,15 @@
   .slide.cs-soft .zc-ref{color:#6B7178;font-weight:800}
   .slide.cs-soft .zc-ref s{text-decoration:line-through;text-decoration-thickness:.09em;letter-spacing:0}
   .slide.cs-soft .zc-form{color:#6a6f6c}
-  .slide.cs-soft:is(.l-retailfour,.l-botanicalfour,.l-email6,.l-retailhero2,.l-pos3row,.l-pos4row){--cl-gap:14px}
-  .slide.cs-soft:is(.l-tv2,.l-tv3,.l-retailportrait,.l-botanicaltwo){--cl-gap:22px}
+  /* v50: keep products distinct; Soft cards must not undo the wider zone gutters. */
+  .slide.cs-soft:is(.l-retailfour,.l-botanicalfour,.l-retailsquare4,.l-botanicalsquare){--cl-gap:32px}
+  .slide.cs-soft:is(.l-retailhero2,.l-pos3row,.l-pos4row,.l-email6){--cl-gap:24px}
+  .slide.cs-soft:is(.l-pos2,.l-retailbanner2){--cl-gap:36px}
+  .slide.cs-soft:is(.l-tv2,.l-tv3,.l-retailportrait){--cl-gap:44px}
+  .slide.cs-soft.l-botanicaltwo{--cl-gap:36px}
   .slide.cs-soft.l-retailfour{--cl-cpad:16px 20px}
   .slide.cs-soft.l-email6{--cl-cpad:14px 14px 14px 12px}
   .slide.cs-soft.l-retailhero2{--cl-cpad:14px 18px}
-  /* v50: terms and the label statement large enough to read where these images are actually seen — an email is
-     scaled into a ~600px column and a social tile into a ~390px phone feed. POS and Portrait TV show at full size and
-     keep their sizes. Classic white layouts are unchanged. */
-  .slide.l-email6,.slide.ch-email.l-retailhero2{--cl-foot:13px}
-  .slide.l-botanicaltwo,.slide.l-botanicalfour{--cl-foot:19px}
-  .slide:is(.l-retailsquare4,.l-botanicalsquare){--cl-foot:20px}
-  .slide.l-retailsquarehero{--cl-foot:16px}
-  .slide.l-botanicalsingle{--cl-foot:22px}
-  .slide.l-retailbanner2{--cl-foot:16px}
-  /* v50 Show zones (editor preview only — the PNG export removes it) */
-  .slide.show-zones .zc-z:not([hidden]){outline:1px dashed rgba(29,106,229,.6);outline-offset:-1px;position:relative}
-  .slide.show-zones .zc-z:not([hidden])::after{content:attr(data-z);position:absolute;right:0;top:0;font:700 8.5px/1.1 Arial,sans-serif;letter-spacing:0;text-transform:none;color:#1d4ed8;background:rgba(255,255,255,.72);padding:0 2px;border-radius:0 0 0 3px;z-index:4;pointer-events:none;white-space:nowrap}
-  .slide.show-zones .zc-z[data-cut]{outline:2px solid rgba(214,40,40,.85)}
-  .slide.show-zones .zc-z[data-cut]::after{content:attr(data-z) ' · shortened';color:#b42318}
-  .slide.show-zones .zc-img{outline:1px dashed rgba(22,140,80,.7);outline-offset:-1px}
-  .show-zones-note{font-size:11px;color:var(--muted);margin-left:4px}
-  /* v50 editor: options that do nothing on the current layout, and layouts on the older text fitting */
-  .fo-na{opacity:.45}
-  .lbtns .btn.lb-legacy::after{content:'°';margin-left:3px;color:var(--muted);font-weight:700}
-  .card-claims{font-size:10.5px;line-height:1.35;margin-top:6px;padding:5px 7px;border-radius:6px;background:#fff7e6;color:#8a5300;border:1px solid #f3d9a4}
-  .card-claims b{font-weight:700}
-  .pract-row{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;font-weight:600}
-  .pract-row input{width:auto;margin:0}
   .slide .cl-card.zc-card .imgwrap .imgslot{padding:0!important}
   .slide .zc-info{display:flex;flex-direction:column;justify-content:center;min-width:0;height:100%}
   .slide .cl-card.stack .zc-info{justify-content:flex-start;height:auto}
@@ -2724,11 +2705,11 @@
         <div class="field"><label>Footer website</label><input type="text" id="f_foot" value="prahranhealthfoods.com.au"></div>
       </div>
       <div class="footer-opts" aria-label="Artwork footer options">
-        <span class="fo-title" title="Brand letters, Pop pack shots and Show RRP apply to every layout. Product name, Text fit, Green accent, No-discount pill, Label statement, Prices apply and Canvas change the clean cards only; Card style and Pack-above cards the zone cards only. Options that do nothing on the current layout are dimmed.">Card options</span>
+        <span class="fo-title" title="Brand letters, Pop pack shots and Show RRP apply to every layout. Product name, Label statement, Prices apply and Canvas change the clean cards only.">Card options</span>
         <label class="fo-select" title="Every card reserves the same space for the product name. Longer names are abbreviated or shortened (size always kept).">Product name
           <select id="optNameLines"><option value="1">1 line</option><option value="2">2 lines</option></select>
         </label>
-        <label class="fo-select" title="Impact: prices stay as large as possible. On zone cards (POS Hero, Hero + 2, 4-Up grid, 3 Across, 4 Across; the Email clean cards; Portrait TV Hero, 2, 3 and 4 Rows) whatever is ticked is always shown — set a little smaller, with long ingredients / benefits shortened with …. On POS 2-Up, Social and Web banner (marked ° on their buttons), extra information is still left off where a card has no room. All info: every line in full; prices get smaller to make room.">Text fit
+        <label class="fo-select" title="Impact: prices stay as large as possible. On every Clean-card layout (POS, Portrait TV, Email, Social and Web banner) whatever is ticked is always shown — set a little smaller, with long ingredients / benefits shortened with …. Classic white layouts keep their original fields. All info: full headings, ingredients and benefits; prices get smaller to make room. Long product names still follow the Product name line limit.">Text fit
           <select id="optTextFit"><option value="impact">Impact (price first)</option><option value="all">All info</option></select>
         </label>
         <label class="fo-select" title="Zone-card layouts. Soft cards: warm off-white cards, lighter grey brand and product heading with a green underline, sentence-case feature line, price underline fitted to the price, grey WAS with the amount struck through. Clean white: the v48 look.">Card style
@@ -2746,9 +2727,6 @@
         <label class="auto-balance-toggle" title="Gently lifts colour, contrast and crispness of pack shots, and turns pale grey photo backgrounds white. Every layout. Included in PNG exports."><input type="checkbox" id="optPop" checked> Pop pack shots</label>
         <label class="fo-select" title="Background behind the clean cards. Charcoal makes the white cards stand out on screens.">Canvas
           <select id="optCanvas"><option value="white">White</option><option value="dark">Charcoal</option></select>
-        </label>
-        <label class="fo-select" title="Products with a price but no discount (Discount style: No discount). NOW can suggest the price has been reduced when no earlier price is shown; SPECIAL or No pill avoid that. Clean and zone cards only: classic white layouts keep NOW.">No-discount pill
-          <select id="optNoDisc"><option value="now">NOW</option><option value="special">SPECIAL</option><option value="none">No pill</option></select>
         </label>
         <label class="auto-balance-toggle" title="TGA mandatory statement. Not required for picture + price ads with no health claims, but cheap insurance."><input type="checkbox" id="optLabel" checked> Label statement</label>
         <label class="auto-balance-toggle" title="Turn off if you can't show the RRP is genuinely charged by other retailers."><input type="checkbox" id="optRRP" checked> Show RRP</label>
@@ -2820,7 +2798,6 @@
           </div>
           <div class="ph-right">
             <span class="dims" id="dimsNote">1000 × 625 canvas · PNG 2000 × 1250</span>
-            <label class="auto-balance-toggle" id="showZonesLabel" title="Outlines each text zone on zone-card layouts, labelled, with anything shortened with … outlined in red. Preview only: never in the PNG." style="margin:0"><input type="checkbox" id="showZonesToggle"> Show zones</label>
             <div class="zoomseg" role="group" aria-label="Preview zoom">
               <button class="btn btn-sm active" data-zoom="fit" title="Scale the slide to fit this panel">Fit</button>
               <button class="btn btn-sm" data-zoom="actual" title="Show the slide at its real canvas size">100%</button>
@@ -2846,8 +2823,8 @@
             <button class="btn primary" id="downloadBtn">Download this slide</button>
             <button class="btn ghost" id="downloadAll" title="All pages as PNGs, plus email text and an advertising record (.csv)">Download all (.zip)</button>
             <button class="btn ghost" id="copyTextBtn" title="Copy this slide's product text and image alt text (for Mailchimp)">Copy text</button>
-            <button class="btn ghost" id="reviewBtn" title="One PDF of every layout, using the current specials: for design sign-off. Choose page 1 of each layout (quick) or every page (slower; catches problems on later pages).">Design review (PDF)</button>
-            <select id="reviewScope" aria-label="Design review pages" title="Design review: page 1 of each layout, or every page of every layout" style="width:auto;padding:6px 8px;font-size:12px"><option value="first">Page 1 of each</option><option value="all">All pages</option></select>
+            <label title="Include every product page for every layout; larger reviews take longer."><input type="checkbox" id="reviewAllPages"> All review pages</label>
+            <button class="btn ghost" id="reviewBtn" title="PDF of each layout using current specials. Tick All review pages to include later and incomplete pages.">Design review (PDF)</button>
           </div>
         </div>
         <div class="pagechips" id="pageChips" aria-label="Jump to page" hidden></div>
@@ -3006,7 +2983,7 @@ const S={layout:'two', page:0, title:'',
   lastLoaded:null,
   zoom:'fit',
   channel:'pos',
-  optLabel:true,optRRP:true,optScope:'',showUpcoming:false,nameLines:2,optPop:true,optCanvas:'white',brandCase:'std',noDiscPill:'now',showZones:false};  // v28 footer / offer-date options  // v26: POS screen · Portrait TV · Email · Social · Web banner   // preview only: 'fit' scales to the panel, 'actual' shows real canvas pixels
+  optLabel:true,optRRP:true,optScope:'',showUpcoming:false,nameLines:2,optPop:true,optCanvas:'white',brandCase:'std'};  // v28 footer / offer-date options  // v26: POS screen · Portrait TV · Email · Social · Web banner   // preview only: 'fit' scales to the panel, 'actual' shows real canvas pixels
 
 const SAMPLE=[
   {brand:'MELROSE',name:'Essential Greens 200g',now:'24.95',disc:'was',dv:'29.95',rrp:'29.95',img:'',scale:'100'},
@@ -3249,7 +3226,6 @@ function rowsFromMatrix(matrix){
       keyIngredients:pick('key_ingredients','key ingredients','ingredients','active_ingredients','active ingredients'),
       keyBenefits:pick('key_benefits','key benefits','benefits','key_benefit','key benefit'),
       promoDisplay:pick('promo_display','promo display','promo','display_offer','display offer'),
-      practitionerOnly:pick('practitioner_only','practitioner only','practitioner','practitioner_pack','pract_only'),   // v50
       _rowId:'sheet-'+i}));
   }
   return out;
@@ -3470,7 +3446,6 @@ const AUTO_STRICT_STEP=26;       // background search may not jump a visible edg
 const AUTO_STRICT_CORE=14;       // pixels this close to the backdrop colour are always backdrop
 const PACK_BALANCE_MIN=.88;      // optical balance: a pack shot is never reduced by more than 12%
 const PACK_SMALL_FILL=.72;       // warn when a pack shot fills less than 72% of its space
-const STAMP_BUSY_OK=.06;         // v50: SAVE circle spot counts as plain below this printing density
 /* v42 optical-mass profile. Height targets are deliberately form-factor aware rather than derived only
    from rectangular bounds: tall/narrow bottles use 92–94% of slot height; squat/wide tubs, bags and
    multi-packs are held around 78–82% while being allowed to use more horizontal width. */
@@ -3646,21 +3621,10 @@ function analyseReadableImage(source,strict=false){
   }
   const top=topW?Math.min(1,topW/bw):1,capX=capN?clamp((capSum/capN-minX)/bw,0,1):.5;
 
-  // v50: how busy the pack is with printing (lettering, logos, fine detail) on a 24 × 24 grid over the whole
-  // photo — the share of each cell where the brightness jumps sharply. Background counts as empty. Zone cards use
-  // it to keep the SAVE circle on a plain lid, shoulder or background rather than on label text.
-  const GW=24,GH=24,busyV=new Float32Array(GW*GH),cellN=new Float32Array(GW*GH);
-  const lum=i=>px[i]*.299+px[i+1]*.587+px[i+2]*.114;
-  for(let y=0;y<h-1;y++){const gy=Math.min(GH-1,Math.floor(y/h*GH));
-    for(let x=0;x<w-1;x++){const k=y*w+x,i=k*4,c=gy*GW+Math.min(GW-1,Math.floor(x/w*GW));cellN[c]++;
-      if(px[i+3]<22||seen[k])continue;
-      const l=lum(i);if(Math.abs(lum(i+4)-l)+Math.abs(lum(i+w*4)-l)>42)busyV[c]++;}}
-  for(let c=0;c<GW*GH;c++)busyV[c]=cellN[c]?busyV[c]/cellN[c]:0;
-
   return {
     x:minX/w,y:minY/h,w:bw/w,h:bh/h,
     cx:(minX+maxX+1)/(2*w),cy:(minY+maxY+1)/(2*h),
-    aspect:bw/bh, area:(bw*bh)/(w*h), top, capX, busy:{gw:GW,gh:GH,v:busyV}
+    aspect:bw/bh, area:(bw*bh)/(w*h), top, capX
   };
 }
 async function getImageAnalysis(img,strict=false){
@@ -3872,26 +3836,7 @@ function placeZoneStamp(wrap,st){
   // cap and label, so it sits beside the shoulder instead, overlapping the edge by a third.
   const narrow=packR-packL<2.2*d,inset=narrow?.33*d:.92*d;
   const minTop=wrap.closest('.zc-img')?0:-.9*padT;   // v47 3 Across: never over the form line above the pack
-  let left=Math.max(0,Math.min(packR-inset,wrap.offsetWidth-d)),top=Math.max(packT+(narrow?.05*d:-.18*d),minTop);
-  // v50: if that spot is busy with printing (e.g. "BONUS 10%" across the top of a bag), try nearby spots — along the
-  // top edge, down the right edge, a little higher, or straddling the corner — and take the plainest one, preferring
-  // spots close to the usual corner. Plain lids and shoulders keep the usual spot. Always inside the photo column.
-  const B=fr.busy;
-  if(B&&d>0){
-    const maxL=Math.max(0,wrap.offsetWidth-d),cL=L=>Math.max(0,Math.min(L,maxL)),cT=T=>Math.max(T,minTop);
-    const at=(X,Y)=>{const fx=(X-(cx+sx))/(bw*s)+.5,fy=(Y-(cy+sy))/(bh*s)+.5;
-      return fx<0||fx>=1||fy<0||fy>=1?0:B.v[Math.floor(fy*B.gh)*B.gw+Math.floor(fx*B.gw)];};
-    const busy=(L,T)=>{const r=d/2;let sum=0,n=0;
-      for(let iy=-3;iy<=3;iy++)for(let ix=-3;ix<=3;ix++){if(ix*ix+iy*iy>9)continue;sum+=at(L+r+ix*r/3.3,T+r+iy*r/3.3);n++;}
-      return sum/n;};
-    const base=busy(left,top);let best={L:left,T:top,sc:base};
-    if(base>STAMP_BUSY_OK){
-      const cands=[[left,cT(top-.35*d)],[cL(packR-.5*d),cT(packT-.5*d)]];
-      for(let k=1;k<=4;k++){cands.push([cL(left-k*.28*d),top]);cands.push([left,cT(top+k*.28*d)]);}
-      cands.forEach(([L,T])=>{const sc=busy(L,T)+.05*Math.hypot(L-left,T-top)/d;if(sc<best.sc-.02)best={L,T,sc};});
-    }
-    st.dataset.busy=base.toFixed(3)+'>'+busy(best.L,best.T).toFixed(3);left=best.L;top=best.T;
-  }
+  const left=Math.max(0,Math.min(packR-inset,wrap.offsetWidth-d)),top=Math.max(packT+(narrow?.05*d:-.18*d),minTop);
   ['right','top','left'].forEach(p=>st.style.removeProperty(p));
   st.style.setProperty('left',left.toFixed(1)+'px','important');st.style.setProperty('right','auto','important');
   st.style.setProperty('top',top.toFixed(1)+'px','important');st.dataset.anchor='pack';
@@ -3975,7 +3920,28 @@ function popMode(img){
 }
 function popWanted(img){return !!popMode(img);}   // v38: every layout
 function popKey(src,mode){return src+'#'+mode;}
-function tintPixels(d,t){const fr=t[0]/255,fg=t[1]/255,fb=t[2]/255;for(let i=0;i<d.length;i+=4){d[i]*=fr;d[i+1]*=fg;d[i+2]*=fb;}}
+/* v50: tone only an edge-connected, near-white background. Never multiply
+   the whole photo: that changes the colour of the packaging and its labels.
+   Transparent cut-outs are already integrated and are left byte-for-byte alone. */
+function tintPixels(d,t,w,h){
+  if(!w||!h)return;
+  const count=w*h,seen=new Uint8Array(count),queue=new Int32Array(count);
+  let head=0,tail=0;
+  const eligible=n=>{const i=n*4,r=d[i],g=d[i+1],b=d[i+2];
+    return d[i+3]>=250&&Math.min(r,g,b)>=244&&Math.max(r,g,b)-Math.min(r,g,b)<=8;};
+  const add=n=>{if(seen[n])return;seen[n]=1;if(eligible(n))queue[tail++]=n;};
+  // A transparent perimeter identifies a cut-out; do not recolour its white cap.
+  let edge=0,opaque=0;
+  for(let x=0;x<w;x++){edge+=2;opaque+=(d[x*4+3]>=250)+(d[((h-1)*w+x)*4+3]>=250);}
+  for(let y=0;y<h;y++){edge+=2;opaque+=(d[(y*w)*4+3]>=250)+(d[(y*w+w-1)*4+3]>=250);}
+  if(opaque<edge*.9)return;
+  for(let x=0;x<w;x++){add(x);add((h-1)*w+x);}
+  for(let y=0;y<h;y++){add(y*w);add(y*w+w-1);}
+  while(head<tail){const n=queue[head++],x=n%w;
+    if(x>0)add(n-1);if(x<w-1)add(n+1);if(n>=w)add(n-w);if(n<count-w)add(n+w);}
+  for(let q=0;q<tail;q++){const i=queue[q]*4;
+    d[i]=Math.max(0,t[0]-(255-d[i]));d[i+1]=Math.max(0,t[1]-(255-d[i+1]));d[i+2]=Math.max(0,t[2]-(255-d[i+2]));}
+}
 function loadPlainImage(src){return new Promise(res=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>res(null);setTimeout(()=>res(im.complete&&im.naturalWidth?im:null),3500);im.src=src;});}
 /* v35 clean backdrop: many supplier photos sit on a light grey / off-white box that shows as a
    pale rectangle on the white card. If the photo's border is mostly one neutral near-white tone
@@ -4039,7 +4005,7 @@ async function makePopVersion(img,src,mode='p',needOriginal=false){
     if(!g)return null;   // the photo's website blocks reading it: shown as it is
     await new Promise(res=>setTimeout(res,0));
     if(mode.includes('p'))popPixels(g.data.data,w,h);
-    if(mode.includes('t'))tintPixels(g.data.data,CARD_TINT);
+    if(mode.includes('t'))tintPixels(g.data.data,CARD_TINT,w,h);
     g.ctx.putImageData(g.data,0,0);
     const blob=await new Promise(res=>g.c.toBlob(res,'image/png'));
     return blob?URL.createObjectURL(blob):null;
@@ -4156,7 +4122,7 @@ function img(p,opts={}){
   // v34: clean cards show the ready-made 'popped' copy straight away (no flicker on re-render)
   let show=url;
   if(opts.pop){const m=(S.optPop?'p':'')+(opts.tint?'t':'');if(m){const u=POP_CACHE.get(popKey(absURL(url),m));if(u)show=u;}}   // v49 modes
-  return `<div class="imgslot"><img src="${ha(show)}" data-product-key="${ha(key)}" data-image-candidates="${ha(encoded)}" data-candidate-index="0" data-manual-scale="${manual}" data-auto-status="pending" style="--img-scale:${manual};--img-shift-x:0px;--img-shift-y:0px" onload="handleImageLoad(this)" onerror="handleImageError(this)"></div>`;
+  return `<div class="imgslot"><img src="${ha(show)}" data-product-key="${ha(key)}" data-image-candidates="${ha(encoded)}" data-candidate-index="0" data-manual-scale="${manual}" data-auto-status="pending" style="--img-scale:${manual};--img-shift-x:0px;--img-shift-y:0px" onload="if(typeof handleImageLoad==='function')handleImageLoad(this)" onerror="if(typeof handleImageError==='function')handleImageError(this)"></div>`;
 }
 function imgStamped(p){
   const badge=stampHTML(p);
@@ -4310,32 +4276,6 @@ function markEdited(){S.edited=true;document.getElementById('editFlag').style.di
 function clearEdited(){S.edited=false;document.getElementById('editFlag').style.display='none';document.getElementById('revertBtn').style.display='none';updateValidation();}
 
 /* ---------- product validation + image health ---------- */
-/* v50 claims check. Health wording on the slides (feature heading, key ingredients, key benefits — only where they
-   are shown: clean / zone cards with the column ticked) is flagged for staff to check against the pack or the ARTG
-   entry. Nothing is changed automatically. */
-const CLAIM_RULES=[
-  /\b(?:relie(?:f|ve[sd]?|ving)|reduc(?:e[sd]?|ing)|restor(?:e[sd]?|ing)|eas(?:e[sd]?|ing)|treat(?:s|ed|ing|ment)?|prevent(?:s|ed|ing|ion)?|cur(?:e[sd]?|ing)|heal(?:s|ing)?|fights?)\b/gi,
-  /\b(?:clinically|clinical|proven|scientifically|trialled|trialed)\b/gi,
-  /\b\d+(?:\.\d+)?\s?[x×](?=[\s)]|$)(?:\s+(?:more|better|stronger|faster|the))?/gi,
-  /\b(?:IBS|arthriti[cs]|osteoarthriti[cs]|allerg(?:y|ies|ic)|sinus|insomnia|sleeplessness|anxiety|depression|infections?|cold duration|common cold)\b/gi,
-  /\bpractitioner\b/gi
-];
-function claimFlags(p){
-  if(!p||!CLEAN_LAYOUTS[S.layout])return [];
-  const out=[],seen=new Set();
-  [['feature heading','featureHeading','heading'],['ingredients','keyIngredients','ingredients'],['benefits','keyBenefits','benefits']].forEach(([label,k,ct])=>{
-    if(!cardTextOn(ct))return;const t=String(p[k]||'');if(!t)return;
-    CLAIM_RULES.forEach(re=>{re.lastIndex=0;let m;while((m=re.exec(t))){const w=m[0].trim(),key=w.toLowerCase();if(!seen.has(key)){seen.add(key);out.push({field:label,word:w});}}});
-  });
-  return out;
-}
-function claimNoteHTML(p){
-  if(!CLEAN_LAYOUTS[S.layout])return '';
-  const f=claimFlags(p);if(!f.length)return '';
-  return `<div class="card-claims" title="Wording like this can be a therapeutic, comparative or clinical claim. Keep it to what the pack or the product's ARTG entry says. Nothing is changed automatically.">Check against the pack / ARTG wording: ${f.slice(0,6).map(x=>`<b>${h(x.word)}</b> (${h(x.field)})`).join(', ')}${f.length>6?' …':''}</div>`;
-}
-/* v50: optional sheet column practitioner_only (yes / no), or the tick box on each product card. */
-function isPractitionerOnly(p){const v=p&&p.practitionerOnly;return v===true||/^(?:y|yes|true|1|x|✓|✔)$/i.test(String(v==null?'':v).trim());}
 function validateProducts(){
   const rows=activeRows(),errors=[],warnings=[];
   if(!rows.length)errors.push(S.work.length?'No specials are running today — check start / end dates':'No products are loaded');
@@ -4375,27 +4315,6 @@ function validateProducts(){
     if(pn==='unread')warnings.push(health&&health.status==='risk'?`Product ${n}: its website blocks the photo, so the pack shot can't be auto-sized either — save the photo in images/`:`Product ${n}: pack shot couldn't be auto-sized (busy or dark photo background) — use Image fine-tune, or a photo on plain white`);
     if(pn==='small')warnings.push(`Product ${n}: pack shot looks small (small photo or lots of empty space) — use a bigger or tighter-cropped photo, or Image fine-tune`);
   });
-  // v50 advertising checks. Health wording and practitioner-only packs: one line each for the whole sheet (details on
-  // each product card). Deals without an end date and the NOW pill without a discount: this page only.
-  const numOf=p=>rows.indexOf(p)+1,listOf=a=>a.slice(0,5).join(', ')+(a.length>5?` and ${a.length-5} more`:'');
-  const claimRows=rows.map(p=>({p,f:claimFlags(p)})).filter(x=>x.f.length);
-  if(claimRows.length)warnings.push(`Health wording to check against the pack or ARTG entry on ${claimRows.length} product${claimRows.length===1?'':'s'}: ${listOf(claimRows.map(x=>`Product ${numOf(x.p)} “${x.f[0].word}”`))} (see each product card)`);
-  if(['email','social','banner'].includes(S.channel)){
-    const pr=rows.filter(isPractitionerOnly).map(numOf);
-    if(pr.length)warnings.push(`Practitioner-only pack${pr.length===1?'':'s'} on this channel: Product ${listOf(pr)} — confirm the supplier allows advertising to the public`);
-  }
-  rows.forEach(p=>{
-    const n=numOf(p);
-    if(p.disc==='deal'&&/\bGET\s+\d+\s+FREE\b/i.test(String(p.dv||''))&&!hasPrice(p.now))warnings.push(`Product ${n}: ${dealText(p.dv)} shows no price — add the single price as NOW price so customers can see what they pay`);
-    const ea=multiBuyEach(p);
-    if(ea&&ea.uneven)warnings.push(`Product ${n}: ${offerPrice(ea.total)} ÷ ${ea.n} isn't a whole number of cents — the card shows ${ea.text}`);
-  });
-  if(CLEAN_LAYOUTS[S.layout]){
-    const pg=pageRows(),noEnd=pg.filter(p=>p.disc==='deal'&&!offerDates(p).end).map(numOf).filter(n=>n>0);
-    if(noEnd.length)warnings.push(`Deal${noEnd.length===1?'':'s'} on this page with no end date: Product ${listOf(noEnd)} — add end_date so ${noEnd.length===1?'it comes':'they come'} off screens and out of emails on time`);
-    const nowNoDisc=S.noDiscPill==='now'&&cardTextOn('style')?pg.filter(p=>noDiscountShown(cardView(p))).map(numOf).filter(n=>n>0):[];
-    if(nowNoDisc.length)warnings.push(`NOW pill with no earlier price on Product ${listOf(nowNoDisc)} — Card options → No-discount pill can show SPECIAL or no pill`);
-  }
   // v45: one line for the page when Text fit → Impact left information off (not one per product).
   const left=[...new Set([...(META_TRIMS||new Map()).values()].flat())];
   if(left.length)warnings.push(`Impact: ${left.join(', ').replace(/, ([^,]*)$/,' and $1')} left off this layout so the prices stay large — set Text fit to All info, or pick a larger layout, to show them`);
@@ -4588,8 +4507,6 @@ function buildInputs(){
       <label>Feature Heading${cardTextOffTag('heading')}</label><input type="text" data-gi="${gi}" data-k="featureHeading" value="${ha(p.featureHeading||'')}" placeholder="e.g. High-Potency Antioxidant">
       <label>Key Ingredients${cardTextOffTag('ingredients')}</label><input type="text" data-gi="${gi}" data-k="keyIngredients" value="${ha(p.keyIngredients||'')}" placeholder="e.g. Quercetin 500mg, Zinc 15mg">
       <label>Key Benefits${cardTextOffTag('benefits')}</label><input type="text" data-gi="${gi}" data-k="keyBenefits" value="${ha(p.keyBenefits||'')}" placeholder="e.g. Immune Support & Recovery">
-      <div data-claims="${gi}">${claimNoteHTML(p)}</div>
-      <label class="pract-row" title="Tick if the pack says practitioner only / practitioner dispensing only. Staff are reminded to check supplier terms before these appear in email, social or web artwork. Sheet column: practitioner_only (yes / no)."><input type="checkbox" data-gi="${gi}" data-k="practitionerOnly" ${isPractitionerOnly(p)?'checked':''}> Practitioner-only pack</label>
       <label>Promo Display Override${cardTextOffTag('value')}</label><input type="text" data-gi="${gi}" data-k="promoDisplay" value="${ha(p.promoDisplay||'')}" placeholder="e.g. SPECIAL BUY 2 FOR $50">
       <div class="mini"><div><label>NOW price${cardTextOffTag('now')}</label>
         <input type="text" inputmode="decimal" data-gi="${gi}" data-k="now" value="${ha(p.now)}"></div>
@@ -4626,14 +4543,10 @@ function buildInputs(){
       if(k==='scale'){
         const lab=box.querySelector(`[data-scale-label="${gi}"]`);if(lab)lab.textContent=imageScale(rows[gi])+'%';
       }
-      if(k==='featureHeading'||k==='keyIngredients'||k==='keyBenefits'){const cn=box.querySelector(`[data-claims="${gi}"]`);if(cn)cn.innerHTML=claimNoteHTML(rows[gi]);}   // v50
       markEdited();
       render(false); // preview only: keeps typing focus/cursor intact
     });
   });
-  box.querySelectorAll('input[type=checkbox][data-k]').forEach(inp=>inp.addEventListener('change',e=>{   // v50 Practitioner-only pack
-    const gi=+e.target.dataset.gi;rows[gi][e.target.dataset.k]=e.target.checked?'yes':'no';markEdited();render(false);
-  }));
   box.querySelectorAll('input[type=file]').forEach(inp=>inp.addEventListener('change',e=>{
     const gi=+e.target.dataset.gi,f=e.target.files[0];if(!f)return;
     const r=new FileReader();r.onload=ev=>{rows[gi].img=ev.target.result;markEdited();render(false);};
@@ -4719,28 +4632,9 @@ function offerPrice(now){
   const n=numberFrom(now);if(!Number.isFinite(n))return '';
   return '$'+n.toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
-/* v50: a multi-buy total ("BUY 2 FOR $145.00") also says what one costs: "$72.50 each". Worked out from the deal
-   wording only; uneven totals are rounded to the cent and flagged for staff (see validateProducts). */
-function multiBuyEach(p){
-  const d=priceData(p);if(d.has||!d.deal)return null;
-  const sd=splitDeal(d.deal);if(!sd||!sd.amount||sd.per)return null;
-  const m=String(sd.lead||'').match(/^BUY\s+(?:ANY\s+)?(\d+)\s+FOR$/i);if(!m)return null;
-  const n=+m[1],total=numberFrom(sd.hero);if(!(n>1)||!(total>0))return null;
-  const cents=Math.round(total*100),each=Math.round(cents/n)/100;
-  return {n,total,each,uneven:cents%n!==0,text:`${offerPrice(each)} each`};
-}
-/* v50 No-discount pill (Card options): a product with a price but no discount (discount style "No discount")
-   shows NOW (as before), SPECIAL, or no pill. Clean and zone cards only; classic layouts keep NOW. */
-function noDiscountShown(p){const d=priceData(p);return d.has&&p.disc==='none'&&!d.deal&&!d.was;}
-function nowPillText(p){
-  if(!noDiscountShown(p))return 'NOW';
-  return S.noDiscPill==='special'?'SPECIAL':S.noDiscPill==='none'?'':'NOW';
-}
 function offerSubLines(p,opts={}){
   const d=priceData(p),lines=[];
   if(d.has&&d.deal)lines.push(h(d.deal));
-  const ea=opts.each?multiBuyEach(p):null;   // v50: "$72.50 each" under a multi-buy total
-  if(ea)lines.push(h(ea.text));
   const ref=d.was?(opts.strike?`WAS <s>$${h(d.was)}</s>`:`WAS $${h(d.was)}`):(d.rrp&&S.optRRP?`RRP $${h(d.rrp)}${!d.has&&d.deal?' EACH':''}`:'');   // v35: multi-buy RRP is per item · v49 strike = only the amount
   let save='';
   if(!opts.noSave&&p.disc==='save$'){const v=numberFrom(p.dv);if(Number.isFinite(v)&&v>0)save=`SAVE $${h(savingText(v))}`;}
@@ -4802,40 +4696,15 @@ function slideNameParts(p,dn){
   const s=splitSize(dn);
   return s.size&&s.name?{product:s.name,size:s.size}:{product:dn,size:''};
 }
-/* v50 tidy: 'card' (clean / zone cards) or 'text' (Copy text, email text). Classic white layouts and file names
-   call without it, so they stay exactly as before. */
-function slideNameText(p,useShort,tidy){
-  let base=useShort&&String(p&&p.short||'').trim()?unitTidy(p.short):displayName(p);
-  // v50: a name that is only a size once the brand is taken off ("Tru Niagen" + "Tru Niagen, 30c" → "30c") keeps its
-  // product words when there is no NAME_DESCRIPTORS wording for that brand: "Tru Niagen, 30 caps".
-  if(tidy==='card'&&isSizeOnly(base)&&!(useShort&&String(p&&p.short||'').trim())){const full=unitTidy(p&&p.name);if(full&&full!==base)base=full;}
+function slideNameText(p,useShort){
+  const base=useShort&&String(p&&p.short||'').trim()?unitTidy(p.short):displayName(p);
   const pOn=cardTextOn('product'),sOn=cardTextOn('size');
-  let out=base;
-  if(!(pOn&&sOn)){const x=slideNameParts(p,base);out=[pOn?x.product:'',sOn?x.size:''].filter(Boolean).join(', ');}
-  return tidy?cardSizeTidy(out,p&&p.productForm,tidy==='card'):out;
-}
-/* v50: pack sizes as customers read them, on clean / zone cards and in the email text only (the sheet, photo file
-   names and slide file names keep the text as typed): 60c → 60 caps · 150t → 150 tabs · a trailing "Pack" after a
-   size is dropped ("50×5.5g Pack" → "50×5.5g", or "50×5.5g sachets" when the product form says sachets).
-   keep=true (cards): the number and its unit never break across lines (60 caps, 1.1kg Bag). */
-function cardSizeTidy(s,form,keep){
-  let t=String(s==null?'':s);
-  t=t.replace(/(\d)\s?c\b/gi,'$1 caps').replace(/(\d)\s?t\b/gi,'$1 tabs');
-  t=t.replace(/(\d(?:[.,]\d+)?\s?(?:mg|mcg|g|kg|ml|mL|L|caps|tabs|softgels|serves))\s+pack$/i,(m,a)=>a+(/\bsachets?\b/i.test(String(form||''))?' sachets':''));
-  if(keep)t=t.replace(/([0-9a-zµ])\s+(caps|vcaps|tabs|softgels|sachets|serves|bag|tub|pouch|jar|tin|tube|refill|bottle|box)\b/gi,'$1 $2');
-  return t;
-}
-/* v50: product form as shown on cards: a size in brackets that repeats the Size column is left off
-   ("Plant-Based Mass Gainer Powder (2.5kg)"), and a one-word shorthand is written out (Pwd → Powder). */
-const FORM_WORDS={pwd:'Powder',powd:'Powder',tabs:'Tablets',tab:'Tablet',caps:'Capsules',cap:'Capsule',vcaps:'Veg capsules',sgels:'Softgels'};
-function cardFormText(p){
-  let f=String(p&&p.productForm||'').trim();if(!f)return '';
-  const sz=String(productSizeOf(p).size||'').trim();
-  if(sz){const esc=sz.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');f=f.replace(new RegExp('\\s*\\(\\s*'+esc+'\\s*\\)','i'),'').trim();}
-  return FORM_WORDS[f.toLowerCase().replace(/\.$/,'')]||f;
+  if(pOn&&sOn)return base;
+  const x=slideNameParts(p,base);
+  return [pOn?x.product:'',sOn?x.size:''].filter(Boolean).join(', ');
 }
 function offerMetaHTML(p){
-  const formTag=cardTextOn('form')&&p.productForm?`<div class="po-form">${h(cardFormText(p))}</div>`:'';   // v50: tidied form
+  const formTag=cardTextOn('form')&&p.productForm?`<div class="po-form">${h(p.productForm)}</div>`:'';
   const feature=cardTextOn('heading')&&p.featureHeading?`<div class="po-feature-head">${h(p.featureHeading)}</div>`:'';
   const ing=cardTextOn('ingredients')?p.keyIngredients:'',ben=cardTextOn('benefits')?p.keyBenefits:'';
   let details='';
@@ -4858,7 +4727,7 @@ function offerBlock(p,opts={}){
   const nbh=s=>String(s||'').replace(/([A-Za-z0-9])-(?=[A-Za-z0-9])/g,'$1\u2011');
   const bOn=cardTextOn('brand'),nOn=cardNameOn();   // v43: Card text Brand / Product / Size
   const brandTxt=bOn?nbh(slideBrand(p)):'';
-  const prodTxt=nOn?nbh(slideNameText(p,true,'card')):'';   // v41: brand not repeated · v50: sizes tidied
+  const prodTxt=nOn?nbh(slideNameText(p,true)):'';   // v41: brand not repeated
   const title=brandTxt||prodTxt?`${bOn?`<div class="po-brand" data-full="${ha(brandTxt)}">${h(brandTxt)}</div>`:''}${nOn?`<div class="po-prod" data-full="${ha(prodTxt)}">${h(prodTxt)}</div>`:''}`:'';
   const meta=offerMetaHTML(p);
   // v35: a deal reads like a price. The mechanic goes in the pill (BUY 2 FOR) and the amount or reward is
@@ -4866,10 +4735,9 @@ function offerBlock(p,opts={}){
   // v43: the NOW / SPECIAL pill follows Card text → Discount style; a deal's own pill (BUY 2 FOR) is part of
   // the discount value.
   const sd=!d.has&&d.deal?splitDeal(d.deal):null;
-  const pillTxt=d.has?nowPillText(p):'SPECIAL';   // v50 No-discount pill
-  const pill=sd&&sd.lead?`<div class="po-pill po-lead">${h(sd.lead)}</div>`:(cardTextOn('style')&&pillTxt?`<div class="po-pill">${pillTxt}</div>`:'');
+  const pill=sd&&sd.lead?`<div class="po-pill po-lead">${h(sd.lead)}</div>`:(cardTextOn('style')?`<div class="po-pill">${d.has?'NOW':'SPECIAL'}</div>`:'');
   const hero=d.has?`<div class="po-price po-hero">${h(offerPrice(p.now))}</div>`:(sd?(sd.amount?`<div class="po-price po-hero">${h(sd.hero)}${sd.per?`<span class="po-per">${h(sd.per)}</span>`:''}</div>`:(sd.percent?`<div class="po-deal po-dealpct po-hero"><span class="po-dealpct-value">${h(sd.hero)}</span><span class="po-dealpct-sub">${h(sd.sublabel||'OFF')}</span></div>`:`<div class="po-deal po-dealbig po-hero">${h(sd.hero)}</div>`)):'');
-  const subParts=offerSubLines(p,{noSave:!!opts.noSave,each:true}),subs=subParts.length?subParts.map(t=>`<div class="po-sub">${t}</div>`).join(''):`<div class="po-sub ${REF_EMPTY_CLASS}" aria-hidden="true">&nbsp;</div>`;
+  const subParts=offerSubLines(p,{noSave:!!opts.noSave}),subs=subParts.length?subParts.map(t=>`<div class="po-sub">${t}</div>`).join(''):`<div class="po-sub ${REF_EMPTY_CLASS}" aria-hidden="true">&nbsp;</div>`;
   const ends=opts.ends?offerDates(p).end:null;
   const endsHTML=ends?`<div class="po-ends">Offer ends ${h(fmtOfferDate(ends))}</div>`:'';
   // v43: with the price, discount style and discount value all unticked the card is information only (no rule).
@@ -5306,6 +5174,12 @@ function cleanSlide(layout,P){
    To add a layout: add it here — stack:true when the pack shot sits above the text, top:true when brand,
    name and form sit above the pack shot. */
 var ZONE_LAYOUTS={
+  pos2:{floor:.85},
+  retailbanner2:{floor:.85},
+  retailsquare4:{floor:.85},
+  botanicalsquare:{floor:.85},
+  retailsquarehero:{stack:true,imgMin:.46,floor:.72},
+  botanicalsingle:{stack:true,imgMin:.48,floor:.72},
   poshero:{floor:.72},
   retailhero2:{floor:.85},
   retailfour:{floor:.85},
@@ -5335,7 +5209,7 @@ function sentenceCase(t){
   const src=String(t||'').trim();if(!src)return '';
   const allCaps=src===src.toUpperCase()&&/[A-Z]{2}/.test(src);
   const part=w=>{const letters=w.replace(/[^A-Za-z]/g,'');
-    if(/\d/.test(w)||letters.length<=1)return w;
+    if(/\d/.test(w)||letters.length<=1||/^(EPA|DHA|DNA|RNA|MCT|UMF|AUST|TGA|GST|RRP)$/i.test(letters))return w;
     if(!allCaps&&(letters.match(/[A-Z]/g)||[]).length>=2)return w;
     return w.toLowerCase();};
   let quoted=false;                        // words inside quotes keep their capitals: 'The Mother'
@@ -5349,8 +5223,8 @@ const ZONE_GAP=[.22,.55];                 // space above the pill: least / most,
 const ZONE_IMG_GAP=.18;                   // 3 Across: space above and below the pack shot, × u
 // Text fit steps for the extra information: size × and lines per Ingredients / Benefits item. Impact takes the
 // first step that keeps the price at `floor` or more of its size without the extra information.
-const ZONE_STEPS={impact:[{det:1,lines:3},{det:.9,lines:3},{det:.9,lines:2},{det:.8,lines:2}],all:[{det:1,lines:8}]};
-const ZONE_HEAD_LINES={impact:2,all:3};
+const ZONE_STEPS={impact:[{det:1,lines:3},{det:.9,lines:3},{det:.9,lines:2},{det:.8,lines:2}],all:[{det:1,lines:Infinity}]};
+const ZONE_HEAD_LINES={impact:2,all:Infinity};
 var ZONE_MEMO=new Map();
 const ZONE_STAMP=1.22;                    // SAVE circle: --po-size = 1.22u → circle = 1.37 × the price size
 function zoneCard(p,cfg,extra=''){
@@ -5364,9 +5238,9 @@ function zoneCard(p,cfg,extra=''){
 function zoneBlock(p,hasStamp,pack){
   const d=priceData(p),t=v=>String(v||'').trim();
   const nbh=s=>String(s||'').replace(/([A-Za-z0-9])-(?=[A-Za-z0-9])/g,'$1‑');   // keep Nutra-Life / Ester-C together
-  const brand=cardTextOn('brand')?nbh(slideBrand(p)):'',prod=cardNameOn()?nbh(slideNameText(p,true,'card')):'';   // v50: sizes tidied
+  const brand=cardTextOn('brand')?nbh(slideBrand(p)):'',prod=cardNameOn()?nbh(slideNameText(p,true)):'';
   const soft=S.cardStyle!=='clean';   // v49
-  const form=cardTextOn('form')?cardFormText(p):'',head=cardTextOn('heading')?(soft?sentenceCase(p.featureHeading):t(p.featureHeading)):'';
+  const form=cardTextOn('form')?t(p.productForm):'',head=cardTextOn('heading')?(soft?sentenceCase(p.featureHeading):t(p.featureHeading)):'';
   const ing=cardTextOn('ingredients')?t(p.keyIngredients):'',ben=cardTextOn('benefits')?t(p.keyBenefits):'';
   const sd=!d.has&&d.deal?splitDeal(d.deal):null;
   let hero='',kind='';
@@ -5376,9 +5250,9 @@ function zoneBlock(p,hasStamp,pack){
   else if(sd){const rows=String(sd.hero).split(/\s+\/\s+/).filter(Boolean);   // v49: "SINGLE $4.95 / BOX 12 $53.45" → two rows
     const rc=r=>soft?r.replace(/\b[A-Z]{2,}\b/g,w=>/^(RRP|GST|OFF)$/.test(w)?w:/^(OF|FOR|OR|AND|PER|EACH)$/.test(w)?w.toLowerCase():w[0]+w.slice(1).toLowerCase()):r;   // Soft cards: "Single $4.95" / "Box 12 $53.45"
     hero=rows.length>1?`<span class="zc-deal zc-rows">${rows.map(r=>`<span>${h(rc(r))}</span>`).join('')}</span>`:`<span class="zc-deal">${h(sd.hero)}</span>`;kind='deal';}
-  const subs=offerSubLines(p,{noSave:hasStamp,strike:soft,each:true});   // v50: each-price under multi-buy totals
+  const subs=offerSubLines(p,{noSave:hasStamp,strike:soft});
   const offer=!!(hero||subs.length);
-  const pill=offer?(sd&&sd.lead?sd.lead:(cardTextOn('style')?(d.has?nowPillText(p):'SPECIAL'):'')):'';   // v50 No-discount pill
+  const pill=offer?(sd&&sd.lead?sd.lead:(cardTextOn('style')?(d.has?'NOW':'SPECIAL'):'')):'';
   const ends=offerDates(p).end;
   const z=(k,inner,attr='')=>`<div class="zc-z zc-${k}" data-z="${k}"${attr}>${inner}</div>`;
   return `<div class="zc" data-key="${ha(productKey(p))}">`+
@@ -5409,7 +5283,7 @@ function zoneFitGroup(cfg,blocks,gkey){
   const K=['brand','prod','pline','form','head','det','gap','pill','price','rule','ref','ends'],Z={};
   K.forEach(k=>Z[k]=blocks.map(b=>b.querySelector('.zc-'+k)));
   blocks.forEach(b=>{
-    b.querySelectorAll('.zc-z').forEach(el=>{el.removeAttribute('style');el.removeAttribute('data-cut');el.hidden=false;el.querySelectorAll('[style]').forEach(c=>c.removeAttribute('style'));});
+    b.querySelectorAll('.zc-z').forEach(el=>{el.removeAttribute('style');el.hidden=false;el.querySelectorAll('[style]').forEach(c=>c.removeAttribute('style'));});
     const im=b.querySelector('.zc-img');if(im)im.removeAttribute('style');
     b.querySelectorAll('.zc-ing,.zc-ben,.zc-head').forEach(el=>{el.hidden=false;if(el.dataset.full!=null)el.innerHTML=el.dataset.full;});
     ['brand','prod'].forEach(k=>{const el=b.querySelector('.zc-'+k);if(el)el.textContent=el.dataset.full||'';});
@@ -5492,7 +5366,7 @@ function zoneFitGroup(cfg,blocks,gkey){
   const best=sp=>{
     const st=setSpec(sp);
     if(measure(uCap,st).H<=availH)return {u:uCap,sp};
-    let lo=4,hi=uCap;
+    let lo=0,hi=uCap;
     for(let i=0;i<11;i++){const m=(lo+hi)/2;if(measure(m,st).H<=availH)lo=m;else hi=m;}   // ±0.1px
     return {u:lo,sp};
   };
@@ -5522,8 +5396,7 @@ function zoneFitGroup(cfg,blocks,gkey){
   if(a.brand)Z.brand.forEach(el=>set(el,{'margin-bottom':px(af.brand*u)}));
   if(a.prod){const fs=q(T.prod.s*u),hh=fs*T.prod.lh*L.prod;
     Z.prod.forEach(el=>{if(!el)return;set(el,{'font-size':px(fs),'line-height':String(T.prod.lh),'-webkit-line-clamp':String(L.prod),'margin-bottom':px(af.prod*u)});
-      if(el.dataset.full){const stt=zoneFitName(el,el.dataset.full,L.prod,fs*T.prod.lh);const key=el.closest('.zc').dataset.key;if(key)NAME_TRIMS.set(key,stt);
-        if(stt==='cut'||stt==='clamp')el.setAttribute('data-cut','');}   // v50 Show zones
+      if(el.dataset.full){const stt=zoneFitName(el,el.dataset.full,L.prod,fs*T.prod.lh);const key=el.closest('.zc').dataset.key;if(key)NAME_TRIMS.set(key,stt);}
       set(el,{height:px(hh)});});}
   if(a.pline){const th=Math.max(1.5,.035*u),k=slideScaleOf(blocks[0]);
     Z.pline.forEach((el,i)=>{set(el,{height:px(th),'margin-top':px(T.pline.m*u),'margin-bottom':px(af.pline*u)});
@@ -5537,9 +5410,9 @@ function zoneFitGroup(cfg,blocks,gkey){
   const cut={};   // information shortened with "…", per product, for the status line
   const note=(el,name)=>{const key=el.closest('.zc').dataset.key;if(key)(cut[key]=cut[key]||new Set()).add(name);};
   if(a.head){const fs=q(q(HD.s*u)*(L.headF||1));Z.head.forEach(el=>{set(el,{'font-size':px(fs),'line-height':String(HD.lh),'margin-bottom':px(af.head*u)});
-    if(filled(el)&&zoneTrimLines(el,L.head,fs*HD.lh)){note(el,'feature heading');el.setAttribute('data-cut','');}set(el,{height:px(fs*HD.lh*L.head)});});}
+    if(fit==='impact'&&filled(el)&&zoneTrimLines(el,L.head,fs*HD.lh))note(el,'feature heading');set(el,{height:px(fs*HD.lh*L.head)});});}
   if(a.det){const fs=q(T.det.s*sp.det*u);Z.det.forEach(el=>{set(el,{'font-size':px(fs),'margin-bottom':px(af.det*u)});
-    if(el)el.querySelectorAll('.zc-ing,.zc-ben').forEach(it=>{if(zoneTrimLines(it,sp.lines,fs*T.det.lh)){note(el,it.classList.contains('zc-ing')?'key ingredients':'key benefits');el.setAttribute('data-cut','');}});
+    if(el)el.querySelectorAll('.zc-ing,.zc-ben').forEach(it=>{if(fit==='impact'&&zoneTrimLines(it,sp.lines,fs*T.det.lh))note(el,it.classList.contains('zc-ing')?'key ingredients':'key benefits');});
     set(el,{height:px(L.det)});});}
   Object.entries(cut).forEach(([k,v])=>ZONE_CUTS.set(k,[...(ZONE_CUTS.get(k)||[]),...v]));
   // Space above the pill: side-by-side cards take up to ZONE_GAP[1] of spare height, so the text block (and
@@ -5601,8 +5474,21 @@ function zoneTextHeight(el){
 /* v49: rendered width of an element's text (widest line), for the underlines. */
 function zoneTextWidth(el){
   const r=document.createRange();r.selectNodeContents(el);
-  const rs=[...r.getClientRects()].filter(x=>x.width>0);if(!rs.length)return 0;
-  return Math.max(...rs.map(x=>x.right))-Math.min(...rs.map(x=>x.left));
+  // Read text fragments only: selecting a block also returns its full-width box.
+  // Group fragments on the same baseline, including nested price spans.
+  const walker=document.createTreeWalker(el,NodeFilter.SHOW_TEXT),lines=[];
+  let node;
+  while((node=walker.nextNode())){
+    if(!node.textContent.trim())continue;
+    r.selectNodeContents(node);
+    for(const q of r.getClientRects()){
+      if(q.width<=0||q.height<=0)continue;
+      let line=lines.find(x=>Math.min(x.bottom,q.bottom)-Math.max(x.top,q.top)>Math.min(x.bottom-x.top,q.height)*.5);
+      if(!line){line={left:q.left,right:q.right,top:q.top,bottom:q.bottom};lines.push(line);}
+      else{line.left=Math.min(line.left,q.left);line.right=Math.max(line.right,q.right);line.top=Math.min(line.top,q.top);line.bottom=Math.max(line.bottom,q.bottom);}
+    }
+  }
+  return lines.length?Math.max(...lines.map(x=>x.right-x.left)):0;
 }
 /* Deal wording in the price zone (GET 1 FREE, SINGLE $4.95 / BOX 12 $53.45): one line as large as fits (up to
    80% of the price size), else two lines within the price zone — whichever gives the larger type. */
@@ -5625,8 +5511,7 @@ function partialClass(n,full){return n>0&&n<full?` partial-${n}`:'';}   // v41: 
 function emptyCell(cls='cell'){return `<div class="${cls} empty-cell"></div>`;}
 function render(rebuildInputs=true){
   const L=LAYOUTS[S.layout],s=document.getElementById('slide');
-  s.className='slide l-'+S.layout+' ch-'+S.channel;   // v50: channel class (email / social footers)
-  if(S.showZones&&ZONE_LAYOUTS[S.layout])s.classList.add('show-zones');   // v50 Show zones (preview only)
+  s.className='slide l-'+S.layout;
   s.style.setProperty('--name-lines',String(S.nameLines||2));
   if(CLEAN_LAYOUTS[S.layout]&&S.optCanvas==='dark')s.classList.add('cl-dark');
   s.classList.add('bc-'+(S.brandCase||'std'));   // v38 brand letters on classic layouts   // v35 charcoal canvas (clean cards only)
@@ -5710,7 +5595,7 @@ function render(rebuildInputs=true){
   });
   document.getElementById('pageInfo').textContent=`Page ${S.page+1} of ${pageCount()}`;
   if(rebuildInputs)buildInputs();
-  fit();updateLayoutAdvice();updatePreviewHead();updateOptionAvailability();updateValidation();updateFileNamePreview();
+  fit();updateLayoutAdvice();updatePreviewHead();updateValidation();updateFileNamePreview();
   if(CLEAN_LAYOUTS[S.layout]){scheduleFitOffers(s);placeSaveCircles(s);}
   else scheduleClassicText(s);   // v38
   scheduleAutoBalance(s);
@@ -5741,24 +5626,6 @@ function fit(){
   stage.classList.toggle('actual',S.zoom==='actual');
   const zl=document.getElementById('zoomLabel');if(zl)zl.textContent=Math.round(sc*100)+'%';
 }
-/* v50: options that have no effect on the current layout are dimmed and say so, instead of silently doing nothing. */
-function updateOptionAvailability(){
-  const clean=!!CLEAN_LAYOUTS[S.layout],zone=!!ZONE_LAYOUTS[S.layout],stack=zone&&!!ZONE_LAYOUTS[S.layout].stack;
-  const rules={optNameLines:clean,optTextFit:clean,optCardStyle:zone,optAccent:clean,optStackAlign:stack,optCanvas:clean,
-    optNoDisc:clean,optLabel:clean,optScope:clean,ctForm:clean,ctHeading:clean,ctIngredients:clean,ctBenefits:clean,showZonesToggle:zone};
-  Object.entries(rules).forEach(([id,on])=>{
-    const el=document.getElementById(id),lab=el&&el.closest('label');if(!lab)return;
-    if(lab.dataset.tip==null)lab.dataset.tip=lab.title||'';
-    lab.classList.toggle('fo-na',!on);
-    lab.title=on?lab.dataset.tip:(lab.dataset.tip?lab.dataset.tip+' — ':'')+'No effect on this layout.';
-  });
-}
-/* v50: clean-card layouts still on the older text fitting are marked ° on their buttons. */
-document.querySelectorAll('#layoutBtns .btn[data-layout]').forEach(b=>{
-  const k=b.dataset.layout;
-  if(CLEAN_LAYOUTS[k]&&!ZONE_LAYOUTS[k]){b.classList.add('lb-legacy');
-    b.title='° Older text fitting: with Text fit → Impact, ticked information (ingredients, benefits, heading) can be left off where a card has no room. Zone-card layouts always show what is ticked.';}
-});
 function updatePreviewHead(){
   const btn=layoutButtonFor(S.layout);
   const m=LAYOUT_META[S.layout]||{};
@@ -5912,12 +5779,6 @@ document.getElementById('autoBalanceToggle').addEventListener('change',e=>{
   S.brandCase=['std','title','upper','asis'].includes(get('phf_brand_case','std'))?get('phf_brand_case','std'):'std';
   const BC=document.getElementById('optBrandCase');BC.value=S.brandCase;
   BC.onchange=()=>{S.brandCase=BC.value;put('phf_brand_case',S.brandCase);render(true);};
-  S.showZones=get('phf_show_zones','off')==='on';   // v50 Show zones (preview only)
-  const SZ=document.getElementById('showZonesToggle');SZ.checked=S.showZones;
-  SZ.onchange=()=>{S.showZones=SZ.checked;put('phf_show_zones',SZ.checked?'on':'off');render(false);};
-  S.noDiscPill=['now','special','none'].includes(get('phf_nodisc_pill','now'))?get('phf_nodisc_pill','now'):'now';   // v50
-  const ND=document.getElementById('optNoDisc');ND.value=S.noDiscPill;
-  ND.onchange=()=>{S.noDiscPill=ND.value;put('phf_nodisc_pill',S.noDiscPill);render(false);};
   S.optCanvas=get('phf_opt_canvas','white')==='dark'?'dark':'white';
   const CV=document.getElementById('optCanvas');CV.value=S.optCanvas;
   CV.onchange=()=>{S.optCanvas=CV.value==='dark'?'dark':'white';put('phf_opt_canvas',S.optCanvas);render(false);};
@@ -6076,7 +5937,6 @@ function rowsFromGViz(response){
       keyIngredients:pick('key_ingredients','key ingredients','ingredients','active_ingredients','active ingredients'),
       keyBenefits:pick('key_benefits','key benefits','benefits','key_benefit','key benefit'),
       promoDisplay:pick('promo_display','promo display','promo','display_offer','display offer'),
-      practitionerOnly:pick('practitioner_only','practitioner only','practitioner','practitioner_pack','pract_only'),   // v50
       _rowId:'sheet-'+(i+1)}));
   }
   return out;
@@ -6293,10 +6153,6 @@ async function captureCurrentPage(scale=EXPORT_SCALE){
   await applyAutoBalance(s);
   if(await settlePop(s))await applyAutoBalance(s);   // v34: the PNG gets the same popped pack shots
   if(s.querySelector('.po,.zc'))fitOffers(s);
-  // v50: Show zones is taken off the live slide while the copy is made (html2canvas copies the zone labels as real
-  // elements before any clean-up could run), and put back afterwards. Outlines don't change the layout.
-  const zonesOn=s.classList.contains('show-zones');if(zonesOn)s.classList.remove('show-zones');
-  try{
   // Export from html2canvas' private copy of the page: the copied slide is
   // un-scaled and lifted out of the preview frame, so the on-screen zoom,
   // pinned layout and scroll position can never clip or shrink the PNG.
@@ -6304,13 +6160,11 @@ async function captureCurrentPage(scale=EXPORT_SCALE){
     onclone:(doc,clone)=>{
       const c=clone||doc.getElementById('slide');if(!c)return;
       c.style.transform='none';
-      c.classList.remove('show-zones');   // v50: zone outlines are for the preview only, never the PNG
       const host=doc.createElement('div');
       host.style.cssText=`position:absolute;left:0;top:0;width:${L.w}px;height:${L.h}px;margin:0;padding:0;z-index:2147483647`;
       doc.body.appendChild(host);host.appendChild(c);
     }});
   return canvas;
-  }finally{if(zonesOn)s.classList.add('show-zones');}
 }
 function canvasBlob(canvas){return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('PNG creation failed')),'image/png'));}
 function downloadBlob(blob,name){const a=document.createElement('a');a.download=name;a.href=URL.createObjectURL(blob);document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1500);}
@@ -6374,11 +6228,10 @@ function updateFileNamePreview(){
 function plainText(html){const t=document.createElement('textarea');t.innerHTML=String(html||'');return t.value;}
 function offerTextLine(p0){
   const p=cardView(p0),d=priceData(p);   // v43: Copy text / email text say what the slide shows
-  const name=[cardTextOn('brand')?slideBrand(p):'',cardNameOn()?slideNameText(p,false,CLEAN_LAYOUTS[S.layout]?'text':''):''].filter(Boolean).join(' ');   // v50: sizes as on the cards
+  const name=[cardTextOn('brand')?slideBrand(p):'',cardNameOn()?slideNameText(p,false):''].filter(Boolean).join(' ');
   const parts=[];
   if(d.has)parts.push(`now ${offerPrice(p.now)}`);
-  if(d.deal)parts.push(String(d.deal).replace(/\$(\d[\d,]*)(?![\d,]*\.\d)/g,'$$$1.00'));   // v50: $145.00, as on the slide
-  const ea=CLEAN_LAYOUTS[S.layout]?multiBuyEach(p):null;if(ea)parts.push(ea.text);   // v50: as on the clean cards
+  if(d.deal)parts.push(d.deal);
   if(d.was)parts.push(`was $${d.was}`);else if(d.rrp&&S.optRRP)parts.push(`RRP $${d.rrp}`);
   const save=retailSaveLabel(p);if(save)parts.push(save.replace(/^SAVE/,'save'));
   const e=offerDates(p).end;if(e)parts.push(`ends ${fmtOfferDate(e)}`);
@@ -6407,17 +6260,13 @@ function textFileFooter(){
 }
 function recordCSV(entries){
   const esc=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
-  // v50: five columns added at the end — each_price, claims_flags, practitioner_only, card_style, text_fit.
-  const head=['exported_at','app_version','channel','layout','page','file','brand','name','now_price','discount_style','discount_value','was_price','save_shown','rrp','rrp_shown','deal','start_date','end_date','image_source','label_statement','price_scope',
-    'each_price','claims_flags','practitioner_only','card_style','text_fit'];
+  const head=['exported_at','app_version','channel','layout','page','file','brand','name','now_price','discount_style','discount_value','was_price','save_shown','rrp','rrp_shown','deal','start_date','end_date','image_source','label_statement','price_scope'];
   const at=new Date().toISOString(),btn=layoutButtonFor(S.layout),layout=btn?btn.textContent.trim():S.layout;
-  const style=ZONE_LAYOUTS[S.layout]?(S.cardStyle==='clean'?'clean white':'soft cards'):CLEAN_LAYOUTS[S.layout]?'clean cards (older fitting)':'classic white';
   const lines=[head.map(esc).join(',')];
   entries.forEach(({page,file,rows})=>rows.forEach(p=>{
-    const d=priceData(p),od=offerDates(p),x=IMAGE_HEALTH.get(productKey(p))||{},ea=CLEAN_LAYOUTS[S.layout]?multiBuyEach(p):null;
+    const d=priceData(p),od=offerDates(p),x=IMAGE_HEALTH.get(productKey(p))||{};
     lines.push([at,APP_VERSION,S.channel,layout,page,file,p.brand,p.name,p.now,p.disc,p.dv,d.was,retailSaveLabel(p),p.rrp||'',d.rrp&&S.optRRP&&!d.was?'yes':'no',d.deal,
-      od.start?isoDay(od.start):(p.start||''),od.end?isoDay(od.end):(p.end||''),x.sourceLabel||'',S.optLabel?'yes':'no',S.optScope||'not stated',
-      ea?ea.each.toFixed(2):'',claimFlags(p).map(f=>`${f.word} (${f.field})`).join('; '),isPractitionerOnly(p)?'yes':'no',style,CLEAN_LAYOUTS[S.layout]?S.textFit:''].map(esc).join(','));
+      od.start?isoDay(od.start):(p.start||''),od.end?isoDay(od.end):(p.end||''),x.sourceLabel||'',S.optLabel?'yes':'no',S.optScope||'not stated'].map(esc).join(','));
   }));
   return lines.join('\r\n');
 }
@@ -6505,14 +6354,8 @@ function reviewLayoutList(){
 async function buildDesignReview(){
   const btn=document.getElementById('reviewBtn');
   const prev={channel:S.channel,layout:S.layout,page:S.page};
-  const list=reviewLayoutList(),shots=[];
-  if(!activeRows().length){alert('Load the specials first. The review uses page 1 of each layout with your current products.');return;}
-  // v50: All pages = every page of every layout, so problems on later pages (long names, odd pack shots) are seen too.
-  const allPages=(document.getElementById('reviewScope')||{}).value==='all';
-  if(allPages){
-    const total=list.reduce((t,it)=>t+Math.max(1,Math.ceil(activeRows().length/LAYOUTS[it.key].per)),0);
-    if(!confirm(`All pages makes a ${total}-page review (about ${Math.max(1,Math.round(total*1.3/60))} min). Continue?`))return;
-  }
+  const list=reviewLayoutList(),shots=[],allPages=document.getElementById('reviewAllPages').checked;
+  if(!activeRows().length){alert('Load the specials first. The review uses your current products.');return;}
   btn.disabled=true;
   try{
     let pdfOK=true;
@@ -6520,42 +6363,45 @@ async function buildDesignReview(){
     try{await loadScriptOnce(JSPDF_URL);}catch(e){pdfOK=false;}
     for(let i=0;i<list.length;i++){
       const it=list[i];
+      btn.textContent=`Building review ${i+1}/${list.length}…`;
       S.channel=it.channel;S.layout=it.key;S.page=0;render(true);
       const pages=allPages?pageCount():1;
-      for(let pg=0;pg<pages;pg++){
-        btn.textContent=`Building review ${i+1}/${list.length}${pages>1?` · page ${pg+1}/${pages}`:''}…`;
-        if(pg>0){S.page=pg;render(false);}
+      for(let page=0;page<pages;page++){
+        S.page=page;render(true);
+        btn.textContent=`Building review ${i+1}/${list.length}, page ${page+1}/${pages}…`;
         await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
         const canvas=await captureCurrentPage(1.5);
-        shots.push({...it,pg,pages,w:LAYOUTS[it.key].w,h:LAYOUTS[it.key].h,jpg:canvas.toDataURL('image/jpeg',0.86)});   // v50: JPEG only (many pages)
+        shots.push({...it,page:page+1,pages,w:LAYOUTS[it.key].w,h:LAYOUTS[it.key].h,jpg:canvas.toDataURL('image/jpeg',0.86),canvas});
       }
     }
-    const d=new Date(),ds=isoDay(d),stem=`phf_design-review_v${APP_VERSION}_${ds}${allPages?'_all-pages':''}`;
+    const d=new Date(),ds=isoDay(d),stem=`phf_design-review_v${APP_VERSION}_${ds}`;
     if(pdfOK){
       btn.textContent='Making PDF…';
       const {jsPDF}=window.jspdf,doc=new jsPDF({orientation:'landscape',unit:'mm',format:'a4',compress:true});
       const W=297,H=210,M=12;
       const fitBox=(w,h,bw,bh)=>{const r=Math.min(bw/w,bh/h);return {w:w*r,h:h*r};};
-      // Cover: numbered thumbnails of every layout
-      doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(28,35,45);
-      doc.text('Prahran Health Foods - Update Specials design review',M,M+7);
-      doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(90,96,100);
-      doc.text(`${appVersionLabel()}  ·  ${list.length} layouts  ·  ${allPages?`every page of each layout (${shots.length} pages)`:'page 1 of each layout'} with the current specials  ·  created ${d.toLocaleString('en-AU')}`,M,M+13);
-      const cover=shots.filter(sh=>sh.pg===0);   // v50: the cover shows page 1 of each layout
-      const cols=7,gap=4,top=M+19,cw=(W-2*M-(cols-1)*gap)/cols,rows=Math.ceil(cover.length/cols),chh=Math.min(46,(H-top-M)/rows);
-      cover.forEach((sh,i)=>{
-        const cx=M+(i%cols)*(cw+gap),cy=top+Math.floor(i/cols)*chh,bh=chh-9;
-        const f=fitBox(sh.w,sh.h,cw,bh);
-        doc.setDrawColor(222,224,221);doc.rect(cx+(cw-f.w)/2,cy+(bh-f.h)/2,f.w,f.h);
-        doc.addImage(sh.jpg,'JPEG',cx+(cw-f.w)/2,cy+(bh-f.h)/2,f.w,f.h,'L'+shots.indexOf(sh),'FAST');   // v50: same image id as its own page
-        doc.setFontSize(6.8);doc.setTextColor(28,35,45);
-        doc.text(doc.splitTextToSize(`${i+1}. ${sh.chName} · ${sh.name}`,cw),cx,cy+bh+3.2);
-      });
+      // Up to 28 thumbnails per cover sheet, so an all-page review stays readable.
+      const cols=7,gap=4,top=M+19,cw=(W-2*M-(cols-1)*gap)/cols,chh=40;
+      for(let base=0;base<shots.length;base+=28){
+        if(base)doc.addPage();
+        doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(28,35,45);
+        doc.text('Prahran Health Foods - Update Specials design review',M,M+7);
+        doc.setFont('helvetica','normal');doc.setFontSize(9.5);doc.setTextColor(90,96,100);
+        doc.text(`${appVersionLabel()} · ${list.length} layouts · ${shots.length} artwork pages · ${allPages?'all pages':'first page per layout'} · index ${base/28+1}`,M,M+13);
+        shots.slice(base,base+28).forEach((sh,j)=>{
+          const i=base+j,cx=M+(j%cols)*(cw+gap),cy=top+Math.floor(j/cols)*chh,bh=chh-10;
+          const f=fitBox(sh.w,sh.h,cw,bh);
+          doc.setDrawColor(222,224,221);doc.rect(cx+(cw-f.w)/2,cy+(bh-f.h)/2,f.w,f.h);
+          doc.addImage(sh.jpg,'JPEG',cx+(cw-f.w)/2,cy+(bh-f.h)/2,f.w,f.h,'L'+i,'FAST');
+          doc.setFontSize(6.8);doc.setTextColor(28,35,45);
+          doc.text(doc.splitTextToSize(`${i+1}. ${sh.chName} · ${sh.name} · p${sh.page}/${sh.pages}`,cw),cx,cy+bh+3.2);
+        });
+      }
       // One page per layout
       shots.forEach((sh,i)=>{
         doc.addPage();
         doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(28,35,45);
-        doc.text(`${i+1} / ${shots.length}   ${sh.chName} - ${sh.name}${sh.pages>1?`  ·  page ${sh.pg+1} of ${sh.pages}`:''}`,M,M+5);
+        doc.text(`${i+1} / ${shots.length}   ${sh.chName} - ${sh.name} - page ${sh.page}/${sh.pages}`,M,M+5);
         doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(90,96,100);
         doc.text(`${sh.group}  ·  ${sh.w} × ${sh.h} canvas  ·  exports at ${sh.w*EXPORT_SCALE} × ${sh.h*EXPORT_SCALE} px`,M,M+10.5);
         const note=(LAYOUT_META[sh.key]||{}).note||'';
@@ -6572,8 +6418,8 @@ async function buildDesignReview(){
       if(typeof JSZip==='undefined')throw new Error('no zip');
       const zip=new JSZip();
       for(let i=0;i<shots.length;i++){
-        const sh=shots[i],blob=await (await fetch(sh.jpg)).blob();   // v50: JPEG copies (no canvases kept in memory)
-        zip.file(`${String(i+1).padStart(3,'0')}_${sh.channel}_${sh.name.toLowerCase().replace(/×/g,'x').replace(/\+/g,'plus').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}${sh.pages>1?`_p${String(sh.pg+1).padStart(2,'0')}`:''}.jpg`,blob);
+        const sh=shots[i],blob=await canvasBlob(sh.canvas);
+        zip.file(`${String(i+1).padStart(2,'0')}_${sh.channel}_${sh.name.toLowerCase().replace(/×/g,'x').replace(/\+/g,'plus').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')}_p${String(sh.page).padStart(2,'0')}.png`,blob);
       }
       downloadBlob(await zip.generateAsync({type:'blob'}),`${stem}.zip`);
       alert('The PDF maker could not be loaded, so the review was saved as a ZIP of images instead.');
