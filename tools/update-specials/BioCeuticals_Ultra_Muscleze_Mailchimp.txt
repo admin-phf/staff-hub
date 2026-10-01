@@ -1,0 +1,37 @@
+<!-- PHF editable Mailchimp card HTML v53. Paste the contents of this TXT file into a Code block.
+Product images must use publicly accessible HTTPS URLs. All text and prices remain HTML.
+The SAVE badge overlap and rounded corners can vary in Outlook; essential content uses inline CSS. -->
+<style type="text/css">
+  @media only screen and (max-width:480px) {
+    .phf-txt-image, .phf-txt-content { display:block!important; width:100%!important; box-sizing:border-box!important; }
+    .phf-txt-image { padding:16px!important; }
+    .phf-txt-content { padding:16px!important; }
+  }
+</style>
+<table role="presentation" align="center" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;border-collapse:collapse;">
+    <tr>
+      <td style="padding:8px 0;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f5f4f1" style="width:100%;background:#f5f4f1;border-radius:12px;border-collapse:separate;">
+          <tr>
+            <td class="phf-txt-image" width="43%" valign="middle" style="width:43%;padding:18px 12px 18px 18px;">
+            <table role="presentation" align="right" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 -28px;position:relative;z-index:1;">
+              <tr><td align="center" width="64" height="64" bgcolor="#c03c4c" style="width:64px;height:64px;border:3px solid #ffffff;border-radius:50%;background:#c03c4c;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:14px;font-weight:800;">SAVE<br>$27.40</td></tr>
+            </table>
+              <a href="https://prahranhealthfoods.com.au/" style="text-decoration:none;"><img src="https://example.invalid/UPLOAD_ULTRA_MUSCLEZE_PRODUCT_IMAGE.png" width="220" alt="BioCeuticals Ultra Muscleze, 360g" style="display:block;width:100%;max-width:220px;height:auto;border:0;margin:0 auto;"></a>
+            </td>
+            <td class="phf-txt-content" width="57%" valign="middle" style="width:57%;padding:18px 18px 18px 8px;font-family:Arial,Helvetica,sans-serif;text-align:left;">
+            <p style="margin:0 0 7px;font-size:15px;line-height:1.2;font-weight:700;color:#636b73;">BioCeuticals</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 28px;"><tr><td style="padding:0 0 3px;border-bottom:2px solid #78994a;color:#555f69;font-size:19px;line-height:1.2;font-weight:800;">Ultra Muscleze, 360g</td></tr></table>
+            <p style="margin:0 0 7px;font-size:15px;line-height:1.25;font-weight:800;color:#202731;">Practitioner muscle support</p>
+
+            <p style="margin:0 0 7px;font-size:12px;line-height:1.35;color:#6d6e71;"><strong>Ingredients:</strong> UltraMag® chelated magnesium amino acid blend with glutamine, taurine &amp; active B6 (P5P).</p>
+            <p style="margin:0 0 7px;font-size:12px;line-height:1.35;color:#6d6e71;"><strong>Benefits:</strong> Relieves muscle tightness, cramps &amp; aids post-exercise recovery.</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:14px 0 3px;"><tr><td bgcolor="#6c8f32" style="padding:3px 10px;background:#6c8f32;border-radius:3px;color:#ffffff;font-size:18px;line-height:1.1;font-weight:800;">NOW</td></tr></table>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 5px;"><tr><td style="padding:0 0 4px;border-bottom:2px solid #78994a;font-size:44px;line-height:1.05;font-weight:900;letter-spacing:-1px;color:#202731;">$59.95</td></tr></table>
+            <p style="margin:0 0 7px;font-size:14px;line-height:1.15;font-weight:800;color:#737b84;">SAVE $27.40<br>WAS <s>$87.35</s></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+</table>
