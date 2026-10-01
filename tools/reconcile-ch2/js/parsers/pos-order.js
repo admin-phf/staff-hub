@@ -110,7 +110,7 @@
     if(!chosen)throw new Error('Could not recognise the POS back-end order columns. Expected fields such as descr, or_qty, adjwsprce and adjdprce.');
 
     const headerSource=(chosen.displayMatrix&&chosen.displayMatrix[chosen.headerRow])||chosen.matrix[chosen.headerRow]||[];
-    const headers=headerSource.map(clean),hm=makeHeaderMap(headers),rows=[];let enrichedRows=0,ambiguousMasterRows=0;
+    const headers=headerSource.map(clean),hm=makeHeaderMap(headers),rows=[];let enrichedRows=0,ambiguousMasterRows=0,qtyColumnRows=0,stockedInRows=0;
     for(let r=chosen.headerRow+1;r<chosen.matrix.length;r++){
       const raw=chosen.matrix[r]||[],display=(chosen.displayMatrix&&chosen.displayMatrix[r])||[];
       const description=clean(valueAt(display,hm.description)||valueAt(raw,hm.description));
@@ -122,7 +122,12 @@
       const subIdRaw=hm.subId>=0?(subIdCell==null?'':(typeof subIdCell==='number'?textCode(subIdCell):String(subIdCell))):undefined;
       const subId=clean(subIdRaw||'');
       const plu=displayCode(valueAt(raw,hm.plu),valueAt(display,hm.plu));
-      const orderedQty=toNumber(valueAt(raw,hm.orderedQty))??toNumber(valueAt(raw,hm.qty));
+      // v2.6.36 — or_qty is POSActive's Adj Qty. Some order exports carry Adj Qty = 0 on every
+      // row (with qty_stk_in = qty), so a zero/blank Adj Qty falls back to the order Qty column.
+      // When Adj Qty is non-zero it is still used exactly as before.
+      const adjQty=toNumber(valueAt(raw,hm.orderedQty)),orderQty=toNumber(valueAt(raw,hm.qty));
+      const useQtyColumn=(adjQty==null||Math.abs(adjQty)<0.0000001)&&orderQty!=null&&Math.abs(orderQty)>=0.0000001;
+      const orderedQty=useQtyColumn?orderQty:(adjQty??orderQty);
       if(!description&&!barcode&&!subId&&!plu)continue;
       // The exported reconciliation represents ordered product rows, not blank/zero order rows.
       if(orderedQty==null||Math.abs(orderedQty)<0.0000001)continue;
@@ -144,13 +149,15 @@
       const enriched=enrichFromMaster(row,refs),finalRow=enriched.row;
       if(enriched.enriched)enrichedRows++;if(enriched.ambiguous)ambiguousMasterRows++;
       finalRow.identity=identity(finalRow);rows.push(finalRow);
+      if(useQtyColumn)qtyColumnRows++;{const sIn=toNumber(valueAt(raw,hm.qtyStockIn));if(sIn!=null&&Math.abs(sIn)>=0.0000001)stockedInRows++;}
     }
-    if(!rows.length)throw new Error('The POS order was recognised, but no ordered product lines were found.');
-    const orderNumbers=[...new Set(rows.map(x=>x.orderNumber).filter(Boolean))];
-    return {
+    if(!rows.length)throw new Error(`The POS order was recognised, but no ordered product lines were found — every product row has Qty and Adj Qty (or_qty) of 0 or blank. Check the order in POSActive has quantities, export it again and re-run.`);
+    const orderNumbers=[...new Set(rows.map(x=>x.orderNumber).filter(Boolean))],warnings=[];
+    if(qtyColumnRows)warnings.push(`POS ORDER QTY — ${qtyColumnRows} of ${rows.length} order row${rows.length===1?'':'s'} in ${file.name} have Adj Qty (or_qty) = 0, so the order Qty column was used as the ordered quantity for ${qtyColumnRows===1?'it':'them'}.${stockedInRows?` ${stockedInRows} row${stockedInRows===1?' has':'s have'} a Qty Stk In value — if this order has already been received in POSActive, confirm before importing the TXT.`:''}`);
+    return {warnings,
       type:'POS_ORDER',sourceFile:file.name,sheetName:chosen.sheetName,headerRow:chosen.headerRow+1,
       orderNumber:orderNumbers.length===1?orderNumbers[0]:orderNumbers.join(', '),rows,
-      diagnostics:{rows:rows.length,headers,firstSourceRow:rows[0].sourceRow,lastSourceRow:rows[rows.length-1].sourceRow,enrichedRows,ambiguousMasterRows}
+      diagnostics:{rows:rows.length,headers,firstSourceRow:rows[0].sourceRow,lastSourceRow:rows[rows.length-1].sourceRow,enrichedRows,ambiguousMasterRows,qtyColumnRows,stockedInRows}
     };
   }
 

@@ -214,7 +214,7 @@
   function weightedAverage(rows,key,weightKey='qtySupplied'){let n=0,d=0;for(const r of rows||[]){const v=r[key],w=Number(r[weightKey]??0);if(v!=null&&Number.isFinite(Number(v))&&Number.isFinite(w)&&w!==0){n+=Number(v)*w;d+=w;}}return d?n/d:null;}
 
   function reconcile(posOrder,invoiceDocuments,refs){
-    const posRows=posOrder.rows||[],invoiceRows=[],warnings=[];
+    const posRows=posOrder.rows||[],invoiceRows=[],warnings=[...((posOrder&&posOrder.warnings)||[])];
     backfillInvoiceWholesale(invoiceDocuments,refs);
     invoiceDocuments.forEach(doc=>{if(doc.warning)warnings.push(`${doc.sourceFile}: ${doc.warning}`);const docRows=(doc.rows||[]);docRows.forEach(r=>invoiceRows.push(r));if(doc.cancelled&&doc.cancelled.length)warnings.push(`${doc.sourceFile}: ${doc.cancelled.length} supplier line(s) were marked C (cancelled/backordered) and correctly excluded from billed totals.`);if(doc.skipped&&doc.skipped.length)warnings.push(`${doc.sourceFile}: ${doc.skipped.length} candidate line(s) could not be confidently classified as billed or cancelled and should be reviewed.`);if(doc.integrity&&doc.integrity.footerFound===false)warnings.push(`${doc.sourceFile}: footer totals were not machine-readable; line arithmetic was still checked.`);});
 

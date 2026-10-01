@@ -3,7 +3,7 @@
   const PHF=global.PHFReconcile=global.PHFReconcile||{};
 
   const BUILD=Object.freeze({
-    version:'2.6.35',
+    version:'2.6.36',
     name:'Integrity Engine',
     date:'2026-10-01'
   });

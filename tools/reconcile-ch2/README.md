@@ -1,4 +1,20 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.35
+# Prahran Health Foods — CH2 Reconciler v2.6.36
+
+## v2.6.36 — order exports with Adj Qty = 0 are read correctly
+
+- **Fix: "The POS order was recognised, but no ordered product lines were found."** Some POSActive order exports have Adj Qty (`or_qty`) = 0 on every row, with `qty_stk_in` = `qty` (e.g. order 105-0008854). The parser only read Adj Qty, so every row looked unordered. A zero/blank Adj Qty now falls back to the order Qty column. When Adj Qty is non-zero it is used exactly as before, so earlier orders give identical results.
+- A review note says how many rows used the Qty column, and how many already have a Qty Stk In value, so you can confirm the order hasn't already been received in POSActive before importing the TXT.
+- If an export genuinely has no quantities, the error now says so (Qty and Adj Qty are 0 or blank on every product row).
+- Verified on order 105-0008854 with invoices 74156358 + 74156736:
+  - 41 of 42 lines match (38 exact by barcode, 3 by W/S + description), all HIGH confidence, and 41 of 41 TXT Sub IDs match the order.
+  - Only T/PLANT TEA TREE SOAP 125G (line 42) is flagged as not on the POS order.
+- All v2.6.35 behaviour is otherwise unchanged.
+
+Suggested commit summary:
+
+`v2.6.36: Read order Qty when POSActive Adj Qty is zero`
+
+# Prahran Health Foods — CH2 Reconciler v2.6.35 (previous)
 
 ## v2.6.35 — products not on the POS order are excluded again until ticked
 
