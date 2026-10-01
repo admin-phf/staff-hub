@@ -1,4 +1,16 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.32
+# Prahran Health Foods — CH2 Reconciler v2.6.33
+
+## v2.6.33 — POSActive Sub ID exported exactly as on the POS order
+
+- **Exact Sub IDs:** every TXT line linked to a row on the uploaded POS order now sends that row's Sub ID exactly as stored in the order file — no trimming, no character changes, no substitution (e.g. `3 PER SKU 25%`, including spaces). Verified byte-for-byte against the order file.
+- **Blank stays blank:** a POS order row with no Sub ID is exported blank instead of a fallback (aligned-master Sub ID, CH2 supplier code or CH2 code). POS Layout shows `(blank)` and the POSActive match check explains how to set it in POSActive. A blank Sub ID is a review note, never a download block.
+- Sub IDs restored from the aligned master (older order exports without the column) are used for matching only. Fallback keys now apply only when the order file has no Sub ID column, or to invoice-only lines that are not in the order file — those are labelled `POS MASTER (NOT IN ORDER FILE)` with the advice to re-export the order so the live order's exact Sub ID is used.
+- POS Layout's POS Sub ID column shows exactly what the TXT sends; hovering confirms the exported value.
+- All v2.6.32 behaviour, the 15-column POSActive contract and the 43-column workbook are otherwise unchanged.
+
+Suggested commit summary:
+
+`v2.6.33: Export POS order Sub IDs exactly as stored`
 
 ## v2.6.32 — invoice-only products resolved by supplier, scrollable Completed dock, centred headings
 

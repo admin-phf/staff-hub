@@ -564,3 +564,6 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .results .preview-pos tbody tr.pos-dock-row:not([data-dock-off]){cursor:ns-resize}
 .results .preview-pos tbody tr.pos-dock-row:not([data-dock-off]) input,
 .results .preview-pos tbody tr.pos-dock-row:not([data-dock-off]) button{cursor:auto}
+
+/* v2.6.33 — exact Sub ID display: a blank order Sub ID is shown as (blank), not substituted. */
+.results .preview-pos td.pos-subid-blank .pos-subid-blank-mark{color:#9AA0A6;font-style:italic;font-size:.92em}

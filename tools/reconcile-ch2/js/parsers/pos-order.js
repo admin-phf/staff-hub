@@ -87,7 +87,9 @@
     const next={...row};let enriched=false;
     if(!next.barcode&&masterBarcode){next.barcode=masterBarcode;enriched=true;}
     if(!next.plu&&masterPlu){next.plu=masterPlu;enriched=true;}
-    if(!next.subId&&masterSubId){next.subId=masterSubId;enriched=true;}
+    // A Sub ID restored from the master helps matching only; the exact order value (subIdRaw)
+    // is never replaced, so the POSActive TXT still sends what is on the order.
+    if(!next.subId&&masterSubId){next.subId=masterSubId;next.subIdRestoredFromMaster=true;enriched=true;}
     const ambiguous=(!next.barcode&&records.some(r=>clean(r&&r.POS_MASTER_BARCODE)))||(!next.subId&&records.some(r=>clean(r&&r.POS_SUB_ID)));
     return {row:next,enriched,ambiguous,candidates:records.length};
   }
@@ -113,7 +115,12 @@
       const raw=chosen.matrix[r]||[],display=(chosen.displayMatrix&&chosen.displayMatrix[r])||[];
       const description=clean(valueAt(display,hm.description)||valueAt(raw,hm.description));
       const barcode=barcodeCode(valueAt(raw,hm.barcode),valueAt(display,hm.barcode));
-      const subId=clean(valueAt(display,hm.subId)||valueAt(raw,hm.subId));
+      // v2.6.33 — keep the Sub ID exactly as stored in the POSActive order export (no trimming or
+      // substitution). It is the literal key POSActive matches on. `subId` (trimmed, possibly
+      // restored from the master below) is only used for matching and review.
+      const subIdCell=hm.subId>=0?(valueAt(display,hm.subId)!==''&&valueAt(display,hm.subId)!=null?valueAt(display,hm.subId):valueAt(raw,hm.subId)):'';
+      const subIdRaw=hm.subId>=0?(subIdCell==null?'':(typeof subIdCell==='number'?textCode(subIdCell):String(subIdCell))):undefined;
+      const subId=clean(subIdRaw||'');
       const plu=displayCode(valueAt(raw,hm.plu),valueAt(display,hm.plu));
       const orderedQty=toNumber(valueAt(raw,hm.orderedQty))??toNumber(valueAt(raw,hm.qty));
       if(!description&&!barcode&&!subId&&!plu)continue;
@@ -128,7 +135,7 @@
       const objectRaw=Object.fromEntries(headers.map((h,c)=>[h||`COL_${c+1}`,raw[c]??'']));
       const row={
         posIndex:rows.length+1,sourceRow:r+1,
-        orderNumber:displayCode(valueAt(raw,hm.orderNumber),valueAt(display,hm.orderNumber)),plu,barcode,subId,description,
+        orderNumber:displayCode(valueAt(raw,hm.orderNumber),valueAt(display,hm.orderNumber)),plu,barcode,subId,subIdRaw,description,
         gstPct:toNumber(valueAt(raw,hm.gstPct)),orderedQty,qtyStockIn:toNumber(valueAt(raw,hm.qtyStockIn)),
         normalWholesale,expectedUnit,expectedDiscountPct,lastPrice,rrp:toNumber(valueAt(raw,hm.rrp)),
         supplier:displayCode(valueAt(raw,hm.supplier),valueAt(display,hm.supplier)),company:clean(valueAt(display,hm.company)||valueAt(raw,hm.company)),

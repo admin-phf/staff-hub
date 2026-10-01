@@ -76,7 +76,11 @@
       return !!(barcode&&rb===barcode);
     });
     const masterSubIds=[...new Set(candidates.map(r=>clean(r.POS_SUB_ID)).filter(Boolean))];
-    const orderSubId=clean(pos&&pos.subId),overrides=options.importKeysBySourceRow||{},key=sourceRowKey(pos);
+    // v2.6.33 — rows on the uploaded POS order always export their Sub ID exactly as stored in
+    // the order file (blank stays blank). Fallback keys apply only when the order file has no
+    // Sub ID column, or for invoice-only lines that are not on the order.
+    const exactOrder=!!pos&&typeof pos.subIdRaw==='string'&&!pos.invoiceOnly;
+    const orderSubId=exactOrder?pos.subIdRaw:clean(pos&&pos.subId),overrides=options.importKeysBySourceRow||{},key=sourceRowKey(pos);
     const manual=clean(overrides instanceof Map?overrides.get(key):overrides[key]);
     const exactMasterSubId=masterSubIds.length===1?masterSubIds[0]:'';
     const invoiceSupplierCode=supplierCodes.length===1?supplierCodes[0]:'';
@@ -84,14 +88,17 @@
     // export omits Sub ID, the supplier's own code from the matched invoice is
     // the closest equivalent key. A CH2 catalogue number is only the final
     // fallback because it is a different identifier and may be rejected.
-    const importSubId=manual||orderSubId||exactMasterSubId||invoiceSupplierCode||(codes.length===1?codes[0]:''),source=manual?'USER':orderSubId?'POS ORDER':exactMasterSubId?'ALIGNED MASTER':invoiceSupplierCode?'INVOICE SUPPLIER CODE':importSubId?'CH2 FALLBACK':'MISSING';
+    const importSubId=manual||(exactOrder?orderSubId:(orderSubId||exactMasterSubId||invoiceSupplierCode||(codes.length===1?codes[0]:''))),source=manual?'USER':exactOrder?(orderSubId.trim()?'POS ORDER (EXACT)':'POS ORDER (BLANK)'):orderSubId?'POS ORDER':exactMasterSubId?(pos&&pos.invoiceOnly?'POS MASTER (NOT IN ORDER FILE)':'ALIGNED MASTER'):invoiceSupplierCode?'INVOICE SUPPLIER CODE':importSubId?'CH2 FALLBACK':'MISSING';
     const issues=[];
-    if(!orderSubId&&source==='INVOICE SUPPLIER CODE')issues.push('Order Sub ID is blank. The matched invoice supplier code is used instead; review remains recommended, but download is allowed.');
+    if(exactOrder&&!manual){
+      if(!orderSubId.trim())issues.push(`Sub ID is blank on the POS order and is exported blank, exactly as stored in POSActive.${masterSubIds.length===1?` The aligned master has "${masterSubIds[0]}".`:''} If POSActive cannot match it, set the Sub ID on the product in POSActive, re-export the order and run again.`);
+    }
+    else if(!orderSubId&&source==='INVOICE SUPPLIER CODE')issues.push('Order Sub ID is blank. The matched invoice supplier code is used instead; review remains recommended, but download is allowed.');
     else if(!orderSubId&&source==='ALIGNED MASTER')issues.push('Order Sub ID is blank. The single exact aligned-master Sub ID is used instead; review remains recommended, but download is allowed.');
     else if(!orderSubId)issues.push('Order Sub ID is blank. The exported fallback key is not verified against POSActive. Update the supplier key in POSActive or confirm a working key here.');
     if(manual&&manual!==orderSubId)issues.push('User-selected key differs from the uploaded order. Confirm this key exists in POSActive; editing this field only changes the TXT.');
-    if(masterSubIds.length>1)issues.push('Aligned master has multiple Sub IDs for this product; no alternative was selected automatically.');
-    else if(masterSubIds.length===1&&orderSubId&&masterSubIds[0]!==orderSubId)issues.push('Aligned master Sub ID differs from the order. The order key is retained unless you enter an override.');
+    if(!exactOrder&&masterSubIds.length>1)issues.push('Aligned master has multiple Sub IDs for this product; no alternative was selected automatically.');
+    else if(masterSubIds.length===1&&orderSubId&&orderSubId.trim()&&masterSubIds[0]!==clean(orderSubId))issues.push('Aligned master Sub ID differs from the order. The order key is retained unless you enter an override.');
     // v2.6.31 — Sub IDs are existing POSActive data. Spaces, %, $, " and other characters are
     // exported exactly as stored (e.g. `3 PER SKU 25%`) and are not a review condition.
     if(!importSubId)issues.push('No single import key could be resolved.');
@@ -331,7 +338,7 @@
     const gst=round(ext*gstRate/100,2),total=round(ext+gst,2);
     const id=resolveImportIdentity(pos,refs,[],options),masterCodes=[...new Set(recs.map(r=>digits(r&&r.MASTER_CODE)).filter(Boolean))],masterCode=masterCodes.length===1?masterCodes[0]:'';
     let subId=id.importSubId,keySource=id.source;
-    if(!subId){
+    if(!subId&&typeof (pos&&pos.subIdRaw)!=='string'){
       if(masterCode){subId=masterCode;keySource='MASTER CH2 CODE';}
       else if(code(pos&&pos.plu)){subId=code(pos.plu);keySource='POS PLU FALLBACK';}
       else if(digits(pos&&pos.barcode)){subId=digits(pos.barcode);keySource='POS BARCODE FALLBACK';}
@@ -421,7 +428,7 @@
       // v2.6.31 — the Sub ID (column 5) is written exactly as stored in POSActive, including
       // spaces and % $ " characters (e.g. `3 PER SKU 25%`). Only TAB/CR/LF are refused above
       // because they would split the tab-delimited record.
-      if(!subId)pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)}: Sub ID cannot be resolved from the POS order or CH2 product code.`);
+      if(!subId)pushIssue(warnings,`Invoice line ${lineText(inv.invoiceLine)} · ${lineLabel(ctx.pos,ctx.index)}: Sub ID is blank${importIdentity.source==='POS ORDER (BLANK)'?' on the POS order and is exported blank, exactly as stored':' and no key could be resolved'}.`);
       if(subId&&subId!==ch2Code)warnings.push(`IMPORT SUB ID — CH2 ${ch2Code} uses ${importIdentity.source} key ${subId} for ${description}.`);
       const predWs=round(round(ext/outQty,2)/(1-disc/100),2),wsRounded=round(normalWs,2),wsDiff=round(predWs-wsRounded,2);
       if(Math.abs(wsDiff)>0.011){
@@ -484,16 +491,20 @@
   // A line whose Sub ID is not on the uploaded POS order will be reported by POSActive's
   // Matching Status check, so it is identified here with the reason and the fix.
   function posActiveMatchCheck(records,posOrder){
-    const orderNo=clean(posOrder&&posOrder.orderNumber),orderKeys=new Set(((posOrder&&posOrder.rows)||[]).map(p=>clean(p&&p.subId)).filter(Boolean)),mismatches=[];
+    const exactKey=p=>typeof (p&&p.subIdRaw)==='string'?p.subIdRaw:clean(p&&p.subId);
+    const orderNo=clean(posOrder&&posOrder.orderNumber),orderKeys=new Set(((posOrder&&posOrder.rows)||[]).map(exactKey).filter(k=>String(k).trim())),mismatches=[];
     for(const r of records||[]){
-      const key=clean(r&&r.subId),pos=(r&&r.pos)||{},name=clean(pos.description)||clean(r&&r.description);
-      if(key&&orderKeys.has(key))continue;
+      const key=r&&r.subId!=null?String(r.subId):'',pos=(r&&r.pos)||{},name=clean(pos.description)||clean(r&&r.description);
+      if(key.trim()&&orderKeys.has(key))continue;
       let reason,advice;
       if(pos.invoiceOnly&&pos.supplierMismatch){reason=`NOT ON POS ORDER — POSACTIVE SUPPLIER ${pos.posSupplier}`;advice=`CH2 invoiced ${name}, but POSActive assigns it to ${pos.posSupplierLabel}, not ${pos.orderSupplierLabel||'this order’s supplier'}, so it never appears on CH2 orders. To receive it through this import: change its POSActive supplier to ${pos.orderSupplier} with Sub ID ${pos.ch2Code||key} (or add it to order ${orderNo} with Sub ID ${key||'blank'}), re-export the order and run again. Otherwise untick it and receive it against ${pos.posSupplierLabel}.`;}
       else if(pos.invoiceOnly&&!pos.inMaster){reason='NOT ON POS ORDER — NOT IN POS MASTER';advice=`CH2 code ${pos.ch2Code||'?'} is not in the aligned POS master, so the product may not exist in POSActive. Create it (or link the CH2 code) in POSActive, add it to order ${orderNo}, re-export and run again — or untick it and receive it manually.`;}
       else if(pos.invoiceOnly){reason='NOT ON POS ORDER';advice=`Add ${name} to POSActive order ${orderNo} (Sub ID ${key||'blank'}), re-export the order and run again — or untick it here and receive it separately.`;}
-      else if(!clean(pos.subId)){reason='POS ORDER ROW HAS NO SUB ID';advice=`Set a Sub ID for ${name} (PLU ${clean(pos.plu)||'?'}) in POSActive — e.g. CH2 code ${clean(r&&r.ch2Code)||key} — then re-export the order and run again. The TXT currently sends ${key||'blank'} (${clean(r&&r.importIdentity&&r.importIdentity.source)||'fallback'}).`;}
-      else{reason='SUB ID DIFFERS FROM ORDER';advice=`The order row has Sub ID "${clean(pos.subId)}" but the TXT sends "${key}". Use the order's Sub ID or update POSActive.`;}
+      else if(!key.trim()){reason='POS ORDER ROW HAS NO SUB ID';advice=`The Sub ID is blank on the POS order, so it is exported blank exactly as stored. Set a Sub ID for ${name} (PLU ${clean(pos.plu)||'?'}) in POSActive — e.g. CH2 code ${clean(r&&r.ch2Code)||'?'} — then re-export the order and run again.`;}
+      else{reason='SUB ID DIFFERS FROM ORDER';advice=`The order row has Sub ID "${exactKey(pos)}" but the TXT sends "${key}". Use the order's Sub ID or update POSActive.`;}
+      // Invoice-only Sub IDs come from the POS master because the product is not in the uploaded
+      // order file; if it is on the live POSActive order, re-exporting the order makes it exact.
+      if(pos.invoiceOnly)advice+=` The Sub ID shown comes from the POS master, not the order file. If ${name} is already on your live POSActive order, re-export the order (BROWSEORDERFILES) and run again so its exact order Sub ID is used.`;
       mismatches.push({invoiceNo:r.invoiceNo,line:r.line,subId:key,description:clean(r.description),posDescription:name,reason,advice,total:n(r.total)||0,invoiceOnly:!!pos.invoiceOnly,manual:!!r.manualReceiving,sourceRow:pos.sourceRow});
     }
     return {total:(records||[]).length,matched:(records||[]).length-mismatches.length,mismatches,orderNumber:orderNo};
@@ -510,7 +521,7 @@
       // valid literal Sub ID data and are preserved; they are review warnings only.
       return row.map((v,colIndex)=>{
         if(rowIndex===0)return clean(v);
-        if(colIndex===4){const x=clean(v);if(/[\t\r\n]/.test(x))throw new Error(`POSActive Sub ID in logical row ${rowIndex+1} contains a TAB or line break.`);return x;}
+        if(colIndex===4){const x=v==null?'':String(v);if(/[\t\r\n]/.test(x))throw new Error(`POSActive Sub ID in logical row ${rowIndex+1} contains a TAB or line break.`);return x;}
         return sanitizeDataText(v);
       }).join('\t');
     }).join('\r\n')+'\r\n';

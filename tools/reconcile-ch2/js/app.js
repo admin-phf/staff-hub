@@ -323,8 +323,10 @@
     if(c.key==='main_id')return pos.barcode??'';
     if(c.key==='plu')return pos.plu??'';
     if(c.key==='sub_id'){
-      // v2.6.29 — when the POS order carries no Sub ID, show the key the POSActive TXT will
-      // use for this invoiced row (aligned-master Sub ID or CH2 supplier code) instead of blank.
+      // v2.6.33 — POS Sub ID shows exactly what the POSActive TXT sends: the order's own Sub ID
+      // as stored (blank stays blank). Invoice-only rows show the POS-master key they will use.
+      if(pos.invoiceOnly){const id=importIdentityFor(pos,detail);return (id&&id.importSubId)||'';}
+      if(typeof pos.subIdRaw==='string')return pos.subIdRaw;
       const own=cleanText(pos.subId);if(own)return pos.subId;
       if(detail&&Array.isArray(detail.invoiceRows)&&detail.invoiceRows.length){const id=importIdentityFor(pos,detail);return (id&&id.importSubId)||'';}
       return '';
@@ -1036,7 +1038,12 @@
           }
         } else {
           html=escapeHtml(v);if(v)title=String(v);
-          if(c.key==='sub_id'&&v&&!cleanText(pos.subId)){const id=importIdentityFor(pos,detail);extraCls=' pos-subid-derived';title=`POS order Sub ID is blank · POSActive import key ${v} from ${id&&id.source?id.source:'invoice'}. Add this Sub ID to the product in POSActive if the import does not match it.`;}
+          if(c.key==='sub_id'){
+            const invoiced=!!(detail&&Array.isArray(detail.invoiceRows)&&detail.invoiceRows.length);
+            if(pos.invoiceOnly&&v){const id=importIdentityFor(pos,detail);extraCls=' pos-subid-derived';title=`Not in the uploaded order file · Sub ID ${v} from ${id&&id.source?id.source:'POS master'}. If this product is on your live POSActive order, re-export the order and run again to use its exact order Sub ID.`;}
+            else if(typeof pos.subIdRaw==='string'&&!String(v).trim()&&invoiced){extraCls=' pos-subid-blank';html='<span class="pos-subid-blank-mark">(blank)</span>';title='Sub ID is blank on the POS order and is exported blank, exactly as stored in POSActive. Set a Sub ID on the product in POSActive and re-export the order if the import cannot match it.';}
+            else if(v)title=`Exported exactly as on the POS order: "${v}"`;
+          }
         }
         const cls=[c.cls||'',c.kind==='number'?'num':'',c.kind==='bool'?'pos-bool-cell center':'',c.align==='center'?'center':'',extraCls].filter(Boolean).join(' ');return `<td${cls?` class="${cls}"`:''}${title?` title="${escapeHtml(title)}"`:''}>${html}</td>`;
       }).join('');
@@ -1132,7 +1139,7 @@
     els.kpis.innerHTML=[kpi('POS lines',t.posLines),kpi('Exceptions',t.exceptionLines,t.exceptionLines?'bad':'good'),kpi('Unmatched invoices',t.unmatchedInvoiceLines,t.unmatchedInvoiceLines?'bad':'good'),kpi('Better price',t.betterPriceLines,'good'),kpi('Potential missed $',money(t.missedTotal),t.missedTotal>0?'bad':'good'),kpi('Integrity',integ.ok?'PASS':'BLOCKED',integ.ok?'good':'bad')].join('');
     const notes=[...(r.warnings||[])];
     const posDiag=state.posParsed&&state.posParsed.diagnostics||{},restored=Number(posDiag.enrichedRows||0),ambiguousRestores=Number(posDiag.ambiguousMasterRows||0);
-    if(restored)notes.push(`POS SOURCE RESTORED — ${restored} order row${restored===1?'':'s'} arrived without one or more standard identifier columns. Missing identifiers were restored only where the aligned master had one unambiguous value for the exact POS PLU.`);
+    if(restored)notes.push(`POS SOURCE RESTORED — ${restored} order row${restored===1?'':'s'} arrived without one or more standard identifier columns. Missing identifiers were restored only where the aligned master had one unambiguous value for the exact POS PLU. Restored Sub IDs are used for matching only — the POSActive TXT always sends each order row's Sub ID exactly as stored in the order file.`);
     if(ambiguousRestores)notes.push(`POS SOURCE REVIEW — ${ambiguousRestores} order row${ambiguousRestores===1?' has':'s have'} conflicting master candidates and were not filled automatically.`);
     if(t.lowConfidenceLines){const low=r.detail.filter(x=>x.matchConfidence==='LOW').slice(0,8).map(x=>`${x.posDescription} [${x.matchMethods||'fallback match'}]`);notes.push(`${t.lowConfidenceLines} matched line(s) have LOW confidence and should be reviewed${low.length?`: ${low.join('; ')}`:'.'}`);}
     if(t.auditDataMissing)notes.push(`${t.auditDataMissing} matched POS line(s) cannot receive a complete CH2 discount/wholesale audit because the supplier invoice did not print all required audit fields.`);
