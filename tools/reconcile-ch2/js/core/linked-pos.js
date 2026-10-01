@@ -25,7 +25,28 @@
     return '';
   }
   function supplierNo(v){const s=clean(v),m=s.match(/\((\d+)\)\s*$/);return m?m[1]:digits(s);}
-  function brandMatches(posBrand,posDescr,ruleBrand,rulePrefix){const pb=normText(posBrand),pd=normText(posDescr),rb=normText(ruleBrand),rp=normText(rulePrefix);if(rb&&pb&&(pb===rb||pb.startsWith(rb)||rb.startsWith(pb)||pb.includes(rb)||rb.includes(pb)))return true;if(rp){if(pb&&pb.startsWith(rp))return true;if(pd&&(pd===rp||pd.startsWith(rp+' ')))return true;}return false;}
+  // v2.6.34 — brand and prefix rules compare whole words only. Previously a 2-letter prefix
+  // such as "OR" (Orthoplex) matched any brand starting with those letters (ORA HEALTH,
+  // ORGANIC…), and brand text was compared as raw substrings ("ZEA" inside "ZEALAND").
+  // Words: "MELROSE" still covers "MELROSE FUTURELAB", "BLOOMS" still covers "H BLOOMS".
+  // Also handled generically: POS brands abbreviated on the last word ("BLACKMORES PROF" →
+  // BLACKMORES PROFESSIONAL, after at least one full matching word) and discontinued-marker
+  // prefixes on POS brands ("ZZBIOPRACTICA", "XXXBLACKMORES") — brand only, so discontinued
+  // descriptions ("ZZZZBM …") keep the same result they had before.
+  function wordsContain(hay,needle){const h=` ${hay} `,n=` ${needle} `;return !!needle&&h.includes(n);}
+  function wordsStart(hay,needle){return !!needle&&(hay===needle||hay.startsWith(needle+' '));}
+  function stripDiscontinued(v){return v.replace(/^(?:Z{2,}|X{2,})(?=[A-Z0-9])/,'');}
+  function abbreviatedOf(shortText,longText){
+    const a=shortText.split(' '),b=longText.split(' ');if(a.length<2||a.length>b.length)return false;
+    for(let i=0;i<a.length-1;i++)if(a[i]!==b[i])return false;
+    const last=a[a.length-1];return last.length>=3&&b[a.length-1].startsWith(last);
+  }
+  function brandMatches(posBrand,posDescr,ruleBrand,rulePrefix){
+    const pb=stripDiscontinued(normText(posBrand)),pd=normText(posDescr),rb=normText(ruleBrand),rp=normText(rulePrefix);
+    if(rb&&pb&&(pb===rb||wordsStart(pb,rb)||wordsStart(rb,pb)||wordsContain(pb,rb)||wordsContain(rb,pb)||abbreviatedOf(pb,rb)))return true;
+    if(rp){if(pb&&wordsStart(pb,rp))return true;if(pd&&wordsStart(pd,rp))return true;}
+    return false;
+  }
   function descrMatches(posDescr,ruleDescr){const p=normText(posDescr),r=normText(ruleDescr);if(!p||!r)return false;if(p===r)return true;if(r.length>=8&&p.includes(r))return true;if(p.length>=8&&r.includes(p))return true;return false;}
   function ruleLabel(rule){const p=[];if(clean(rule.POS_MASTER_BRAND))p.push(clean(rule.POS_MASTER_BRAND));if(clean(rule.POS_BRAND_PREFIX))p.push('PREFIX '+clean(rule.POS_BRAND_PREFIX));if(clean(rule.POS_SUPPLIER_NUMBER))p.push('SUP '+clean(rule.POS_SUPPLIER_NUMBER));if(clean(rule.POS_PLU))p.push('PLU '+clean(rule.POS_PLU));if(clean(rule.POS_MASTER_BARCODE))p.push('BC '+clean(rule.POS_MASTER_BARCODE));if(clean(rule.POS_DESCR))p.push(clean(rule.POS_DESCR));if(rule.POS_DISCOUNT!=null)p.push(`${Number(rule.POS_DISCOUNT).toFixed(2)}%`);if(clean(rule.POS_MEMBER))p.push('MEMBER '+clean(rule.POS_MEMBER));return p.join(' / ');}
   function matchRule(rule,row){

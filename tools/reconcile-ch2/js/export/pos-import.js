@@ -79,8 +79,11 @@
     // v2.6.33 — rows on the uploaded POS order always export their Sub ID exactly as stored in
     // the order file (blank stays blank). Fallback keys apply only when the order file has no
     // Sub ID column, or for invoice-only lines that are not on the order.
-    const exactOrder=!!pos&&typeof pos.subIdRaw==='string'&&!pos.invoiceOnly;
-    const orderSubId=exactOrder?pos.subIdRaw:clean(pos&&pos.subId),overrides=options.importKeysBySourceRow||{},key=sourceRowKey(pos);
+    // v2.6.34 — an invoice-only line whose product IS in the order file (same PLU/barcode, row
+    // already used by another invoice line) uses that order row's exact Sub ID.
+    const sameRowSubId=!!pos&&pos.invoiceOnly&&typeof pos.orderRowSubIdRaw==='string'&&pos.orderRowSubIdRaw.trim()?pos.orderRowSubIdRaw:null;
+    const exactOrder=!!pos&&((typeof pos.subIdRaw==='string'&&!pos.invoiceOnly)||sameRowSubId!=null);
+    const orderSubId=exactOrder?(sameRowSubId!=null?sameRowSubId:pos.subIdRaw):clean(pos&&pos.subId),overrides=options.importKeysBySourceRow||{},key=sourceRowKey(pos);
     const manual=clean(overrides instanceof Map?overrides.get(key):overrides[key]);
     const exactMasterSubId=masterSubIds.length===1?masterSubIds[0]:'';
     const invoiceSupplierCode=supplierCodes.length===1?supplierCodes[0]:'';
@@ -187,10 +190,42 @@
       supplierMismatch:!!(orderSupplier&&(digits(rec.POS_SUPPLIER_NUMBER)||digits(rec.POS_SUPPLIER_RAW))&&orderSupplier!==(digits(rec.POS_SUPPLIER_NUMBER)||digits(rec.POS_SUPPLIER_RAW))),
       posSupplierLabel:supplierLabel(refs,digits(rec.POS_SUPPLIER_NUMBER)||digits(rec.POS_SUPPLIER_RAW)),orderSupplierLabel:supplierLabel(refs,orderSupplier),ch2Code:digits(inv&&inv.productCode)};
   }
+  // v2.6.34 — generic explanation of WHY a billed line could not be linked to a POS order row.
+  // Every POS master record for the CH2 code (PLU, barcode without leading zeros) and the CH2
+  // code itself as a numeric Sub ID are looked up in the uploaded order file:
+  //   ON ORDER · ALREADY MATCHED  the product's row is in the file but another invoice line holds it
+  //   ON ORDER · NOT LINKED       the product's row is in the file and unused (should not happen)
+  //   NOT IN ORDER FILE           no row in the file is this product; sub-reason from POS master:
+  //                               POSActive supplier differs from the order supplier / not in master
+  function orderFileDiagnosis(inv,pos,refs,posOrder,reconciliation){
+    const bk=v=>digits(v).replace(/^0+/,''),recs=masterCandidatesForInvoiceRow(inv,refs),code=digits(inv&&inv.productCode);
+    const bcs=new Set(recs.map(r=>bk(r&&r.POS_MASTER_BARCODE)).filter(Boolean)),plus=new Set(recs.map(r=>digits(r&&r.POS_PLU)).filter(Boolean));
+    const rows=(posOrder&&posOrder.rows)||[],rawSub=p=>typeof (p&&p.subIdRaw)==='string'?p.subIdRaw:clean(p&&p.subId);
+    const hit=rows.find(p=>{const b=bk(p&&p.barcode),u=digits(p&&p.plu),sid=clean(rawSub(p));return (b&&bcs.has(b))||(u&&plus.has(u))||(!!code&&/^\d+$/.test(sid)&&sid===code);});
+    const fileName=clean(posOrder&&posOrder.sourceFile),fileRows=rows.length,orderNo=clean(posOrder&&posOrder.orderNumber);
+    if(hit){
+      const det=((reconciliation&&reconciliation.detail)||[]).find(d=>String(d&&d.sourceRow)===String(hit.sourceRow)),held=((det&&det.invoiceRows)||[]).filter(r=>r!==inv);
+      const lines=[...new Set(held.map(r=>Number.isFinite(Number(r.invoiceLine))?Number(r.invoiceLine):clean(r.invoiceLine)).filter(x=>x!==''))];
+      const where=`POS index ${hit.posIndex} (${clean(hit.description)}, PLU ${clean(hit.plu)||'?'}, Sub ID "${rawSub(hit)}")`;
+      if(lines.length)return {code:'ON_ORDER_ALREADY_MATCHED',chip:'ON ORDER · ROW ALREADY MATCHED',orderRow:hit,
+        detail:`The product is in the order file at ${where}, but that row is already matched to invoice line${lines.length===1?'':'s'} ${lines.join(', ')}. CH2 billed the same product on more than one line (or under two CH2 codes). Tick this row to receive the extra qty under the same Sub ID, or add it to the Found qty on POS index ${hit.posIndex}.`};
+      return {code:'ON_ORDER_NOT_LINKED',chip:'ON ORDER · NOT LINKED',orderRow:hit,
+        detail:`The product is in the order file at ${where} but was not linked automatically. Tick this row to receive it under the order Sub ID, and please report the invoice line so the matcher can be improved.`};
+    }
+    const file=`${fileName||'the uploaded order file'}${fileRows?` (${fileRows} product row${fileRows===1?'':'s'}${orderNo?`, order ${orderNo}`:''})`:''}`;
+    if(pos.supplierMismatch)return {code:'NOT_IN_FILE_SUPPLIER',chip:`NOT IN ORDER FILE · POSACTIVE SUPPLIER ${pos.posSupplier}`,orderRow:null,
+      detail:`No row in ${file} is this product (checked CH2 code ${code||'?'}, PLU ${[...plus].join('/')||'?'}, barcode ${[...bcs].join('/')||'?'}). POSActive assigns it to ${pos.posSupplierLabel}, while this order is ${pos.orderSupplierLabel||'another supplier'} — products set to a different supplier are the most common reason they are missing from a supplier order. If it IS on your live POSActive order, the order was exported before it was added: re-export the order and run again. Otherwise tick it to receive it here, or change its POSActive supplier to ${pos.orderSupplier}.`};
+    if(!pos.inMaster)return {code:'NOT_IN_FILE_NOT_IN_MASTER',chip:'NOT IN ORDER FILE · NOT IN POS MASTER',orderRow:null,
+      detail:`No row in ${file} is this product, and CH2 code ${code||'?'} is not linked to any product in the aligned POS master, so it cannot be identified by PLU or barcode. Link the CH2 code in POSActive / the master, or tick it to receive it manually.`};
+    return {code:'NOT_IN_FILE',chip:'NOT IN ORDER FILE',orderRow:null,
+      detail:`No row in ${file} is this product (checked CH2 code ${code||'?'}, PLU ${[...plus].join('/')||'?'}, barcode ${[...bcs].join('/')||'?'}). It was billed but not on the order when it was exported. If it IS on your live POSActive order, re-export the order and run again; otherwise tick it to receive it here.`};
+  }
   function invoiceOnlyEntries(reconciliation,refs,posOrder){
     const base=((posOrder&&posOrder.rows)||[]).length,orderSupplier=orderSupplierOf(posOrder);
     return ((reconciliation&&reconciliation.unmatchedInvoice)||[]).filter(inv=>inv&&(n(inv.qtySupplied)||0)>0&&(n(inv.unitPriceExGst)||0)!==0).map((inv,i)=>{
       const pos=invoiceOnlyPos(inv,refs,base+i+1,orderSupplier),row={...inv,matchConfidence:'',matchMethod:'INVOICE ONLY — NOT ON POS ORDER'},q=n(inv.qtySupplied)||0,ws=n(inv.normalWholesale);
+      pos.orderDiagnosis=orderFileDiagnosis(inv,pos,refs,posOrder,reconciliation);
+      if(pos.orderDiagnosis.orderRow){const h=pos.orderDiagnosis.orderRow;pos.orderRowSubIdRaw=typeof h.subIdRaw==='string'?h.subIdRaw:clean(h.subId);if(!pos.plu)pos.plu=code(h.plu);if(!pos.barcode)pos.barcode=digits(h.barcode);}
       const detail={invoiceOnly:true,posIndex:pos.posIndex,sourceRow:pos.sourceRow,identity:pos.identity,plu:pos.plu,barcode:pos.barcode,subId:'',posDescription:pos.description,orderedQty:0,suppliedQty:q,qtyVariance:q,
         invoiceNormalWholesale:ws!=null?round(ws,2):null,actualDiscountPct:n(inv.discountPct),actualUnit:n(inv.unitPriceExGst),status:'INVOICE ONLY / NOT ON POS ORDER',hasException:true,
         invoiceNumbers:invoiceNo(inv),sourceFiles:clean(inv.sourceFile),matchConfidence:'',matchMethods:row.matchMethod,invoiceRows:[row]};
@@ -497,14 +532,16 @@
       const key=r&&r.subId!=null?String(r.subId):'',pos=(r&&r.pos)||{},name=clean(pos.description)||clean(r&&r.description);
       if(key.trim()&&orderKeys.has(key))continue;
       let reason,advice;
-      if(pos.invoiceOnly&&pos.supplierMismatch){reason=`NOT ON POS ORDER — POSACTIVE SUPPLIER ${pos.posSupplier}`;advice=`CH2 invoiced ${name}, but POSActive assigns it to ${pos.posSupplierLabel}, not ${pos.orderSupplierLabel||'this order’s supplier'}, so it never appears on CH2 orders. To receive it through this import: change its POSActive supplier to ${pos.orderSupplier} with Sub ID ${pos.ch2Code||key} (or add it to order ${orderNo} with Sub ID ${key||'blank'}), re-export the order and run again. Otherwise untick it and receive it against ${pos.posSupplierLabel}.`;}
+      if(pos.invoiceOnly&&pos.orderDiagnosis){reason=pos.orderDiagnosis.chip;advice=pos.orderDiagnosis.detail;}
+      else if(pos.invoiceOnly&&pos.supplierMismatch){reason=`NOT ON POS ORDER — POSACTIVE SUPPLIER ${pos.posSupplier}`;advice=`CH2 invoiced ${name}, but POSActive assigns it to ${pos.posSupplierLabel}, not ${pos.orderSupplierLabel||'this order’s supplier'}, so it never appears on CH2 orders. To receive it through this import: change its POSActive supplier to ${pos.orderSupplier} with Sub ID ${pos.ch2Code||key} (or add it to order ${orderNo} with Sub ID ${key||'blank'}), re-export the order and run again. Otherwise untick it and receive it against ${pos.posSupplierLabel}.`;}
       else if(pos.invoiceOnly&&!pos.inMaster){reason='NOT ON POS ORDER — NOT IN POS MASTER';advice=`CH2 code ${pos.ch2Code||'?'} is not in the aligned POS master, so the product may not exist in POSActive. Create it (or link the CH2 code) in POSActive, add it to order ${orderNo}, re-export and run again — or untick it and receive it manually.`;}
       else if(pos.invoiceOnly){reason='NOT ON POS ORDER';advice=`Add ${name} to POSActive order ${orderNo} (Sub ID ${key||'blank'}), re-export the order and run again — or untick it here and receive it separately.`;}
       else if(!key.trim()){reason='POS ORDER ROW HAS NO SUB ID';advice=`The Sub ID is blank on the POS order, so it is exported blank exactly as stored. Set a Sub ID for ${name} (PLU ${clean(pos.plu)||'?'}) in POSActive — e.g. CH2 code ${clean(r&&r.ch2Code)||'?'} — then re-export the order and run again.`;}
       else{reason='SUB ID DIFFERS FROM ORDER';advice=`The order row has Sub ID "${exactKey(pos)}" but the TXT sends "${key}". Use the order's Sub ID or update POSActive.`;}
       // Invoice-only Sub IDs come from the POS master because the product is not in the uploaded
       // order file; if it is on the live POSActive order, re-exporting the order makes it exact.
-      if(pos.invoiceOnly)advice+=` The Sub ID shown comes from the POS master, not the order file. If ${name} is already on your live POSActive order, re-export the order (BROWSEORDERFILES) and run again so its exact order Sub ID is used.`;
+      if(pos.invoiceOnly&&pos.orderDiagnosis&&!pos.orderDiagnosis.orderRow)advice+=` The TXT uses the POS master Sub ID "${key}" exactly.`;
+      else if(pos.invoiceOnly&&!pos.orderDiagnosis)advice+=` The Sub ID shown comes from the POS master, not the order file. If ${name} is already on your live POSActive order, re-export the order (BROWSEORDERFILES) and run again so its exact order Sub ID is used.`;
       mismatches.push({invoiceNo:r.invoiceNo,line:r.line,subId:key,description:clean(r.description),posDescription:name,reason,advice,total:n(r.total)||0,invoiceOnly:!!pos.invoiceOnly,manual:!!r.manualReceiving,sourceRow:pos.sourceRow});
     }
     return {total:(records||[]).length,matched:(records||[]).length-mismatches.length,mismatches,orderNumber:orderNo};

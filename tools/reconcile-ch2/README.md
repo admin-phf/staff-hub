@@ -1,4 +1,27 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.33
+# Prahran Health Foods — CH2 Reconciler v2.6.34
+
+## v2.6.34 — why a billed product is not in the matched body (generic), stronger exact matching, word-boundary discount rules
+
+- **Order file check (new, generic):** when billed products can't be linked to a row of the uploaded order file, a panel at the top of the balancing area names the order file, its product-row count, order number and supplier, and lists each product with its CH2 code, qty, total, the exact TXT Sub ID and the reason:
+  - `NOT IN ORDER FILE · POSACTIVE SUPPLIER n` — no row in the file is this product, and POSActive assigns it to a different supplier than the order.
+  - `NOT IN ORDER FILE · NOT IN POS MASTER` — the CH2 code isn't linked to any POS product.
+  - `NOT IN ORDER FILE` — not on the order when it was exported.
+  - `ON ORDER · ROW ALREADY MATCHED` — the product's row is in the file but another invoice line already holds it (billed twice / under two CH2 codes). That line now exports the order row's exact Sub ID.
+  - `ON ORDER · NOT LINKED` — a safety diagnostic that should not occur.
+  - For each line the app checks every POS PLU and barcode linked to its CH2 code, and the CH2 code as a Sub ID. Nothing is product-specific.
+- **INV rows** show a short reason chip in Product Description. The full explanation is in the hover text, the POSActive match check, the run status line and the result subtitle (order file name and row count).
+- **Tick all** now also ticks INV rows that resolve to a POS product, so the TXT balances to the supplier invoice. INV rows whose CH2 code isn't linked to any POS product still need an individual tick.
+- **Exact matching uses every POS master record for a CH2 code** (duplicate/re-created PLUs, old and new barcodes), not only the preferred one, and compares barcodes without leading zeros. On order 103-0021647: 8 lines now match by barcode instead of PLU (same rows), and CHINAMED MENOPAUSE 2 moved from a description match to an exact barcode match.
+- **Discount rules compare whole words:**
+  - The 2-letter prefix rule `OR` (Orthoplex Green 10%) no longer applies to ORA HEALTH, ORGANIC BOTANICALS or ORGANICUP. ORA MAG3 now expects 8.00% = CH2 8.00% → OK.
+  - `ZEA` no longer matches `N KUNZEA`, `SUN` no longer matches `NATURES SUNSHINE`, and `BOTANI` no longer matches `BOTANICAL BLENDS`.
+  - Abbreviated last words still match (`BLACKMORES PROF` → BLACKMORES PROFESSIONAL), and so do discontinued `ZZ`/`XX` brand prefixes.
+  - Across all 34,224 POS master products, 65 expected discounts change, all from these corrections.
+- All v2.6.33 behaviour (exact Sub IDs, the 15-column POSActive contract, the 43-column workbook) is otherwise unchanged.
+
+Suggested commit summary:
+
+`v2.6.34: Explain unlinked invoice lines, match all master records, word-boundary discount rules`
 
 ## v2.6.33 — POSActive Sub ID exported exactly as on the POS order
 

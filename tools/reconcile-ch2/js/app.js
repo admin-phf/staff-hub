@@ -454,7 +454,7 @@
       notInvoicedTotal+=currentPrice*qtyNow*(1+gstPct/100);
     }
     return {current,matchedCurrent,adjusted,adjustedEx,adjustedGst,supplierInvoiceTotal,invoiceOnlyCount:invoiceOnlyRows.length,invoiceOnlyTotal,invoiceOnlyReceivedCount:receivedInvoiceOnly.length,invoiceOnlyReceivedTotal,matchCheck,
-      invoiceOnlyAll:invoiceOnlyEntries().map(e=>({line:e.inv&&e.inv.invoiceLine,invoiceNumber:e.inv&&e.inv.invoiceNumber,description:cleanText(e.pos&&e.pos.description)||cleanText(e.inv&&e.inv.description),total:numberValue(e.inv&&e.inv.totalIncGst)||0,ticked:receivedInvoiceOnlyKeys.has(String(e.pos&&e.pos.sourceRow)),supplierNote:e.pos&&e.pos.supplierMismatch?`set to ${e.pos.posSupplierLabel} in POSActive; this order is ${e.pos.orderSupplierLabel}`:(e.pos&&!e.pos.inMaster?'not in POS master':'')})),notInvoicedCount,notInvoicedTotal,manualCount:manualRecords.length,manualTotal,recordCount:records.length};
+      invoiceOnlyAll:invoiceOnlyEntries().map(e=>({line:e.inv&&e.inv.invoiceLine,invoiceNumber:e.inv&&e.inv.invoiceNumber,description:cleanText(e.pos&&e.pos.description)||cleanText(e.inv&&e.inv.description),total:numberValue(e.inv&&e.inv.totalIncGst)||0,ticked:receivedInvoiceOnlyKeys.has(String(e.pos&&e.pos.sourceRow)),qty:numberValue(e.inv&&e.inv.qtySupplied),code:cleanText(e.inv&&e.inv.productCode),subId:(()=>{const id=importIdentityFor(e.pos,e.detail);return id?id.importSubId:'';})(),diagnosis:e.pos&&e.pos.orderDiagnosis||null,tickAll:tickAllCovers(e.pos),supplierNote:e.pos&&e.pos.supplierMismatch?`set to ${e.pos.posSupplierLabel} in POSActive; this order is ${e.pos.orderSupplierLabel}`:(e.pos&&!e.pos.inMaster?'not in POS master':'')})),notInvoicedCount,notInvoicedTotal,manualCount:manualRecords.length,manualTotal,recordCount:records.length};
   }
 
   function renderPosBalance(totals){
@@ -462,7 +462,7 @@
     if(!totals){box.classList.add('hidden');box.innerHTML='';return;}
     const exportBalances=totals.adjusted!=null&&totals.adjustedEx!=null&&totals.adjustedGst!=null&&Math.abs((totals.adjustedEx+totals.adjustedGst)-totals.adjusted)<=.02;
     const cautions=[];
-    if(totals.invoiceOnlyCount)cautions.push(`${totals.invoiceOnlyCount} billed invoice-only product${totals.invoiceOnlyCount===1?' is':'s are'} not on the POS order and not ticked, so ${totals.invoiceOnlyCount===1?'it is':'they are'} omitted from the POSActive import (${money(totals.invoiceOnlyTotal)} inc GST). Tick the INV rows in POS Layout to include them — this is the difference to the supplier invoice total.`);
+    if(totals.invoiceOnlyCount)cautions.push(`${totals.invoiceOnlyCount} billed invoice-only product${totals.invoiceOnlyCount===1?' is':'s are'} not linked to the uploaded order file and not ticked, so ${totals.invoiceOnlyCount===1?'it is':'they are'} omitted from the POSActive import (${money(totals.invoiceOnlyTotal)} inc GST). Tick the INV rows in POS Layout (Tick all includes INV rows that resolve to a POS product) to include them — this is the difference to the supplier invoice total. See the order file check above for why each one was not linked.`);
     if(totals.invoiceOnlyReceivedCount)cautions.push(`${totals.invoiceOnlyReceivedCount} invoice-only product${totals.invoiceOnlyReceivedCount===1?' is':'s are'} included (${money(totals.invoiceOnlyReceivedTotal)} inc GST) although not on the POS order. POSActive can only apply ${totals.invoiceOnlyReceivedCount===1?'it':'them'} if the product is on the open order; add ${totals.invoiceOnlyReceivedCount===1?'it':'them'} to the order first if the import rejects ${totals.invoiceOnlyReceivedCount===1?'it':'them'}.`);
     if(totals.manualCount)cautions.push(`${totals.manualCount} not-invoiced POS-order product${totals.manualCount===1?' was':'s were'} manually received with a Found quantity and ${totals.manualCount===1?'is':'are'} included in the TXT and totals (${money(totals.manualTotal)} inc GST) using POS master CH2_WHOLESALE_EX_GST / POS pricing. Confirm with the supplier that ${totals.manualCount===1?'it was':'they were'} delivered.`);
     if(totals.notInvoicedCount)cautions.push(`${totals.notInvoicedCount} POS-order product${totals.notInvoicedCount===1?' was':'s were'} not invoiced (${money(totals.notInvoicedTotal)} at current ordered value). The TXT cannot clear absent/zero-quantity rows, so confirm they are zero or unticked in POSActive.`);
@@ -473,8 +473,13 @@
     // the invoice-only lines, and predict POSActive's supplier-order Sub ID match.
     const io=totals.invoiceOnlyAll||[],ioTotal=io.reduce((a,x)=>a+x.total,0),orderLinesTotal=totals.supplierInvoiceTotal!=null?totals.supplierInvoiceTotal-ioTotal:null;
     const invoiceEquation=io.length&&totals.supplierInvoiceTotal!=null?`<div class="pos-balance-reconcile"><strong>Supplier invoice ${money(totals.supplierInvoiceTotal)} = lines on POS order ${money(orderLinesTotal)} + not on POS order ${money(ioTotal)}</strong><span>${io.map(x=>`${escapeHtml(x.description)} · line ${escapeHtml(x.line)} · ${money(x.total)}${x.supplierNote?` · <b>${escapeHtml(x.supplierNote)}</b>`:''} · ${x.ticked?'included':'not ticked (excluded)'}`).join(' &nbsp;|&nbsp; ')}</span></div>`:'';
+    // v2.6.34 — order file check: which billed products are not in the uploaded order file, why,
+    // and what to do. Generic for every product; nothing here is item-specific.
+    const pf=state.posParsed||{},pfRows=((pf.rows)||[]).length,pfName=cleanText(pf.sourceFile)||cleanText(state.pos&&state.pos.name)||'uploaded order file';
+    const supLabel=(invoiceOnlyEntries().map(e=>e.pos&&e.pos.orderSupplierLabel).find(Boolean))||'';
+    const orderFileBlock=io.length?`<div class="pos-orderfile-check"><div class="pos-orderfile-head"><strong>Order file check</strong><span>${escapeHtml(pfName)} · ${pfRows} product row${pfRows===1?'':'s'}${pf.orderNumber?` · order ${escapeHtml(pf.orderNumber)}`:''}${supLabel?` · ${escapeHtml(supLabel)}`:''}</span></div><p>${io.length} billed product${io.length===1?' was':'s were'} not linked to a row of this order file, so ${io.length===1?'it is':'they are'} listed as <b>INV</b> rows at the end of POS Layout instead of in the matched body. Invoice lines can only match rows that are in the uploaded file; for each line the app checks every POS PLU and barcode linked to its CH2 code, and the CH2 code as a Sub ID. If a product below <b>is</b> on your live POSActive order, the order was exported before it was added — export the order again and re-run, and it will match normally with its exact order Sub ID.</p><div class="pos-orderfile-list">${io.map(x=>`<div class="pos-orderfile-item"><b>Line ${escapeHtml(x.line)} · ${escapeHtml(x.description)}</b><span class="pos-orderfile-meta">CH2 ${escapeHtml(x.code||'?')} · qty ${escapeHtml(x.qty??'')} · ${money(x.total)} · TXT Sub ID “${escapeHtml(x.subId||'')}” · ${x.ticked?'included':x.tickAll?'not ticked yet (Tick all includes it)':'not ticked (tick it individually)'}</span><span class="pos-orderfile-reason">${escapeHtml(x.diagnosis?x.diagnosis.chip:'NOT IN ORDER FILE')}</span><small>${escapeHtml(x.diagnosis?x.diagnosis.detail:'')}</small></div>`).join('')}</div></div>`:'';
     const mc=totals.matchCheck,matchBlock=mc&&mc.total?`<div class="pos-match-check ${mc.mismatches.length?'bad':'good'}"><div class="pos-match-head"><strong>POSActive match check</strong><span>${mc.matched} of ${mc.total} TXT line${mc.total===1?'':'s'} match a Sub ID on POS order ${escapeHtml(mc.orderNumber||'')}${mc.mismatches.length?` · POSActive will report ${mc.mismatches.length} as “Invoice items do not match suppliers order items”`:' · no POSActive matching warning expected'}</span></div>${mc.mismatches.length?`<div class="pos-match-list">${mc.mismatches.map(m=>`<div class="pos-match-item"><b>Line ${escapeHtml(m.line)} · ${escapeHtml(m.posDescription||m.description)}</b><span class="pos-match-key">Sub ID ${escapeHtml(m.subId||'(blank)')}</span><span class="pos-match-reason">${escapeHtml(m.reason)}</span><small>${escapeHtml(m.advice)}</small></div>`).join('')}</div>`:''}</div>`:'';
-    box.innerHTML=`<div class="pos-balance-heading"><div><strong>POSActive balancing check</strong><span>These figures come from the exact TXT payload currently ready to download.</span></div><span class="pos-balance-status ${exportBalances?'pass':'review'}">${exportBalances?'FILE BALANCES':'REVIEW'}</span></div><div class="pos-balance-grid">${[
+    box.innerHTML=`${orderFileBlock}<div class="pos-balance-heading"><div><strong>POSActive balancing check</strong><span>These figures come from the exact TXT payload currently ready to download.</span></div><span class="pos-balance-status ${exportBalances?'pass':'review'}">${exportBalances?'FILE BALANCES':'REVIEW'}</span></div><div class="pos-balance-grid">${[
       card('Expected POSActive total',money(totals.adjusted),'Use when CP Inc GST is ON','primary'),
       card('CP Inc GST off',money(totals.adjustedEx),'Expected ex-GST footer'),
       card('GST in import',money(totals.adjustedGst),'Included in expected total'),
@@ -487,6 +492,11 @@
   // v2.6.30 — billed invoice lines that are not on the POS order are appended to POS
   // Layout as receivable rows (cached per reconciliation result).
   let invoiceOnlyCache={result:null,entries:[]};
+  // v2.6.34 — Tick all covers every POS-order row plus invoice-only rows that resolve to a POS
+  // product (in the POS master, or the same product's row is in the order file). Rows whose CH2
+  // code is not linked to any POS product still need a deliberate tick.
+  function invChipText(pos){const c=pos&&pos.orderDiagnosis&&pos.orderDiagnosis.code;return c==='ON_ORDER_ALREADY_MATCHED'?'ROW ALREADY MATCHED':c==='ON_ORDER_NOT_LINKED'?'ON ORDER · NOT LINKED':'NOT IN ORDER FILE';}
+  function tickAllCovers(pos){return !(pos&&pos.invoiceOnly)||!!(pos.inMaster||(pos.orderDiagnosis&&pos.orderDiagnosis.orderRow));}
   function invoiceOnlyEntries(){
     if(!state.result||!state.posParsed||!PHF.posImport||typeof PHF.posImport.invoiceOnlyEntries!=='function')return [];
     if(invoiceOnlyCache.result!==state.result)invoiceOnlyCache={result:state.result,entries:PHF.posImport.invoiceOnlyEntries(state.result,state.refs,state.posParsed)};
@@ -786,6 +796,7 @@
     if(c.kind==='qtyinput')return '-999.999';
     if(c.kind==='qtytotal')return displayUnpackCount(unpackCountFor(pos));
     const v=posColumnValue(pos,c,detail);
+    if(c.key==='descr'&&pos&&pos.invoiceOnly)return `${invChipText(pos)}   ${v==null?'':v}`;
     if(c.kind==='bool')return boolValue(v)?'✓':'';
     if(c.kind==='number'){
       let text=fixed(v,c.dp??2);
@@ -975,7 +986,7 @@
     }
     if(state.receivingMigratedFrom266){state.receivingMigratedFrom266=false;stateChanged=true;}
     if(stateChanged){saveUnpackCounts();saveUnpackChecklist();}
-    const orderBaseRows=baseRows.filter(pos=>!(pos&&pos.invoiceOnly)),selectedCount=baseRows.reduce((n,pos)=>n+(state.unpackChecked.has(unpackIdentity(pos))?1:0),0),allSelected=orderBaseRows.length>0&&orderBaseRows.every(pos=>state.unpackChecked.has(unpackIdentity(pos))),partSelected=selectedCount>0&&!allSelected;
+    const orderBaseRows=baseRows.filter(tickAllCovers),selectedCount=baseRows.reduce((n,pos)=>n+(state.unpackChecked.has(unpackIdentity(pos))?1:0),0),allSelected=orderBaseRows.length>0&&orderBaseRows.every(pos=>state.unpackChecked.has(unpackIdentity(pos))),partSelected=selectedCount>0&&!allSelected;
     if(els.tickAllBtn){els.tickAllBtn.textContent=allSelected?'Untick all':'Tick all';els.tickAllBtn.title=allSelected?'Untick all — clear all Found quantities and return rows to Remaining':'Tick all — untouched rows use expected CH2 supplied qty';}
     // v2.6.30 — one header-cell builder for the main sticky header and the Completed section
     // header row, so both carry the same sortable headings (sorting applies to both sections).
@@ -1038,16 +1049,20 @@
           }
         } else {
           html=escapeHtml(v);if(v)title=String(v);
+          if(c.key==='descr'&&pos&&pos.invoiceOnly){
+            // v2.6.34 — say on the row itself why the billed product is not in the matched body.
+            const dg=pos.orderDiagnosis;html=`<span class="pos-inv-chip${dg&&dg.orderRow?' on-order':''}">${escapeHtml(invChipText(pos))}</span>${html}`;if(dg)title=`${dg.chip} — ${dg.detail}`;
+          }
           if(c.key==='sub_id'){
             const invoiced=!!(detail&&Array.isArray(detail.invoiceRows)&&detail.invoiceRows.length);
-            if(pos.invoiceOnly&&v){const id=importIdentityFor(pos,detail);extraCls=' pos-subid-derived';title=`Not in the uploaded order file · Sub ID ${v} from ${id&&id.source?id.source:'POS master'}. If this product is on your live POSActive order, re-export the order and run again to use its exact order Sub ID.`;}
+            if(pos.invoiceOnly&&v){const id=importIdentityFor(pos,detail),row=pos.orderDiagnosis&&pos.orderDiagnosis.orderRow;extraCls=row?'':' pos-subid-derived';title=row?`Exported exactly as on the order file row POS index ${row.posIndex}: "${v}"`:`Not in the uploaded order file · Sub ID "${v}" exported exactly from ${id&&id.source?id.source:'POS master'}. If this product is on your live POSActive order, re-export the order and run again to use its exact order Sub ID.`;}
             else if(typeof pos.subIdRaw==='string'&&!String(v).trim()&&invoiced){extraCls=' pos-subid-blank';html='<span class="pos-subid-blank-mark">(blank)</span>';title='Sub ID is blank on the POS order and is exported blank, exactly as stored in POSActive. Set a Sub ID on the product in POSActive and re-export the order if the import cannot match it.';}
             else if(v)title=`Exported exactly as on the POS order: "${v}"`;
           }
         }
         const cls=[c.cls||'',c.kind==='number'?'num':'',c.kind==='bool'?'pos-bool-cell center':'',c.align==='center'?'center':'',extraCls].filter(Boolean).join(' ');return `<td${cls?` class="${cls}"`:''}${title?` title="${escapeHtml(title)}"`:''}>${html}</td>`;
       }).join('');
-      const rowTitle=manualReceived?' title="Manually received — not on the CH2 invoice. Added to the POSActive TXT and totals using POS master CH2_WHOLESALE_EX_GST / POS pricing and the matched discount rule."':pos&&pos.invoiceOnly?` title="${escapeHtml(`Invoice only — billed by CH2 but not on the uploaded POS order${pos.supplierMismatch?`: POSActive assigns this product to ${pos.posSupplierLabel}, not ${pos.orderSupplierLabel}, so it never appears on this supplier's orders`:''}. Tick it (or enter Found) to include it in the POSActive TXT and totals; POSActive can only apply it if the product is on the open order.`)}"`:'';
+      const rowTitle=manualReceived?' title="Manually received — not on the CH2 invoice. Added to the POSActive TXT and totals using POS master CH2_WHOLESALE_EX_GST / POS pricing and the matched discount rule."':pos&&pos.invoiceOnly?` title="${escapeHtml(`Invoice only — billed by CH2 but not linked to a row of the uploaded POS order. ${pos.orderDiagnosis?pos.orderDiagnosis.detail:''} Ticked rows (or Found) are included in the POSActive TXT and totals; POSActive can only apply them if the product is on the open order.`)}"`:'';
       return `<tr${rowClasses?` class="${rowClasses}"`:''}${notSupplied?' data-not-supplied="1"':''}${manualReceived?' data-manual-received="1"':''}${completeIndex!=null?` data-complete-index="${completeIndex}"`:''}${rowTitle}>${cells}</tr>`;
     };
     const sectionHtml=[];let zebraIndex=0;
@@ -1078,12 +1093,12 @@
       const toggle=e.target.closest('[data-toggle-all]'),clear=e.target.closest('[data-clear-qty]'),sort=e.target.closest('[data-sort-key]');
       if(toggle){
         e.preventDefault();e.stopPropagation();
-        // v2.6.31 — Tick all covers the POS-order rows. Invoice-only (INV, not on the order)
-        // rows are left for a deliberate tick because POSActive cannot match them to the order.
-        const orderRows=baseRows.filter(pos=>!(pos&&pos.invoiceOnly)),currentlyAll=orderRows.length>0&&orderRows.every(pos=>state.unpackChecked.has(unpackIdentity(pos))),selectAll=!currentlyAll;
+        // v2.6.34 — Tick all covers the POS-order rows and invoice-only rows that resolve to a POS
+        // product (see tickAllCovers). Unresolved invoice-only rows are left for a deliberate tick.
+        const orderRows=baseRows.filter(tickAllCovers),currentlyAll=orderRows.length>0&&orderRows.every(pos=>state.unpackChecked.has(unpackIdentity(pos))),selectAll=!currentlyAll;
         for(let i=0;i<baseRows.length;i++){
           const pos=baseRows[i],key=unpackIdentity(pos),detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(i);
-          if(selectAll&&pos&&pos.invoiceOnly)continue;
+          if(selectAll&&!tickAllCovers(pos))continue;
           if(selectAll){
             if(!state.unpackCounts.has(key))state.unpackCounts.set(key,unpackExpectedQty(pos,detail));
             state.unpackManualChecked.add(key);state.unpackChecked.add(key);
@@ -1135,7 +1150,7 @@
   function renderPreview(r){if(state.previewView==='pos')renderPosTable();else renderReconTable(r);setViewButtons();}
 
   function renderResults(){
-    const r=state.result;if(!r)return;const t=r.totals,integ=state.runIntegrity||{ok:false,errors:['Integrity not run'],warnings:[]};els.results.classList.remove('hidden');els.resultSub.textContent=`${r.orderNumber?`Order ${r.orderNumber} · `:''}${t.matchedInvoiceLines}/${t.invoiceLines} supplier lines matched to the POS order.`;
+    const r=state.result;if(!r)return;const t=r.totals,integ=state.runIntegrity||{ok:false,errors:['Integrity not run'],warnings:[]};els.results.classList.remove('hidden');const pf=state.posParsed||{},ioN=invoiceOnlyEntries().length;els.resultSub.textContent=`${r.orderNumber?`Order ${r.orderNumber} · `:''}${t.matchedInvoiceLines}/${t.invoiceLines} supplier lines matched to the POS order · order file ${pf.sourceFile||'?'} (${((pf.rows)||[]).length} product rows)${ioN?` · ${ioN} billed product${ioN===1?'':'s'} not in the order file (INV rows — see Order file check)`:''}.`;
     els.kpis.innerHTML=[kpi('POS lines',t.posLines),kpi('Exceptions',t.exceptionLines,t.exceptionLines?'bad':'good'),kpi('Unmatched invoices',t.unmatchedInvoiceLines,t.unmatchedInvoiceLines?'bad':'good'),kpi('Better price',t.betterPriceLines,'good'),kpi('Potential missed $',money(t.missedTotal),t.missedTotal>0?'bad':'good'),kpi('Integrity',integ.ok?'PASS':'BLOCKED',integ.ok?'good':'bad')].join('');
     const notes=[...(r.warnings||[])];
     const posDiag=state.posParsed&&state.posParsed.diagnostics||{},restored=Number(posDiag.enrichedRows||0),ambiguousRestores=Number(posDiag.ambiguousMasterRows||0);
@@ -1165,7 +1180,7 @@
       const docs=[];for(let i=0;i<state.invoices.length;i++){const doc=await PHF.parseSupplierInvoice(state.invoices[i]);docs.push(doc);setProgress(35+Math.round(((i+1)/state.invoices.length)*38));}state.docs=docs;
       const invoiceCount=docs.reduce((a,d)=>a+(d.rows||[]).length,0);setStatus(`Supplier invoices read: ${invoiceCount} billed product lines. Matching to POS order…`,'info');setProgress(82);
       state.result=PHF.reconcile(pos,docs,state.refs);state.runIntegrity=PHF.integrity.validateRun(pos,docs,state.result);state.result.integrity=state.runIntegrity;setProgress(100);
-      const t=state.result.totals;if(state.runIntegrity.ok)setStatus(`Complete: ${t.matchedInvoiceLines}/${t.invoiceLines} invoice lines matched. ${t.exceptionLines} POS line exception${t.exceptionLines===1?'':'s'}${t.unmatchedInvoiceLines?`, ${t.unmatchedInvoiceLines} unmatched invoice line${t.unmatchedInvoiceLines===1?'':'s'}`:''}. Integrity PASS.`,'ok');else setStatus(`Reconciliation completed, but Excel export is blocked by ${state.runIntegrity.errors.length} integrity check${state.runIntegrity.errors.length===1?'':'s'}. Review the notes below.`,'warn');
+      const t=state.result.totals,ioRun=invoiceOnlyEntries(),ioNote=ioRun.length?` ${ioRun.length} billed product${ioRun.length===1?' is':'s are'} not in the uploaded order file (${ioRun.slice(0,3).map(e=>cleanText(e.pos&&e.pos.description)).join(', ')}${ioRun.length>3?', …':''}) — see Order file check; if ${ioRun.length===1?'it is':'they are'} on your live POSActive order, re-export the order and run again.`:'';if(state.runIntegrity.ok)setStatus(`Complete: ${t.matchedInvoiceLines}/${t.invoiceLines} invoice lines matched. ${t.exceptionLines} POS line exception${t.exceptionLines===1?'':'s'}${t.unmatchedInvoiceLines?`, ${t.unmatchedInvoiceLines} unmatched invoice line${t.unmatchedInvoiceLines===1?'':'s'}`:''}. Integrity PASS.${ioNote}`,ioRun.length?'warn':'ok');else setStatus(`Reconciliation completed, but Excel export is blocked by ${state.runIntegrity.errors.length} integrity check${state.runIntegrity.errors.length===1?'':'s'}. Review the notes below.`,'warn');
       state.previewView='pos';renderResults();setTimeout(hideProgress,500);
     }catch(err){console.error(err);hideProgress();setStatus(err&&err.message?err.message:String(err),'warn');}
     finally{els.runBtn.disabled=!(state.pos&&state.invoices.length&&state.referenceReady);els.clearBtn.disabled=false;}

@@ -146,12 +146,29 @@
     return {code,rec:rec||{},supplier:sup,via};
   }
 
+  // v2.6.34 — every POS master record linked to the CH2 code is an exact identity for the
+  // invoice line, not only the preferred one. A CH2 code can sit on more than one POS product
+  // (duplicate/re-created PLUs, old and new barcodes); the order may carry any of them.
+  // Barcodes are compared without leading zeros (CH2 prints 0-padded EAN/UPC codes).
+  function barcodeKey(v){return digits(v).replace(/^0+/,'');}
+  function bridgeIdentities(inv,refs,bridge){
+    const master=refs&&refs.master,code=digits(inv&&inv.productCode),barcodes=new Set(),plus=new Set(),add=r=>{if(!r)return;const b=barcodeKey(r.POS_MASTER_BARCODE),p=digits(r.POS_PLU);if(b)barcodes.add(b);if(p)plus.add(p);};
+    add(bridge&&bridge.rec);
+    for(const r of (code&&master&&master.byCodeAll&&typeof master.byCodeAll.get==='function'&&master.byCodeAll.get(code))||[])add(r);
+    return {barcodes,plus};
+  }
+  const bridgeIdentityCache=new WeakMap();
+  function cachedBridge(inv,refs){
+    let c=bridgeIdentityCache.get(inv);
+    if(!c||c.refs!==refs){const bridge=bridgeForInvoice(inv,refs);c={refs,bridge,ids:bridgeIdentities(inv,refs,bridge)};bridgeIdentityCache.set(inv,c);}
+    return c;
+  }
   function candidate(inv,pos,refs){
-    const bridge=bridgeForInvoice(inv,refs),rec=bridge.rec||{},sup=bridge.supplier||{};
-    const posBarcode=digits(pos.barcode),posPlu=digits(pos.plu),posSub=numericCodeOnly(pos.subId),invCode=digits(inv.productCode),bridgeBarcode=digits(rec.POS_MASTER_BARCODE),bridgePlu=digits(rec.POS_PLU),supBarcode=digits(sup.SUP_BARCODE);
+    const cached=cachedBridge(inv,refs),bridge=cached.bridge,ids=cached.ids,rec=bridge.rec||{},sup=bridge.supplier||{};
+    const posBarcode=barcodeKey(pos.barcode),posPlu=digits(pos.plu),posSub=numericCodeOnly(pos.subId),invCode=digits(inv.productCode),supBarcode=barcodeKey(sup.SUP_BARCODE);
     let score=0,method='',confidence='LOW',exact=false;
-    if(bridgeBarcode&&posBarcode&&bridgeBarcode===posBarcode){score+=7000;method=`${bridge.via||'CH2_CODE'}→BARCODE→POS_ORDER`;confidence='HIGH';exact=true;}
-    else if(bridgePlu&&posPlu&&bridgePlu===posPlu){score+=6500;method=`${bridge.via||'CH2_CODE'}→PLU→POS_ORDER`;confidence='HIGH';exact=true;}
+    if(posBarcode&&ids.barcodes.has(posBarcode)){score+=7000;method=`${bridge.via||'CH2_CODE'}→BARCODE→POS_ORDER`;confidence='HIGH';exact=true;}
+    else if(posPlu&&ids.plus.has(posPlu)){score+=6500;method=`${bridge.via||'CH2_CODE'}→PLU→POS_ORDER`;confidence='HIGH';exact=true;}
     else if(invCode&&posSub&&invCode===posSub){score+=6000;method='CH2 PRODUCT CODE→POS SUB ID';confidence='HIGH';exact=true;}
     else if(supBarcode&&posBarcode&&supBarcode===posBarcode){score+=5800;method='CH2 CODE→SUPPLIER UPDATE→BARCODE→POS ORDER';confidence='HIGH';exact=true;}
 

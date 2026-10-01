@@ -567,3 +567,18 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 
 /* v2.6.33 — exact Sub ID display: a blank order Sub ID is shown as (blank), not substituted. */
 .results .preview-pos td.pos-subid-blank .pos-subid-blank-mark{color:#9AA0A6;font-style:italic;font-size:.92em}
+
+/* v2.6.34 — order file check + invoice-only reason chip (generic, no product-specific rules). */
+.pos-orderfile-check{padding:9px 12px;background:#FFF7E0;border-bottom:1px solid #f0d58a;color:#4a3800;font-size:11.5px}
+.pos-orderfile-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.pos-orderfile-head strong{font-size:13px;color:#7a4f00}
+.pos-orderfile-head span{font-weight:800;color:#5a4300}
+.pos-orderfile-check p{margin:5px 0 6px;line-height:1.4}
+.pos-orderfile-list{display:grid;gap:5px}
+.pos-orderfile-item{display:grid;grid-template-columns:minmax(220px,1.1fr) minmax(260px,1.4fr) minmax(170px,.7fr) minmax(300px,2.2fr);gap:10px;align-items:baseline;padding:5px 8px;background:#fff;border:1px solid #f0d58a;border-radius:6px;color:#3a3020}
+.pos-orderfile-meta{font-size:10.5px;color:#5f5440}
+.pos-orderfile-reason{font-weight:900;font-size:10.5px;letter-spacing:.03em;color:#9a5b00}
+.pos-orderfile-item small{color:#5f5440;font-size:10.5px;line-height:1.35}
+@media(max-width:1100px){.pos-orderfile-item{grid-template-columns:1fr}}
+.results .preview-pos td.pos-desc .pos-inv-chip{display:inline-block;margin-right:6px;padding:0 5px;border-radius:3px;background:#FFF1C9;border:1px solid #e3b341;color:#7a4f00;font-size:9px;font-weight:900;letter-spacing:.03em;line-height:14px;vertical-align:1px;font-style:normal}
+.results .preview-pos td.pos-desc .pos-inv-chip.on-order{background:#E8F0FE;border-color:#8ab4f8;color:#174ea6}
