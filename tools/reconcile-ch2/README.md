@@ -1,4 +1,24 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.34
+# Prahran Health Foods — CH2 Reconciler v2.6.35
+
+## v2.6.35 — products not on the POS order are excluded again until ticked
+
+- **Tick all is back to POS-order rows only.** v2.6.34 also ticked invoice-only (INV) rows that resolve to a POS product, which pulled products that are not on the order (e.g. PUKKA) into the TXT. INV rows now stay unticked and excluded from the POSActive TXT until ticked individually, as in v2.6.33. The only exception is an INV line for a product whose row IS on the order (`ROW ALREADY MATCHED`).
+- **Clear "not on POS order" identification:**
+  - The panel above the balancing check is titled **Not on POS order**.
+  - INV rows carry a `NOT ON POS ORDER` tag in Product Description.
+  - Reasons read `NOT ON POS ORDER · POSACTIVE SUPPLIER n` / `NOT ON POS ORDER · NOT IN POS MASTER` / `NOT ON POS ORDER`.
+  - Each line shows whether it is excluded from the TXT or ticked and included.
+  - The run status and the result subtitle name the products not on the order.
+- Verified on order 103-0021647:
+  - **With the uploaded export (107 rows):** ORA and PUKKA are both flagged not on the POS order and excluded, giving a TXT of 107 lines and $7,310.79.
+  - **With an export that includes ORA but not PUKKA:** ORA matches into the body with Sub ID `3 PER SKU 25%`, and only PUKKA is flagged and excluded, giving a TXT of 108 lines, $7,347.22 and 108/108 Sub IDs matching the order.
+- All v2.6.34 matching and discount-rule improvements are otherwise unchanged.
+
+Suggested commit summary:
+
+`v2.6.35: Keep not-on-order products out of Tick all and flag them clearly`
+
+# Prahran Health Foods — CH2 Reconciler v2.6.34 (previous)
 
 ## v2.6.34 — why a billed product is not in the matched body (generic), stronger exact matching, word-boundary discount rules
 

@@ -91,7 +91,7 @@
     // export omits Sub ID, the supplier's own code from the matched invoice is
     // the closest equivalent key. A CH2 catalogue number is only the final
     // fallback because it is a different identifier and may be rejected.
-    const importSubId=manual||(exactOrder?orderSubId:(orderSubId||exactMasterSubId||invoiceSupplierCode||(codes.length===1?codes[0]:''))),source=manual?'USER':exactOrder?(orderSubId.trim()?'POS ORDER (EXACT)':'POS ORDER (BLANK)'):orderSubId?'POS ORDER':exactMasterSubId?(pos&&pos.invoiceOnly?'POS MASTER (NOT IN ORDER FILE)':'ALIGNED MASTER'):invoiceSupplierCode?'INVOICE SUPPLIER CODE':importSubId?'CH2 FALLBACK':'MISSING';
+    const importSubId=manual||(exactOrder?orderSubId:(orderSubId||exactMasterSubId||invoiceSupplierCode||(codes.length===1?codes[0]:''))),source=manual?'USER':exactOrder?(orderSubId.trim()?'POS ORDER (EXACT)':'POS ORDER (BLANK)'):orderSubId?'POS ORDER':exactMasterSubId?(pos&&pos.invoiceOnly?'POS MASTER (NOT ON POS ORDER)':'ALIGNED MASTER'):invoiceSupplierCode?'INVOICE SUPPLIER CODE':importSubId?'CH2 FALLBACK':'MISSING';
     const issues=[];
     if(exactOrder&&!manual){
       if(!orderSubId.trim())issues.push(`Sub ID is blank on the POS order and is exported blank, exactly as stored in POSActive.${masterSubIds.length===1?` The aligned master has "${masterSubIds[0]}".`:''} If POSActive cannot match it, set the Sub ID on the product in POSActive, re-export the order and run again.`);
@@ -195,7 +195,7 @@
   // code itself as a numeric Sub ID are looked up in the uploaded order file:
   //   ON ORDER · ALREADY MATCHED  the product's row is in the file but another invoice line holds it
   //   ON ORDER · NOT LINKED       the product's row is in the file and unused (should not happen)
-  //   NOT IN ORDER FILE           no row in the file is this product; sub-reason from POS master:
+  //   NOT ON POS ORDER            no row in the file is this product; sub-reason from POS master:
   //                               POSActive supplier differs from the order supplier / not in master
   function orderFileDiagnosis(inv,pos,refs,posOrder,reconciliation){
     const bk=v=>digits(v).replace(/^0+/,''),recs=masterCandidatesForInvoiceRow(inv,refs),code=digits(inv&&inv.productCode);
@@ -212,13 +212,14 @@
       return {code:'ON_ORDER_NOT_LINKED',chip:'ON ORDER · NOT LINKED',orderRow:hit,
         detail:`The product is in the order file at ${where} but was not linked automatically. Tick this row to receive it under the order Sub ID, and please report the invoice line so the matcher can be improved.`};
     }
-    const file=`${fileName||'the uploaded order file'}${fileRows?` (${fileRows} product row${fileRows===1?'':'s'}${orderNo?`, order ${orderNo}`:''})`:''}`;
-    if(pos.supplierMismatch)return {code:'NOT_IN_FILE_SUPPLIER',chip:`NOT IN ORDER FILE · POSACTIVE SUPPLIER ${pos.posSupplier}`,orderRow:null,
-      detail:`No row in ${file} is this product (checked CH2 code ${code||'?'}, PLU ${[...plus].join('/')||'?'}, barcode ${[...bcs].join('/')||'?'}). POSActive assigns it to ${pos.posSupplierLabel}, while this order is ${pos.orderSupplierLabel||'another supplier'} — products set to a different supplier are the most common reason they are missing from a supplier order. If it IS on your live POSActive order, the order was exported before it was added: re-export the order and run again. Otherwise tick it to receive it here, or change its POSActive supplier to ${pos.orderSupplier}.`};
-    if(!pos.inMaster)return {code:'NOT_IN_FILE_NOT_IN_MASTER',chip:'NOT IN ORDER FILE · NOT IN POS MASTER',orderRow:null,
-      detail:`No row in ${file} is this product, and CH2 code ${code||'?'} is not linked to any product in the aligned POS master, so it cannot be identified by PLU or barcode. Link the CH2 code in POSActive / the master, or tick it to receive it manually.`};
-    return {code:'NOT_IN_FILE',chip:'NOT IN ORDER FILE',orderRow:null,
-      detail:`No row in ${file} is this product (checked CH2 code ${code||'?'}, PLU ${[...plus].join('/')||'?'}, barcode ${[...bcs].join('/')||'?'}). It was billed but not on the order when it was exported. If it IS on your live POSActive order, re-export the order and run again; otherwise tick it to receive it here.`};
+    const order=`POS order ${orderNo||'(uploaded)'}${fileName||fileRows?` (${fileName||'order file'}${fileRows?`, ${fileRows} product row${fileRows===1?'':'s'}`:''})`:''}`,checked=`checked CH2 code ${code||'?'}, PLU ${[...plus].join('/')||'?'}, barcode ${[...bcs].join('/')||'?'}`;
+    // Not on the POS order → excluded from the POSActive TXT until deliberately ticked.
+    if(pos.supplierMismatch)return {code:'NOT_ON_ORDER_SUPPLIER',chip:`NOT ON POS ORDER · POSACTIVE SUPPLIER ${pos.posSupplier}`,orderRow:null,
+      detail:`Not on ${order} — ${checked}. POSActive assigns it to ${pos.posSupplierLabel}, not ${pos.orderSupplierLabel||'this order’s supplier'}. Excluded from the POSActive TXT unless you tick it. If it should be on this order, add it in POSActive (or change its supplier to ${pos.orderSupplier}), re-export the order and run again.`};
+    if(!pos.inMaster)return {code:'NOT_ON_ORDER_NOT_IN_MASTER',chip:'NOT ON POS ORDER · NOT IN POS MASTER',orderRow:null,
+      detail:`Not on ${order}, and CH2 code ${code||'?'} is not linked to any product in the aligned POS master, so it cannot be identified by PLU or barcode. Excluded from the POSActive TXT unless you tick it. Link the CH2 code in POSActive / the master.`};
+    return {code:'NOT_ON_ORDER',chip:'NOT ON POS ORDER',orderRow:null,
+      detail:`Not on ${order} — ${checked}. Excluded from the POSActive TXT unless you tick it. If it should be on this order, add it in POSActive, re-export the order and run again.`};
   }
   function invoiceOnlyEntries(reconciliation,refs,posOrder){
     const base=((posOrder&&posOrder.rows)||[]).length,orderSupplier=orderSupplierOf(posOrder);
