@@ -159,18 +159,31 @@
   // other row). The pseudo POS row is built from the aligned master for the CH2 code so the
   // POSActive key, brand and current POS prices are available.
   function invoiceOnlyKey(inv){return `INV:${invoiceKey(inv)}`;}
-  function invoiceOnlyPos(inv,refs,posIndex){
+  // The supplier the uploaded POS order was raised against (e.g. 134 = CH2 / Oborne).
+  function orderSupplierOf(posOrder){
+    const counts=new Map();for(const p of (posOrder&&posOrder.rows)||[]){const s=digits(p&&p.supplier);if(s)counts.set(s,(counts.get(s)||0)+1);}
+    let best='',n=0;for(const [k,v] of counts)if(v>n){best=k;n=v;}return best;
+  }
+  function supplierLabel(refs,no){const name=no&&refs&&refs.supplier&&refs.supplier.supplierMap&&typeof refs.supplier.supplierMap.get==='function'?refs.supplier.supplierMap.get(no):'';return no?(name?`${name} (${no})`:`supplier ${no}`):'';}
+  function invoiceOnlyPos(inv,refs,posIndex,orderSupplier=''){
     const recs=masterCandidatesForInvoiceRow(inv,refs),rec=recs.find(r=>digits(r&&r.POS_MASTER_BARCODE)||clean(r&&r.POS_PLU))||recs[0]||{};
     const key=invoiceOnlyKey(inv),gst=n(inv&&inv.gstPct)??n(rec.POS_GST_TAX_PC)??0,ws=n(rec.POS_WSP_EXCGST),last=n(rec.POS_LAST_PRICE),rrp=n(rec.POS_RRP_INCGST);
     const raw={qty:0,or_qty:0,units:1,gst_tax_pc:gst,adjwsprce:ws??'',adjrrprce:rrp??'',adjcatprce:last??'',adjdprce:last??'',last_price:last??'',mupc:'',gppc:''};
     return {invoiceOnly:true,posIndex,sourceRow:key,identity:key,orderNumber:'',plu:code(rec.POS_PLU),barcode:digits(rec.POS_MASTER_BARCODE),subId:'',masterSubId:clean(rec.POS_SUB_ID),
       description:clean(rec.POS_DESCR)||clean(inv&&inv.description),gstPct:gst,orderedQty:0,normalWholesale:ws,expectedUnit:last,expectedDiscountPct:(ws&&last!=null)?(1-last/ws)*100:null,lastPrice:last,rrp,
-      supplier:digits(rec.POS_SUPPLIER_NUMBER)||digits(rec.POS_SUPPLIER_RAW),company:clean(rec.POS_SUPPLIER_NAME),raw};
+      // The line was invoiced by the order's supplier (CH2), so its expected discount comes from
+      // that supplier's rules; the POSActive supplier is kept separately for the explanation.
+      supplier:orderSupplier||digits(rec.POS_SUPPLIER_NUMBER)||digits(rec.POS_SUPPLIER_RAW),company:orderSupplier?'':clean(rec.POS_SUPPLIER_NAME),raw,
+      // v2.6.32 — why an invoiced product is absent from the order: POSActive assigns it to a
+      // different supplier (e.g. ORA MAG3 → 602, PUKKA → 140) than the order (CH2 → 134).
+      orderSupplier,posSupplier:digits(rec.POS_SUPPLIER_NUMBER)||digits(rec.POS_SUPPLIER_RAW),inMaster:!!(rec.POS_MASTER_BARCODE||rec.POS_PLU||rec.POS_DESCR),
+      supplierMismatch:!!(orderSupplier&&(digits(rec.POS_SUPPLIER_NUMBER)||digits(rec.POS_SUPPLIER_RAW))&&orderSupplier!==(digits(rec.POS_SUPPLIER_NUMBER)||digits(rec.POS_SUPPLIER_RAW))),
+      posSupplierLabel:supplierLabel(refs,digits(rec.POS_SUPPLIER_NUMBER)||digits(rec.POS_SUPPLIER_RAW)),orderSupplierLabel:supplierLabel(refs,orderSupplier),ch2Code:digits(inv&&inv.productCode)};
   }
   function invoiceOnlyEntries(reconciliation,refs,posOrder){
-    const base=((posOrder&&posOrder.rows)||[]).length;
+    const base=((posOrder&&posOrder.rows)||[]).length,orderSupplier=orderSupplierOf(posOrder);
     return ((reconciliation&&reconciliation.unmatchedInvoice)||[]).filter(inv=>inv&&(n(inv.qtySupplied)||0)>0&&(n(inv.unitPriceExGst)||0)!==0).map((inv,i)=>{
-      const pos=invoiceOnlyPos(inv,refs,base+i+1),row={...inv,matchConfidence:'',matchMethod:'INVOICE ONLY — NOT ON POS ORDER'},q=n(inv.qtySupplied)||0,ws=n(inv.normalWholesale);
+      const pos=invoiceOnlyPos(inv,refs,base+i+1,orderSupplier),row={...inv,matchConfidence:'',matchMethod:'INVOICE ONLY — NOT ON POS ORDER'},q=n(inv.qtySupplied)||0,ws=n(inv.normalWholesale);
       const detail={invoiceOnly:true,posIndex:pos.posIndex,sourceRow:pos.sourceRow,identity:pos.identity,plu:pos.plu,barcode:pos.barcode,subId:'',posDescription:pos.description,orderedQty:0,suppliedQty:q,qtyVariance:q,
         invoiceNormalWholesale:ws!=null?round(ws,2):null,actualDiscountPct:n(inv.discountPct),actualUnit:n(inv.unitPriceExGst),status:'INVOICE ONLY / NOT ON POS ORDER',hasException:true,
         invoiceNumbers:invoiceNo(inv),sourceFiles:clean(inv.sourceFile),matchConfidence:'',matchMethods:row.matchMethod,invoiceRows:[row]};
@@ -476,7 +489,9 @@
       const key=clean(r&&r.subId),pos=(r&&r.pos)||{},name=clean(pos.description)||clean(r&&r.description);
       if(key&&orderKeys.has(key))continue;
       let reason,advice;
-      if(pos.invoiceOnly){reason='NOT ON POS ORDER';advice=`Add ${name} to POSActive order ${orderNo} (Sub ID ${key||'blank'}), re-export the order and run again — or untick it here and receive it separately.`;}
+      if(pos.invoiceOnly&&pos.supplierMismatch){reason=`NOT ON POS ORDER — POSACTIVE SUPPLIER ${pos.posSupplier}`;advice=`CH2 invoiced ${name}, but POSActive assigns it to ${pos.posSupplierLabel}, not ${pos.orderSupplierLabel||'this order’s supplier'}, so it never appears on CH2 orders. To receive it through this import: change its POSActive supplier to ${pos.orderSupplier} with Sub ID ${pos.ch2Code||key} (or add it to order ${orderNo} with Sub ID ${key||'blank'}), re-export the order and run again. Otherwise untick it and receive it against ${pos.posSupplierLabel}.`;}
+      else if(pos.invoiceOnly&&!pos.inMaster){reason='NOT ON POS ORDER — NOT IN POS MASTER';advice=`CH2 code ${pos.ch2Code||'?'} is not in the aligned POS master, so the product may not exist in POSActive. Create it (or link the CH2 code) in POSActive, add it to order ${orderNo}, re-export and run again — or untick it and receive it manually.`;}
+      else if(pos.invoiceOnly){reason='NOT ON POS ORDER';advice=`Add ${name} to POSActive order ${orderNo} (Sub ID ${key||'blank'}), re-export the order and run again — or untick it here and receive it separately.`;}
       else if(!clean(pos.subId)){reason='POS ORDER ROW HAS NO SUB ID';advice=`Set a Sub ID for ${name} (PLU ${clean(pos.plu)||'?'}) in POSActive — e.g. CH2 code ${clean(r&&r.ch2Code)||key} — then re-export the order and run again. The TXT currently sends ${key||'blank'} (${clean(r&&r.importIdentity&&r.importIdentity.source)||'fallback'}).`;}
       else{reason='SUB ID DIFFERS FROM ORDER';advice=`The order row has Sub ID "${clean(pos.subId)}" but the TXT sends "${key}". Use the order's Sub ID or update POSActive.`;}
       mismatches.push({invoiceNo:r.invoiceNo,line:r.line,subId:key,description:clean(r.description),posDescription:name,reason,advice,total:n(r.total)||0,invoiceOnly:!!pos.invoiceOnly,manual:!!r.manualReceiving,sourceRow:pos.sourceRow});
@@ -559,5 +574,5 @@
     const f=built.files[0];downloadBlob(new Blob([f.text],{type:'text/plain;charset=utf-8'}),f.filename);return {filename:f.filename,files:1,rows:f.records.length,columns:15,validation:f.validation,warnings:built.warnings,receivingAdjustments:f.receivingChanges.length,totals:f.totals,sourceTotals:f.sourceTotals,invoiceNumbers:f.invoiceNumbers||[],matchCheck:f.matchCheck||null};
   }
 
-  PHF.posImport={CONTRACT,groupDocuments,buildLegacyFiles,validatePayload,exportLegacyPosImport,makeTsv,parseTsv,resolveImportIdentity,reviewImportKeys,exportKeyReview,importFilename,masterRecordsForPos,posWholesaleFallback,invoiceOnlyKey,invoiceOnlyEntries,posActiveMatchCheck};
+  PHF.posImport={CONTRACT,groupDocuments,buildLegacyFiles,validatePayload,exportLegacyPosImport,makeTsv,parseTsv,resolveImportIdentity,reviewImportKeys,exportKeyReview,importFilename,masterRecordsForPos,posWholesaleFallback,invoiceOnlyKey,invoiceOnlyEntries,posActiveMatchCheck,orderSupplierOf};
 })(window);

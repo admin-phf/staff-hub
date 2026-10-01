@@ -1,4 +1,17 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.31
+# Prahran Health Foods — CH2 Reconciler v2.6.32
+
+## v2.6.32 — invoice-only products resolved by supplier, scrollable Completed dock, centred headings
+
+- **Why ORA MAG3 / PUKKA are not on the CH2 order:** the aligned master shows POSActive assigns ORA MAG3 MOOD to supplier 602 and PUKKA THREE MINT to supplier 140, while order 103-0021647 is supplier 134 (CH2). Invoice-only lines now state this in POS Layout, the balancing panel and the POSActive match check (`NOT ON POS ORDER — POSACTIVE SUPPLIER 602`), with the fix: change the POSActive supplier to 134 with the CH2 code as Sub ID (or add the product to the order), re-export and run again — or receive it against its own supplier.
+- **Full Reconciliation rows for invoice-only lines** are now resolved to the aligned-master POS product by CH2 code: POS supplier, barcode, PLU, brand, description, GST, POS WSP/last price/RRP, POS total, CH2 wholesale check and the discount audit are filled like any matched line (status `NOT ORDERED / UNMATCHED — POSACTIVE SUPPLIER 602, ORDER SUPPLIER 134`). Lines with no master record keep the invoice description instead of a blank.
+- **Expected discount for invoice-only lines** follows the supplier that invoiced them (the order supplier), e.g. ORA MAG3 8.00% expected vs 8.00% charged → OK; AdjCatPrc matches the CH2 unit price.
+- **Scrollable Completed dock:** while docked above the footer, the mouse wheel over the Completed panel moves through all completed items (`showing 4–7 of 11 · scroll here`); at either end the wheel scrolls the table normally. The window resets when the Completed section is reached.
+- **Centred headings:** the sort arrow now sits in its own gutter at the right edge, so every heading's text is exactly centred (0 of 46 headings off-centre, previously 34). Columns are never narrowed below what their heading needs. The Completed bar text is centred.
+- All v2.6.31 behaviour, the 15-column POSActive contract and the 43-column workbook schema are otherwise unchanged.
+
+Suggested commit summary:
+
+`v2.6.32: Explain and fill invoice-only products, scrollable Completed dock, centred headings`
 
 ## v2.6.31 — POSActive match check, literal Sub IDs, docked Completed panel, derived Disc %
 

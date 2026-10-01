@@ -546,3 +546,21 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .pos-match-reason{font-weight:900;font-size:10.5px;letter-spacing:.03em;color:#C5221F}
 .pos-match-item small{color:#5f4b4b;font-size:10.5px;line-height:1.35}
 @media(max-width:1100px){.pos-match-item{grid-template-columns:1fr}}
+
+/* v2.6.32 — true centring: the sort arrow sits in its own gutter at the right of the heading
+   (mirrored by equal left padding), so multi-line labels such as POS / PLU are centred. */
+.results .preview-pos thead th .pos-sort-button,
+.results .preview-pos tbody tr.pos-section-head>th .pos-sort-button{
+  position:relative;display:flex;align-items:center;justify-content:center;width:100%;padding:2px 11px;text-align:center!important;
+}
+.results .preview-pos thead th .pos-sort-button>span,
+.results .preview-pos tbody tr.pos-section-head>th .pos-sort-button>span{
+  position:absolute;right:0;top:50%;transform:translateY(-50%);margin:0;line-height:1;
+}
+/* Completed section bar text centred as a heading. */
+.results .preview-pos tbody tr.pos-section-complete>td{text-align:center}
+.results .preview-pos tbody tr.pos-section-complete>td .dock-window{font-style:normal;margin-left:8px;padding:1px 7px;border-radius:999px;background:rgba(230,205,116,.16);white-space:nowrap}
+/* Docked Completed rows scroll with the mouse wheel while hovered. */
+.results .preview-pos tbody tr.pos-dock-row:not([data-dock-off]){cursor:ns-resize}
+.results .preview-pos tbody tr.pos-dock-row:not([data-dock-off]) input,
+.results .preview-pos tbody tr.pos-dock-row:not([data-dock-off]) button{cursor:auto}
