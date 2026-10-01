@@ -1,0 +1,597 @@
+:root{--ink:#232323;--muted:#6a6a6d;--line:#e4e2df;--bg:#eef0f1;--green:#2E7D32;--red:#C03C4C;--warn:#8a6100}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,"Helvetica Neue",Helvetica,system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+.wrap{max-width:1000px;margin:0 auto;padding:24px 28px 48px}
+.topbar{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding:12px 0 18px;margin-bottom:24px}
+.topbar a{color:var(--green);text-decoration:none;font-weight:700;font-size:13px}
+.home-logo{display:inline-flex;align-items:center;border-radius:6px}
+.home-logo:focus-visible{outline:2px solid var(--green);outline-offset:4px}
+.topbar img.logo{display:block;height:40px;width:auto;max-width:min(440px,72vw)}
+h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-height:1.5}
+.panel{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px}
+.step{display:flex;align-items:center;gap:10px;margin-bottom:12px}.stepnum{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--ink);color:#fff;font-size:13px;font-weight:800}.step h2{font-size:16px;margin:0}
+.dropzone{border:2px dashed #cfd4d7;border-radius:12px;padding:30px 18px;text-align:center;cursor:pointer;transition:.15s;background:#fbfcfc}
+.dropzone.drag{border-color:var(--green);background:#f1f8f1}.dropzone strong{display:block;margin-bottom:5px}.dropzone small{color:var(--muted)}
+.file-list{margin-top:12px;display:grid;gap:8px}.file-row{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:13px}.file-row button{border:0;background:transparent;color:var(--red);cursor:pointer;font-weight:700}
+.actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.btn{border:1px solid var(--line);background:#fff;padding:10px 16px;border-radius:9px;font-weight:700;cursor:pointer}.btn.primary{background:var(--green);border-color:var(--green);color:#fff}.btn:disabled{opacity:.45;cursor:not-allowed}
+.status{margin-top:14px;padding:12px 14px;border-radius:9px;font-size:13px;line-height:1.45}.status.info{background:#eef4f7;border:1px solid #d6e2e8}.status.ok{background:#eef7ee;border:1px solid #cfe6cf;color:#256428}.status.warn{background:#fff6e6;border:1px solid #f0e0b8;color:#805b00}
+.privacy{font-size:12.5px;color:var(--muted);line-height:1.5}.privacy strong{color:var(--ink)}
+.hidden{display:none!important}
+.progress{height:8px;background:#e6e8e9;border-radius:999px;overflow:hidden;margin-top:12px}.progress>div{height:100%;width:0;background:var(--green);transition:width .2s ease}
+.results{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;margin-bottom:18px}.results-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:18px}.results-head h2{margin:0 0 4px;font-size:20px}.results-head p{margin:0;color:var(--muted);font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:16px}.kpi{border:1px solid var(--line);border-radius:10px;padding:12px;background:#fafafa}.kpi .n{font-size:23px;font-weight:800;line-height:1}.kpi .l{font-size:11px;color:var(--muted);margin-top:5px;text-transform:uppercase;letter-spacing:.04em;font-weight:700}.kpi.bad .n{color:var(--red)}.kpi.good .n{color:var(--green)}
+.notice{margin:12px 0;padding:12px 14px;border-radius:9px;background:#fff6e6;border:1px solid #f0e0b8;color:#805b00;font-size:12.5px;line-height:1.45}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:10px}table{border-collapse:collapse;width:100%;min-width:940px;font-size:12.5px}th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:#f3f5f6;position:sticky;top:0;z-index:1;font-size:11px;text-transform:uppercase;letter-spacing:.03em;color:#555}tbody tr:last-child td{border-bottom:0}.status-pill{display:inline-block;padding:4px 7px;border-radius:999px;font-size:10px;font-weight:800;white-space:nowrap}.status-pill.ok{background:#e8f5e9;color:#256428}.status-pill.bad{background:#fdecec;color:#9a2b2b}.status-pill.better{background:#eaf4ff;color:#225c91}.status-pill.review{background:#fff3d6;color:#815d00}.num{text-align:right;white-space:nowrap}.muted{color:var(--muted)}
+@media(max-width:760px){.wrap{padding:16px}.results-head{display:block}.results-head .actions{margin-top:12px}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.topbar img.logo{height:34px}}
+.reference-panel{padding:0;overflow:hidden}.reference-panel summary{list-style:none;cursor:pointer;padding:16px 20px;display:flex;align-items:center;gap:10px}.reference-panel summary::-webkit-details-marker{display:none}.reference-panel summary:before{content:'▸';font-size:12px;color:var(--muted)}.reference-panel[open] summary:before{content:'▾'}.admin-note{font-size:11px;color:var(--muted);font-weight:600}.reference-panel[open] summary{border-bottom:1px solid var(--line)}.reference-help{margin:16px 20px 12px;color:var(--muted);font-size:13px;line-height:1.45}.reference-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 20px}.reference-card{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fafafa}.reference-card strong,.reference-card small{display:block}.reference-card small{margin-top:4px;color:var(--muted);font-size:11px;max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.reference-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px 18px}.ref-ready{font-size:12px;font-weight:800}.ref-ready.ok{color:var(--green)}.ref-ready.warn{color:var(--warn)}.btn.small{padding:7px 10px;font-size:11px}.btn.ghost{background:#fff}.reference-card.loading{opacity:.65}
+@media(max-width:760px){.reference-grid{grid-template-columns:1fr}.reference-card{align-items:flex-start;flex-direction:column}.reference-actions{align-items:flex-start;flex-direction:column}}
+
+/* v2.1 — keep reference setup out of the normal staff workflow */
+.reference-strip{display:flex;align-items:center;justify-content:space-between;gap:14px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:0 0 18px;font-size:12px;color:var(--muted)}
+.reference-strip-main{display:flex;align-items:center;gap:9px;min-width:0}.reference-strip-main strong{color:var(--ink);margin-right:6px}.reference-strip-main span{white-space:nowrap}.reference-dot{width:9px;height:9px;border-radius:50%;background:#bbb;display:inline-block;flex:0 0 auto}.reference-dot.ok{background:var(--green)}.reference-dot.warn{background:#d58b00}.reference-dot.checking{background:#9aa0a6}.admin-link{font-size:11px;color:var(--muted);text-decoration:none;font-weight:700}.admin-link:hover{color:var(--green);text-decoration:underline}
+.admin-page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:18px}.admin-page-head h1{margin-bottom:4px}.admin-source-panel h2,.panel>h2{font-size:14px;margin-bottom:10px}.source-list{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0 14px}.source-list>div{border:1px solid var(--line);background:#fafafa;border-radius:9px;padding:12px}.source-list strong,.source-list code,.source-list small{display:block}.source-list code{font-size:11px;margin:5px 0;word-break:break-all}.source-list small{color:var(--muted)}.reference-help.standalone{margin:0 0 14px}.admin-source-panel .status{margin-bottom:0}
+@media(max-width:760px){.reference-strip-main div{display:flex;flex-direction:column}.reference-strip-main span{white-space:normal}.admin-page-head{flex-direction:column}.source-list{grid-template-columns:1fr}}
+
+/* v2.4 integrity/build UI */
+.topbar-right{display:flex;align-items:flex-end;gap:10px;flex-direction:column}.build-label{font-size:10px;color:var(--muted);font-weight:600}.notice.ok{background:#eef7ee;border-color:#cfe6cf;color:#256428}.notice.bad{background:#fdecec;border-color:#f1c7c7;color:#9a2b2b}@media(max-width:900px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}@media(max-width:520px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.topbar-right{align-items:flex-end}}
+
+
+/* v2.4.5 preview views */
+.result-actions{justify-content:flex-end}.view-picker{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.view-label{font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.04em}.view-btn.active{border-color:var(--green);box-shadow:inset 0 0 0 1px var(--green);color:var(--green);background:#f2f8f2}.preview-pos table{min-width:1480px;font-size:11px}.preview-pos th,.preview-pos td{padding:5px 7px;white-space:nowrap;vertical-align:middle}.preview-pos th{font-size:10px;background:#e7e9eb;color:#222;text-transform:none;letter-spacing:0}.preview-pos td.pos-desc{min-width:300px;max-width:420px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.preview-pos td.pos-code{font-family:Arial,"Helvetica Neue",sans-serif}.preview-pos .pos-checkbox{display:inline-grid;place-items:center;width:16px;height:16px;border:2px solid #b6b8ba;background:#fff;font-size:11px;font-weight:900;line-height:1;color:#fff}.preview-pos .pos-checkbox.ok-flag{border-color:#e91e63}.preview-pos .pos-checkbox.inc-flag{border-color:#4775a8}.preview-pos .pos-checkbox.checked.inc-flag{background:#4775a8}.preview-pos .pos-checkbox.checked.ok-flag{background:#e91e63}.preview-pos td.num{text-align:right;font-variant-numeric:tabular-nums}.preview-pos tbody tr:nth-child(even){background:#f7f8f9}.preview-pos tbody tr:hover{background:#eef4fb}.preview-pos th:nth-child(1),.preview-pos td:nth-child(1){min-width:132px}.preview-pos th:nth-child(2),.preview-pos td:nth-child(2){min-width:92px}.preview-pos th:nth-child(3),.preview-pos td:nth-child(3){min-width:310px}
+@media(max-width:760px){.result-actions{justify-content:flex-start}.view-picker{width:100%}}
+
+/* v2.4.6 — POS preview usability: frozen header/footer, totals, movement arrows */
+.table-wrap.preview-pos{max-height:68vh;overflow:auto;position:relative;background:#fff}
+.preview-pos thead th{position:sticky;top:0;z-index:6;box-shadow:0 1px 0 #c7cbd0}
+.preview-pos tfoot td{position:sticky;bottom:0;z-index:5;border-top:2px solid #315b86;border-bottom:0;padding:7px 8px;background:#fff;vertical-align:middle;box-shadow:0 -1px 0 rgba(49,91,134,.12)}
+.preview-pos .pos-total-left{color:#0b3e78;font-weight:800;text-align:left}
+.preview-pos .pos-total-left span{margin-left:12px;color:#6f7780;font-size:10px;font-weight:600}
+.preview-pos .pos-total-label{color:#0b3e78;font-weight:900;text-align:right;white-space:nowrap}
+.preview-pos .pos-total-current{background:#075394;color:#fff;font-weight:900;text-align:right;font-size:12px;white-space:nowrap}
+.preview-pos .pos-total-adjusted{background:#ef1982;color:#fff;font-weight:900;text-align:right;font-size:12px;white-space:nowrap}
+.preview-pos tbody tr.pos-not-supplied td{background:#eceff1!important;color:#92979c!important}
+.preview-pos tbody tr.pos-not-supplied .pos-checkbox{opacity:.45;filter:grayscale(1)}
+.preview-pos tbody tr.pos-not-supplied:hover td{background:#e5e8ea!important}
+.preview-pos .price-move-cell{font-weight:800}
+.preview-pos .price-move-cell .pos-price-value{display:inline-block;min-width:46px;text-align:right}
+.preview-pos .price-arrow{display:inline-block;margin-left:4px;font-size:12px;font-weight:900;line-height:1}
+.preview-pos .price-up{background:#fce8e6!important;color:#c5221f!important}
+.preview-pos .price-down{background:#e8f0fe!important;color:#1967d2!important}
+.preview-pos .price-same{background:#f2f3f4!important;color:#73777c!important;font-weight:700}
+.preview-pos .price-same .price-arrow{color:#9aa0a6}
+@media(max-width:760px){.table-wrap.preview-pos{max-height:64vh}.preview-pos .pos-total-left span{display:none}}
+
+
+/* v2.5.0 — content-aware + viewport-aware POS workspace.
+   Column widths are now calculated in JavaScript from the actual order data.
+   CSS only supplies safe rendering behaviour; there are no hard-coded nth-child widths. */
+.results {
+  --workspace-gutter: clamp(8px, 1.2vw, 24px);
+}
+
+@media (min-width: 1001px) {
+  .results {
+    width: calc(100vw - (var(--workspace-gutter) * 2));
+    max-width: none !important;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: clamp(12px, 1vw, 20px);
+  }
+  .results .table-wrap { width: 100%; max-width: none; }
+}
+
+.table-wrap.preview-pos {
+  width: 100%;
+  height: clamp(520px, 76dvh, 980px);
+  min-height: 520px;
+  max-height: none;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.results .preview-pos table.pos-preview-table {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 0;
+  font-size: clamp(10px, 0.42vw + 2px, 12px);
+}
+.results .preview-pos table.pos-preview-table col { width: auto; }
+.results .preview-pos th,
+.results .preview-pos td {
+  min-width: 0 !important;
+  width: auto;
+  max-width: none !important;
+  padding: clamp(4px, 0.22vw, 6px) clamp(5px, 0.32vw, 8px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.results .preview-pos td.pos-desc {
+  min-width: 0 !important;
+  max-width: none !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.results .preview-pos td.num { font-variant-numeric: tabular-nums; }
+
+/* Keep the operational row as compact as the real POS. Spare pixels are assigned
+   by app.js to Product Description (and, secondarily, the ID columns). */
+.results .preview-pos .pos-checkbox { vertical-align: middle; }
+.results .preview-pos .price-move-cell .pos-price-value { min-width: 0; }
+
+/* Avoid oversized KPI cards on ultrawide monitors while still using the width. */
+@media (min-width: 1500px) {
+  .results .kpis { grid-template-columns: repeat(6, minmax(150px, 1fr)); }
+}
+
+@media (max-width: 1000px) {
+  .results { width: auto; max-width: none; left: auto; transform: none; }
+  .table-wrap.preview-pos { height: clamp(480px, 72dvh, 880px); min-height:480px; }
+  .results .preview-pos table.pos-preview-table { font-size: 10px; }
+}
+@media (max-width: 760px) {
+  .table-wrap.preview-pos { height: 66dvh; min-height: 420px; }
+}
+
+
+/* v2.5.1 — natural-width POS columns + interactive unpacking checklist */
+.pos-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 8px;padding:7px 9px;border:1px solid #dfe3e6;border-radius:8px;background:#f8fafb;font-size:11px}
+.pos-check-progress{font-weight:900;color:#0b3e78;white-space:nowrap}.pos-tools-note{color:#6a6a6d;flex:1 1 260px}.pos-tools .btn{padding:5px 9px;font-size:10px}
+.results .preview-pos th.unpack-head,.results .preview-pos td.unpack-cell{text-align:center;padding-left:4px;padding-right:4px;overflow:visible}
+.unpack-check{width:18px;height:18px;border:1.5px solid #6c747c;border-radius:3px;background:#fff;display:inline-grid;place-items:center;padding:0;cursor:pointer;color:#fff;font-size:12px;font-weight:900;line-height:1;vertical-align:middle}
+.unpack-check:hover{border-color:#2E7D32;box-shadow:0 0 0 2px rgba(46,125,50,.12)}.unpack-check:focus-visible{outline:2px solid #2E7D32;outline-offset:2px}.unpack-check.checked{background:#2E7D32;border-color:#2E7D32}
+/* Natural content is now allowed to stop before the far edge on ultrawide monitors.
+   This avoids stretching Product Description or price columns just to fill space. */
+.results .preview-pos table.pos-preview-table{width:auto;max-width:none}
+@media(max-width:760px){.pos-tools-note{display:none}.pos-tools{justify-content:space-between}}
+
+
+/* v2.5.2 — workspace-aware fill + POS Brand / POS PLU identity block */
+.results .preview-pos table.pos-preview-table{width:100%;max-width:none}
+.results .preview-pos td.pos-brand{font-weight:700;color:#3f474e}
+.results .preview-pos th,.results .preview-pos td{transition:width .08s ease-out}
+@media (min-width:1001px){
+  .results .preview-pos table.pos-preview-table{min-width:100%}
+}
+
+
+/* v2.5.3 — cumulative unpacked-quantity entry */
+.pos-tools-actions{display:flex;align-items:center;gap:6px;white-space:nowrap}
+.results .preview-pos td.unpack-qty-entry-cell,.results .preview-pos td.unpack-qty-total-cell{padding:3px 4px;text-align:center;overflow:visible}
+.unpack-qty-input,.unpack-qty-total{display:block;width:100%;min-width:0;height:22px;padding:2px 5px;border:1px solid #b9c1c7;border-radius:3px;font:700 10px/1 Arial,"Helvetica Neue",sans-serif;font-variant-numeric:tabular-nums;text-align:right;background:#fff;color:#222;outline:none}
+.unpack-qty-input:focus{border-color:#2E7D32;box-shadow:0 0 0 2px rgba(46,125,50,.14)}
+.unpack-qty-input::placeholder{color:#a3a8ad}
+.unpack-qty-total{background:#eef4f7;border-color:#cad7df;color:#0b3e78;font-weight:900;cursor:default}
+.preview-pos tbody tr.pos-not-supplied .unpack-qty-input{background:#fff;color:#4f555a;border-color:#c6cbd0}
+.preview-pos tbody tr.pos-not-supplied .unpack-qty-total{background:#e2e7ea;color:#657078;border-color:#c6cbd0}
+.preview-pos tbody tr.unpack-checked .unpack-qty-input,.preview-pos tbody tr.unpack-checked .unpack-qty-total{opacity:1!important;text-decoration:none!important}
+@media(max-width:760px){.pos-tools-actions{width:100%;justify-content:flex-end}}
+
+
+/* v2.5.4 — physical count status + safer quantity committing */
+.unpack-qty-total.found-untouched{background:#eef4f7;border-color:#cad7df;color:#60717c;font-weight:700}
+.unpack-qty-total.found-under{background:#fde8e6;border-color:#ef9a9a;color:#c62828;font-weight:900}
+.unpack-qty-total.found-exact{background:#eceff1;border-color:#c6cbd0;color:#5f6368;font-weight:900}
+.unpack-qty-total.found-over{background:#e6f4ea;border-color:#9ac7a3;color:#2e7d32;font-weight:900}
+.preview-pos tbody tr.pos-not-supplied .unpack-qty-total.found-under{background:#fde8e6!important;border-color:#ef9a9a!important;color:#c62828!important}
+.preview-pos tbody tr.pos-not-supplied .unpack-qty-total.found-exact{background:#e1e5e8!important;border-color:#c6cbd0!important;color:#687077!important}
+.preview-pos tbody tr.pos-not-supplied .unpack-qty-total.found-over{background:#e6f4ea!important;border-color:#9ac7a3!important;color:#2e7d32!important}
+
+/* v2.5.5 — aligned preview columns, +2px preview type, progressive receiving list */
+/* Exceptions + All lines: numeric headers use the same edge as numeric data. */
+.results .table-wrap:not(.preview-pos) table{font-size:14.5px}
+.results .table-wrap:not(.preview-pos) th{font-size:13px;vertical-align:middle}
+.results .table-wrap:not(.preview-pos) td{vertical-align:middle}
+.results .table-wrap:not(.preview-pos) .status-pill{font-size:12px}
+.results th.num,.results td.num{text-align:right}
+.results th.center,.results td.center{text-align:center}
+
+/* POS Layout: +2px while retaining content/window-aware measurements. app.js reads
+   these computed sizes before measuring, so adaptive column sizing remains accurate. */
+.results .preview-pos table.pos-preview-table{font-size:clamp(12px,calc(.42vw + 4px),14px)}
+.results .preview-pos th{font-size:12px;vertical-align:middle}
+.results .preview-pos td{vertical-align:middle}
+.results .preview-pos th.num,.results .preview-pos td.num{text-align:right}
+.results .preview-pos th.center,.results .preview-pos td.center{text-align:center}
+.results .preview-pos .unpack-qty-input,
+.results .preview-pos .unpack-qty-total{font-size:12px;height:26px}
+.results .preview-pos .unpack-check{width:20px;height:20px;font-size:14px}
+.results .preview-pos .pos-checkbox{width:18px;height:18px;font-size:13px}
+.results .preview-pos .price-arrow{font-size:14px}
+.pos-tools{font-size:13px}
+.pos-check-progress{font-size:13px}
+.pos-tools .btn{font-size:12px}
+
+/* Completed items are moved below the remaining POS-order block. Relative POS order
+   is retained within both groups; the divider makes the hand-off obvious. */
+.preview-pos tbody tr.unpack-complete-start td{border-top:3px solid #2E7D32}
+
+@media(max-width:1000px){
+  .results .preview-pos table.pos-preview-table{font-size:12px}
+  .results .preview-pos th{font-size:12px}
+}
+
+
+/* v2.5.6 — editable Found total + receiving-control polish */
+.results .preview-pos .unpack-qty-input,
+.results .preview-pos .unpack-qty-total{height:32px;min-height:32px;line-height:normal;padding:4px 6px;box-sizing:border-box}
+.results .preview-pos .unpack-qty-total{cursor:text}
+.results .preview-pos .unpack-qty-total:focus{border-color:#2E7D32;box-shadow:0 0 0 2px rgba(46,125,50,.14);outline:none}
+.results .preview-pos input[type="number"]::-webkit-inner-spin-button,
+.results .preview-pos input[type="number"]::-webkit-outer-spin-button{opacity:1;height:26px;margin:0}
+.results .preview-pos tbody td{height:36px;line-height:1.22}
+
+/* Completed rows stay crossed out, but receiving controls remain live/readable. */
+.preview-pos tbody tr.unpack-checked td.unpack-qty-entry-cell,
+.preview-pos tbody tr.unpack-checked td.unpack-qty-total-cell{text-decoration:none!important;opacity:1!important;color:inherit}
+.preview-pos tbody tr.unpack-checked td.unpack-qty-entry-cell>*,
+.preview-pos tbody tr.unpack-checked td.unpack-qty-total-cell>*{opacity:1!important;text-decoration:none!important}
+
+/* Prevent checkbox cells/headers from showing ellipsis dots beside the square. */
+.results .preview-pos th.pos-bool-head,
+.results .preview-pos td.pos-bool-cell,
+.results .preview-pos th.unpack-head,
+.results .preview-pos td.unpack-cell{overflow:visible!important;text-overflow:clip!important;white-space:nowrap;padding-left:4px;padding-right:4px}
+.results .preview-pos td.pos-bool-cell .pos-checkbox{display:inline-grid;margin:0 auto}
+
+
+/* v2.5.7 — processed-row readability + not-supplied bulk workflow */
+/* Completed delivered items move below the remaining list, so they stay fully readable. */
+.preview-pos tbody tr.unpack-checked td:not(.unpack-cell),
+.preview-pos tbody tr.unpack-checked td:not(.unpack-cell)>*{
+  text-decoration:none!important;
+  opacity:1!important;
+}
+/* Not supplied rows remain the one deliberate strike-through state. Receiving controls stay usable/readable. */
+.preview-pos tbody tr.pos-not-supplied td:not(.unpack-cell):not(.unpack-qty-entry-cell):not(.unpack-qty-total-cell){
+  text-decoration-line:line-through!important;
+  text-decoration-thickness:1px!important;
+  text-decoration-color:rgba(90,95,100,.72)!important;
+}
+.preview-pos tbody tr.pos-not-supplied td:not(.unpack-cell):not(.unpack-qty-entry-cell):not(.unpack-qty-total-cell)>*{
+  text-decoration-line:line-through!important;
+  text-decoration-thickness:1px!important;
+  text-decoration-color:rgba(90,95,100,.72)!important;
+}
+#removeNotSuppliedBtn{white-space:nowrap}
+
+/* v2.5.9 — reference-file drag/drop */
+.reference-drop-card{position:relative;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease}
+.reference-drop-card.drag{border-color:var(--green);background:#f1f8f1;box-shadow:0 0 0 2px rgba(46,125,50,.10) inset}
+.reference-drop-hint{display:block;margin-top:6px;color:var(--green);font-size:11px;font-weight:700}
+.reference-drop-card:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+
+
+/* v2.6.3 — reference-card wrapping + explicit CH2 Customer PO override */
+.reference-card>div{min-width:0;flex:1 1 auto}
+.reference-card .btn{flex:0 0 auto;white-space:nowrap;min-width:142px;text-align:center}
+.reference-card small{max-width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.reference-card small[title]{cursor:help}
+.order-override-panel{margin:12px 0 14px;border:1px solid #e5c36a;background:#fff9e9;border-radius:10px;padding:12px 14px;color:#5f4600;font-size:12.5px;line-height:1.45}
+.order-override-panel .order-override-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;color:#3e3200}
+.order-override-panel .order-override-title strong{font-size:13px}
+.order-override-panel .order-override-help{margin:0 0 9px;color:#6b5a24}
+.order-override-list{display:grid;gap:8px}
+.order-override-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;border-top:1px solid rgba(138,97,0,.18);padding-top:8px}
+.order-override-row:first-child{border-top:0;padding-top:0}
+.order-override-meta{min-width:0}
+.order-override-meta b{color:#2c2c2c}
+.order-override-meta .override-ref{display:inline-block;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11.5px;word-break:break-word}
+.order-override-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.order-override-badge{display:inline-block;padding:4px 7px;border-radius:999px;background:#e8f5e9;color:#256428;font-size:10px;font-weight:900;white-space:nowrap}
+.order-override-panel .btn{white-space:nowrap}
+@media(max-width:760px){
+  .reference-card .btn{min-width:0;width:auto}
+  .order-override-row{grid-template-columns:1fr}
+  .order-override-actions{justify-content:flex-start}
+}
+
+
+/* v2.6.6 — POS receiving selection controls + calmer row movement */
+.results .preview-pos th.unpack-head{min-width:48px}
+.pos-header-stack{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:38px}
+.pos-header-mini-label{font-size:9px;line-height:1;color:#5f6368;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+.unpack-check-all.partial{background:#eef4f7;border-color:#4775a8;color:#4775a8}
+.unpack-check-all.partial span{color:#4775a8}
+.pos-header-action{appearance:none;border:1px solid #b9c1c7;border-radius:4px;background:#fff;color:#4f555a;font:700 9px/1.1 Arial,"Helvetica Neue",sans-serif;padding:3px 5px;white-space:nowrap;cursor:pointer}
+.pos-header-action:hover{border-color:#2E7D32;color:#2E7D32;background:#f3f8f3}
+.pos-header-action:focus-visible{outline:2px solid #2E7D32;outline-offset:1px}
+
+
+/* v2.6.14 — keep downloads and view controls visible at the top of the result table. */
+.result-controls-sticky{
+  position:sticky;
+  top:6px;
+  z-index:20;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:8px 0;
+  padding:8px 10px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:rgba(255,255,255,.97);
+  box-shadow:0 2px 8px rgba(0,0,0,.08);
+  backdrop-filter:blur(4px);
+}
+.result-controls-sticky .view-picker{margin-left:auto}
+@media(max-width:760px){
+  .result-controls-sticky{top:4px}
+  .result-controls-sticky .view-picker{margin-left:0;width:100%}
+}
+
+
+/* v2.6.15 — sortable POS layout, visible receiving sections and Found total. */
+.pos-sort-button{appearance:none;border:0;background:transparent;color:inherit;font:inherit;font-weight:800;padding:3px 2px;cursor:pointer;white-space:nowrap;width:100%;text-align:inherit}
+.pos-sort-button:hover,.pos-sort-button.active{color:var(--green)}
+.pos-sort-button:focus-visible{outline:2px solid var(--green);outline-offset:1px;border-radius:3px}
+.pos-sort-button span{font-size:9px;margin-left:2px;color:#7a7f83}
+.pos-section-row td{position:relative!important;opacity:1!important;text-decoration:none!important;padding:7px 10px!important;border-top:2px solid #c7cbd0!important;border-bottom:1px solid #d8dcdf!important;background:#f3f5f6!important;color:#36414a!important;font-weight:700!important;letter-spacing:.01em}
+.pos-section-row td strong{margin-right:10px;color:#25313a}
+.pos-section-row td span{font-size:11px;color:#6a737a;font-weight:600}
+.pos-section-complete td{border-top-color:#2E7D32!important;background:#edf6ee!important;color:#256428!important}
+.pos-section-complete td strong{color:#256428}
+.preview-pos tfoot .pos-found-total-label{background:#f3f5f6;font-weight:800;text-align:right;white-space:nowrap;color:#41515d}
+.preview-pos tfoot .pos-found-total-value{background:#eaf4ff;font-weight:900;color:#0b3e78;text-align:right;font-variant-numeric:tabular-nums}
+.preview-pos tfoot .pos-total-spacer{background:#fff}
+
+/* v2.6.23: compact discount comparison with the established POS Layout styling restored. */
+.pos-preview-table .pos-import-key {min-width:170px;}
+.import-key-input {box-sizing:border-box;width:100%;min-width:120px;border:1px solid #b7c3bb;border-radius:4px;padding:5px 6px;background:#fff;color:#172b21;font:inherit;}
+.import-key-source {display:block;font-size:10px;color:#45624e;line-height:1.4;white-space:normal;}
+.import-key-source.review {color:#8a5200;font-weight:600;}
+#importKeySummary {border-left:4px solid #c48b27;line-height:1.55;}
+
+/* v2.6.24: use the exact Full Reconciliation workbook palette in POS Layout.
+   Receiving sections, controls and totals keep their established functional styling. */
+.results .preview-pos table.pos-preview-table{background:#FFFFFF;color:#1F2937}
+.results .preview-pos thead th{
+  background:#DDE6ED;
+  color:#1F2937;
+  border-right:1px solid #D9E2F3;
+  border-bottom:1px solid #D9E2F3;
+}
+.results .preview-pos thead th:last-child{border-right:0}
+.results .preview-pos tbody tr.pos-row-odd{background:#E9F0F5}
+.results .preview-pos tbody tr.pos-row-even{background:#F5F5F5}
+.results .preview-pos tbody tr:not(.pos-section-row):hover{background:#EEF4FB}
+.results .preview-pos tbody td{
+  border-right:1px solid #D9E2F3;
+  border-bottom:1px solid #D9E2F3;
+  color:#1F2937;
+}
+.results .preview-pos tbody td:last-child{border-right:0}
+.results .preview-pos .price-up{background:#FCE8E6!important;color:#C5221F!important}
+.results .preview-pos .price-down{background:#E8F0FE!important;color:#1967D2!important}
+.results .preview-pos .price-same{background:transparent!important;color:#9AA0A6!important}
+.results .preview-pos .price-up .price-arrow{color:#C5221F!important}
+.results .preview-pos .price-down .price-arrow{color:#1967D2!important}
+.results .preview-pos .price-same .price-arrow{color:#9AA0A6!important}
+
+/* v2.6.25: borderless, stable POS product rows and reconciliation-summary header. */
+.results .preview-pos,
+.results .preview-pos table,
+.results .preview-pos button,
+.results .preview-pos input{
+  font-family:"Google Sans","Google Sans Text",Arial,"Helvetica Neue",sans-serif;
+}
+.results .preview-pos th,
+.results .preview-pos td{transition:none!important}
+.results .preview-pos thead th{
+  background:#1E3A5F;
+  color:#E6CD74;
+  border:0!important;
+  box-shadow:none;
+  font-weight:700;
+}
+.results .preview-pos thead .pos-sort-button,
+.results .preview-pos thead .pos-sort-button:hover,
+.results .preview-pos thead .pos-sort-button.active{color:inherit}
+.results .preview-pos thead .pos-sort-button span{color:inherit;opacity:.65}
+.results .preview-pos tbody tr:not(.pos-section-row)>td{
+  border:0!important;
+}
+.results .preview-pos tbody tr.unpack-checked:not(.pos-not-supplied)>td,
+.results .preview-pos tbody tr.unpack-checked:not(.pos-not-supplied)>td>*{
+  text-decoration:none!important;
+  opacity:1!important;
+}
+
+/* v2.6.26: section headers and requested alternating row colours. */
+.results .preview-pos .pos-section-row>td,
+.results .preview-pos .pos-section-complete>td{
+  background:#1E3A5F!important;
+  color:#E6CD74!important;
+  border:0!important;
+}
+.results .preview-pos .pos-section-row>td strong,
+.results .preview-pos .pos-section-row>td span,
+.results .preview-pos .pos-section-complete>td strong,
+.results .preview-pos .pos-section-complete>td span{
+  color:#E6CD74!important;
+}
+
+/* v2.6.27: exact POSActive payload balancing guide. */
+.pos-balance-panel{margin:0 0 10px;border:1px solid #c7d4df;border-radius:9px;overflow:hidden;background:#fff;font-family:"Google Sans","Google Sans Text",Arial,"Helvetica Neue",sans-serif}
+.pos-balance-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 12px;background:#1E3A5F;color:#E6CD74}
+.pos-balance-heading>div{display:flex;align-items:baseline;gap:10px;min-width:0}.pos-balance-heading strong{font-size:13px}.pos-balance-heading span{font-size:11px;font-weight:600}
+.pos-balance-status{flex:0 0 auto;padding:4px 7px;border-radius:999px;font-size:10px!important;font-weight:900!important;letter-spacing:.04em}.pos-balance-status.pass{background:#E6F4EA;color:#0F6B36}.pos-balance-status.review{background:#FCE8E6;color:#C5221F}
+.pos-balance-grid{display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:0;background:#dbe3e9}
+.pos-balance-card{min-width:0;padding:9px 10px;background:#F5F5F5;border-right:1px solid #dbe3e9}.pos-balance-card:nth-child(odd){background:#E9F0F5}.pos-balance-card:last-child{border-right:0}.pos-balance-card span,.pos-balance-card small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pos-balance-card span{font-size:10px;color:#53616d;font-weight:800;text-transform:uppercase;letter-spacing:.025em}.pos-balance-card strong{display:block;margin:3px 0 2px;color:#1E3A5F;font-size:17px;font-variant-numeric:tabular-nums}.pos-balance-card small{font-size:9px;color:#6f7780}.pos-balance-card.primary{background:#fde6f1}.pos-balance-card.primary strong{color:#c30b65}
+.pos-balance-equation{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 11px;background:#fff;color:#1E3A5F;font-size:11px}.pos-balance-equation span{color:#66727b;text-align:right}
+.pos-balance-cautions{display:grid;gap:3px;padding:7px 11px;background:#fff6e6;border-top:1px solid #f0e0b8;color:#805b00;font-size:10.5px;line-height:1.35}.pos-balance-cautions span:before{content:'⚠ ';font-weight:900}
+@media(max-width:1100px){.pos-balance-grid{grid-template-columns:repeat(3,minmax(140px,1fr))}.pos-balance-card:nth-child(3){border-right:0}.pos-balance-heading>div{display:block}.pos-balance-heading>div span{display:block;margin-top:2px}.pos-balance-equation{align-items:flex-start;flex-direction:column}.pos-balance-equation span{text-align:left}}
+@media(max-width:620px){.pos-balance-grid{grid-template-columns:repeat(2,minmax(120px,1fr))}.pos-balance-card:nth-child(3){border-right:1px solid #dbe3e9}.pos-balance-card:nth-child(even){border-right:0}}
+
+/* v2.6.28 — coordinated sticky layers.
+   The download/view bar stays sticky to the page and the table header is offset by JS
+   (--result-sticky-top) so it always sits directly beneath the bar instead of sliding
+   under it. The POS footer and the Completed / accounted dock are lifted to the visible
+   viewport bottom (--result-sticky-bottom) when the table box extends below the window. */
+.results .table-wrap{--result-sticky-top:0px;--result-sticky-bottom:0px;--result-head-h:0px;--result-foot-h:0px;--result-dock-h:0px}
+.results .table-wrap thead th{top:var(--result-sticky-top,0px)}
+.results .preview-pos thead th{position:sticky;top:var(--result-sticky-top,0px);z-index:6}
+.results .preview-pos tfoot td{position:sticky;bottom:var(--result-sticky-bottom,0px);z-index:5}
+.result-controls-sticky{z-index:30;background:#fff}
+/* Mask the small gap above the stuck bar so table rows never peek through it. */
+.result-controls-sticky::before{content:'';position:absolute;left:-2px;right:-2px;top:-8px;height:8px;background:#fff;pointer-events:none}
+
+/* Completed / accounted section bar: docks above the footer while the completed rows are
+   further down, and pins under the column header once staff scroll into that section. */
+.results .preview-pos tbody tr.pos-section-complete>td{
+  position:sticky!important;
+  top:calc(var(--result-sticky-top,0px) + var(--result-head-h,0px));
+  bottom:calc(var(--result-sticky-bottom,0px) + var(--result-foot-h,0px) + var(--dock-bottom,0px));
+  z-index:4;
+  cursor:pointer;
+  box-shadow:0 -2px 6px rgba(15,31,51,.18),0 2px 6px rgba(15,31,51,.18);
+}
+.results .preview-pos tbody tr.pos-section-complete:hover>td{background:#244670!important}
+.results .preview-pos tbody tr.pos-section-complete>td:focus-visible{outline:2px solid #E6CD74;outline-offset:-2px}
+
+/* Keyboard/Enter navigation never parks the active row under a sticky layer. */
+.table-wrap.preview-pos{
+  scroll-padding-top:calc(var(--result-sticky-top,0px) + var(--result-head-h,0px) + var(--result-dock-h,0px) + 4px);
+  scroll-padding-bottom:calc(var(--result-sticky-bottom,0px) + var(--result-foot-h,0px) + var(--result-dock-h,0px) + 4px);
+}
+
+/* Not-invoiced POS rows that staff physically received (Found > 0) are live receiving lines. */
+.results .preview-pos tbody tr.pos-manual-received>td,
+.results .preview-pos tbody tr.pos-manual-received>td>*{text-decoration:none!important;opacity:1!important}
+.results .preview-pos tbody tr.pos-manual-received>td:first-child{box-shadow:inset 3px 0 0 #ef1982}
+.results .preview-pos tbody tr.pos-manual-received td.pos-desc{font-style:italic}
+
+/* v2.6.29 — sticky receiving actions, view-driven primary download, derived Sub ID. */
+.result-controls-sticky .btn.view-primary{order:-1}
+.receiving-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding-left:10px;margin-left:2px;border-left:1px solid var(--line)}
+.receiving-actions .pos-check-progress{font-size:12px;font-weight:900;color:#0b3e78;white-space:nowrap;margin-right:2px}
+.receiving-actions .btn.small{padding:7px 10px;font-size:11.5px;white-space:nowrap}
+#removeNotSuppliedBtn{border-color:#c6cbd0}
+.results .preview-pos td.pos-subid-derived{font-style:italic;color:#46627a}
+@media(max-width:760px){.receiving-actions{border-left:0;padding-left:0;margin-left:0;width:100%}}
+/* Manually received not-invoiced rows count as normal rows (no strike-through / grey). */
+.results .preview-pos tbody tr.pos-manual-received td.pos-desc{font-style:normal}
+/* Keep downloads + receiving actions + view picker on one sticky line on desktop widths. */
+.result-controls-sticky{gap:6px;padding:7px 9px}
+.result-controls-sticky>.btn{padding:8px 12px;font-size:12.5px;white-space:nowrap}
+.result-controls-sticky .view-picker{gap:5px}
+.result-controls-sticky .view-picker .btn.small{padding:6px 9px}
+
+/* v2.6.30 — wrapped column headings, Completed section headings, invoice-only rows. */
+.results .preview-pos thead th,
+.results .preview-pos tbody tr.pos-section-head>th{
+  white-space:normal!important;overflow:visible!important;text-overflow:clip!important;
+  overflow-wrap:normal;word-break:keep-all;hyphens:none;line-height:1.15;vertical-align:middle;
+  padding-top:5px;padding-bottom:5px;
+}
+.results .preview-pos .pos-sort-button{white-space:normal;line-height:1.15;display:inline-block;width:100%}
+.results .preview-pos .pos-sort-button span{white-space:nowrap}
+.results .preview-pos tbody tr.pos-section-head>th{
+  position:static!important;background:#2A4B73;color:#E6CD74;border:0!important;
+  font-size:12px;font-weight:700;text-transform:none;letter-spacing:0;
+}
+.results .preview-pos tbody tr.pos-section-head:hover{background:transparent}
+.results .preview-pos tbody tr.pos-section-head .pos-sort-button,
+.results .preview-pos tbody tr.pos-section-head .pos-sort-button.active,
+.results .preview-pos tbody tr.pos-section-head .pos-sort-button:hover{color:inherit}
+.results .preview-pos tbody tr.pos-section-head .pos-sort-button span{color:inherit;opacity:.65}
+.results .preview-pos tbody tr.pos-invoice-only>td:first-child{box-shadow:inset 3px 0 0 #d58b00}
+.results .preview-pos tbody tr.pos-invoice-only td.pos-order-index{color:#8a5200;font-weight:900;letter-spacing:.02em}
+.build-label.build-stale{color:var(--red);font-weight:800}
+.stale-build-notice{margin:0 0 12px}
+
+/* v2.6.31 — docked Completed panel: bar + headings + the first (most recently checked)
+   completed products stay above the footer while working through Remaining. */
+.results .preview-pos tbody tr.pos-dock-row:not([data-dock-off])>td,
+.results .preview-pos tbody tr.pos-section-head.pos-dock-member:not([data-dock-off])>th{
+  position:sticky!important;top:auto;
+  bottom:calc(var(--result-sticky-bottom,0px) + var(--result-foot-h,0px) + var(--dock-bottom,0px));
+  z-index:3;
+}
+.results .preview-pos tbody tr.pos-dock-row.pos-row-odd>td{background-color:#E9F0F5}
+.results .preview-pos tbody tr.pos-dock-row.pos-row-even>td{background-color:#F5F5F5}
+.results .preview-pos tbody tr.pos-dock-row.pos-row-odd>td.price-same{background-color:#E9F0F5!important}
+.results .preview-pos tbody tr.pos-dock-row.pos-row-even>td.price-same{background-color:#F5F5F5!important}
+.table-wrap.preview-pos{
+  scroll-padding-top:calc(var(--result-sticky-top,0px) + var(--result-head-h,0px) + var(--result-dockbar-h,0px) + 4px);
+  scroll-padding-bottom:calc(var(--result-sticky-bottom,0px) + var(--result-foot-h,0px) + var(--result-dock-h,0px) + 4px);
+}
+
+/* Headings: centred horizontally and vertically in the main and Completed heading rows. */
+.results .preview-pos thead th,
+.results .preview-pos tbody tr.pos-section-head>th{text-align:center!important;vertical-align:middle!important}
+.results .preview-pos thead th .pos-sort-button,
+.results .preview-pos tbody tr.pos-section-head>th .pos-sort-button{text-align:center!important}
+.results .preview-pos thead th .pos-header-stack{justify-content:center;align-items:center}
+
+/* Sub IDs resolved from the master / invoice (e.g. JJ FINGER BRUSH) look like any other
+   extracted value; the tooltip still explains the source. */
+.results .preview-pos td.pos-subid-derived{font-style:normal;color:inherit}
+
+/* v2.6.31 — invoice reconciliation line and POSActive Sub ID match check. */
+.pos-balance-reconcile{display:flex;flex-direction:column;gap:3px;padding:7px 11px;background:#f3f7fb;border-top:1px solid #dbe3e9;color:#1E3A5F;font-size:11.5px}
+.pos-balance-reconcile span{color:#53616d;font-size:10.5px}
+.pos-match-check{border-top:1px solid #dbe3e9;padding:8px 11px;font-size:11.5px}
+.pos-match-check.good{background:#E6F4EA;color:#0F6B36}
+.pos-match-check.bad{background:#FCE8E6;color:#8f1d19}
+.pos-match-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.pos-match-head strong{font-size:12.5px}
+.pos-match-list{display:grid;gap:5px;margin-top:6px}
+.pos-match-item{display:grid;grid-template-columns:minmax(220px,1.3fr) minmax(120px,.6fr) minmax(150px,.7fr) minmax(260px,2fr);gap:10px;align-items:baseline;padding:5px 8px;background:#fff;border:1px solid #f1c7c7;border-radius:6px;color:#3c2a2a}
+.pos-match-key{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:11px}
+.pos-match-reason{font-weight:900;font-size:10.5px;letter-spacing:.03em;color:#C5221F}
+.pos-match-item small{color:#5f4b4b;font-size:10.5px;line-height:1.35}
+@media(max-width:1100px){.pos-match-item{grid-template-columns:1fr}}
+
+/* v2.6.32 — true centring: the sort arrow sits in its own gutter at the right of the heading
+   (mirrored by equal left padding), so multi-line labels such as POS / PLU are centred. */
+.results .preview-pos thead th .pos-sort-button,
+.results .preview-pos tbody tr.pos-section-head>th .pos-sort-button{
+  position:relative;display:flex;align-items:center;justify-content:center;width:100%;padding:2px 11px;text-align:center!important;
+}
+.results .preview-pos thead th .pos-sort-button>span,
+.results .preview-pos tbody tr.pos-section-head>th .pos-sort-button>span{
+  position:absolute;right:0;top:50%;transform:translateY(-50%);margin:0;line-height:1;
+}
+/* Completed section bar text centred as a heading. */
+.results .preview-pos tbody tr.pos-section-complete>td{text-align:center}
+.results .preview-pos tbody tr.pos-section-complete>td .dock-window{font-style:normal;margin-left:8px;padding:1px 7px;border-radius:999px;background:rgba(230,205,116,.16);white-space:nowrap}
+/* Docked Completed rows scroll with the mouse wheel while hovered. */
+.results .preview-pos tbody tr.pos-dock-row:not([data-dock-off]){cursor:ns-resize}
+.results .preview-pos tbody tr.pos-dock-row:not([data-dock-off]) input,
+.results .preview-pos tbody tr.pos-dock-row:not([data-dock-off]) button{cursor:auto}
+
+/* v2.6.33 — exact Sub ID display: a blank order Sub ID is shown as (blank), not substituted. */
+.results .preview-pos td.pos-subid-blank .pos-subid-blank-mark{color:#9AA0A6;font-style:italic;font-size:.92em}
+
+/* v2.6.34 — order file check + invoice-only reason chip (generic, no product-specific rules). */
+.pos-orderfile-check{padding:9px 12px;background:#FFF7E0;border-bottom:1px solid #f0d58a;color:#4a3800;font-size:11.5px}
+.pos-orderfile-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.pos-orderfile-head strong{font-size:13px;color:#7a4f00}
+.pos-orderfile-head span{font-weight:800;color:#5a4300}
+.pos-orderfile-check p{margin:5px 0 6px;line-height:1.4}
+.pos-orderfile-list{display:grid;gap:5px}
+.pos-orderfile-item{display:grid;grid-template-columns:minmax(220px,1.1fr) minmax(260px,1.4fr) minmax(170px,.7fr) minmax(300px,2.2fr);gap:10px;align-items:baseline;padding:5px 8px;background:#fff;border:1px solid #f0d58a;border-radius:6px;color:#3a3020}
+.pos-orderfile-meta{font-size:10.5px;color:#5f5440}
+.pos-orderfile-reason{font-weight:900;font-size:10.5px;letter-spacing:.03em;color:#9a5b00}
+.pos-orderfile-item small{color:#5f5440;font-size:10.5px;line-height:1.35}
+@media(max-width:1100px){.pos-orderfile-item{grid-template-columns:1fr}}
+.results .preview-pos td.pos-desc .pos-inv-chip{display:inline-block;margin-right:6px;padding:0 5px;border-radius:3px;background:#FFF1C9;border:1px solid #e3b341;color:#7a4f00;font-size:9px;font-weight:900;letter-spacing:.03em;line-height:14px;vertical-align:1px;font-style:normal}
+.results .preview-pos td.pos-desc .pos-inv-chip.on-order{background:#E8F0FE;border-color:#8ab4f8;color:#174ea6}
+
+/* v2.6.38 — no separator lines inside the table.
+   1) Sticky heading cells are painted as separate layers; at fractional display scaling
+      (e.g. Windows 125%) hairline seams showed between some of them as white vertical lines.
+      Each heading cell now paints 1px over its right/bottom seam in its own colour.
+   2) The coloured left-edge bars on invoice-only and manually received rows are removed —
+      invoice-only rows are separated by their own section instead. */
+.results .preview-pos thead th{box-shadow:1px 0 0 0 #1E3A5F,0 1px 0 0 #1E3A5F!important}
+.results .preview-pos tbody tr.pos-section-head>th{box-shadow:1px 0 0 0 #2A4B73,0 1px 0 0 #2A4B73!important}
+.results .preview-pos tbody tr.pos-section-row:not(.pos-section-complete)>td{box-shadow:0 1px 0 0 #1E3A5F}
+.results .preview-pos tbody tr.pos-invoice-only>td:first-child,
+.results .preview-pos tbody tr.pos-manual-received>td:first-child{box-shadow:none}
+.results .preview-pos tbody tr.pos-invoice-only td.pos-order-index{color:inherit;font-weight:inherit;letter-spacing:normal}
