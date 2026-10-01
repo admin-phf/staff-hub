@@ -1,21 +1,28 @@
-# Mailchimp HTML exports — v51
+# Mailchimp export — v52
 
-Open Update Specials, load your products, and choose Email. The Mailchimp HTML export panel appears below the product editor. Existing PNG/PDF exports are retained.
+Choose Email, then click **Mailchimp export** beside the preview download controls. The panel defaults to **Exact appearance · image + HTML**.
 
-- Copy a single product, the current page, or selected products across pages.
-- Download page HTML or all active individual/page snippets and product images as ZIP.
-- Choose single, 2-Up, 4-Up, Hero + supporting pairs, 6-Up, or compact 3/4 Across layouts.
-- Preview desktop or mobile. The preview is the exported HTML.
-- The renderer uses live edits, Card text visibility, brand case, short names, product/size options, current prices, promotions, RRP and offer-end dates. Long text is retained and cards grow to fit.
+## Exact appearance: matching your finished layout
 
-## Images
+This mode captures the original rendered artwork and crops individual cards from it. It keeps the existing typography, product image, overlapping SAVE circle, offer labels, prices, underlines, colours and spacing. It does not rebuild the card in email HTML.
 
-Enter a public image URL per product. The URL overrides are saved locally on this browser and can be exported/imported as JSON. Optional sheet columns: `mailchimp_image_url` and `mailchimp_image_includes_badge` (yes/no). Local hub images can be resolved to public URLs when the hub runs on HTTPS. Local file/blob/data images become placeholders in HTML. No uploads to Mailchimp happen automatically.
+1. Choose a layout and finish your edits in the hub.
+2. Click **Prepare exact images for this page**.
+3. Click **PNG** beside a product to download its finished card, or **Download exact page PNG** for the full arrangement. **All snippets + images ZIP** captures all active pages/cards.
+4. Upload those full artwork PNGs to Mailchimp Content Studio.
+5. For individual cards, paste the hosted URL into **FULL CARD artwork URL from Mailchimp**. For a whole layout, paste into **Full PAGE artwork URL from Mailchimp**. These are separate from product-photo URLs.
+6. Click **Copy card**, **Copy selected HTML**, or **Copy this page HTML** and paste into a full-width Mailchimp Code block. You can also use a PNG directly in a Mailchimp Image block.
 
-The default HTML badge is a red pill near the image. For the overlapping circular SAVE badge, upload the generated image asset to Mailchimp, paste its URL into the product field, and tick Image already includes the SAVE badge. Re-export the HTML. Regenerate the image whenever the saving changes. Cross-origin restrictions can prevent asset downloads; the ZIP still exports snippets and records failures in its README.
+A local preview PNG is not an email-hosted asset. Exported HTML uses hosted URLs or clearly named placeholders; no base64/blob/file URLs are embedded in email snippets. After changes to prices/text/style, regenerate and upload the PNG, then enter its new URL. A stale artwork warning flags URLs saved before the current edits. URL settings are saved on this browser and can be exported/imported as JSON.
 
-## Mailchimp
+Whole-page export preserves the complete arrangement as one image. On mobile it scales as a whole; individual/selected cards can stack and are generally easier to read. An optional click-through URL links the images to your website. Images carry descriptive alt text, but text and prices inside the PNG cannot be edited in Mailchimp. Keep a shared campaign terms/footer where required, plus Mailchimp’s unsubscribe and postal-address footer.
 
-Paste each HTML snippet into a full-width Code block. Individual cards omit the terms footer; add terms once per campaign. Page snippets include a footer unless unticked. Keep the Mailchimp unsubscribe and postal-address footer in the email. Uploading a ZIP does not automatically fix hosted image URLs.
+PNG capture uses the same artwork/export renderer as the existing slide downloads. Source image loading or cross-origin restrictions can affect capture: inspect the finished PNG and the Image safety net panel before uploading.
 
-Use desktop/mobile previews and send a test email. Tables and inline styles are used; mobile stacking requires the embedded media query. Some clients vary in font rendering, rounded corners and media-query support. Changes to this tool do not publish themselves to GitHub.
+## Editable HTML alternative
+
+Choose **Editable HTML · text and prices** to retain v51’s table/inline-style renderer, per-product/page/selected HTML exports and public product-image URLs. Email clients can render fonts, spacing and badges differently. Product-photo URL settings are separate from full-card/page artwork URL settings. Optional sheet columns remain `mailchimp_image_url` and `mailchimp_image_includes_badge` (yes/no) for the editable mode.
+
+## Installation
+
+Replace `tools/update-specials/index.html` with the supplied index, and optionally add the guide/changelog beside it. The full ZIP retains the supplied hub files and excludes git history. Publish through your existing GitHub workflow, then refresh the site and confirm v52. Existing PNG/PDF exports remain available.

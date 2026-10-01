@@ -2848,7 +2848,7 @@
    Numbering: MAJOR.MINOR · bump MAJOR when the artwork changes (26),
    MINOR for fixes / tooling where exported slides look the same (25.1 → 25.2).
    ============================================================ */
-const APP_VERSION='51';
+const APP_VERSION='52';
 const APP_DATE='2026-10-01';
 
 /* Beta mode: the same file uploaded to a folder ending in "-beta"
@@ -6470,15 +6470,15 @@ document.getElementById('reviewBtn').onclick=buildDesignReview;
 })();
 </script>
 <script>
-/* PHF v51 Mailchimp: independent email renderer, using the live editor data. */
+/* PHF v52 Mailchimp: independent email renderer, using the live editor data. */
 (function(){
   'use strict';
   const STORE='phf_mailchimp_v1';
   let saved={};try{saved=JSON.parse(localStorage.getItem(STORE)||'{}')||{};}catch(e){}
-  const state={images:saved.images||{},selected:new Set(),layout:saved.layout||'auto',width:saved.width||600,footer:saved.footer!==false,mobile:false};
+  const state={mode:saved.mode==='editable'?'editable':'exact',artwork:saved.artwork||{},link:saved.link||'https://prahranhealthfoods.com.au/',images:saved.images||{},selected:new Set(),layout:saved.layout||'auto',width:saved.width||600,footer:saved.footer!==false,mobile:false};
   const key=p=>String(p.brand||'').trim().toLowerCase()+'|'+String(p.name||'').trim().toLowerCase();
   const slug=p=>cleanProductStem(p)||'product';
-  const persist=()=>{try{localStorage.setItem(STORE,JSON.stringify({images:state.images,layout:state.layout,width:state.width,footer:state.footer}));}catch(e){}};
+  const persist=()=>{try{localStorage.setItem(STORE,JSON.stringify({mode:state.mode,artwork:state.artwork,link:state.link,images:state.images,layout:state.layout,width:state.width,footer:state.footer}));}catch(e){}};
   function webURL(v){try{const u=new URL(String(v||'').trim());return ['https:','http:'].includes(u.protocol)?u.href:'';}catch(e){return '';}}
   function imageInfo(p){
     const override=state.images[key(p)];
@@ -6489,7 +6489,7 @@ document.getElementById('reviewBtn').onclick=buildDesignReview;
     for(const c of candidates){if(!/^(?:data:|blob:|file:)/i.test(c.url)){try{const u=webURL(new URL(c.url,document.baseURI).href);if(u)return {url:u,badge:false};}catch(e){}}}
     return {url:'',badge:false};
   }
-  function options(){return {layout:state.layout,width:state.width,footer:state.footer};}
+  function options(){return {mode:state.mode,layout:state.layout,width:state.width,footer:state.footer,purpose:'cards'};}
   function resolveLayout(rows,requested){
     if(requested!=='auto')return requested;
     if(/hero|herosplit/i.test(S.layout))return 'hero';
@@ -6526,7 +6526,7 @@ document.getElementById('reviewBtn').onclick=buildDesignReview;
     const base='font-family:Arial,Helvetica,sans-serif;text-align:left;';
     return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;background:#ffffff;">${stack?`<tr><td align="center" style="padding:0 0 14px;">${picture}</td></tr><tr><td valign="top" style="${base}">${text}</td></tr>`:`<tr><td class="phfmc-pack" width="40%" valign="middle" style="width:40%;padding:0 12px 0 0;">${picture}</td><td class="phfmc-info" width="60%" valign="middle" style="width:60%;${base}">${text}</td></tr>`}</table>`;
   }
-  function build(rows,opts=options()){
+  function buildEditable(rows,opts=options()){
     const layout=resolveLayout(rows,opts.layout),width=Math.max(480,Math.min(700,Number(opts.width)||600));
     const cols=layout==='single'?1:layout==='across3'?3:layout==='across4'?4:2;
     const cell=(p,w,dense,stack)=>`<td class="phfmc-col" width="${w}%" valign="top" style="width:${w}%;padding:16px 10px;">${card(p,dense,stack)}</td>`;
@@ -6539,14 +6539,99 @@ document.getElementById('reviewBtn').onclick=buildDesignReview;
     const footer=opts.footer?`<tr><td colspan="${layout==='hero'?1:cols}" style="padding:16px 10px 8px;border-top:1px solid #dedbd6;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.5;color:#6d6e71;">${h(footerNoteText(rows,false))}${S.optLabel?'<strong> '+h(PHF_LABEL_STATEMENT)+'</strong>':''}<br>${h(S.foot)}</td></tr>`:'';
     // Hero rows have one full-width cell, then a nested grid so colspan never changes column geometry.
     if(layout==='hero'&&rows.length){const hero=cell(rows[0],100,false,false);let rest='';for(let i=1;i<rows.length;i+=2)rest+='<tr>'+rows.slice(i,i+2).map(p=>cell(p,50,true,false)).join('')+(rows[i+1]?'':'<td class="phfmc-col" width="50%"></td>')+'</tr>';body='<tr>'+hero+'</tr>'+(rest?'<tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;table-layout:fixed;">'+rest+'</table></td></tr>':'');}
-    return `<!-- PHF Mailchimp snippet v51. Paste into a full-width Code block. ${warning.length?'Upload images and replace example.invalid URLs before sending.':''} -->
+    return `<!-- PHF Mailchimp snippet v52. Paste into a full-width Code block. ${warning.length?'Upload images and replace example.invalid URLs before sending.':''} -->
 <style type="text/css">@media only screen and (max-width:480px){.phfmc-shell{width:100%!important}.phfmc-col{display:block!important;width:100%!important;box-sizing:border-box!important}.phfmc-pack,.phfmc-info{display:block!important;width:100%!important;box-sizing:border-box!important}.phfmc-pack{padding:0 0 14px!important}.phfmc-pack img{max-width:220px!important}}</style>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;background:#ffffff;"><tr><td align="center"><table class="phfmc-shell" role="presentation" width="${width}" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:${width}px;table-layout:fixed;border-collapse:collapse;background:#ffffff;">${body}${footer}</table></td></tr></table>`;
   }
+  // Exact exports capture the existing artwork, never rebuild its typography or badge.
+  const exactCache=new Map();let captureBusy=false;
+  function artId(rows,type='card'){return type+'|'+S.layout+'|'+(type==='page'?(state.footer?'footer':'nofooter')+'|':'')+rows.map(key).join('||');}
+  function artStamp(rows,type='card'){
+    const config={...S};['rows','work','page','edited','lastLoaded','source','zoom'].forEach(k=>delete config[k]);
+    let cohort=rows;if(type==='card'&&rows.length){const all=activeRows(),at=all.findIndex(p=>key(p)===key(rows[0])),per=LAYOUTS[S.layout].per;if(at>=0)cohort=all.slice(Math.floor(at/per)*per,Math.floor(at/per)*per+per);}
+    const s=JSON.stringify({config,rows,cohort,type,footer:type==='page'?state.footer:false});let hash=2166136261;for(let i=0;i<s.length;i++)hash=Math.imul(hash^s.charCodeAt(i),16777619);return (hash>>>0).toString(16);
+  }
+  function artInfo(rows,type='card'){
+    const id=artId(rows,type),stamp=artStamp(rows,type),record=state.artwork[id]||{},cached=exactCache.get(id);
+    return {id,stamp,url:webURL(record.url),stale:!!record.url&&record.stamp!==stamp,cache:cached&&cached.stamp===stamp?cached:null};
+  }
+  function exactImage(rows,type,previewOnly,width){
+    const info=artInfo(rows,type),alt=rows.map(p=>[slideBrand(p),slideNameText(p,true),priceData(cardView(p)).has?offerPrice(cardView(p).now):priceData(cardView(p)).deal].filter(Boolean).join(' · ')).join('; ');
+    if(previewOnly&&!info.cache&&!info.url)return '<div style="padding:30px 16px;font:14px/1.5 Arial;color:#6d6e71;background:#f5f5f5;text-align:center">Click <strong>Prepare exact images for this page</strong> to preview the finished artwork. Then upload its PNG and enter the artwork URL.</div>';
+    const src=previewOnly&&info.cache?info.cache.data:info.url||'https://example.invalid/UPLOAD_PHF_'+type+'_'+info.stamp+'.png';
+    const im=`<img src="${ha(src)}" alt="${ha(alt)}" width="${width}" style="display:block;width:100%;max-width:${width}px;height:auto;border:0;">`;
+    const link=webURL(state.link);return link?`<a href="${ha(link)}" target="_blank" style="text-decoration:none;">${im}</a>`:im;
+  }
+  function buildExact(rows,opts=options(),previewOnly=false){
+    const width=Number(opts.width)||600,isPage=opts.purpose==='page';let content='';
+    if(isPage)content='<tr><td style="padding:0">'+exactImage(rows,'page',previewOnly,width)+'</td></tr>';
+    else{
+      const layout=resolveLayout(rows,opts.layout),cols=layout==='single'?1:layout==='across3'?3:layout==='across4'?4:2;
+      const cell=(p,w)=>`<td class="phfmc-artcol" width="${100*w/width}%" valign="top" style="padding:0;">${exactImage([p],'card',previewOnly,w)}</td>`;
+      if(layout==='hero'&&rows.length){content='<tr><td colspan="2">'+exactImage([rows[0]],'card',previewOnly,width)+'</td></tr>';for(let i=1;i<rows.length;i+=2)content+='<tr>'+rows.slice(i,i+2).map(p=>cell(p,width/2)).join('')+(rows[i+1]?'':'<td class="phfmc-artcol"></td>')+'</tr>';}
+      else for(let i=0;i<rows.length;i+=cols)content+='<tr>'+rows.slice(i,i+cols).map(p=>cell(p,Math.floor(width/cols))).join('')+Array.from({length:cols-rows.slice(i,i+cols).length},()=>'<td class="phfmc-artcol"></td>').join('')+'</tr>';
+      if(opts.footer)content+='<tr><td colspan="'+(layout==='hero'?2:cols)+'" style="padding:14px 8px;border-top:1px solid #dedbd6;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:1.5;color:#6d6e71">'+h(footerNoteText(rows,false))+(S.optLabel?' <strong>'+h(PHF_LABEL_STATEMENT)+'</strong>':'')+'<br>'+h(S.foot)+'</td></tr>';
+    }
+    return `<!-- PHF v52 Exact appearance. Upload the generated FULL CARD/PAGE PNG to Mailchimp and set its artwork URL. Do not use a product-only photo. -->
+<style type="text/css">@media only screen and (max-width:480px){.phfmc-artcol{display:block!important;width:100%!important}.phfmc-artcol img{width:100%!important;max-width:100%!important}}</style>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;background:#fff"><tr><td align="center"><table role="presentation" width="${width}" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:${width}px;border-collapse:collapse;table-layout:fixed;background:#fff">${content}</table></td></tr></table>`;
+  }
+  function build(rows,opts=options()){return (opts.mode||state.mode)==='exact'?buildExact(rows,opts):buildEditable(rows,opts);}
+  function blobData(blob){return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=()=>reject(new Error('Could not read captured PNG'));reader.readAsDataURL(blob);});}
+  function cropBox(rect,slideRect,canvas){
+    const sx=canvas.width/slideRect.width,sy=canvas.height/slideRect.height;
+    const x=Math.max(0,Math.floor((rect.left-slideRect.left)*sx)),y=Math.max(0,Math.floor((rect.top-slideRect.top)*sy));
+    return {x,y,w:Math.max(1,Math.min(canvas.width-x,Math.ceil(rect.width*sx))),h:Math.max(1,Math.min(canvas.height-y,Math.ceil(rect.height*sy)))};
+  }
+  async function storeCrop(canvas,box,rows,type,name){
+    const crop=document.createElement('canvas');crop.width=box.w;crop.height=box.h;crop.getContext('2d').drawImage(canvas,box.x,box.y,box.w,box.h,0,0,box.w,box.h);
+    const blob=await canvasBlob(crop),entry={blob,data:await blobData(blob),width:box.w,height:box.h,name,stamp:artStamp(rows,type)};exactCache.set(artId(rows,type),entry);return entry;
+  }
+  async function captureExactPage(){
+    if(typeof html2canvas==='undefined')throw new Error('Image capture library has not loaded. Refresh and try again.');
+    const rows=pageRows(),before=artStamp(rows,'page'),slide=el('slide');
+    await waitForImages(slide);const canvas=await captureCurrentPage(2);
+    if(artStamp(pageRows(),'page')!==before)throw new Error('The artwork changed during capture. Prepare images again.');
+    const sr=slide.getBoundingClientRect();if(!sr.width||!sr.height)throw new Error('Artwork is not visible. Open Update Specials first.');
+    let cells=[...slide.querySelectorAll('.cl-card')].filter(c=>!c.classList.contains('empty-cell'));
+    if(!cells.length)cells=[...slide.querySelectorAll(CLASSIC_CELLS)].filter(c=>!c.classList.contains('empty-cell'));
+    if(cells.length!==rows.length)throw new Error('This artwork layout could not be separated into cards. Download the existing slide PNG for a complete-page image.');
+    const cards=[];for(let i=0;i<rows.length;i++)cards.push(await storeCrop(canvas,cropBox(cells[i].getBoundingClientRect(),sr,canvas),[rows[i]],'card','PHF_exact_'+slug(rows[i])+'_'+artStamp([rows[i]])+'.png'));
+    let height=canvas.height;
+    if(!state.footer){const foot=slide.querySelector('.cl-foot,.foot,.retail-foot,.bot-foot,.retail-footer');if(foot){height=Math.max(1,Math.floor((foot.getBoundingClientRect().top-sr.top)*canvas.height/sr.height));height=Math.min(height,canvas.height);}}
+    const page=await storeCrop(canvas,{x:0,y:0,w:canvas.width,h:height},rows,'page','PHF_exact_page_'+String(S.page+1).padStart(3,'0')+'_'+before+'.png');
+    const missing=[...slide.querySelectorAll('img')].filter(im=>!im.complete||!im.naturalWidth).length;
+    return {rows,cards,page,warning:missing?missing+' source image(s) were missing in the artwork. Check the PNG before uploading.':''};
+  }
+  async function prepareExact(rows=pageRows(),wholePage=false){
+    if(captureBusy)throw new Error('Image capture is already running.');captureBusy=true;const previous=S.page,results=[];
+    try{
+      const all=activeRows(),per=LAYOUTS[S.layout].per,indexes=wholePage?[previous]:[...new Set(rows.map(p=>Math.floor(all.findIndex(x=>key(x)===key(p))/per)))].filter(i=>i>=0);
+      for(const index of indexes){S.page=index;render(false);await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));status('Capturing exact artwork · page '+(index+1));results.push(await captureExactPage());}
+      return results;
+    }finally{S.page=previous;render(true);captureBusy=false;refresh();}
+  }
+  async function downloadExact(rows,type){
+    try{let info=artInfo(rows,type);if(!info.cache){await prepareExact(rows,type==='page');info=artInfo(rows,type);}if(!info.cache)throw new Error('No captured image is available.');downloadBlob(info.cache.blob,info.cache.name);status('Exact '+type+' PNG downloaded. Upload it to Mailchimp, paste its FULL artwork URL here, then copy the HTML.');}catch(err){status('Exact capture: '+err.message);}
+  }
+  async function zipExact(){
+    const btn=el('mcZip'),rows=activeRows();if(!rows.length)return status('No active products to export.');btn.disabled=true;
+    try{
+      if(typeof JSZip==='undefined')throw new Error('ZIP library is unavailable.');
+      const zip=new JSZip(),manifest=[],issues=[],per=LAYOUTS[S.layout].per,results=await prepareExact(rows);
+      for(const result of results){if(result.warning)issues.push(result.warning);const pageInfo=artInfo(result.rows,'page');zip.file('pages/'+result.page.name,result.page.blob);zip.file('pages/'+result.page.name.replace('.png','.html'),buildExact(result.rows,{...options(),purpose:'page'}));manifest.push({type:'page',artworkKey:pageInfo.id,stamp:pageInfo.stamp,file:'pages/'+result.page.name});}
+      for(const p of rows){const info=artInfo([p]),entry=info.cache;if(!entry)continue;zip.file('cards/'+entry.name,entry.blob);zip.file('cards/'+entry.name.replace('.png','.html'),buildExact([p],{...options(),purpose:'cards',layout:'single',footer:false}));manifest.push({type:'card',artworkKey:info.id,stamp:info.stamp,file:'cards/'+entry.name});}
+      if(selected().length)zip.file('selected.html',buildExact(selected(),{...options(),purpose:'cards'}));
+      zip.file('artwork-manifest.json',JSON.stringify(manifest,null,2));zip.file('image-URL-settings.json',JSON.stringify({version:2,images:state.images,artwork:state.artwork},null,2));
+      zip.file('README.txt','PHF v52 Exact appearance\n1. Upload the FULL CARD or PAGE PNGs to Mailchimp Content Studio.\n2. Paste the hosted URLs into the matching Exact card / page artwork fields in the hub.\n3. Re-copy or download HTML. HTML placeholders do not load local ZIP images.\n4. Paste into full-width Code blocks, or use PNGs in Mailchimp Image blocks directly.\n\nCards are crops of the existing artwork, including fonts, badges, text and prices. A page image preserves the entire original arrangement; on mobile it scales as one image. Individual cards can stack for better mobile readability. Do not edit prices in Mailchimp: edit the hub and regenerate/upload the PNG. A stale artwork URL warning means the saved image predates the current design/data. Keep the Mailchimp unsubscribe/postal-address footer.\n\nCapture warnings:\n'+(issues.join('\n')||'None'));
+      downloadBlob(await zip.generateAsync({type:'blob'}),fileStem()+'_mailchimp_exact.zip');status('Exact artwork + HTML ZIP downloaded. Upload the PNGs and set their artwork URLs before sending. '+issues.join(' '));
+    }catch(err){status('Exact ZIP could not be completed: '+err.message);}finally{btn.disabled=false;}
+  }
+
   const panel=document.createElement('section');panel.id='mailchimpPanel';panel.className='panel';
-  panel.innerHTML=`<h2>Mailchimp HTML export <span style="color:#2e7d32">NEW</span></h2>
-    <p style="font-size:13px;line-height:1.5;margin-bottom:12px;color:#6a6a6d">Uses current edits and Card text options. Paste each snippet into a full-width Mailchimp Code block. Images need public URLs; local uploads become placeholders until hosted.</p>
-    <div class="row"><div class="field"><label for="mcLayout">HTML layout</label><select id="mcLayout"><option value="auto">Follow current layout</option><option value="single">Individual cards · one per row</option><option value="two">2-Up · image above text</option><option value="four">4-Up · 2 × 2 split cards</option><option value="hero">Hero + supporting pairs</option><option value="six">6-Up · pairs for readability</option><option value="across3">3 Across · compact</option><option value="across4">4 Across · compact</option></select></div>
+  panel.innerHTML=`<h2>Mailchimp HTML export · v52</h2>
+    <p style="font-size:13px;line-height:1.5;margin-bottom:12px;color:#6a6a6d">Exact appearance captures your finished artwork, including fonts, SAVE circles, spacing and prices. Upload the full card/page PNG to Mailchimp, enter its artwork URL, then copy HTML. Editable HTML is also available.</p>
+    <div class="row"><div class="field"><label for="mcMode">Export mode</label><select id="mcMode"><option value="exact">Exact appearance · image + HTML (recommended)</option><option value="editable">Editable HTML · text and prices</option></select></div></div><div id="mcExactTools"><div class="row"><button class="btn primary" id="mcPrepare">Prepare exact images for this page</button><button class="btn" id="mcPagePNG">Download exact page PNG</button></div><label for="mcPageArt">Full PAGE artwork URL from Mailchimp</label><input type="text" id="mcPageArt" placeholder="Upload the exact PAGE PNG, then paste its URL"><p style="font-size:12px;color:#6a6a6d;margin:6px 0 12px">Copy this page preserves the complete arrangement as one image. Selected or individual cards can stack on mobile. Product-only image URLs cannot reproduce the finished card.</p></div><label for="mcLink">Optional image click-through URL</label><input id="mcLink" type="text" style="margin-bottom:12px"><div class="row"><div class="field"><label for="mcLayout">Selected-card / editable HTML layout</label><select id="mcLayout"><option value="auto">Follow current layout</option><option value="single">Individual cards · one per row</option><option value="two">2-Up · image above text</option><option value="four">4-Up · 2 × 2 split cards</option><option value="hero">Hero + supporting pairs</option><option value="six">6-Up · pairs for readability</option><option value="across3">3 Across · compact</option><option value="across4">4 Across · compact</option></select></div>
     <div><label for="mcWidth">Email width</label><select id="mcWidth"><option>600</option><option>660</option><option>700</option></select></div>
     <label style="padding:8px"><input type="checkbox" id="mcFooter"> Include terms / website footer</label></div>
     <div class="row"><button class="btn primary" id="mcCopyPage">Copy this page HTML</button><button class="btn" id="mcCopySelected">Copy selected HTML</button><button class="btn" id="mcDownload">Download page HTML</button><button class="btn" id="mcDownloadSelected">Download selected HTML</button><button class="btn" id="mcZip">All snippets + images ZIP</button></div>
@@ -6558,31 +6643,38 @@ document.getElementById('reviewBtn').onclick=buildDesignReview;
     <details style="margin-top:12px"><summary style="cursor:pointer;font-size:13px">HTML to copy / edit</summary><textarea id="mcCode" spellcheck="false" aria-label="Exported HTML" style="width:100%;height:200px;margin-top:8px;font:12px monospace"></textarea></details>`;
   document.getElementById('imageHealthPanel').before(panel);
   const el=id=>document.getElementById(id),status=msg=>{el('mcStatus').textContent=msg;};
-  let previewRows=null,lastSignature='';
+  let previewRows=null,previewOptions=null,lastSignature='';
   const signature=()=>JSON.stringify([S.channel,S.layout,S.page,pageRows(),S.cardText,S.brandCase,S.cardStyle,S.foot,S.optRRP,S.optLabel,S.optScope]);
-  function preview(rows,opts=options()){previewRows=rows;const code=build(rows,opts);el('mcCode').value=code;el('mcPreview').style.maxWidth=(state.mobile?360:state.width)+'px';el('mcPreview').srcdoc='<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0">'+code+'</body></html>';}
-  function notices(rows){const missing=rows.filter(p=>!imageInfo(p).url);return `${rows.length} product(s). ${missing.length?missing.length+' image URL(s) need hosting; placeholders are included.':'Public image URLs are included; check them in a test email.'} Preview and test in Mailchimp before sending.`;}
+  function preview(rows,opts=options()){previewRows=rows;previewOptions=opts;const code=build(rows,opts);el('mcCode').value=code;el('mcPreview').style.maxWidth=(state.mobile?360:state.width)+'px';el('mcPreview').srcdoc='<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0">'+(state.mode==='exact'?buildExact(rows,opts,true):code)+'</body></html>';}
+  function notices(rows,opts=previewOptions||options()){if(state.mode==='exact'){const infos=opts.purpose==='page'?[artInfo(rows,'page')]:rows.map(p=>artInfo([p]));const missing=infos.filter(i=>!i.url).length,stale=infos.filter(i=>i.stale).length;return `${rows.length} product(s). ${missing?missing+' full artwork URL(s) need uploading. Placeholder URLs remain in exported HTML. ':''}${stale?stale+' artwork URL(s) predate current edits: regenerate and upload PNGs. ':''}The local PNG preview is separate from the hosted image used in email.`;}const missing=rows.filter(p=>!imageInfo(p).url);return `${rows.length} product(s). ${missing.length?missing.length+' image URL(s) need hosting; placeholders are included.':'Public image URLs are included; check them in a test email.'} Preview and test in Mailchimp before sending.`;}
   function selected(){return activeRows().filter(p=>state.selected.has(key(p)));}
   function refresh(){
-    lastSignature=signature();panel.hidden=S.channel!=='email';if(panel.hidden)return;
+    lastSignature=signature();panel.hidden=S.channel!=='email';if(jumpButton)jumpButton.hidden=panel.hidden;if(panel.hidden)return;el('mcExactTools').hidden=state.mode!=='exact';el('mcMode').value=state.mode;
     const rows=pageRows();
-    el('mcProducts').innerHTML=rows.map((p,i)=>{const map=state.images[key(p)]||{},im=imageInfo(p);return `<div data-mc-index="${i}" style="padding:10px 0;border-bottom:1px solid #e4e2df"><div style="display:flex;gap:10px;align-items:center"><input class="mc-check" aria-label="Select ${ha(p.name)}" type="checkbox" ${state.selected.has(key(p))?'checked':''}><strong style="font-size:13px;flex:1">${h(p.brand)} · ${h(p.name)}</strong><button class="btn mc-copy">Copy card</button><button class="btn mc-card-download">HTML</button></div><label style="margin-top:6px">Mailchimp / public image URL</label><input class="mc-url" type="text" value="${ha(map.url||'')}" placeholder="${ha(im.url||'Upload image to Mailchimp and paste URL')}" aria-label="Image URL for ${ha(p.name)}"><label style="margin-top:6px"><input class="mc-badge" type="checkbox" ${map.badge||(!map.url&&im.badge)?'checked':''}> Image already includes the SAVE badge</label></div>`;}).join('');
-    preview(rows);status(notices(rows)+` Selected: ${selected().length}.`);
+    el('mcProducts').innerHTML=rows.map((p,i)=>{const map=state.images[key(p)]||{},im=imageInfo(p);return `<div data-mc-index="${i}" style="padding:10px 0;border-bottom:1px solid #e4e2df"><div style="display:flex;gap:10px;align-items:center"><input class="mc-check" aria-label="Select ${ha(p.name)}" type="checkbox" ${state.selected.has(key(p))?'checked':''}><strong style="font-size:13px;flex:1">${h(p.brand)} · ${h(p.name)}</strong><button class="btn mc-copy">Copy card</button><button class="btn mc-card-download">HTML</button>${state.mode==='exact'?'<button class="btn mc-png">PNG</button>':''}</div>${state.mode==='exact'?`<label style="margin-top:6px">FULL CARD artwork URL from Mailchimp</label><input class="mc-art-url" type="text" value="${ha((state.artwork[artId([p])]||{}).url||'')}" placeholder="Upload this card’s exact PNG, then paste URL"><div style="font-size:11px;color:#6d6e71;margin-top:4px">${artInfo([p]).stale?'Artwork changed: regenerate and upload this card PNG.':artInfo([p]).cache?'Exact PNG prepared.':'Click PNG to capture this card from the current layout.'}</div>`:''}<details ${state.mode==='editable'?'open':''}><summary style="font-size:12px;cursor:pointer;margin-top:6px">Editable HTML image settings</summary><label style="margin-top:6px">Mailchimp / public product image URL</label><input class="mc-url" type="text" value="${ha(map.url||'')}" placeholder="${ha(im.url||'Upload image to Mailchimp and paste URL')}" aria-label="Image URL for ${ha(p.name)}"><label style="margin-top:6px"><input class="mc-badge" type="checkbox" ${map.badge||(!map.url&&im.badge)?'checked':''}> Image already includes the SAVE badge</label></details></div>`;}).join('');
+    el('mcPageArt').value=(state.artwork[artId(rows,'page')]||{}).url||'';preview(rows,{...options(),purpose:'page'});status(notices(rows)+` Selected: ${selected().length}.`);
   }
   async function copy(rows,opts){if(!rows.length){status('Select one or more products first.');return;}const code=build(rows,opts||options());preview(rows,opts||options());try{await navigator.clipboard.writeText(code);status('HTML copied. '+notices(rows));}catch(e){el('mcCode').closest('details').open=true;el('mcCode').focus();el('mcCode').select();let ok=false;try{ok=typeof document.execCommand==='function'&&document.execCommand('copy');}catch(ignore){}status(ok?'HTML copied. '+notices(rows):'Copy the selected HTML manually (Ctrl+C).');}}
-  function download(rows,name,opts){if(!rows.length){status('No active products to export.');return;}downloadBlob(new Blob([build(rows,opts||options())],{type:'text/html;charset=utf-8'}),name);status('HTML downloaded. '+notices(rows));}
+  function download(rows,name,opts){if(!rows.length){status('No active products to export.');return;}downloadBlob(new Blob([build(rows,opts||options())],{type:'text/html;charset=utf-8'}),name);status('HTML downloaded. '+notices(rows,opts||options()));}
+  el('mcMode').value=state.mode;el('mcLink').value=state.link;
+  el('mcMode').onchange=()=>{state.mode=el('mcMode').value;persist();refresh();};
+  el('mcLink').onchange=()=>{state.link=el('mcLink').value.trim();persist();preview(previewRows||pageRows(),previewOptions||options());};
+  el('mcPageArt').onchange=()=>{const rows=pageRows();state.artwork[artId(rows,'page')]={url:el('mcPageArt').value.trim(),stamp:artStamp(rows,'page')};persist();preview(rows,{...options(),purpose:'page'});status(notices(rows));};
+  el('mcPrepare').onclick=async()=>{const btn=el('mcPrepare');btn.disabled=true;try{const results=await prepareExact(pageRows(),true);status('Exact card and page PNGs prepared. Download PNGs, upload to Mailchimp, and enter artwork URLs. '+results.map(r=>r.warning).filter(Boolean).join(' '));}catch(err){status('Exact capture: '+err.message);}finally{btn.disabled=false;}};
+  el('mcPagePNG').onclick=()=>downloadExact(pageRows(),'page');
   el('mcLayout').value=state.layout;el('mcWidth').value=state.width;el('mcFooter').checked=state.footer;
-  ['mcLayout','mcWidth','mcFooter'].forEach(id=>el(id).onchange=()=>{state.layout=el('mcLayout').value;state.width=Number(el('mcWidth').value);state.footer=el('mcFooter').checked;persist();preview(previewRows||pageRows());});
+  ['mcLayout','mcWidth','mcFooter'].forEach(id=>el(id).onchange=()=>{state.layout=el('mcLayout').value;state.width=Number(el('mcWidth').value);state.footer=el('mcFooter').checked;persist();preview(previewRows||pageRows(),{...(previewOptions||options()),...options(),purpose:previewOptions?previewOptions.purpose:'page'});});
   el('mcProducts').onchange=e=>{const box=e.target.closest('[data-mc-index]');if(!box)return;const p=pageRows()[Number(box.dataset.mcIndex)];if(!p)return;
     if(e.target.matches('.mc-check')){if(e.target.checked)state.selected.add(key(p));else state.selected.delete(key(p));}
+    else if(e.target.matches('.mc-art-url')){state.artwork[artId([p])]={url:e.target.value.trim(),stamp:artStamp([p])};persist();}
     else{state.images[key(p)]={url:box.querySelector('.mc-url').value.trim(),badge:box.querySelector('.mc-badge').checked};persist();}
-    preview(previewRows||pageRows());status(notices(pageRows())+` Selected: ${selected().length}.`);};
-  el('mcProducts').onclick=e=>{const box=e.target.closest('[data-mc-index]');if(!box)return;const p=pageRows()[Number(box.dataset.mcIndex)];const opts={...options(),layout:'single',footer:false};if(e.target.matches('.mc-copy'))copy([p],opts);if(e.target.matches('.mc-card-download'))download([p],'phf_mailchimp_'+slug(p)+'.html',opts);};
-  el('mcCopyPage').onclick=()=>copy(pageRows());el('mcCopySelected').onclick=()=>copy(selected());el('mcDownload').onclick=()=>download(pageRows(),fileStem()+'_mailchimp.html');el('mcDownloadSelected').onclick=()=>download(selected(),fileStem()+'_mailchimp_selected.html');
+    preview(previewRows||pageRows(),previewOptions||options());status(notices(pageRows())+` Selected: ${selected().length}.`);};
+  el('mcProducts').onclick=e=>{const box=e.target.closest('[data-mc-index]');if(!box)return;const p=pageRows()[Number(box.dataset.mcIndex)];const opts={...options(),purpose:'cards',layout:'single',footer:false};if(e.target.matches('.mc-copy'))copy([p],opts);if(e.target.matches('.mc-png'))downloadExact([p],'card');if(e.target.matches('.mc-card-download'))download([p],'phf_mailchimp_'+slug(p)+'.html',opts);};
+  el('mcCopyPage').onclick=()=>copy(pageRows(),{...options(),purpose:'page'});el('mcCopySelected').onclick=()=>copy(selected());el('mcDownload').onclick=()=>download(pageRows(),fileStem()+'_mailchimp.html',{...options(),purpose:'page'});el('mcDownloadSelected').onclick=()=>download(selected(),fileStem()+'_mailchimp_selected.html');
   el('mcSelectPage').onclick=()=>{pageRows().forEach(p=>state.selected.add(key(p)));refresh();};el('mcSelectAll').onclick=()=>{activeRows().forEach(p=>state.selected.add(key(p)));refresh();};el('mcClear').onclick=()=>{state.selected.clear();refresh();};
-  el('mcDesktop').onclick=()=>{state.mobile=false;preview(previewRows||pageRows());};el('mcMobile').onclick=()=>{state.mobile=true;preview(previewRows||pageRows());};el('mcPreviewSelected').onclick=()=>{const rows=selected();if(!rows.length)return status('Select products first.');preview(rows);status(notices(rows));};
-  el('mcMapSave').onclick=()=>downloadBlob(new Blob([JSON.stringify({version:1,images:state.images},null,2)],{type:'application/json'}),'PHF_Mailchimp_image_URLs.json');
-  el('mcMapLoad').onchange=async e=>{try{const file=e.target.files[0];if(!file)return;const data=JSON.parse(await file.text());if(data.version!==1||!data.images||typeof data.images!=='object'||Array.isArray(data.images))throw new Error('Expected PHF image URL settings');const clean={};for(const [k,v] of Object.entries(data.images)){if(v&&typeof v.url==='string'&&webURL(v.url))clean[k]={url:webURL(v.url),badge:!!v.badge};}state.images={...state.images,...clean};persist();refresh();status('Image URL settings imported.');}catch(err){status('Import failed: '+err.message);}e.target.value='';};
+  el('mcDesktop').onclick=()=>{state.mobile=false;preview(previewRows||pageRows(),previewOptions||options());};el('mcMobile').onclick=()=>{state.mobile=true;preview(previewRows||pageRows(),previewOptions||options());};el('mcPreviewSelected').onclick=()=>{const rows=selected();if(!rows.length)return status('Select products first.');preview(rows);status(notices(rows));};
+  el('mcMapSave').onclick=()=>downloadBlob(new Blob([JSON.stringify({version:2,images:state.images,artwork:state.artwork},null,2)],{type:'application/json'}),'PHF_Mailchimp_image_URLs.json');
+  el('mcMapLoad').onchange=async e=>{try{const file=e.target.files[0];if(!file)return;const data=JSON.parse(await file.text());if(![1,2].includes(data.version)||!data.images||typeof data.images!=='object'||Array.isArray(data.images))throw new Error('Expected PHF image URL settings');const clean={};for(const [k,v] of Object.entries(data.images)){if(v&&typeof v.url==='string'&&webURL(v.url))clean[k]={url:webURL(v.url),badge:!!v.badge};}state.images={...state.images,...clean};if(data.artwork&&typeof data.artwork==='object'&&!Array.isArray(data.artwork)){for(const [k,v] of Object.entries(data.artwork)){if(v&&typeof v.url==='string'&&webURL(v.url))state.artwork[k]={url:webURL(v.url),stamp:String(v.stamp||'')};}}persist();refresh();status('Image URL settings imported.');}catch(err){status('Import failed: '+err.message);}e.target.value='';};
   function loadImage(url){return new Promise((resolve,reject)=>{const im=new Image();im.crossOrigin='anonymous';let timer=setTimeout(()=>reject(new Error('Image timed out')),10000);im.onload=()=>{clearTimeout(timer);resolve(im);};im.onerror=()=>{clearTimeout(timer);reject(new Error('Image could not be exported (URL or cross-origin access)'));};im.src=url;});}
   async function asset(p){
     const im=imageInfo(p);let urls=[];
@@ -6593,20 +6685,21 @@ document.getElementById('reviewBtn').onclick=buildDesignReview;
     if(save&&!(im.badge&&loadedURL===im.url)){ctx.fillStyle='#c03c4c';ctx.beginPath();ctx.arc(510,90,76,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#ffffff';ctx.lineWidth=5;ctx.stroke();ctx.fillStyle='#ffffff';ctx.textAlign='center';ctx.font='bold 25px Arial';ctx.fillText('SAVE',510,84);ctx.fillText(save.replace(/^SAVE\s*/,''),510,113);}
     return canvasBlob(canvas);
   }
-  el('mcZip').onclick=async()=>{const btn=el('mcZip'),rows=activeRows();if(!rows.length)return status('No active products to export.');btn.disabled=true;try{
+  el('mcZip').onclick=async()=>{if(state.mode==='exact')return zipExact();const btn=el('mcZip'),rows=activeRows();if(!rows.length)return status('No active products to export.');btn.disabled=true;try{
     if(typeof JSZip==='undefined')throw new Error('ZIP library is unavailable. Individual HTML downloads still work.');
     const zip=new JSZip(),manifest=[],issues=[];const per=LAYOUTS[S.layout].per;
     for(let i=0;i<rows.length;i++){const p=rows[i],stem=String(i+1).padStart(3,'0')+'_'+slug(p);zip.file('individual/'+stem+'.html',build([p],{...options(),layout:'single',footer:false}));status(`Building ZIP: ${i+1}/${rows.length} · ${p.name}`);try{zip.file('images/'+stem+'.png',await asset(p));manifest.push({product:key(p),file:'images/'+stem+'.png',imageIncludesSaveBadge:true,currentURL:imageInfo(p).url});}catch(err){issues.push(p.name+': '+err.message);manifest.push({product:key(p),file:null,currentURL:imageInfo(p).url});}}
     for(let i=0;i<rows.length;i+=per)zip.file('pages/page_'+String(1+i/per).padStart(3,'0')+'.html',build(rows.slice(i,i+per)));
     if(selected().length)zip.file('selected.html',build(selected()));
-    zip.file('image-manifest.json',JSON.stringify(manifest,null,2));zip.file('image-URL-settings.json',JSON.stringify({version:1,images:state.images},null,2));
-    zip.file('README.txt','PHF Mailchimp export v51\nPaste snippets into a full-width Code block. Upload images to Mailchimp, then enter their public URLs in the hub and tick Image already includes the SAVE badge. Re-export HTML after setting the URLs. HTML does not reference ZIP/local images. Existing hosted URLs remain in the snippets until replaced.\nIndividual snippets exclude the terms footer; include a footer once in the campaign. Page snippets include it when enabled. Keep Mailchimp unsubscribe/address footer. Test desktop/mobile and a real inbox.\nPrices/text remain HTML; image SAVE badges must be regenerated when savings change. Image URL settings are saved on this browser and can be exported/imported.\nImage export issues:\n'+(issues.join('\n')||'None'));
+    zip.file('image-manifest.json',JSON.stringify(manifest,null,2));zip.file('image-URL-settings.json',JSON.stringify({version:2,images:state.images,artwork:state.artwork},null,2));
+    zip.file('README.txt','PHF Mailchimp export v52\nPaste snippets into a full-width Code block. Upload images to Mailchimp, then enter their public URLs in the hub and tick Image already includes the SAVE badge. Re-export HTML after setting the URLs. HTML does not reference ZIP/local images. Existing hosted URLs remain in the snippets until replaced.\nIndividual snippets exclude the terms footer; include a footer once in the campaign. Page snippets include it when enabled. Keep Mailchimp unsubscribe/address footer. Test desktop/mobile and a real inbox.\nPrices/text remain HTML; image SAVE badges must be regenerated when savings change. Image URL settings are saved on this browser and can be exported/imported.\nImage export issues:\n'+(issues.join('\n')||'None'));
     downloadBlob(await zip.generateAsync({type:'blob'}),fileStem()+'_mailchimp.zip');status('ZIP downloaded. '+(issues.length?issues.length+' image asset(s) could not be exported; see README. ':'')+notices(rows));
   }catch(err){status('ZIP export failed: '+err.message);}finally{btn.disabled=false;}};
   // Refresh only when the artwork content changes; typing an image URL does not rebuild its input.
-  let queued=false;new MutationObserver(()=>{if(!queued){queued=true;requestAnimationFrame(()=>{queued=false;if(signature()!==lastSignature)refresh();});}}).observe(el('slide'),{childList:true});
+  let queued=false;new MutationObserver(()=>{if(!queued){queued=true;requestAnimationFrame(()=>{queued=false;if(!captureBusy&&signature()!==lastSignature)refresh();});}}).observe(el('slide'),{childList:true});
   el('channelTabs').addEventListener('click',()=>requestAnimationFrame(refresh));
-  window.PHFMailchimp={build,imageInfo,refresh,state};refresh();
+  const jumpButton=document.createElement('button');jumpButton.className='btn';jumpButton.textContent='Mailchimp export';jumpButton.onclick=()=>{document.querySelector('#channelTabs [data-channel="email"]')?.click();requestAnimationFrame(()=>panel.scrollIntoView({behavior:'smooth',block:'start'}));};el('downloadBtn').parentElement.appendChild(jumpButton);
+  window.PHFMailchimp={build,buildEditable,buildExact,imageInfo,artInfo,cropBox,prepareExact,captureExactPage,refresh,state};refresh();
 })();
 
 </script>
