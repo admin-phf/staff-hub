@@ -1,106 +1,16 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Prahran Health Foods — Build Master Databases</title>
-  <link rel="stylesheet" href="./css/app.css?v=5.0.0-20261005-1307">
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-</head>
-<body>
-  <main class="wrap">
-    <header class="topbar">
-      <a class="home-logo" href="../../index.html" aria-label="Return to Staff Hub home">
-        <img class="logo" src="./assets/phf-logo.png" alt="Prahran Health Foods">
-      </a>
-      <div class="topbar-right"><strong>Build Master Databases</strong><span class="build-label">POS stage · v5.0.0 · 05 Oct 2026 13:07 AEDT</span></div>
-    </header>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Build Master Databases | Prahran Health Foods</title>
+<link rel="stylesheet" href="./css/app.css?v=9.0.0-20261005-1457">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script><script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script></head>
+<body><header class="topbar"><a href="../../index.html" class="brand"><img src="./assets/phf-logo.png" alt="Prahran Health Foods"></a><div><h1>Build Master Databases</h1><p>Database Builder v9.0.0 · One-screen workflow · Updated 05 Oct 2026 14:57 AEDT</p></div><a class="back" href="../../index.html">← Staff Hub</a></header>
+<main class="wrap workflow-wrap">
+<section class="panel intro-panel"><div><h2>One upload session. All database outputs.</h2><p>Upload the raw POS, Oborne / CH2 and Unique / UHP source files once. Each stage uses those same in-memory files, and the Combined Master uses the full Stage 1–3 results directly — no downloading and re-uploading between stages.</p></div><div class="match-note"><strong>Output naming</strong><br>Generated filenames now follow the original Python scripts exactly, with the Melbourne date added automatically. Version/time remain visible in the Staff Hub UI rather than altering the script filenames.</div></section>
 
-    <h1>Build Master Databases</h1>
-    <p class="sub">Prepare the master data used by the Staff Hub. Files are processed locally in this browser and are not uploaded to the website.</p>
+<section class="panel"><h2>Source files</h2><p class="section-note">Required for a full Build All run. Brand Abbreviation is shared across POS, CH2 and Unique. Weight & Dimensions remains optional.</p><div class="upload-grid" id="uploadGrid"></div></section>
 
-    <nav class="workflow workflow-four" aria-label="Database build stages">
-      <button class="workflow-step active" type="button" data-stage="pos">
-        <span class="step-no">1</span><span><b>POS Database</b><small>Merge POSActive exports</small></span><span class="stage-badge ready">Ready</span>
-      </button>
-      <a class="workflow-step" href="./ch2.html">
-        <span class="step-no">2</span><span><b>Oborne / CH2</b><small>CH2 Builder v1.0.0</small></span><span class="stage-badge ready">Ready</span>
-      </a>
-      <a class="workflow-step" href="./uhp.html">
-        <span class="step-no">3</span><span><b>Unique / UHP</b><small>Unique Builder v1.0.0</small></span><span class="stage-badge ready">Ready</span>
-      </a>
-          <a class="workflow-step" href="./master.html">
-        <span class="step-no">4</span><span><b>Combined Master</b><small>Master Builder v1.0.0</small></span><span class="stage-badge ready">Ready</span>
-      </a>
-</nav>
+<section class="panel run-panel"><div class="actions"><button class="btn primary" id="buildAllBtn" disabled>Build All Databases</button><button class="btn" id="clearAllBtn">Clear Session</button></div><div class="status info" id="globalStatus">Add the required source files to enable Build All.</div><div class="progress hidden" id="globalProgress"><div id="globalProgressBar"></div></div></section>
 
-    <section class="panel intro-panel">
-      <div>
-        <h2>POS Data Merger <small style="font-size:.55em;font-weight:600;opacity:.7">v5.0.0</small></h2>
-        <p>Browser version of <strong>MASTER 2.0, Step 1</strong>. BrowseStockItems1 is the primary source; Product Insert Template fills missing values; Brand Abbreviation is optional.</p>
-      </div>
-      <div class="match-note"><strong>Output parity</strong><br>Produces the same two workbook structures, column layouts, merge priority, barcode normalisation and POS DB sorting defined by the supplied Python script. Download filenames include build version and Melbourne run time for traceability. Each generated workbook is verified cell-by-cell before download.</div>
-    </section>
+<section class="stage-grid" id="stages"></section>
 
-    <section class="panel">
-      <div class="step-title"><span class="stepnum">1</span><div><h2>BrowseStockItems1</h2><p>Required · primary POS data</p></div></div>
-      <div class="dropzone" id="stockDrop" tabindex="0" role="button">
-        <strong>Drag BrowseStockItems1 here</strong>
-        <small>or click to choose .XLS, .XLSX, .XLSM or .CSV</small>
-      </div>
-      <input class="hidden" id="stockInput" type="file" accept=".xls,.xlsx,.xlsm,.csv">
-      <div class="file-list" id="stockFiles"></div>
-    </section>
-
-    <section class="panel">
-      <div class="step-title"><span class="stepnum">2</span><div><h2>Product Insert Template</h2><p>Required · fallback values where POS data is missing</p></div></div>
-      <div class="dropzone" id="templateDrop" tabindex="0" role="button">
-        <strong>Drag Product Insert Template here</strong>
-        <small>or click to choose .XLS, .XLSX, .XLSM or .CSV</small>
-      </div>
-      <input class="hidden" id="templateInput" type="file" accept=".xls,.xlsx,.xlsm,.csv">
-      <div class="file-list" id="templateFiles"></div>
-    </section>
-
-    <section class="panel">
-      <div class="step-title"><span class="stepnum optional">3</span><div><h2>Brand Abbreviation</h2><p>Optional · Column A original brand → Column B substitute brand</p></div></div>
-      <div class="dropzone" id="brandDrop" tabindex="0" role="button">
-        <strong>Drag Brand Abbreviation file here</strong>
-        <small>Optional · .XLS, .XLSX, .XLSM or .CSV</small>
-      </div>
-      <input class="hidden" id="brandInput" type="file" accept=".xls,.xlsx,.xlsm,.csv">
-      <div class="file-list" id="brandFiles"></div>
-    </section>
-
-    <section class="panel run-panel">
-      <div class="actions">
-        <button class="btn primary" id="runBtn" disabled>Build POS Database</button>
-        <button class="btn" id="clearBtn">Clear Files</button>
-      </div>
-      <div class="status info" id="status">Add BrowseStockItems1 and Product Insert Template to continue.</div>
-      <div class="progress hidden" id="progress"><div id="progressBar"></div></div>
-    </section>
-
-    <section class="results hidden" id="results">
-      <div class="results-head">
-        <div><h2>POS database complete</h2><p id="resultSub"></p></div>
-        <div class="result-badge">MATCHED WORKFLOW</div>
-      </div>
-      <div class="kpis" id="kpis"></div>
-      <div class="output-list" id="outputList"></div>
-      <div class="actions">
-        <button class="btn primary" id="downloadStandardBtn">Download clean merged POS data</button>
-        <button class="btn primary" id="downloadDbBtn">Download POS DB</button>
-        <button class="btn" id="downloadBothBtn">Download both</button>
-      </div>
-    </section>
-
-    <section class="panel privacy">
-      <strong>File privacy:</strong> this tool reads the selected files on this device only. Do not commit POS exports, supplier databases or other business data to the GitHub repository.
-    </section>
-  </main>
-
-  <script src="./js/app.js?v=5.0.0-20261005-1307"></script>
-</body>
-</html>
+<section class="panel outputs-panel"><div class="results-head"><div><h2>Generated output files</h2><p>Completed outputs stay available here for this browser session. Download any file individually — no stage needs you to upload its own output again.</p></div><div class="result-badge" id="outputCount">0 OUTPUTS</div></div><div id="allOutputs" class="output-list"><div class="empty-output">Build a stage to create its download files.</div></div></section>
+</main>
+<script src="./js/ch2-core.js?v=1.0.0-20261005-1457"></script><script src="./js/uhp-core.js?v=1.0.0-20261005-1457"></script><script src="./js/master-core.js?v=1.1.0-20261005-1457"></script><script src="./js/pipeline.js?v=9.0.0-20261005-1457"></script></body></html>

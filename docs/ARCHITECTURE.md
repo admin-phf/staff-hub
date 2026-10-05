@@ -64,3 +64,11 @@ All implemented stages keep source business files local to the browser and gener
 - Matching priority: barcode, then Brand + SUB ID, then code with brand validation.
 - Primary workbook uses a dark navy/yellow dynamic summary row, pale blue header row, alternating body rows and blue/red price-change emphasis.
 - Current v1.0.0 parity validation covers the three required full working files without additional discount / AV inputs.
+
+
+## Database Builder v9.0.0 (2026-10-05 14:57 AEDT)
+- Unified one-screen workflow at `tools/database-build/index.html`.
+- Raw source files are uploaded once and retained in browser memory for all stages.
+- Generated full POS, CH2 and UHP models feed Combined Master directly without download/re-upload.
+- Output filenames follow the original Python scripts with Melbourne date-based names.
+- Unique/UHP downloads use persistent browser download links rather than hidden programmatic button downloads.
