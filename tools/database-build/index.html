@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Prahran Health Foods — Build Master Databases</title>
+  <link rel="stylesheet" href="./css/app.css?v=1">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+</head>
+<body>
+  <main class="wrap">
+    <header class="topbar">
+      <a class="home-logo" href="../../index.html" aria-label="Return to Staff Hub home">
+        <img class="logo" src="./assets/phf-logo.png" alt="Prahran Health Foods">
+      </a>
+      <div class="topbar-right"><strong>Build Master Databases</strong><span class="build-label">POS stage</span></div>
+    </header>
+
+    <h1>Build Master Databases</h1>
+    <p class="sub">Prepare the master data used by the Staff Hub. Files are processed locally in this browser and are not uploaded to the website.</p>
+
+    <nav class="workflow" aria-label="Database build stages">
+      <button class="workflow-step active" type="button" data-stage="pos">
+        <span class="step-no">1</span><span><b>POS Database</b><small>Merge POSActive exports</small></span><span class="stage-badge ready">Ready</span>
+      </button>
+      <button class="workflow-step locked" type="button" data-stage="supplier1" disabled>
+        <span class="step-no">2</span><span><b>Supplier Database 1</b><small>Exact script mapping pending</small></span><span class="stage-badge pending">Pending script</span>
+      </button>
+      <button class="workflow-step locked" type="button" data-stage="supplier2" disabled>
+        <span class="step-no">3</span><span><b>Supplier Database 2</b><small>Exact script mapping pending</small></span><span class="stage-badge pending">Pending script</span>
+      </button>
+    </nav>
+
+    <section class="panel intro-panel">
+      <div>
+        <h2>POS Data Merger</h2>
+        <p>Browser version of <strong>MASTER 2.0, Step 1</strong>. BrowseStockItems1 is the primary source; Product Insert Template fills missing values; Brand Abbreviation is optional.</p>
+      </div>
+      <div class="match-note"><strong>Output parity</strong><br>Produces the same two workbook names, column layouts, merge priority, barcode normalisation and POS DB sorting defined by the supplied Python script. Each generated workbook is verified cell-by-cell before download.</div>
+    </section>
+
+    <section class="panel">
+      <div class="step-title"><span class="stepnum">1</span><div><h2>BrowseStockItems1</h2><p>Required · primary POS data</p></div></div>
+      <div class="dropzone" id="stockDrop" tabindex="0" role="button">
+        <strong>Drag BrowseStockItems1 here</strong>
+        <small>or click to choose .XLS, .XLSX, .XLSM or .CSV</small>
+      </div>
+      <input class="hidden" id="stockInput" type="file" accept=".xls,.xlsx,.xlsm,.csv">
+      <div class="file-list" id="stockFiles"></div>
+    </section>
+
+    <section class="panel">
+      <div class="step-title"><span class="stepnum">2</span><div><h2>Product Insert Template</h2><p>Required · fallback values where POS data is missing</p></div></div>
+      <div class="dropzone" id="templateDrop" tabindex="0" role="button">
+        <strong>Drag Product Insert Template here</strong>
+        <small>or click to choose .XLS, .XLSX, .XLSM or .CSV</small>
+      </div>
+      <input class="hidden" id="templateInput" type="file" accept=".xls,.xlsx,.xlsm,.csv">
+      <div class="file-list" id="templateFiles"></div>
+    </section>
+
+    <section class="panel">
+      <div class="step-title"><span class="stepnum optional">3</span><div><h2>Brand Abbreviation</h2><p>Optional · Column A original brand → Column B substitute brand</p></div></div>
+      <div class="dropzone" id="brandDrop" tabindex="0" role="button">
+        <strong>Drag Brand Abbreviation file here</strong>
+        <small>Optional · .XLS, .XLSX, .XLSM or .CSV</small>
+      </div>
+      <input class="hidden" id="brandInput" type="file" accept=".xls,.xlsx,.xlsm,.csv">
+      <div class="file-list" id="brandFiles"></div>
+    </section>
+
+    <section class="panel run-panel">
+      <div class="actions">
+        <button class="btn primary" id="runBtn" disabled>Build POS Database</button>
+        <button class="btn" id="clearBtn">Clear Files</button>
+      </div>
+      <div class="status info" id="status">Add BrowseStockItems1 and Product Insert Template to continue.</div>
+      <div class="progress hidden" id="progress"><div id="progressBar"></div></div>
+    </section>
+
+    <section class="results hidden" id="results">
+      <div class="results-head">
+        <div><h2>POS database complete</h2><p id="resultSub"></p></div>
+        <div class="result-badge">MATCHED WORKFLOW</div>
+      </div>
+      <div class="kpis" id="kpis"></div>
+      <div class="output-list" id="outputList"></div>
+      <div class="actions">
+        <button class="btn primary" id="downloadStandardBtn">Download clean merged POS data</button>
+        <button class="btn primary" id="downloadDbBtn">Download POS DB</button>
+        <button class="btn" id="downloadBothBtn">Download both</button>
+      </div>
+    </section>
+
+    <section class="panel privacy">
+      <strong>File privacy:</strong> this tool reads the selected files on this device only. Do not commit POS exports, supplier databases or other business data to the GitHub repository.
+    </section>
+  </main>
+
+  <script src="./js/app.js?v=2"></script>
+</body>
+</html>
