@@ -117,3 +117,14 @@ All implemented stages keep source business files local to the browser and gener
 - Reworked the single-screen Database Builder stage area from four narrow vertical cards to a compact two-by-two action dashboard on desktop.
 - Reduced empty card height and kept stage status, build control and outputs together.
 - Tightened the input rail and readiness summary while preserving direct drag/drop and independent stage execution.
+
+## v19.0.0 — Unified theme (05 Oct 2026 19:30 AEDT)
+- New shared `assets/css/theme.css`, linked last on every page; colours from Reconcile CH2 → POS layout. See `docs/THEME.md`.
+- Every panel heading is a navy band with gold capitals; step numbers are gold circles.
+- One state language: red = required/missing, grey = optional/waiting, blue = ready/drag-over/running, green = loaded/built/download.
+- Shared header: full-width card aligned with page content, navy title, gold version tag, inline SVG icons instead of emoji.
+- Staff Hub home: tools grouped under one navy band; LIVE green, BUILD blue, SOON grey.
+- Reconcile CH2: dropzone and step badges follow the loaded files (CSS only — reconcile JS unchanged). Reference Admin cards turn red/green by load state.
+- Build Master Databases: rail rows show REQUIRED / OPTIONAL / LOADED, readiness chips red/green/grey, stage status lists the missing files, READY badges blue. Duplicate page title removed from the intro.
+- Fix: `updateMasterReadiness()` was called but never defined in `pipeline.js`, which stopped page start-up before Build All and Clear Session were wired. It now fills the Combined Master readiness chips.
+- Update Specials: editor chrome only (panels, tabs, layout buttons, tick boxes, preview bar). Slide artwork and exports unchanged.

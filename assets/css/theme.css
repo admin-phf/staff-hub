@@ -1,0 +1,443 @@
+/* =====================================================================
+   PHF Staff Hub — unified theme v19.0.0 (05 Oct 2026)
+   Palette lifted from Reconcile CH2 → POS layout.
+
+   Structure : navy bands with gold capitals (panel headings, table
+               headers, selected tabs / layout buttons).
+   States    : RED   = required + missing, error, price up
+               GREY  = optional + empty, waiting, disabled
+               BLUE  = ready to run, drag-over, running, info
+               GREEN = loaded, built, download, live
+               AMBER = caution (cached data, needs review)
+
+   Load order: this file is linked LAST on every page (after the tool's
+   own CSS and shell.css). Every tool section is scoped by a body class:
+     phf-page-hub · phf-page-reconcile (+ phf-page-admin)
+     phf-page-db (+ phf-page-db-legacy) · phf-page-specials
+   Update Specials customer artwork (.slide and its exports) is never
+   styled here.
+   ===================================================================== */
+
+:root{
+  --phf-navy:#1E3A5F;--phf-navy-2:#2A4B73;--phf-navy-hover:#244670;--phf-gold:#E6CD74;--phf-band-text:#C9D6E5;
+  --phf-ink:#1F2937;--phf-muted:#5B6672;--phf-line:#D6DEE6;--phf-line-strong:#C3CEDA;--phf-bg:#EEF1F4;--phf-soft:#F5F7F9;--phf-alt:#E9F0F5;
+  --phf-red:#C5221F;--phf-red-ink:#A50E0E;--phf-red-bg:#FCE8E6;--phf-red-soft:#FDF5F4;--phf-red-line:#F1B4AE;--phf-red-dash:#E39A94;
+  --phf-green:#2E7D32;--phf-green-ink:#0F6B36;--phf-green-bg:#E6F4EA;--phf-green-line:#9CCFAA;
+  --phf-blue:#1967D2;--phf-blue-ink:#174EA6;--phf-blue-bg:#E8F0FE;--phf-blue-line:#A8C7FA;
+  --phf-grey-ink:#5F6368;--phf-grey-bg:#EEF1F3;--phf-grey-line:#C4CDD5;--phf-wait-bg:#E4E9EE;--phf-wait-ink:#5F6B76;
+  --phf-amber-ink:#7A4F00;--phf-amber-bg:#FFF7E0;--phf-amber-line:#F0D58A;
+  --phf-radius:12px;
+  --phf-font:"Segoe UI",system-ui,-apple-system,"Helvetica Neue",Arial,sans-serif;
+}
+
+/* ---------- 1. Page ---------- */
+body[class*="phf-page-"]{background:var(--phf-bg)!important}
+/* Text colour/font change everywhere except Update Specials, whose PNG export copies the slide into <body>. */
+body.phf-page-hub,body.phf-page-reconcile,body.phf-page-db{color:var(--phf-ink)}
+body.phf-page-hub,body.phf-page-reconcile,body.phf-page-db{font-family:var(--phf-font)}
+body.phf-page-hub :is(button,input,select,textarea),
+body.phf-page-reconcile :is(button,input,select,textarea),
+body.phf-page-db :is(button,input,select,textarea){font-family:inherit}
+
+/* ---------- 2. Shared components (usable in any new tool) ---------- */
+.phf-band{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--phf-navy);color:var(--phf-gold);padding:10px 16px;min-height:46px;border-radius:calc(var(--phf-radius) - 1px) calc(var(--phf-radius) - 1px) 0 0}
+.phf-band h2,.phf-band h3{margin:0;font:700 12.5px/1.3 var(--phf-font);letter-spacing:.1em;text-transform:uppercase;color:var(--phf-gold)}
+.phf-band p,.phf-band small{margin:0;color:var(--phf-band-text);font-size:11.5px;font-weight:600}
+.phf-sublabel{display:inline-block;font:800 11px/1.3 var(--phf-font);letter-spacing:.09em;text-transform:uppercase;color:var(--phf-navy);border-bottom:2px solid var(--phf-gold);padding-bottom:2px}
+.phf-pill{display:inline-flex;align-items:center;gap:5px;font:800 10px/1.2 var(--phf-font);letter-spacing:.07em;text-transform:uppercase;padding:4px 9px;border-radius:999px;white-space:nowrap;border:1px solid #D5DBE0;background:var(--phf-grey-bg);color:var(--phf-grey-ink)}
+.phf-pill.is-red{background:var(--phf-red-bg);color:var(--phf-red-ink);border-color:var(--phf-red-line)}
+.phf-pill.is-green{background:var(--phf-green-bg);color:var(--phf-green-ink);border-color:var(--phf-green-line)}
+.phf-pill.is-blue{background:var(--phf-blue-bg);color:var(--phf-blue-ink);border-color:var(--phf-blue-line)}
+.phf-pill.is-amber{background:var(--phf-amber-bg);color:var(--phf-amber-ink);border-color:var(--phf-amber-line)}
+.phf-pill.is-live{background:var(--phf-green);color:#fff;border-color:var(--phf-green)}
+
+/* ---------- 3. Panels → white cards with a navy / gold heading band ---------- */
+body.phf-page-reconcile .panel,body.phf-page-reconcile .results,body.phf-page-reconcile .reference-strip,
+body.phf-page-db .panel,body.phf-page-db .results,body.phf-page-db .builder-sidebar,
+body.phf-page-specials .studio-controls .panel,body.phf-page-specials .preview-card,body.phf-page-specials .image-health-panel{border:1px solid var(--phf-line);border-radius:var(--phf-radius);box-shadow:0 1px 2px rgba(30,58,95,.04);background:#fff}
+
+/* Every heading that becomes a band (one rule so they can never drift apart). */
+body.phf-page-reconcile .panel>.step,
+body.phf-page-reconcile .results-head,
+body.phf-page-admin .panel>h2:first-child,
+body.phf-page-db .builder-sidebar>.sidebar-title,
+body.phf-page-db .builder-workspace>.panel>.results-head,
+body.phf-page-db .stage-dashboard .stage-head,
+body.phf-page-db .input-workspace-head,
+body.phf-page-db-legacy .panel>.step-title,
+body.phf-page-db-legacy .results>.results-head,
+body.phf-page-specials .studio-controls .panel>h2:first-child,
+body.phf-page-specials .studio-controls .panel>.prodhead,
+body.phf-page-specials .image-health-head,
+body.phf-page-specials .preview-head{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--phf-navy);color:var(--phf-gold);
+  padding:10px 16px;min-height:46px;border-radius:calc(var(--phf-radius) - 1px) calc(var(--phf-radius) - 1px) 0 0;
+  margin:calc(var(--phf-pad,20px) * -1) calc(var(--phf-pad,20px) * -1) 16px;font-family:var(--phf-font)
+}
+body.phf-page-reconcile .panel>.step h2,
+body.phf-page-reconcile .results-head h2,
+body.phf-page-db .builder-workspace>.panel>.results-head h2,
+body.phf-page-db .stage-dashboard .stage-head h2,
+body.phf-page-db .input-workspace-head h2,
+body.phf-page-db-legacy .panel>.step-title h2,
+body.phf-page-db-legacy .results>.results-head h2,
+body.phf-page-specials .studio-controls .panel>.prodhead h2,
+body.phf-page-specials .image-health-title,
+body.phf-page-specials .ph-kicker{margin:0!important}
+/* Heading text in a band (where the h2 is itself the band its margin stays negative). */
+body.phf-page-reconcile .panel>.step h2,
+body.phf-page-reconcile .results-head h2,
+body.phf-page-admin .panel>h2:first-child,
+body.phf-page-db .builder-sidebar>.sidebar-title,
+body.phf-page-db .builder-workspace>.panel>.results-head h2,
+body.phf-page-db .stage-dashboard .stage-head h2,
+body.phf-page-db .input-workspace-head h2,
+body.phf-page-db-legacy .panel>.step-title h2,
+body.phf-page-db-legacy .results>.results-head h2,
+body.phf-page-specials .studio-controls .panel>h2:first-child,
+body.phf-page-specials .studio-controls .panel>.prodhead h2,
+body.phf-page-specials .image-health-title,
+body.phf-page-specials .ph-kicker{
+  font:700 12.5px/1.3 var(--phf-font)!important;letter-spacing:.1em!important;text-transform:uppercase!important;color:var(--phf-gold)!important
+}
+/* Secondary text inside a band */
+body.phf-page-reconcile .results-head p,
+body.phf-page-db .builder-workspace>.panel>.results-head p,
+body.phf-page-db .input-workspace-head p,
+body.phf-page-db-legacy .panel>.step-title p,
+body.phf-page-db-legacy .results>.results-head p,
+body.phf-page-specials .image-health-title small,
+body.phf-page-specials .preview-head .dims,
+body.phf-page-specials .preview-head .zoomlabel,
+body.phf-page-specials .prod-page{color:var(--phf-band-text)!important;font-size:11.5px!important;font-weight:600!important;margin:0!important;text-transform:none!important;letter-spacing:0!important}
+
+/* Step numbers: gold circle with navy figure (inside bands and elsewhere). */
+body.phf-page-reconcile .stepnum,
+body.phf-page-db .stepnum,body.phf-page-db .step-no{background:var(--phf-gold)!important;color:var(--phf-navy)!important;width:26px!important;height:26px!important;border-radius:50%!important;display:grid!important;place-items:center!important;font:800 12px/1 var(--phf-font)!important;flex:0 0 auto}
+body.phf-page-db .stepnum.optional{background:#DCE2E8!important;color:var(--phf-grey-ink)!important}
+
+/* Small headings inside a panel: navy capitals with a gold underline. */
+body.phf-page-specials .fo-title,
+body.phf-page-specials #layoutBtns .lgroup .lblgrp,
+body.phf-page-specials .seg .lblgrp,
+body.phf-page-specials .card-input h3,
+body.phf-page-reconcile .view-label,
+body.phf-page-reconcile .reference-strip-main strong,
+body.phf-page-db .input-group-title,
+body.phf-page-db .nav-separator{
+  display:inline-block;width:auto!important;font:800 10.5px/1.3 var(--phf-font)!important;letter-spacing:.09em!important;text-transform:uppercase!important;color:var(--phf-navy)!important;border-bottom:2px solid var(--phf-gold);padding:0 0 2px!important
+}
+
+/* ---------- 4. Buttons ---------- */
+body[class*="phf-page-"] .btn{border:1px solid var(--phf-line-strong);border-radius:8px;background:#fff;color:var(--phf-navy);font-weight:700;opacity:1}
+body[class*="phf-page-"] .btn:hover:not(:disabled){border-color:var(--phf-navy);background:#fff}
+body[class*="phf-page-"] .btn:disabled{opacity:.55;cursor:not-allowed}
+body[class*="phf-page-"] a.btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-size:13px}
+/* Main action: grey while waiting → blue when ready */
+body[class*="phf-page-"] .btn.primary{background:var(--phf-blue);border-color:var(--phf-blue);color:#fff}
+body[class*="phf-page-"] .btn.primary:hover:not(:disabled){background:#1558B5;border-color:#1558B5}
+body[class*="phf-page-"] .btn.primary:disabled{background:var(--phf-wait-bg);border-color:var(--phf-wait-bg);color:var(--phf-wait-ink);opacity:1}
+/* Downloads are green (done) */
+body[class*="phf-page-"] .btn.primary[id^="download"],
+body.phf-page-db .download-link:not(.secondary){background:var(--phf-green);border-color:var(--phf-green);color:#fff}
+body[class*="phf-page-"] .btn.primary[id^="download"]:hover:not(:disabled),
+body.phf-page-db .download-link:not(.secondary):hover{background:#256B29;border-color:#256B29;filter:none}
+body[class*="phf-page-"] .btn.primary[id^="download"]:disabled{background:var(--phf-wait-bg);border-color:var(--phf-wait-bg);color:var(--phf-wait-ink)}
+/* Destructive / clear actions */
+body[class*="phf-page-"] :is(#clearBtn,#clearAllBtn,#clearReferenceBtn,#clearQtyBtn){color:var(--phf-red);border-color:var(--phf-red-line)}
+body[class*="phf-page-"] :is(#clearBtn,#clearAllBtn,#clearReferenceBtn,#clearQtyBtn):hover:not(:disabled){border-color:var(--phf-red)}
+/* Selected tab / layout / view: navy with gold text */
+body[class*="phf-page-"] .btn.active,
+body.phf-page-reconcile .view-btn.active,
+body.phf-page-specials .chan.active,
+body.phf-page-specials .pchip.on{background:var(--phf-navy)!important;border-color:var(--phf-navy)!important;color:var(--phf-gold)!important;box-shadow:none!important}
+body.phf-page-specials .chan.active small{color:var(--phf-band-text)!important}
+
+/* ---------- 5. Status lines ---------- */
+body[class*="phf-page-"] .status{border-radius:9px;border:1px solid}
+body[class*="phf-page-"] .status.info{background:var(--phf-grey-bg);border-color:#D5DBE0;color:#3C4650}
+body[class*="phf-page-"] .status.ready,body[class*="phf-page-"] .status.running{background:var(--phf-blue-bg);border-color:var(--phf-blue-line);color:#1B3F7A}
+body[class*="phf-page-"] .status.ok,body[class*="phf-page-"] .status.success{background:var(--phf-green-bg);border-color:var(--phf-green-line);color:var(--phf-green-ink)}
+body[class*="phf-page-"] .status.warn{background:var(--phf-amber-bg);border-color:var(--phf-amber-line);color:var(--phf-amber-ink)}
+body[class*="phf-page-"] .status.err,body[class*="phf-page-"] .status.error,body[class*="phf-page-"] .status.missing{background:var(--phf-red-bg);border-color:var(--phf-red-line);color:var(--phf-red-ink)}
+body[class*="phf-page-"] .progress>div,body[class*="phf-page-"] .progress>#globalProgressBar{background:var(--phf-blue)}
+
+/* ---------- 6. File inputs: red required → blue drag-over → green loaded; grey optional ---------- */
+body[class*="phf-page-"] .dropzone{border:2px dashed var(--phf-grey-line);background:var(--phf-soft);border-radius:10px;transition:border-color .15s,background .15s}
+body[class*="phf-page-"] .dropzone strong{color:var(--phf-navy)}
+body[class*="phf-page-"] .dropzone small{color:var(--phf-muted)}
+/* required + empty */
+body.phf-page-reconcile .panel:not(:has(.file-row))>.dropzone,
+body.phf-page-db-legacy .panel:has(>.step-title .stepnum:not(.optional)):not(:has(.file-row)) .dropzone,
+body.phf-page-db .input-workspace-card.is-required .dropzone{border-color:var(--phf-red-dash);background:var(--phf-red-soft)}
+body.phf-page-reconcile .panel:not(:has(.file-row))>.dropzone strong,
+body.phf-page-db-legacy .panel:has(>.step-title .stepnum:not(.optional)):not(:has(.file-row)) .dropzone strong,
+body.phf-page-db .input-workspace-card.is-required .dropzone strong{color:var(--phf-red-ink)}
+/* loaded */
+body.phf-page-reconcile .panel:has(.file-row)>.dropzone,
+body.phf-page-db-legacy .panel:has(.file-row) .dropzone,
+body.phf-page-db .input-workspace-card.is-loaded .dropzone{border-style:solid;border-color:var(--phf-green-line);background:var(--phf-green-bg);padding-top:14px;padding-bottom:14px;min-height:0}
+body.phf-page-reconcile .panel:has(.file-row)>.dropzone strong,
+body.phf-page-db-legacy .panel:has(.file-row) .dropzone strong,
+body.phf-page-db .input-workspace-card.is-loaded .dropzone strong{color:var(--phf-green-ink)}
+/* drag-over / hover (always wins) */
+body[class*="phf-page-"] .dropzone:hover,
+body[class*="phf-page-"] .dropzone.drag,
+body.phf-page-admin .reference-drop-card.drag{border-style:solid!important;border-color:var(--phf-blue)!important;background:var(--phf-blue-bg)!important}
+body[class*="phf-page-"] .dropzone:hover strong,body[class*="phf-page-"] .dropzone.drag strong{color:var(--phf-blue-ink)!important}
+body[class*="phf-page-"] .dropzone:focus-visible{outline:2px solid var(--phf-blue);outline-offset:2px}
+/* loaded file rows */
+body[class*="phf-page-"] .file-row{background:var(--phf-green-bg);border:1px solid var(--phf-green-line);border-radius:8px;color:var(--phf-green-ink);font-weight:600}
+body[class*="phf-page-"] .file-row button{color:var(--phf-red);font-weight:700}
+
+/* State badge at the right of an input band (pure CSS, follows the file list). */
+body.phf-page-reconcile .panel>.step::after,
+body.phf-page-db-legacy .panel>.step-title::after{margin-left:auto;font:800 10px/1.2 var(--phf-font);letter-spacing:.07em;text-transform:uppercase;padding:4px 9px;border-radius:999px;white-space:nowrap;border:1px solid}
+body.phf-page-reconcile .panel:has(>.dropzone):not(:has(.file-row))>.step::after,
+body.phf-page-db-legacy .panel:has(>.step-title .stepnum:not(.optional)):has(.dropzone):not(:has(.file-row))>.step-title::after{content:'Required';background:var(--phf-red-bg);color:var(--phf-red-ink);border-color:var(--phf-red-line)}
+body.phf-page-db-legacy .panel:has(>.step-title .stepnum.optional):not(:has(.file-row))>.step-title::after{content:'Optional';background:var(--phf-grey-bg);color:var(--phf-grey-ink);border-color:#D5DBE0}
+body.phf-page-reconcile .panel:has(>.dropzone):has(.file-row)>.step::after,
+body.phf-page-db-legacy .panel:has(.dropzone):has(.file-row)>.step-title::after{content:'Loaded';background:var(--phf-green-bg);color:var(--phf-green-ink);border-color:var(--phf-green-line)}
+body.phf-page-reconcile .panel:has(#runBtn:disabled)>.step::after{content:'Waiting';background:var(--phf-grey-bg);color:var(--phf-grey-ink);border-color:#D5DBE0}
+body.phf-page-reconcile .panel:has(#runBtn:enabled)>.step::after{content:'Ready';background:var(--phf-blue-bg);color:var(--phf-blue-ink);border-color:var(--phf-blue-line)}
+body.phf-page-reconcile .panel:has(#progress:not(.hidden))>.step::after{content:'Running';background:var(--phf-blue-bg);color:var(--phf-blue-ink);border-color:var(--phf-blue-line)}
+
+/* ---------- 7. Badges, KPIs, notes ---------- */
+body[class*="phf-page-"] :is(.small-badge,.result-badge,.stage-badge,.nav-state,.input-state){font-family:var(--phf-font);font-weight:800;letter-spacing:.07em;text-transform:uppercase;border-radius:999px;border:1px solid #D5DBE0;background:var(--phf-grey-bg);color:var(--phf-grey-ink)}
+body[class*="phf-page-"] :is(.small-badge,.result-badge,.stage-badge,.nav-state).ready,
+body[class*="phf-page-"] :is(.small-badge,.result-badge).running{background:var(--phf-blue-bg);color:var(--phf-blue-ink);border-color:var(--phf-blue-line)}
+body[class*="phf-page-"] :is(.small-badge,.result-badge,.nav-state).done,
+body[class*="phf-page-"] .result-badge.ok,
+body.phf-page-db-legacy .stage-badge.ready{background:var(--phf-green-bg);color:var(--phf-green-ink);border-color:var(--phf-green-line)}
+body[class*="phf-page-"] :is(.small-badge,.nav-state).error,
+body[class*="phf-page-"] .small-badge.required{background:var(--phf-red-bg);color:var(--phf-red-ink);border-color:var(--phf-red-line)}
+body[class*="phf-page-"] .kpi{background:var(--phf-soft)!important;border:1px solid var(--phf-line)!important;border-radius:10px}
+body[class*="phf-page-"] .kpi .n,body[class*="phf-page-"] .kpi strong{color:var(--phf-navy)}
+body[class*="phf-page-"] .kpi.bad .n{color:var(--phf-red)}
+body[class*="phf-page-"] .kpi.good .n{color:var(--phf-green)}
+body[class*="phf-page-"] .kpi .l,body[class*="phf-page-"] .kpi span{color:var(--phf-muted)}
+body[class*="phf-page-"] .match-note{border:1px solid var(--phf-line);border-left:1px solid var(--phf-line);background:var(--phf-soft);color:#4A5562;border-radius:10px}
+body[class*="phf-page-"] .match-note strong{color:var(--phf-navy)}
+body[class*="phf-page-"] .privacy strong{color:var(--phf-navy)}
+body[class*="phf-page-"] .notice{border-radius:9px;background:var(--phf-amber-bg);border:1px solid var(--phf-amber-line);color:var(--phf-amber-ink)}
+body[class*="phf-page-"] .notice.ok{background:var(--phf-green-bg);border-color:var(--phf-green-line);color:var(--phf-green-ink)}
+body[class*="phf-page-"] .notice.bad{background:var(--phf-red-bg);border-color:var(--phf-red-line);color:var(--phf-red-ink)}
+
+/* =====================================================================
+   RECONCILE CH2 (+ Reference admin)
+   ===================================================================== */
+body.phf-page-reconcile .wrap{padding-top:16px}
+body.phf-page-reconcile .sub{color:#4A5562;font-size:15px;margin-bottom:16px}
+body.phf-page-reconcile .panel{--phf-pad:20px;padding:20px;margin-bottom:16px}
+body.phf-page-reconcile .step{margin-bottom:16px}
+body.phf-page-reconcile .results{--phf-pad:20px;padding:20px!important;margin-bottom:16px}
+body.phf-page-reconcile .results-head{justify-content:flex-start}
+body.phf-page-reconcile .results-head>div{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+/* reference strip: red when the required reference data is missing, green when ready */
+body.phf-page-reconcile .reference-strip{padding:10px 14px;margin-bottom:16px}
+body.phf-page-reconcile .reference-strip:has(.reference-dot.ok){background:var(--phf-green-bg);border-color:var(--phf-green-line)}
+body.phf-page-reconcile .reference-strip:has(.reference-dot.warn){background:var(--phf-red-soft);border-color:var(--phf-red-line)}
+body.phf-page-reconcile .reference-strip:has(.reference-dot.warn) #referenceReady{color:var(--phf-red-ink);font-weight:700}
+body.phf-page-reconcile .reference-dot.ok{background:var(--phf-green)}
+body.phf-page-reconcile .reference-dot.warn{background:var(--phf-red)}
+body.phf-page-reconcile .reference-strip-main strong{margin-right:10px}
+body.phf-page-reconcile .admin-link{display:inline-flex;align-items:center;min-height:30px;padding:4px 11px;border:1px solid var(--phf-line-strong);border-radius:8px;background:#fff;color:var(--phf-navy);font-size:12px}
+body.phf-page-reconcile .admin-link:hover{border-color:var(--phf-navy);color:var(--phf-navy);text-decoration:none}
+/* Exceptions / All lines tables share the POS layout header colours */
+body.phf-page-reconcile .results .table-wrap:not(.preview-pos) th{background:var(--phf-navy);color:var(--phf-gold);letter-spacing:.04em}
+body.phf-page-reconcile .table-wrap{border-color:var(--phf-line)}
+body.phf-page-reconcile .result-controls-sticky{border-color:var(--phf-line);border-radius:10px}
+body.phf-page-reconcile .pos-tools{background:var(--phf-soft);border-color:var(--phf-line)}
+body.phf-page-reconcile .pos-check-progress,body.phf-page-reconcile .receiving-actions .pos-check-progress{color:var(--phf-navy)}
+/* Reference admin */
+body.phf-page-admin .admin-page-head{align-items:center}
+body.phf-page-admin .admin-page-head .sub{margin:0}
+body.phf-page-admin .source-list>div{background:var(--phf-soft);border-color:var(--phf-line)}
+body.phf-page-admin .source-list strong{color:var(--phf-navy)}
+body.phf-page-admin .reference-card{border:2px dashed var(--phf-grey-line);background:var(--phf-soft)}
+body.phf-page-admin .reference-card.is-required{border-color:var(--phf-red-dash);background:var(--phf-red-soft)}
+body.phf-page-admin .reference-card.is-required strong{color:var(--phf-red-ink)}
+body.phf-page-admin .reference-card.is-loaded{border-style:solid;border-color:var(--phf-green-line);background:var(--phf-green-bg)}
+body.phf-page-admin .reference-card.is-loaded strong{color:var(--phf-green-ink)}
+body.phf-page-admin .reference-drop-hint{color:var(--phf-blue-ink)}
+body.phf-page-admin .ref-ready.ok{color:var(--phf-green-ink)}
+body.phf-page-admin .ref-ready.warn{color:var(--phf-red-ink)}
+body.phf-page-admin .reference-help.standalone{margin:0 0 14px}
+body.phf-page-admin .reference-grid{padding:0}
+body.phf-page-admin .reference-actions{padding:14px 0 0}
+
+/* =====================================================================
+   BUILD MASTER DATABASES (dashboard + legacy stage pages)
+   ===================================================================== */
+body.phf-page-db .full-width-wrap{padding-top:16px!important}
+/* Left input rail */
+body.phf-page-db .builder-sidebar{padding:0 10px 12px!important;--phf-pad:10px;width:auto!important;min-width:0!important}
+body.phf-page-db .builder-sidebar>.sidebar-title{margin:0 -10px 10px;padding:12px 16px!important;min-height:46px;font-size:12.5px!important;position:sticky;top:0;z-index:3}
+body.phf-page-db .sidebar-helper{font-size:11.5px!important;color:var(--phf-muted)!important;padding:0 4px 4px!important}
+body.phf-page-db .input-group-title{position:static!important;margin:12px 4px 7px!important;background:none}
+body.phf-page-db .input-group{display:flex;flex-direction:column;margin-bottom:4px}
+body.phf-page-db .input-nav-item{border:1px solid var(--phf-line)!important;background:#fff;margin-bottom:5px;min-height:46px;padding:7px 8px!important;border-radius:9px;grid-template-columns:24px minmax(0,1fr) auto!important;gap:8px!important}
+body.phf-page-db .input-nav-item.required.missing{background:var(--phf-red-soft);border-color:#F4CFCB!important}
+body.phf-page-db .input-nav-item.required.missing strong{color:var(--phf-red-ink)}
+body.phf-page-db .input-nav-item.missing:not(.required){border-style:dashed!important;border-color:var(--phf-grey-line)!important}
+body.phf-page-db .input-nav-item.loaded{background:var(--phf-green-bg);border-color:#C3E3CC!important}
+body.phf-page-db .input-nav-item.loaded strong{color:var(--phf-green-ink)}
+body.phf-page-db .input-nav-item.active{box-shadow:0 0 0 2px var(--phf-navy)!important}
+body.phf-page-db .input-nav-item:hover,
+body.phf-page-db .input-nav-item.drag-target{border-style:solid!important;border-color:var(--phf-blue)!important;background:var(--phf-blue-bg)!important;box-shadow:none!important}
+body.phf-page-db .input-nav-item.drag-target strong{color:var(--phf-blue-ink)}
+body.phf-page-db .input-nav-item.drag-target::after{color:#fff!important;background:var(--phf-blue)!important}
+body.phf-page-db .input-nav-item.invalid{border-style:solid!important;border-color:var(--phf-red)!important;background:var(--phf-red-bg)!important}
+body.phf-page-db .input-nav-item strong{font-size:12px!important}
+body.phf-page-db .input-nav-item small{font-size:10.5px!important;color:var(--phf-muted)}
+body.phf-page-db .input-dot{width:24px;height:24px;font-size:12px;background:#fff;border:2px solid var(--phf-grey-line);color:var(--phf-grey-ink)}
+body.phf-page-db .input-nav-item.required.missing .input-dot{background:var(--phf-red);border-color:var(--phf-red);color:#fff}
+body.phf-page-db .input-nav-item.loaded .input-dot{background:var(--phf-green);border-color:var(--phf-green);color:#fff}
+body.phf-page-db .input-state{font-size:8.5px!important;padding:3px 6px!important}
+body.phf-page-db .input-nav-item.required.missing .input-state{background:var(--phf-red-bg);color:var(--phf-red-ink);border-color:var(--phf-red-line)}
+body.phf-page-db .input-nav-item.loaded .input-state{background:var(--phf-green-bg);color:var(--phf-green-ink);border-color:var(--phf-green-line)}
+body.phf-page-db .sidebar-footer{font-size:11px!important;color:var(--phf-muted)}
+body.phf-page-db .sidebar-footer strong{color:var(--phf-navy)}
+/* Workspace panels */
+body.phf-page-db .builder-workspace>.panel{--phf-pad:16px;padding:16px!important;margin:0 0 14px!important}
+body.phf-page-db .builder-workspace>.panel>.results-head{justify-content:space-between}
+body.phf-page-db .builder-workspace>.panel>.results-head>div{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+body.phf-page-db .dashboard-intro{display:flex!important;align-items:center;padding:12px 16px!important}
+body.phf-page-db .dashboard-intro p{margin:0;color:#4A5562;font-size:13px!important}
+body.phf-page-db .input-detail-panel{--phf-pad:16px}
+body.phf-page-db .input-detail-panel .panel{border:0!important;box-shadow:none!important;padding:0!important;margin:0!important;background:transparent}
+body.phf-page-db .input-workspace-head{justify-content:space-between}
+body.phf-page-db .input-workspace-head>div{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+body.phf-page-db .input-workspace-head .nav-separator{color:var(--phf-band-text)!important;border-bottom-color:transparent;margin:0!important}
+body.phf-page-db .input-workspace-head h2 span{color:#FFB4AB!important}
+body.phf-page-db .input-meta>div{background:var(--phf-soft);border:1px solid var(--phf-line)}
+body.phf-page-db .input-meta strong{color:var(--phf-navy)}
+/* Readiness chips: green ready, red required missing, grey optional */
+body.phf-page-db .summary-chip{border-radius:9px;background:var(--phf-grey-bg);border:1px solid #D5DBE0;color:#4A5562}
+body.phf-page-db .summary-chip strong{font-size:10px!important;letter-spacing:.07em!important}
+body.phf-page-db .summary-chip span{color:inherit!important}
+body.phf-page-db .summary-chip.ok{background:var(--phf-green-bg);border-color:var(--phf-green-line);color:var(--phf-green-ink)}
+body.phf-page-db .summary-chip.miss{background:var(--phf-red-bg);border-color:var(--phf-red-line);color:var(--phf-red-ink)}
+/* Stage cards */
+body.phf-page-db .stage-dashboard .panel{--phf-pad:16px;padding:16px!important;border-top:1px solid var(--phf-line)!important}
+body.phf-page-db .stage-dashboard .stage-head{justify-content:space-between;margin-bottom:12px!important}
+body.phf-page-db .stage-dashboard .stage-title{display:flex;align-items:center;gap:10px}
+body.phf-page-db .stage-dashboard .stage-title h2 small{color:var(--phf-band-text);opacity:1!important;letter-spacing:.04em;font-weight:600}
+body.phf-page-db .stage-dashboard .stage-description{margin:0 0 2px!important;font-size:12px!important;color:var(--phf-muted)!important}
+body.phf-page-db .stage-dashboard .stage-status{margin-top:10px!important}
+body.phf-page-db .stage-dashboard .stage-actions .btn{text-transform:uppercase;letter-spacing:.06em;font-size:12px!important;min-height:40px}
+body.phf-page-db .stage-dashboard .done .stage-build:not(:disabled){background:#fff;border-color:var(--phf-line-strong);color:var(--phf-navy)}
+body.phf-page-db .master-callout>div,body.phf-page-db .stage-dashboard .master-callout>div{background:var(--phf-soft);border:1px solid var(--phf-line)}
+body.phf-page-db .master-callout strong{color:var(--phf-navy);text-transform:uppercase;letter-spacing:.06em;font-size:10px}
+body.phf-page-db .ready-chip{border:1px solid #D5DBE0;background:var(--phf-grey-bg);color:#4A5562}
+body.phf-page-db .ready-chip.ok{background:var(--phf-green-bg);border-color:var(--phf-green-line);color:var(--phf-green-ink)}
+body.phf-page-db .ready-chip.missing{background:var(--phf-red-bg);border-color:var(--phf-red-line);color:var(--phf-red-ink)}
+body.phf-page-db .output-row code{color:var(--phf-ink)}
+body.phf-page-db .output-list{border-color:var(--phf-line)}
+body.phf-page-db .empty-output{background:var(--phf-soft);color:var(--phf-muted);font-size:12.5px;padding:12px 14px}
+body.phf-page-db .download-link{border-radius:8px;font-weight:700}
+body.phf-page-db .download-link.secondary{background:#fff;color:var(--phf-navy);border:1px solid var(--phf-line-strong)}
+body.phf-page-db .dashboard-run .actions .btn{text-transform:uppercase;letter-spacing:.06em;font-size:12px}
+/* Legacy stage pages (ch2.html / uhp.html / master.html) */
+body.phf-page-db-legacy main.wrap{padding-top:16px}
+body.phf-page-db-legacy main.wrap>.topbar,body.phf-page-db-legacy main.wrap>h1{display:none!important}
+body.phf-page-db-legacy .sub{color:#4A5562}
+body.phf-page-db-legacy .panel,body.phf-page-db-legacy .results{--phf-pad:20px;padding:20px;box-shadow:0 1px 2px rgba(30,58,95,.04)}
+body.phf-page-db-legacy .intro-panel h2{color:var(--phf-navy)}
+body.phf-page-db-legacy .workflow-step{border-color:var(--phf-line);border-radius:10px}
+body.phf-page-db-legacy .workflow-step.active{border-color:var(--phf-navy);box-shadow:0 0 0 2px var(--phf-navy)}
+body.phf-page-db-legacy .workflow-step b{color:var(--phf-navy)}
+
+/* =====================================================================
+   UPDATE SPECIALS — editor chrome only (never .slide artwork)
+   ===================================================================== */
+body.phf-page-specials .studio-controls,
+body.phf-page-specials .preview-head,
+body.phf-page-specials .preview-foot,
+body.phf-page-specials .validationbar,
+body.phf-page-specials .pagechips,
+body.phf-page-specials .image-health-panel{font-family:var(--phf-font)}
+body.phf-page-specials .studio-controls :is(button,input,select,textarea),
+body.phf-page-specials .preview-head :is(button,input,select),
+body.phf-page-specials .preview-foot :is(button,input,select){font-family:inherit}
+body.phf-page-specials>.wrap{padding-top:16px!important}
+@media (min-width:1100px){
+  body.phf-page-specials.studio-mode>.wrap{height:calc(100vh - 88px)!important;height:calc(100dvh - 88px)!important}
+}
+/* Panels */
+body.phf-page-specials .studio-controls .panel{--phf-pad:18px;padding:18px;margin-bottom:14px}
+body.phf-page-specials .studio-controls .panel>h2:first-child{margin-bottom:14px}
+body.phf-page-specials .studio-controls .panel>.prodhead{justify-content:space-between;margin-bottom:14px}
+body.phf-page-specials .studio-controls .panel>.prodhead h2{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+body.phf-page-specials #editFlag{color:#FFB4AB!important}
+body.phf-page-specials .vtag{display:inline-block;margin-left:10px;padding:3px 8px;border-radius:999px;background:var(--phf-gold);color:var(--phf-navy)!important;font-size:10px!important;letter-spacing:.06em}
+body.phf-page-specials .vtag:empty{display:none}
+/* Buttons on a navy band */
+body.phf-page-specials :is(.panel>h2:first-child,.prodhead,.image-health-head,.preview-head) .btn,
+body.phf-page-specials .preview-head .zoomseg .btn{background:transparent;border-color:rgba(255,255,255,.34);color:#fff}
+body.phf-page-specials :is(.prodhead,.image-health-head,.preview-head) .btn:hover:not(:disabled){background:rgba(255,255,255,.08);border-color:#fff}
+body.phf-page-specials .preview-head .zoomseg{border-color:rgba(255,255,255,.34);background:transparent}
+body.phf-page-specials .preview-head .zoomseg .btn+.btn{border-left-color:rgba(255,255,255,.34)}
+body.phf-page-specials .preview-head .zoomseg .btn.active{background:var(--phf-gold)!important;border-color:var(--phf-gold)!important;color:var(--phf-navy)!important}
+body.phf-page-specials .prodhead .auto-balance-toggle{background:#fff}
+/* Source panel */
+body.phf-page-specials .srcrow #reloadBtn{white-space:nowrap}
+body.phf-page-specials .srcdetails>summary{color:var(--phf-blue-ink)}
+body.phf-page-specials .security-note{background:var(--phf-amber-bg);border-color:var(--phf-amber-line);color:var(--phf-amber-ink)}
+/* Channel tabs + layout buttons */
+body.phf-page-specials .chan{border-color:var(--phf-line-strong);color:var(--phf-navy);border-radius:9px}
+body.phf-page-specials .chan:hover{border-color:var(--phf-navy)}
+body.phf-page-specials #layoutBtns .lgroup .lblgrp{margin-top:7px!important;justify-self:start}
+body.phf-page-specials .layout-advice{background:var(--phf-blue-bg);border-color:var(--phf-blue-line);color:#1B3F7A}
+body.phf-page-specials .layout-advice strong{color:var(--phf-blue-ink)}
+body.phf-page-specials .layout-advice.secondary{background:var(--phf-grey-bg);border-color:#D5DBE0;color:#3C4650}
+body.phf-page-specials .layout-advice.secondary strong{color:var(--phf-navy)}
+body.phf-page-specials .layout-advice.warn{background:var(--phf-amber-bg);border-color:var(--phf-amber-line);color:var(--phf-amber-ink)}
+body.phf-page-specials .layout-advice.warn strong{color:var(--phf-amber-ink)}
+/* Fields */
+body.phf-page-specials .studio-controls label{color:var(--phf-muted)}
+body.phf-page-specials .studio-controls input[type=text],
+body.phf-page-specials .studio-controls input[type=number],
+body.phf-page-specials .studio-controls select{border-color:#C9D3DD}
+body.phf-page-specials .studio-controls :is(input,select):focus{border-color:var(--phf-blue);outline:none;box-shadow:0 0 0 3px rgba(25,103,210,.15)}
+body.phf-page-specials .footer-opts{border-top-color:var(--phf-line)}
+body.phf-page-specials .fo-select{color:var(--phf-ink)}
+/* Tick boxes: green when on, grey when off */
+body.phf-page-specials .auto-balance-toggle{background:#fff;border-color:var(--phf-line);color:#4A5562}
+body.phf-page-specials .auto-balance-toggle:has(input:checked){background:var(--phf-green-bg);border-color:var(--phf-green-line);color:var(--phf-green-ink)}
+body.phf-page-specials .auto-balance-toggle input{accent-color:var(--phf-green)}
+body.phf-page-specials .auto-balance-help{background:var(--phf-soft);border-color:var(--phf-line)}
+body.phf-page-specials .auto-balance-help b{color:var(--phf-navy)}
+body.phf-page-specials .card-input{border-color:var(--phf-line);background:#fff}
+/* Live preview */
+body.phf-page-specials .preview-card{--phf-pad:14px;padding:14px 14px 12px}
+body.phf-page-specials .preview-head{justify-content:space-between;margin-bottom:12px;padding:8px 14px}
+body.phf-page-specials .ph-left{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+body.phf-page-specials .ph-title{color:#fff;font-size:13px;font-weight:700}
+body.phf-page-specials .ph-channel{color:#9FD8AE}
+body.phf-page-specials .ph-channel.warn{color:#F3D98A}
+body.phf-page-specials .ph-channel.secondary{color:var(--phf-band-text)}
+body.phf-page-specials .stage{background:#E6EAEE}
+body.phf-page-specials .pageinfo{color:var(--phf-navy)}
+body.phf-page-specials .dl-row label{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--phf-line);border-radius:8px;background:#fff;font-size:12.5px;font-weight:600;color:#4A5562}
+body.phf-page-specials .dl-row label:has(input:checked){background:var(--phf-green-bg);border-color:var(--phf-green-line);color:var(--phf-green-ink)}
+body.phf-page-specials .dl-row input{accent-color:var(--phf-green)}
+/* Validation + data status */
+body.phf-page-specials .validationbar{border-radius:9px}
+body.phf-page-specials .validationbar.ok{background:var(--phf-green-bg);border-color:var(--phf-green-line);color:var(--phf-green-ink)}
+body.phf-page-specials .validationbar.warn{background:var(--phf-amber-bg);border-color:var(--phf-amber-line);color:var(--phf-amber-ink)}
+body.phf-page-specials .validationbar.err{background:var(--phf-red-bg);border-color:var(--phf-red-line);color:var(--phf-red-ink)}
+/* Image safety net */
+body.phf-page-specials .image-health-panel{--phf-pad:16px;padding:16px;margin:0 0 14px}
+body.phf-page-specials .image-health-head{justify-content:space-between}
+body.phf-page-specials .image-health-title small{margin-left:4px!important}
+body.phf-page-specials .card-image-health.ok{background:var(--phf-green-bg);border-color:var(--phf-green-line);color:var(--phf-green-ink)}
+body.phf-page-specials .card-image-health.warn{background:var(--phf-amber-bg);border-color:var(--phf-amber-line);color:var(--phf-amber-ink)}
+body.phf-page-specials .card-image-health.err{background:var(--phf-red-bg);border-color:var(--phf-red-line);color:var(--phf-red-ink)}
+
+/* Legacy stage pages carry long breadcrumbs: stack the header earlier so the centred title never meets them. */
+@media(max-width:1600px){
+  body.phf-page-db-legacy .phf-shell-header{flex-wrap:wrap;gap:12px;justify-content:flex-start}
+  body.phf-page-db-legacy .phf-shell-title{position:static;transform:none;margin-left:auto}
+  body.phf-page-db-legacy .phf-shell-meta{flex-basis:100%}
+}

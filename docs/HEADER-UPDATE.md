@@ -1,5 +1,5 @@
-# Shared header v18.0.0
+# Shared header v19.0.0
 
-Updated 05 Oct 2026 18:34 AEDT.
+Updated 05 Oct 2026 19:30 AEDT.
 
-Supplied flex header applied to all eight pages with actual PHF logo assets. Absolutely centered uppercase title and plain version text on desktop. Right-aligned breadcrumbs above full Melbourne update details. Responsive wrapping prevents smaller-screen overlap. Database processing unchanged.
+Same centred flex header as v18, now a full-width card aligned with page content. Navy uppercase title, gold version tag, navy/gold inline SVG icon (no emoji), green breadcrumb links. Long legacy breadcrumbs stack below the title up to 1600px. See docs/THEME.md for the full theme.
