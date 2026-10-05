@@ -1,5 +1,5 @@
-# Shared header v17.0.0
+# Shared header v18.0.0
 
-Updated 05 Oct 2026 18:29 AEDT.
+Updated 05 Oct 2026 18:34 AEDT.
 
-Applied supplied white three-column header design across all eight pages, retaining the actual PHF logo image. Centered uppercase tool titles and version pills; right-aligned breadcrumbs and update details. Shared responsive rules avoid collisions. Database processing unchanged.
+Supplied flex header applied to all eight pages with actual PHF logo assets. Absolutely centered uppercase title and plain version text on desktop. Right-aligned breadcrumbs above full Melbourne update details. Responsive wrapping prevents smaller-screen overlap. Database processing unchanged.
