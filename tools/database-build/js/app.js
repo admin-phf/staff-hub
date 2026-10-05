@@ -173,7 +173,7 @@
   async function verifyWorkbookBlob(blob,sheetName,columns,rows,textColumns){
     if(!global.XLSX)throw new Error('Spreadsheet validation library did not load.');
     const buffer=await blob.arrayBuffer();
-    const wb=XLSX.read(buffer,{type:'array',raw:true,cellFormula:true});
+    const wb=XLSX.read(buffer,{type:'array',raw:true,cellFormula:true,cellNF:true});
     if(wb.SheetNames.length!==1||wb.SheetNames[0]!==sheetName){
       throw new Error(`${sheetName}: unexpected worksheet name or worksheet count.`);
     }
@@ -193,11 +193,14 @@
         if(!valuesEqual(actual,expected)){
           throw new Error(`${sheetName}: integrity mismatch at row ${r+2}, column ${name}. Expected “${expected}”, got “${actual}”.`);
         }
-        // Text-designated identifiers must remain text in the generated XLSX, protecting leading zeroes.
-        if(textColumns.has(name)&&expected!==''&&expected!==null&&expected!==undefined){
+        // Match Python force_text_columns(): Excel's number format must be Text (@).
+        // The Python writer does not coerce an already-numeric PLU/SUB ID into a string;
+        // it applies number_format='@'. Therefore validating cell.t === 's' would be
+        // stricter than the supplied Python and can falsely reject a correct workbook.
+        if(textColumns.has(name)){
           const addr=XLSX.utils.encode_cell({r:r+1,c});
           const cell=ws[addr];
-          if(cell&&cell.t!=='s')throw new Error(`${sheetName}: ${name} at row ${r+2} was not preserved as text.`);
+          if(cell&&cell.z!=='@')throw new Error(`${sheetName}: ${name} at row ${r+2} is missing the required Excel Text (@) format.`);
         }
       }
     }
