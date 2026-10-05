@@ -4,69 +4,59 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Build Master Databases | Prahran Health Foods</title>
-<link rel="stylesheet" href="./css/app.css?v=12.0.0-20261005-1553">
+<link rel="stylesheet" href="../../assets/css/shell.css?v=17.0.0">
+<link rel="stylesheet" href="./css/app.css?v=15.0.0-20261005-1721">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 </head>
 <body class="database-builder-page">
-<header class="app-topbar">
-  <a href="../../index.html" class="app-home-logo" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png" alt="Prahran Health Foods"></a>
-  <div class="app-tool-title">
-    <span class="app-tool-icon" aria-hidden="true">🗃️</span>
-    <div><h1>Build Master Databases</h1><p>Database Builder v12.0.0 · Updated 05 Oct 2026 15:53 AEDT</p></div>
-  </div>
-  <nav class="app-breadcrumb" aria-label="Staff Hub navigation"><a href="../../index.html">Staff Hub</a><span>›</span><strong>BUILD MASTER DATABASES</strong></nav>
+<header class="phf-shell-header header-container">
+  <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
+  <div class="phf-shell-title center-section"><span class="phf-shell-icon icon-box" aria-hidden="true">🗃️</span><div class="phf-shell-copy title-row"><h1>Build Master Databases</h1><p class="phf-shell-version version-text">v17.0.0</p></div></div>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Database Builder</span></nav><span class="vertical-divider" aria-hidden="true"></span><p class="phf-shell-updated build-details">Updated 05 Oct 2026 18:29 AEDT</p></div>
 </header>
 
-<main class="workflow-wrap full-width-wrap">
-  <div class="builder-shell">
-    <aside class="builder-sidebar" aria-label="Database builder navigation">
-      <div class="sidebar-title">Database Builder</div>
-      <nav class="builder-nav" id="builderNav">
-        <button class="nav-item active" type="button" data-view="overview">
-          <span class="nav-icon">⌂</span><span><strong>Overview</strong><small>Upload once & Build All</small></span>
-        </button>
-        <div class="nav-separator">INPUT FILES</div>
-        <div id="inputNav"></div>
-        <div class="nav-separator">BUILD STAGES</div>
-        <div id="stageNav"></div>
-        <div class="nav-separator">FILES</div>
-        <button class="nav-item" type="button" data-view="outputs">
-          <span class="nav-icon">⇩</span><span><strong>All Outputs</strong><small id="navOutputCount">0 generated files</small></span>
-        </button>
-      </nav>
-      <div class="sidebar-footer">
-        <strong>One session</strong>
-        <span>Generated full datasets pass directly to the next stage in memory. No re-uploading between stages.</span>
-      </div>
+<main class="workflow-wrap full-width-wrap phf-full">
+  <div class="builder-shell dashboard-mode">
+    <aside class="builder-sidebar" aria-label="Database input files">
+      <div class="sidebar-title">INPUT FILES</div>
+      <div class="sidebar-helper">Drop each source file directly onto its matching row.</div>
+      <div id="inputNav"></div>
+      <div class="sidebar-footer"><strong>One session</strong><span>Files are held once in browser memory and reused by every build stage.</span></div>
     </aside>
 
     <section class="builder-workspace">
-      <section class="workspace-view active" id="view-overview">
-        <section class="panel intro-panel">
-          <div><h2>One upload session. All database outputs.</h2><p>Upload the raw POS, Oborne / CH2 and Unique / UHP source files once. Run stages individually or use Build All. The Combined Master consumes the full Stage 1–3 datasets directly in memory.</p></div>
-          <div class="match-note"><strong>Output naming</strong><br>Generated filenames follow the original Python scripts, with the Melbourne date added automatically. Version/time stay visible in the Staff Hub UI rather than changing script filenames.</div>
-        </section>
-        <section class="panel"><h2>Input files</h2><p class="section-note">Choose inputs from the compact left rail. The selected file opens on the right for upload/replacement. Brand Abbreviation and Ongoing Discounts are shared inputs.</p><div id="inputSummary" class="input-summary"></div></section>
-        <section class="panel run-panel"><div class="actions"><button class="btn primary" id="buildAllBtn" disabled>Build All Databases</button><button class="btn" id="clearAllBtn">Clear Session</button></div><div class="status info" id="globalStatus">Add the required source files to enable Build All.</div><div class="progress hidden" id="globalProgress"><div id="globalProgressBar"></div></div></section>
+      <section class="panel dashboard-intro">
+        <div><h2>Build Master Databases</h2><p>Load the source files once, then run any database independently or build the full chain. All four build controls remain visible on this screen.</p></div>
+        <div class="match-note"><strong>Output naming</strong><br>Output filenames follow the original Python scripts with the Melbourne date added automatically.</div>
       </section>
 
-      <section class="workspace-view" id="view-input"><div id="inputWorkspace"></div></section>
-
-      <section class="workspace-view" id="view-pos"><div id="stage-pos"></div><div class="panel stage-output-panel"><h2>POS output files</h2><div class="stage-output-list" data-stage-output="pos"></div></div></section>
-      <section class="workspace-view" id="view-ch2"><div id="stage-ch2"></div><div class="panel stage-output-panel"><h2>Oborne / CH2 output files</h2><div class="stage-output-list" data-stage-output="ch2"></div></div></section>
-      <section class="workspace-view" id="view-uhp"><div id="stage-uhp"></div><div class="panel stage-output-panel"><h2>Unique / UHP output files</h2><div class="stage-output-list" data-stage-output="uhp"></div></div></section>
-      <section class="workspace-view" id="view-master"><div id="stage-master"></div><div class="panel stage-output-panel"><h2>Combined Master output</h2><p class="section-note">The final 98-column master uses the full POS, CH2 and Unique datasets already generated in this session.</p><div class="stage-output-list" data-stage-output="master"></div></div></section>
-
-      <section class="workspace-view" id="view-outputs">
-        <section class="panel outputs-panel"><div class="results-head"><div><h2>Generated output files</h2><p>Every completed workbook remains available here for this browser session.</p></div><div class="result-badge" id="outputCount">0 OUTPUTS</div></div><div id="allOutputs" class="output-list"><div class="empty-output">Build a stage to create its download files.</div></div></section>
+      <section class="panel input-detail-panel" id="inputDetailPanel">
+        <div id="inputWorkspace"><div class="empty-output">Select an input on the left to inspect, upload or replace it.</div></div>
       </section>
+
+      <section class="panel dashboard-summary"><div class="results-head"><div><h2>Input readiness</h2><p>Each group updates immediately after a structurally valid file is loaded.</p></div><div class="result-badge" id="readyCount">0 READY</div></div><div id="inputSummary" class="input-summary"></div></section>
+
+      <section class="stage-dashboard" aria-label="Database build actions">
+        <div id="stage-pos"></div>
+        <div id="stage-ch2"></div>
+        <div id="stage-uhp"></div>
+        <div id="stage-master"></div>
+      </section>
+
+      <section class="panel run-panel dashboard-run">
+        <div class="actions"><button class="btn primary" id="buildAllBtn" disabled>Build All Databases</button><button class="btn" id="clearAllBtn">Clear Session</button></div>
+        <div class="status info" id="globalStatus">Add the required source files to enable Build All.</div>
+        <div class="progress hidden" id="globalProgress"><div id="globalProgressBar"></div></div>
+      </section>
+
+      <section class="panel outputs-panel"><div class="results-head"><div><h2>All generated output files</h2><p>Outputs from every independently completed stage remain available here.</p></div><div class="result-badge" id="outputCount">0 OUTPUTS</div></div><div id="allOutputs" class="output-list"><div class="empty-output">Build a stage to create its download files.</div></div></section>
     </section>
   </div>
 </main>
 <script src="./js/ch2-core.js?v=1.0.0-20261005-1457"></script>
 <script src="./js/uhp-core.js?v=1.0.0-20261005-1457"></script>
-<script src="./js/master-core.js?v=1.2.0-20261005-1457"></script>
-<script src="./js/pipeline.js?v=12.0.0-20261005-1553"></script>
+<script src="./js/master-core.js?v=1.4.0-20261005-1627"></script>
+<script src="./js/pipeline.js?v=15.0.0-20261005-1721"></script>
 </body>
 </html>

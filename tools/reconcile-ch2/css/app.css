@@ -595,3 +595,6 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .results .preview-pos tbody tr.pos-invoice-only>td:first-child,
 .results .preview-pos tbody tr.pos-manual-received>td:first-child{box-shadow:none}
 .results .preview-pos tbody tr.pos-invoice-only td.pos-order-index{color:inherit;font-weight:inherit;letter-spacing:normal}
+
+/* v13 universal shell + full-width workspace */
+.wrap{width:100%;max-width:none;margin:0;padding:20px 20px 48px}.topbar{display:none}.panel,.results,.reference-strip{max-width:none;width:100%}.results .table-wrap{width:100%}

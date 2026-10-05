@@ -96,3 +96,24 @@ All implemented stages keep source business files local to the browser and gener
 - Staff Hub landing page uses full viewport width.
 - Database input rail accepts direct drag-and-drop onto each input item.
 - Four database build stage names standardised across navigation and workspaces.
+
+
+## Database Builder v13.0.0
+- Universal Staff Hub top shell across live tools.
+- Full-width content workspaces.
+- Content-aware input validation.
+- Availability / To-Order input and Step 3 order output.
+- Combined Master independently outputs full + 98-column selected master; order file when availability exists.
+
+
+## v14.0.0 UI
+- Universal compact PHF header across live tools.
+- Database Builder uses a single operational dashboard: input rail left, all four build actions and outputs visible together on the right.
+
+## v15.0.0 — Universal shell stability and database dashboard density
+- Fixed Update Specials universal-header logo source and guarded the removed legacy topbar logo hook so the page opens directly into Update Specials instead of exposing its obsolete embedded Staff Hub home.
+- Cache-busted the shared PHF logo/header assets.
+- Standardised the shared header proportions across Staff Hub, Specials, Reconcile CH2 and Database Builder.
+- Reworked the single-screen Database Builder stage area from four narrow vertical cards to a compact two-by-two action dashboard on desktop.
+- Reduced empty card height and kept stage status, build control and outputs together.
+- Tightened the input rail and readiness summary while preserving direct drag/drop and independent stage execution.
