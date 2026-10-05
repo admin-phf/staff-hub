@@ -66,9 +66,26 @@ All implemented stages keep source business files local to the browser and gener
 - Current v1.0.0 parity validation covers the three required full working files without additional discount / AV inputs.
 
 
-## Database Builder v9.0.0 (2026-10-05 14:57 AEDT)
+## Database Builder v10.0.0 (2026-10-05 14:57 AEDT)
 - Unified one-screen workflow at `tools/database-build/index.html`.
 - Raw source files are uploaded once and retained in browser memory for all stages.
 - Generated full POS, CH2 and UHP models feed Combined Master directly without download/re-upload.
 - Output filenames follow the original Python scripts with Melbourne date-based names.
 - Unique/UHP downloads use persistent browser download links rather than hidden programmatic button downloads.
+
+
+### Database Builder v10.0.0 layout
+- Full-width database-builder workspace.
+- Persistent left navigation for Overview, POS, Oborne/CH2, Unique/UHP, Combined Master and All Outputs.
+- Selected stage workspace and its generated files are displayed on the right.
+- Combined Master reuses full Stage 1–3 in-memory models; no re-upload is required.
+
+
+## Database Builder v11.0.0 (2026-10-05 14:57 AEDT)
+
+- Adds `SRC_POS_ONGOING_DISCOUNTS` as an optional Universal / Shared input used by Combined Master pricing.
+- Discount parser supports the current summary-row + row-2 POS_* heading layout and the Step 3 greatest-discount hierarchy.
+- Full 38,386-row pricing comparison against the supplied Step 3 Python completed with zero pricing-field mismatches.
+- Reorganises inputs into compact left-rail groups: POS Inputs, Universal / Shared, Oborne / CH2 Inputs, and Unique / UHP Inputs.
+- Selecting an input opens only that input's upload/replacement workspace on the right; files remain held once in browser memory.
+- Database outputs continue to appear on the right and pass between stages in memory without download/re-upload.
