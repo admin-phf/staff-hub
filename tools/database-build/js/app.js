@@ -85,14 +85,22 @@
     return {headers,rows};
   }
 
+  function cleanExcelText(value){
+    // Excel XLSX cells are stored in XML. XML 1.0 does not permit control
+    // characters U+0000-U+0008, U+000B, U+000C, or U+000E-U+001F.
+    // Remove only those invisible/illegal bytes so source values such as
+    // "AESSGLL\u0002" become the valid visible value "AESSGLL".
+    return String(value).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'');
+  }
+
   function formatValue(value,columnName){
     if(value===null||value===undefined)return '';
-    if(TEXT_INPUT_COLUMNS.has(columnName))return String(value).trim().toUpperCase().replace(/'/g,'');
+    if(TEXT_INPUT_COLUMNS.has(columnName))return cleanExcelText(value).trim().toUpperCase().replace(/'/g,'');
     if(FLOAT_INPUT_COLUMNS.has(columnName)){
       if(value==='')return 0;
       const n=Number(String(value));return Number.isFinite(n)?n:0;
     }
-    const s=String(value).trim();
+    const s=cleanExcelText(value).trim();
     if(s==='')return 0;
     const n=Number(s);
     if(Number.isFinite(n))return Math.trunc(n);
@@ -107,7 +115,7 @@
     const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null,raw:true,blankrows:true});
     const dataRows=rows.length?rows.slice(1):rows,m=new Map();
     for(const row of dataRows){
-      if(row.length>=2&&row[0]!=null&&row[1]!=null){const original=String(row[0]).trim().toUpperCase(),substitute=String(row[1]).trim();if(original&&substitute)m.set(original,substitute);}
+      if(row.length>=2&&row[0]!=null&&row[1]!=null){const original=cleanExcelText(row[0]).trim().toUpperCase(),substitute=cleanExcelText(row[1]).trim();if(original&&substitute)m.set(original,substitute);}
     }
     return m;
   }
@@ -163,7 +171,7 @@
   function comparableValue(v){
     if(v===null||v===undefined)return '';
     if(typeof v==='number')return Number.isFinite(v)?v:String(v);
-    return String(v);
+    return cleanExcelText(v);
   }
   function valuesEqual(actual,expected){
     const a=comparableValue(actual),e=comparableValue(expected);
