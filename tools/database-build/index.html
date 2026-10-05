@@ -20,17 +20,20 @@
     <h1>Build Master Databases</h1>
     <p class="sub">Prepare the master data used by the Staff Hub. Files are processed locally in this browser and are not uploaded to the website.</p>
 
-    <nav class="workflow" aria-label="Database build stages">
+    <nav class="workflow workflow-four" aria-label="Database build stages">
       <button class="workflow-step active" type="button" data-stage="pos">
         <span class="step-no">1</span><span><b>POS Database</b><small>Merge POSActive exports</small></span><span class="stage-badge ready">Ready</span>
       </button>
-      <button class="workflow-step locked" type="button" data-stage="supplier1" disabled>
-        <span class="step-no">2</span><span><b>Supplier Database 1</b><small>Exact script mapping pending</small></span><span class="stage-badge pending">Pending script</span>
-      </button>
-      <button class="workflow-step locked" type="button" data-stage="supplier2" disabled>
-        <span class="step-no">3</span><span><b>Supplier Database 2</b><small>Exact script mapping pending</small></span><span class="stage-badge pending">Pending script</span>
-      </button>
-    </nav>
+      <a class="workflow-step" href="./ch2.html">
+        <span class="step-no">2</span><span><b>Oborne / CH2</b><small>CH2 Builder v1.0.0</small></span><span class="stage-badge ready">Ready</span>
+      </a>
+      <a class="workflow-step" href="./uhp.html">
+        <span class="step-no">3</span><span><b>Unique / UHP</b><small>Unique Builder v1.0.0</small></span><span class="stage-badge ready">Ready</span>
+      </a>
+          <a class="workflow-step" href="./master.html">
+        <span class="step-no">4</span><span><b>Combined Master</b><small>Master Builder v1.0.0</small></span><span class="stage-badge ready">Ready</span>
+      </a>
+</nav>
 
     <section class="panel intro-panel">
       <div>

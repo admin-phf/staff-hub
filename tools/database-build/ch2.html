@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Prahran Health Foods — Oborne / CH2 Database</title>
+  <link rel="stylesheet" href="./css/app.css?v=6.0.0-20261005-1342">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+</head>
+<body>
+<main class="wrap">
+<header class="topbar">
+  <a class="home-logo" href="../../index.html" aria-label="Return to Staff Hub home"><img class="logo" src="./assets/phf-logo.png" alt="Prahran Health Foods"></a>
+  <div class="topbar-right"><strong>Build Master Databases</strong><span class="build-label">CH2 stage · v1.0.0 · 05 Oct 2026 13:42 AEDT</span></div>
+</header>
+<h1>Build Master Databases</h1>
+<p class="sub">Prepare supplier master data locally in this browser. Selected files are not uploaded to the website.</p>
+<nav class="workflow workflow-four" aria-label="Database build stages">
+  <a class="workflow-step" href="./index.html"><span class="step-no">1</span><span><b>POS Database</b><small>POS Builder v5.0.0</small></span><span class="stage-badge ready">Ready</span></a>
+  <a class="workflow-step active" href="./ch2.html"><span class="step-no">2</span><span><b>Oborne / CH2</b><small>CH2 Builder v1.0.0</small></span><span class="stage-badge ready">Ready</span></a>
+  <a class="workflow-step" href="./uhp.html"><span class="step-no">3</span><span><b>Unique / UHP</b><small>Unique Builder v1.0.0</small></span><span class="stage-badge ready">Ready</span></a>
+      <a class="workflow-step" href="./master.html">
+        <span class="step-no">4</span><span><b>Combined Master</b><small>Master Builder v1.0.0</small></span><span class="stage-badge ready">Ready</span>
+      </a>
+</nav>
+<section class="panel intro-panel">
+  <div><h2>Oborne / CH2 Data Processor <small style="font-size:.55em;font-weight:600;opacity:.7">v1.0.0</small></h2><p>Browser port of <strong>MASTER 2.0, Step 2 / Enhanced Supplier Data Processor V19.0</strong>.</p></div>
+  <div class="match-note"><strong>Tested parity</strong><br>Validated against the supplied October 2026 ParagonCare pricelist and CR666a Stock On Hand file: 9,682 product rows, 31-column main output and strict 16-column POS supplier import. Both generated workbooks are verified before download.</div>
+</section>
+<section class="panel">
+  <div class="step-title"><span class="stepnum">1</span><div><h2>ParagonCare / CH2 Pricelist</h2><p>Required · monthly complementary medicine practitioner pricelist</p></div></div>
+  <div class="dropzone" id="supplierDrop" tabindex="0" role="button"><strong>Drag ParagonCare / CH2 Pricelist here</strong><small>or click to choose .XLSX / .XLSM</small></div>
+  <input class="hidden" id="supplierInput" type="file" accept=".xlsx,.xlsm"><div class="file-list" id="supplierFiles"></div>
+</section>
+<section class="panel">
+  <div class="step-title"><span class="stepnum">2</span><div><h2>CR666a Stock On Hand</h2><p>Required for the current CH2 build · branch SOH integration</p></div></div>
+  <div class="dropzone" id="sohDrop" tabindex="0" role="button"><strong>Drag CR666a Stock On Hand here</strong><small>or click to choose .XLSX / .XLSM</small></div>
+  <input class="hidden" id="sohInput" type="file" accept=".xlsx,.xlsm"><div class="file-list" id="sohFiles"></div>
+</section>
+<section class="panel">
+  <div class="step-title"><span class="stepnum optional">3</span><div><h2>Brand Abbreviation</h2><p>Optional · same original-brand → substitute-brand mapping used by the Python script</p></div></div>
+  <div class="dropzone" id="brandDrop" tabindex="0" role="button"><strong>Drag Brand Abbreviation file here</strong><small>Optional · .XLSX / .XLSM / .XLS</small></div>
+  <input class="hidden" id="brandInput" type="file" accept=".xls,.xlsx,.xlsm"><div class="file-list" id="brandFiles"></div>
+</section>
+<section class="panel">
+  <div class="step-title"><span class="stepnum optional">4</span><div><h2>Weight &amp; Dimensions</h2><p>Optional · maps carton quantity into SUP MIN ORDER WS and appends BOX fields to the main output</p></div></div>
+  <div class="dropzone" id="boxDrop" tabindex="0" role="button"><strong>Drag Weight &amp; Dimensions file here</strong><small>Optional · .XLSX / .XLSM</small></div>
+  <input class="hidden" id="boxInput" type="file" accept=".xlsx,.xlsm"><div class="file-list" id="boxFiles"></div>
+</section>
+<section class="panel run-panel">
+  <div class="actions"><button class="btn primary" id="runBtn" disabled>Build Oborne / CH2 Database</button><button class="btn" id="clearBtn">Clear Files</button></div>
+  <div class="status info" id="status">Add the ParagonCare / CH2 Pricelist and CR666a Stock On Hand files to continue.</div>
+  <div class="progress hidden" id="progress"><div id="progressBar"></div></div>
+</section>
+<section class="results hidden" id="results">
+  <div class="results-head"><div><h2>Oborne / CH2 database complete</h2><p id="resultSub"></p></div><div class="result-badge">2 / 2 OUTPUTS VERIFIED</div></div>
+  <div class="kpis" id="kpis"></div><div class="output-list" id="outputList"></div>
+  <div class="actions"><button class="btn primary" id="downloadMainBtn">Download clean CH2 data</button><button class="btn primary" id="downloadPosBtn">Download CH2 POS DB</button><button class="btn" id="downloadBothBtn">Download both</button></div>
+</section>
+<section class="panel privacy"><strong>File privacy:</strong> this tool reads the selected supplier files on this device only. Do not commit supplier databases or source workbooks to the GitHub repository.</section>
+</main>
+<script src="./js/ch2-core.js?v=1.0.0-20261005-1342"></script>
+<script src="./js/ch2.js?v=1.0.0-20261005-1342"></script>
+</body></html>

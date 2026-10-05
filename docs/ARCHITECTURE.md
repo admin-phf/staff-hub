@@ -46,11 +46,21 @@ Browser-side processing is preferred for reconciliation documents so the input f
 ## Build Master Databases
 `tools/database-build/` is an independent browser-side database preparation tool.
 
-Current implemented stage:
-1. POS Database — browser port of `MASTER 2.0, Step 1 - Merging PosActive Files Integration & Brand Abbreviation`.
+Current implemented stages:
+1. POS Database — browser port of `MASTER 2.0, Step 1 - Merging PosActive Files Integration & Brand Abbreviation` (POS Builder v5.0.0).
+2. Oborne / CH2 — browser port of `MASTER 2.0, Step 2 - CH2 Pricelist Formatter + SOH + Weight & Dimensions Loader` (CH2 Builder v1.0.0).
 
-Reserved stages awaiting their source Python scripts:
-2. Supplier Database 1.
-3. Supplier Database 2.
+3. Unique / UHP — browser port of `MASTER, Step 2.5 - UHP Pricelist Formatter, Brand Mapping & Index Generation` (Unique Builder v1.0.0).
 
-The POS stage intentionally keeps source business files local to the browser and generates the two Excel workbooks defined by the Python source.
+All implemented stages keep source business files local to the browser and generate the two Excel workbooks defined by their supplied Python sources. CH2 optional inputs include Brand Abbreviation and Weight & Dimensions. Unique / UHP optionally accepts Brand Abbreviation.
+
+
+## Database Builder v8.0.0 — Combined Master
+
+- Stage 4: `tools/database-build/master.html`
+- Required inputs are the full working outputs from POS, Oborne / CH2 and Unique / UHP.
+- Reduced `*_pos_db` outputs are rejected.
+- Generates the fixed 98-column selected master used by MASTER Step 3.
+- Matching priority: barcode, then Brand + SUB ID, then code with brand validation.
+- Primary workbook uses a dark navy/yellow dynamic summary row, pale blue header row, alternating body rows and blue/red price-change emphasis.
+- Current v1.0.0 parity validation covers the three required full working files without additional discount / AV inputs.
