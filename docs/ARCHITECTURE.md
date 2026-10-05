@@ -89,3 +89,10 @@ All implemented stages keep source business files local to the browser and gener
 - Reorganises inputs into compact left-rail groups: POS Inputs, Universal / Shared, Oborne / CH2 Inputs, and Unique / UHP Inputs.
 - Selecting an input opens only that input's upload/replacement workspace on the right; files remain held once in browser memory.
 - Database outputs continue to appear on the right and pass between stages in memory without download/re-upload.
+
+
+## Database Builder v12.0.0
+- Balanced shared PHF header/breadcrumb styling.
+- Staff Hub landing page uses full viewport width.
+- Database input rail accepts direct drag-and-drop onto each input item.
+- Four database build stage names standardised across navigation and workspaces.
