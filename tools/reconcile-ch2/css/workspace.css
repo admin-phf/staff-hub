@@ -1,0 +1,68 @@
+/* Reconcile CH2 v2.7.0 — input rail + workspace layout.
+   Same proportions as Build Master Databases (tools/database-build). Colours and states come
+   from assets/css/theme.css, which styles both pages with the same rules. */
+body.phf-page-reconcile .wrap{padding-top:16px}
+body.phf-page-reconcile .builder-shell{display:grid;grid-template-columns:320px minmax(0,1fr);gap:16px;align-items:start;margin-bottom:16px}
+@media(min-width:1900px){body.phf-page-reconcile .builder-shell{grid-template-columns:340px minmax(0,1fr)}}
+
+/* Left rail */
+body.phf-page-reconcile .builder-sidebar{position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto;margin:0}
+body.phf-page-reconcile .sidebar-helper{line-height:1.35}
+body.phf-page-reconcile .input-nav-item{position:relative;width:100%;display:grid;align-items:center;text-align:left;color:inherit;font:inherit;cursor:pointer}
+body.phf-page-reconcile .input-nav-item>span:nth-child(2){min-width:0}
+body.phf-page-reconcile .input-nav-item strong{display:block;line-height:1.15;white-space:normal}
+body.phf-page-reconcile .input-nav-item small{display:block;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.phf-page-reconcile .input-dot{border-radius:50%;display:grid;place-items:center;font-weight:900}
+body.phf-page-reconcile .input-state{white-space:nowrap}
+body.phf-page-reconcile .input-nav-item.drag-target::after{content:'DROP';position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:9px;font-weight:900;letter-spacing:.06em;padding:3px 6px;border-radius:5px}
+body.phf-page-reconcile .input-nav-item.drag-target .input-state{visibility:hidden}
+body.phf-page-reconcile .sidebar-footer{margin-top:10px;border-top:1px solid var(--phf-line);padding:10px 4px 0;line-height:1.45}
+body.phf-page-reconcile .sidebar-footer strong{display:block;margin-bottom:2px}
+body.phf-page-reconcile .sidebar-footer a{display:inline-block;margin-top:6px;font-weight:700;color:var(--phf-blue-ink);text-decoration:none}
+body.phf-page-reconcile .sidebar-footer a:hover{text-decoration:underline}
+
+/* Workspace */
+body.phf-page-reconcile .builder-workspace{min-width:0}
+body.phf-page-reconcile .input-detail-panel{display:none}
+body.phf-page-reconcile .input-detail-panel.is-open{display:block}
+body.phf-page-reconcile .input-workspace-card[hidden]{display:none!important}
+body.phf-page-reconcile .input-workspace-card .dropzone{min-height:150px;display:grid;place-items:center;text-align:center;cursor:pointer}
+body.phf-page-reconcile .input-workspace-card .dropzone strong,
+body.phf-page-reconcile .input-workspace-card .dropzone small{display:block}
+body.phf-page-reconcile .input-workspace-card .file-list{margin-top:12px}
+body.phf-page-reconcile .input-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+body.phf-page-reconcile .input-meta>div{padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.4}
+body.phf-page-reconcile .input-meta strong{display:block;margin-bottom:3px}
+body.phf-page-reconcile .input-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}
+body.phf-page-reconcile .summary-chip{padding:9px 10px}
+body.phf-page-reconcile .summary-chip strong,body.phf-page-reconcile .summary-chip span{display:block}
+body.phf-page-reconcile .summary-chip span{margin-top:3px;font-size:11px}
+body.phf-page-reconcile .result-badge{font-size:11px;padding:7px 10px;white-space:nowrap}
+
+/* Run stage */
+body.phf-page-reconcile .stage-dashboard{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;margin:0 0 14px}
+body.phf-page-reconcile .stage-dashboard .panel{margin:0}
+body.phf-page-reconcile .stage-head{display:flex;align-items:center}
+body.phf-page-reconcile .stage-title h2 small{font-size:.75em}
+body.phf-page-reconcile .small-badge{font-size:9px;padding:4px 7px;white-space:nowrap}
+body.phf-page-reconcile .stage-dashboard .progress{margin-top:10px}
+body.phf-page-reconcile .stage-dashboard .stage-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:10px}
+
+/* Generated output files */
+body.phf-page-reconcile .outputs-panel .output-list{margin:0}
+body.phf-page-reconcile .output-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0}
+body.phf-page-reconcile .output-row+.output-row{border-top:1px solid var(--phf-line)}
+body.phf-page-reconcile .output-row code{display:block;font-size:13px;font-weight:600;color:var(--phf-ink)}
+body.phf-page-reconcile .output-row span{display:block;margin-top:2px;font-size:12px;color:var(--phf-muted)}
+body.phf-page-reconcile .download-link{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:7px 14px;border:1px solid transparent;font:inherit;font-size:12.5px;cursor:pointer;white-space:nowrap}
+body.phf-page-reconcile .download-link:disabled{background:var(--phf-wait-bg)!important;border-color:var(--phf-wait-bg)!important;color:var(--phf-wait-ink)!important;cursor:not-allowed}
+body.phf-page-reconcile .empty-output{border-radius:8px}
+
+@media(max-width:1100px){body.phf-page-reconcile .builder-shell{grid-template-columns:270px minmax(0,1fr)}body.phf-page-reconcile .input-summary{grid-template-columns:1fr}}
+@media(max-width:900px){
+  body.phf-page-reconcile .builder-shell{grid-template-columns:1fr}
+  body.phf-page-reconcile .builder-sidebar{position:relative;top:auto;max-height:none}
+  body.phf-page-reconcile .input-meta{grid-template-columns:1fr}
+  body.phf-page-reconcile .stage-dashboard .stage-actions{grid-template-columns:1fr}
+}
+body.phf-page-reconcile .input-detail-panel .panel{--phf-pad:16px}

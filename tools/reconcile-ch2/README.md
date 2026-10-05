@@ -844,3 +844,7 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - The footer now displays a dynamic `Found total` aligned under the Found column.
 - Unticking a receiving row is now an explicit undo: its Found quantity is cleared and the row returns to Remaining.
 - POS Layout viewport height is increased for larger receiving sessions; sticky controls/header/footer remain in place.
+
+
+## v2.7.0 layout
+Same layout as Build Master Databases: drop files on the **Input files** rail (reference data is saved in this browser; order files are session-only), check **Input readiness**, run the reconciliation, then download from **Generated output files**. The rail and workspace live in `js/ui/workspace.js` and `css/workspace.css`; the reconciliation engine is unchanged.

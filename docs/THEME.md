@@ -1,6 +1,6 @@
 # Staff Hub theme v19.0.0
 
-Updated 05 Oct 2026 19:30 AEDT. One look across every Staff Hub page, with colours taken from Reconcile CH2 → POS layout.
+Updated 06 Oct 2026 02:45 AEDT (theme v20.0.0). One look across every Staff Hub page, with colours taken from Reconcile CH2 → POS layout.
 
 ## Files
 - `assets/css/shell.css`: the shared page header (logo, centred title, breadcrumbs).
@@ -43,5 +43,8 @@ Main action buttons follow the inputs: **grey** until required files are present
 1. Copy the shared `<header class="phf-shell-header">` block from any tool page (icons are inline SVG, 20 px, `stroke="currentColor"`).
 2. Link `shell.css` and then `theme.css` last in `<head>`, and give `<body>` a `phf-page-…` class.
 3. Use `.phf-band` (with an `<h2>`) for panel headings, `.phf-pill.is-red|is-green|is-blue|is-amber` for badges, `.btn.primary` for the main action (blue / grey when `disabled`), and an `id` starting with `download` on download buttons so they turn green.
+
+## Input rail layout
+Build Master Databases and Reconcile CH2 share one layout: an **Input files** rail (`.builder-sidebar`, `.input-group`, `.input-nav-item` with `loaded` / `missing` / `required` / `active` / `drag-target` / `invalid`) beside a workspace (`.input-detail-panel`, `.dashboard-summary` + `.summary-chip.ok|.miss`, `.stage-dashboard`, `.outputs-panel`). Their colours are one set of rules in `theme.css`; a new tool with input files should reuse these class names and add its body class to those `:is(...)` selectors.
 
 Update Specials customer artwork (`.slide`, PNG/ZIP/PDF/Mailchimp exports) is deliberately untouched: the theme only styles the editor around it.
