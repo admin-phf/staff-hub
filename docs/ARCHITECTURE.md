@@ -104,3 +104,8 @@ All implemented stages keep source business files local to the browser and gener
 - Content-aware input validation.
 - Availability / To-Order input and Step 3 order output.
 - Combined Master independently outputs full + 98-column selected master; order file when availability exists.
+
+
+## v14.0.0 UI
+- Universal compact PHF header across live tools.
+- Database Builder uses a single operational dashboard: input rail left, all four build actions and outputs visible together on the right.
