@@ -96,3 +96,11 @@ All implemented stages keep source business files local to the browser and gener
 - Staff Hub landing page uses full viewport width.
 - Database input rail accepts direct drag-and-drop onto each input item.
 - Four database build stage names standardised across navigation and workspaces.
+
+
+## Database Builder v13.0.0
+- Universal Staff Hub top shell across live tools.
+- Full-width content workspaces.
+- Content-aware input validation.
+- Availability / To-Order input and Step 3 order output.
+- Combined Master independently outputs full + 98-column selected master; order file when availability exists.

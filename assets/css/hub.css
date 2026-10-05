@@ -35,3 +35,6 @@ h1{font-size:28px;margin:0 0 5px}
 @media(max-width:1450px){.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:900px){.tiles{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.wrap{padding:18px}.tiles{grid-template-columns:1fr}}
+
+/* v13 shared full-width shell */
+.wrap{width:100%;max-width:none;margin:0;padding:22px 20px 40px}.topbar{display:none}.tiles{grid-template-columns:repeat(4,minmax(260px,1fr));gap:18px}.tile{min-height:190px}.page-title{margin-top:4px}@media(max-width:1350px){.tiles{grid-template-columns:repeat(3,minmax(260px,1fr))}}@media(max-width:950px){.tiles{grid-template-columns:repeat(2,minmax(250px,1fr))}}@media(max-width:620px){.tiles{grid-template-columns:1fr}.wrap{padding-left:14px;padding-right:14px}}

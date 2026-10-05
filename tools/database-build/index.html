@@ -4,21 +4,19 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Build Master Databases | Prahran Health Foods</title>
-<link rel="stylesheet" href="./css/app.css?v=12.0.0-20261005-1553">
+<link rel="stylesheet" href="../../assets/css/shell.css?v=13.0.0-20261005-1627">
+<link rel="stylesheet" href="./css/app.css?v=13.0.0-20261005-1627">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 </head>
 <body class="database-builder-page">
-<header class="app-topbar">
-  <a href="../../index.html" class="app-home-logo" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png" alt="Prahran Health Foods"></a>
-  <div class="app-tool-title">
-    <span class="app-tool-icon" aria-hidden="true">🗃️</span>
-    <div><h1>Build Master Databases</h1><p>Database Builder v12.0.0 · Updated 05 Oct 2026 15:53 AEDT</p></div>
-  </div>
-  <nav class="app-breadcrumb" aria-label="Staff Hub navigation"><a href="../../index.html">Staff Hub</a><span>›</span><strong>BUILD MASTER DATABASES</strong></nav>
+<header class="phf-shell-header">
+  <a href="../../index.html" class="phf-shell-logo" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png" alt="Prahran Health Foods"></a>
+  <div class="phf-shell-title"><span class="phf-shell-icon" aria-hidden="true">🗃️</span><div class="phf-shell-copy"><h1>Build Master Databases</h1><p>Database Builder v13.0.0 · Updated 05 Oct 2026 16:27 AEDT</p></div></div>
+  <nav class="phf-shell-nav" aria-label="Staff Hub navigation"><a href="../../index.html">Staff Hub</a><span>›</span><strong>Build Master Databases</strong></nav>
 </header>
 
-<main class="workflow-wrap full-width-wrap">
+<main class="workflow-wrap full-width-wrap phf-full">
   <div class="builder-shell">
     <aside class="builder-sidebar" aria-label="Database builder navigation">
       <div class="sidebar-title">Database Builder</div>
@@ -56,7 +54,7 @@
       <section class="workspace-view" id="view-pos"><div id="stage-pos"></div><div class="panel stage-output-panel"><h2>POS output files</h2><div class="stage-output-list" data-stage-output="pos"></div></div></section>
       <section class="workspace-view" id="view-ch2"><div id="stage-ch2"></div><div class="panel stage-output-panel"><h2>Oborne / CH2 output files</h2><div class="stage-output-list" data-stage-output="ch2"></div></div></section>
       <section class="workspace-view" id="view-uhp"><div id="stage-uhp"></div><div class="panel stage-output-panel"><h2>Unique / UHP output files</h2><div class="stage-output-list" data-stage-output="uhp"></div></div></section>
-      <section class="workspace-view" id="view-master"><div id="stage-master"></div><div class="panel stage-output-panel"><h2>Combined Master output</h2><p class="section-note">The final 98-column master uses the full POS, CH2 and Unique datasets already generated in this session.</p><div class="stage-output-list" data-stage-output="master"></div></div></section>
+      <section class="workspace-view" id="view-master"><div id="stage-master"></div><div class="panel stage-output-panel"><h2>Combined Master output files</h2><p class="section-note">Always outputs the full merged master and 98-column selected master. When To-Order / Availability is loaded, the order workbook is also generated.</p><div class="stage-output-list" data-stage-output="master"></div></div></section>
 
       <section class="workspace-view" id="view-outputs">
         <section class="panel outputs-panel"><div class="results-head"><div><h2>Generated output files</h2><p>Every completed workbook remains available here for this browser session.</p></div><div class="result-badge" id="outputCount">0 OUTPUTS</div></div><div id="allOutputs" class="output-list"><div class="empty-output">Build a stage to create its download files.</div></div></section>
@@ -66,7 +64,7 @@
 </main>
 <script src="./js/ch2-core.js?v=1.0.0-20261005-1457"></script>
 <script src="./js/uhp-core.js?v=1.0.0-20261005-1457"></script>
-<script src="./js/master-core.js?v=1.2.0-20261005-1457"></script>
-<script src="./js/pipeline.js?v=12.0.0-20261005-1553"></script>
+<script src="./js/master-core.js?v=1.3.0-20261005-1627"></script>
+<script src="./js/pipeline.js?v=13.0.0-20261005-1627"></script>
 </body>
 </html>
