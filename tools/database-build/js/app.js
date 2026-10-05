@@ -32,6 +32,8 @@
   const STANDARD_TEXT_COLUMNS=new Set(['POS_MASTER_BARCODE','POS_MAIN_ID','POS_PLU','POS_SUB_ID','POS_BRAND','POS_DESCR','POS_POS_DESC','POS_PACKAGING']);
   const DB_TEXT_COLUMNS=new Set(['POS_MASTER_BARCODE','POS_PLU','POS_SUB_ID','POS_BRAND','POS_DESCR','POS_POS_DESC','POS_PACKAGING','STATUS']);
   const ALLOWED_EXT=['xls','xlsx','xlsm','csv'];
+  const BUILD_VERSION='v5.0.0';
+  const BUILD_RELEASED='05.10.2026 13:07 AEDT';
 
   const state={stock:null,template:null,brand:null,standardBlob:null,dbBlob:null,standardName:'',dbName:'',rows:0,brandSubstitutions:0,integrity:null};
   const $=s=>document.querySelector(s);
@@ -86,11 +88,13 @@
   }
 
   function cleanExcelText(value){
-    // Excel XLSX cells are stored in XML. XML 1.0 does not permit control
-    // characters U+0000-U+0008, U+000B, U+000C, or U+000E-U+001F.
-    // Remove only those invisible/illegal bytes so source values such as
-    // "AESSGLL\u0002" become the valid visible value "AESSGLL".
-    return String(value).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'');
+    // Normalise characters that cannot legally be stored in XLSX worksheet XML.
+    // Legacy XLS can surface these either as literal control bytes (e.g. U+0002)
+    // or as Excel's escaped form (e.g. _x0002_). Strip only XML-1.0-illegal
+    // controls; preserve all visible characters and legal whitespace.
+    let s=String(value);
+    s=s.replace(/_x00(0[0-8BCEF]|1[0-9A-F])_/gi,'');
+    return s.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,'');
   }
 
   function formatValue(value,columnName){
@@ -231,9 +235,10 @@
       ))throw new Error(`POS DB model: sort order mismatch at output row ${i+2}.`);
     }
   }
-  function melbourneDate(){
-    const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Australia/Melbourne',day:'2-digit',month:'2-digit',year:'2-digit'}).formatToParts(new Date());
-    const get=t=>parts.find(p=>p.type===t)?.value||'';return `${get('day')}.${get('month')}.${get('year')}`;
+  function melbourneStamp(){
+    const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Australia/Melbourne',day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date());
+    const get=t=>parts.find(p=>p.type===t)?.value||'';
+    return {date:`${get('day')}.${get('month')}.${get('year')}`,time:`${get('hour')}${get('minute')}`};
   }
   function downloadBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);}
 
@@ -258,8 +263,9 @@
       const standardCheck=await verifyWorkbookBlob(standardBlob,'Clean_Merged_POS_Data',stdCols,merged,STANDARD_TEXT_COLUMNS);setProgress(95);
       const dbCheck=await verifyWorkbookBlob(dbBlob,'POS_DB_Data',POS_DB_OUTPUT_COLUMNS,dbRows,DB_TEXT_COLUMNS);setProgress(99);
       state.integrity={standard:standardCheck,db:dbCheck};
-      const date=melbourneDate();
-      state.standardName=`clean_merged_pos_data_${date}.xlsx`;state.dbName=`clean_merged_pos_data_pos_db_${date}.xlsx`;
+      const stamp=melbourneStamp();
+      state.standardName=`clean_merged_pos_data_${BUILD_VERSION}_${stamp.date}_${stamp.time}.xlsx`;
+      state.dbName=`clean_merged_pos_data_pos_db_${BUILD_VERSION}_${stamp.date}_${stamp.time}.xlsx`;
       state.standardBlob=standardBlob;state.dbBlob=dbBlob;state.rows=merged.length;state.brandSubstitutions=substitutions;
       renderResults(brandMap.size);setProgress(100);setTimeout(hideProgress,250);setStatus(`Verified complete — ${merged.length.toLocaleString()} POS rows merged and both output workbooks passed cell-by-cell integrity checks.`, 'success');
     }catch(err){console.error(err);hideProgress();setStatus(`Error: ${err&&err.message?err.message:String(err)}`,'error');}
