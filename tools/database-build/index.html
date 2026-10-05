@@ -13,8 +13,8 @@
 <body class="database-builder-page phf-page-db">
 <header class="phf-shell-header header-container">
   <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
-  <div class="phf-shell-title center-section"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span><div class="phf-shell-copy title-row"><h1>Build Master Databases</h1><p class="phf-shell-version version-text">v20.0.0</p></div></div>
-  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Build Master Databases</span></nav><p class="phf-shell-updated build-details">Updated 06 Oct 2026</p></div>
+  <div class="phf-shell-title center-section"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span><div class="phf-shell-copy title-row"><h1>Build Master Databases</h1><p class="phf-shell-version version-text">v19.0.0</p></div></div>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Build Master Databases</span></nav><p class="phf-shell-updated build-details">Updated 05 Oct 2026 19:30 AEDT</p></div>
 </header>
 
 <main class="workflow-wrap full-width-wrap phf-full">
@@ -45,7 +45,7 @@
       </section>
 
       <section class="panel run-panel dashboard-run">
-        <div class="results-head"><div><h2>Build all</h2><p>Runs stages 1 → 4 in order. Required files are enough for manual run; when every optional input is also loaded, the full chain runs automatically.</p></div></div>
+        <div class="results-head"><div><h2>Build all</h2><p>Runs stages 1 → 4 in order. Each stage auto-runs as soon as its required raw inputs are loaded. Optional files can be added afterwards and trigger a fresh stage build. When every required and optional input is loaded, the full chain runs automatically.</p></div></div>
         <div class="actions"><button class="btn primary" id="buildAllBtn" disabled>Build All Databases</button><button class="btn" id="clearAllBtn">Clear Session</button></div>
         <div class="status info" id="globalStatus">Add the required source files to enable Build All. Optional inputs never block a manual build.</div>
         <div class="progress hidden" id="globalProgress"><div id="globalProgressBar"></div></div>
@@ -58,6 +58,6 @@
 <script src="./js/ch2-core.js?v=1.1.0-20261006"></script>
 <script src="./js/uhp-core.js?v=1.1.0-20261006"></script>
 <script src="./js/master-core.js?v=2.0.0-20261006"></script>
-<script src="./js/pipeline.js?v=20.0.0-20261006"></script>
+<script src="./js/pipeline.js?v=19.0.0-20261005-1930"></script>
 </body>
 </html>

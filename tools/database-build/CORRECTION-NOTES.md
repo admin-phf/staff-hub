@@ -14,9 +14,11 @@
 ## Running
 - Manual stage buttons continue to work independently with required files only.
 - Manual Build All requires only required inputs; optional inputs are bypassed when absent.
-- POS auto-runs when stock + template + shared brand mapping are loaded.
-- CH2 auto-runs when pricelist + SOH + Weight & Dimensions + shared brand mapping are loaded.
-- UHP auto-runs when UHP export + shared brand mapping are loaded.
+- POS auto-runs as soon as BrowseStockItems1 + Product Insert Template are loaded; Brand Abbreviation remains optional.
+- CH2 auto-runs as soon as pricelist + SOH are loaded; Weight & Dimensions and Brand Abbreviation remain optional.
+- UHP auto-runs as soon as the UHP export is loaded; Brand Abbreviation remains optional.
+- Adding or removing an optional file later invalidates and automatically rebuilds the affected stage.
+- After an automatically completed POS or CH2 stage, the upload workspace advances to the next missing required raw input so the user can continue loading files.
 - When every required and optional input is loaded, the complete POS → CH2 → UHP → Master chain auto-runs.
 - The full master workbook automatically downloads after a successful master build.
 
