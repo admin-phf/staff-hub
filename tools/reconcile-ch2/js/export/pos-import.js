@@ -1,3 +1,4 @@
+// Reconcile CH2 v2.7.3 — 07 Oct 2026 07:24 AEDT: wholesale discrepancies are review warnings.
 (function(global){
   'use strict';
   const PHF=global.PHFReconcile=global.PHFReconcile||{};
@@ -282,6 +283,9 @@
   // CH2_WHOLESALE_EX_GST reference or derived from Unit Price ÷ Disc %) is supporting
   // data, not invoice arithmetic, so a small reference/invoice difference is a review
   // note and never blocks the download.
+  function wholesaleReviewLabel(inv){
+    return `Invoice ${invoiceNo(inv)||'?'} · line ${lineText(inv&&inv.invoiceLine)||'?'} · CH2 product ${clean(inv&&inv.productCode)||'?'} · ${clean(inv&&inv.description)||'Description unavailable'}`;
+  }
   function wsBackfilled(inv){const s=clean(inv&&inv.normalWholesaleSource);return !!s&&s!=='INVOICE';}
   function validateSourceInvoiceRow(inv,errors,warnings){
     const ln=lineText(inv&&inv.invoiceLine)||'?';const q=n(inv&&inv.qtySupplied),unit=n(inv&&inv.unitPriceExGst),ext=n(inv&&inv.extendedExGst),gst=n(inv&&inv.gstAmount)||0,total=n(inv&&inv.totalIncGst),ws=n(inv&&inv.normalWholesale),disc=n(inv&&inv.discountPct);
@@ -289,8 +293,8 @@
     if(unit==null){pushIssue(errors,`Invoice line ${ln}: Unit Price ex GST is missing.`);return;}
     if(q>0&&unit>0&&ext!=null&&Math.abs(round(unit*q,2)-round(ext,2))>0.02)pushIssue(errors,`Invoice line ${ln}: Unit Price × Qty does not equal Extended ex GST.`);
     if(q>0&&unit>0&&ws!=null&&disc!=null&&Math.abs(ws*(1-disc/100)-unit)>0.011){
-      if(wsBackfilled(inv))pushIssue(warnings,`Invoice line ${ln}: Normal W/S was not printed by CH2; the filled value ${fixed(ws,2)} (${clean(inv.normalWholesaleSource)}) less ${fixed(disc,2)}% differs from Unit Price ${fixed(unit,4)}. Review only; download remains available.`);
-      else pushIssue(errors,`Invoice line ${ln}: Normal W/S less discount does not equal Unit Price.`);
+      if(wsBackfilled(inv))pushIssue(warnings,`${wholesaleReviewLabel(inv)}: Normal W/S was not printed by CH2; the filled value ${fixed(ws,2)} (${clean(inv.normalWholesaleSource)}) less ${fixed(disc,2)}% differs from Unit Price ${fixed(unit,4)}. Review only; download remains available.`);
+      else pushIssue(warnings,`${wholesaleReviewLabel(inv)}: Normal W/S less discount does not equal Unit Price. Printed invoice values are preserved; review only, download remains available.`);
     }
     if(ext!=null&&gst>0&&Math.abs(round(ext*0.10,2)-round(gst,2))>0.011)pushIssue(errors,`Invoice line ${ln}: GST is not 10% of Extended ex GST.`);
     if(ext!=null&&total!=null&&Math.abs(round(ext+gst,2)-round(total,2))>0.011)pushIssue(errors,`Invoice line ${ln}: Extended ex GST + GST does not equal Total.`);
@@ -304,7 +308,7 @@
   }
   function allocateReceiving(rows,target,errors,label,warnings){
     const src=(rows||[]).slice().sort((a,b)=>(n(a&&a.invoiceLine)||0)-(n(b&&b.invoiceLine)||0)),original=round(src.reduce((a,r)=>a+(n(r&&r.qtySupplied)||0),0),3),t=round(Math.max(0,n(target)||0),3);
-    if(Math.abs(t-original)<=0.0005)return new Map(src.map(r=>[invoiceKey(r),n(r.qtySupplied)||0]));
+    if(t>0){if(Math.abs(t-original)>0.0005)pushIssue(warnings||errors,`${label}: Found ${qtyText(t)} differs from invoice quantity ${qtyText(original)}. All included invoice lines preserve their printed supplied quantities.`);return new Map(src.map(r=>[invoiceKey(r),n(r.qtySupplied)||0]));}
     // v2.6.28 — the user's Found quantity is authoritative. When one POS item spans invoice
     // lines with different terms, allocate in invoice-line order and flag it for review
     // instead of blocking the download.
@@ -457,7 +461,11 @@
       if(normalWs==null){const fb=posWholesaleFallback(ctx.pos,refs);if(fb.value!=null){normalWs=round(fb.value,2);wsSource=fb.source;warnings.push(`Invoice line ${lnText} · ${lineLabel(ctx.pos,ctx.index)}: Normal W/S not printed; ${fixed(normalWs,2)} used from ${fb.source}.`);}}
       if(disc==null&&normalWs!=null&&normalWs>0){const d=round((1-unit/normalWs)*100,2);if(d>=0&&d<100){disc=d;warnings.push(`Invoice line ${lnText}: Disc % not printed; ${fixed(disc,2)}% derived from Unit Price ÷ Normal W/S for POSActive.`);}}
       if(disc==null||normalWs==null||normalWs<=0){normalWs=round(unit,2);disc=0;wsSource=wsSource||'UNIT PRICE (NO W/S OR DISC %)';pushIssue(warnings,`Invoice line ${lnText}: Normal W/S and Disc % could not be confirmed; exported with Normal WS = Unit Price ${fixed(unit,2)} and 0% discount. Review AdjWSPrc in POSActive.`);}
-      const outQty=allocation.has(key)?allocation.get(key):originalQty;
+      const allocatedQty=allocation.has(key)?allocation.get(key):originalQty;
+      // Invoice is authoritative for included billed rows. Found=0 still excludes a row;
+      // positive Found counts are receiving notes, not replacement invoice figures.
+      const outQty=allocatedQty>0?originalQty:0;
+      if(allocatedQty>0&&Math.abs(allocatedQty-originalQty)>0.0005)pushIssue(warnings,`${wholesaleReviewLabel(inv)}: Found allocation ${qtyText(allocatedQty)} differs from invoice quantity ${qtyText(originalQty)}. The TXT preserves the invoice quantity.`);
       if(outQty<=0){omittedNotSupplied.push({inv,ctx,selected:selectedOverride(options,ctx.pos)});continue;}
       const adjusted=Math.abs(outQty-originalQty)>0.0005,ext=adjusted?round(unit*outQty,2):round(inv.extendedExGst,2),gstRate=n(inv.gstPct)!=null?n(inv.gstPct):((n(inv.gstAmount)||0)>0?10:0),gst=adjusted?round(ext*gstRate/100,2):round(inv.gstAmount,2),total=adjusted?round(ext+gst,2):round(inv.totalIncGst,2);
       const importIdentity=resolveImportIdentity(ctx.pos,refs,ctx.invRows,options);
@@ -473,8 +481,8 @@
       if(subId&&subId!==ch2Code)warnings.push(`IMPORT SUB ID — CH2 ${ch2Code} uses ${importIdentity.source} key ${subId} for ${description}.`);
       const predWs=round(round(ext/outQty,2)/(1-disc/100),2),wsRounded=round(normalWs,2),wsDiff=round(predWs-wsRounded,2);
       if(Math.abs(wsDiff)>0.011){
-        if(wsSource)pushIssue(warnings,`Invoice line ${lineText(inv.invoiceLine)}: predicted POSActive WS ${predWs.toFixed(2)} differs from the filled Normal W/S ${wsRounded.toFixed(2)} (${wsSource}). Review only; download remains available.`);
-        else pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)}: predicted POSActive WS ${predWs.toFixed(2)} differs from Normal W/S ${wsRounded.toFixed(2)} by more than 1c.`);
+        if(wsSource)pushIssue(warnings,`${wholesaleReviewLabel(inv)}: predicted POSActive WS ${predWs.toFixed(2)} differs from the filled Normal W/S ${wsRounded.toFixed(2)} (${wsSource}). Review only; download remains available.`);
+        else pushIssue(warnings,`${wholesaleReviewLabel(inv)}: predicted POSActive WS ${predWs.toFixed(2)} differs from Normal W/S ${wsRounded.toFixed(2)} by more than 1c. Printed invoice values are preserved; review only, download remains available.`);
       }
       else if(Math.abs(wsDiff)>0.0001)warnings.push(`Invoice line ${lineText(inv.invoiceLine)}: POSActive WS is expected to round to ${predWs.toFixed(2)} vs invoice Normal W/S ${wsRounded.toFixed(2)} (1c rounding).`);
       records.push({
@@ -512,7 +520,7 @@
         if(invoiceOnlyOmitted.length)pushIssue(warnings,`${msg} This is expected because ${invoiceOnlyOmitted.length} invoice-only line${invoiceOnlyOmitted.length===1?' was':'s were'} omitted.`);else pushIssue(errors,msg);
       }
     }else{
-      warnings.push(`POS LAYOUT RECEIVING APPLIED — ${receivingChanges.length} product${receivingChanges.length===1?'':'s'} use Found quantities instead of CH2 supplied quantities. POSActive import total becomes ${totals.total.toFixed(2)} vs supplier invoice ${sourceTotals.total.toFixed(2)}; the full reconciliation workbook remains unchanged and preserves the original invoice.`);
+      warnings.push(`POS LAYOUT RECEIVING REVIEW — ${receivingChanges.length} product${receivingChanges.length===1?'':'s'} have receiving differences. Included billed rows preserve CH2 invoice quantities; Found=0 exclusions and explicitly manual lines can change the total. POSActive import total is ${totals.total.toFixed(2)} vs supplier invoice ${sourceTotals.total.toFixed(2)}; the full reconciliation workbook remains unchanged and preserves the original invoice.`);
       for(const x of receivingChanges.slice(0,12))warnings.push(`${lineLabel(x.pos,x.index)}: CH2 supplied ${qtyText(x.invoiceQty)} → POS Layout Found ${qtyText(x.found)}${x.manual?' (manual receiving line — not on the CH2 invoice)':''}.`);
     }
 
@@ -605,6 +613,26 @@
     return `oborne_invoice${numbers.length>1?'s':''}_{${invoicePart}}_(${safePart(orderNo)}).txt`;
   }
 
+  function validateInvoiceAccuracy(records,invoiceDocs){
+    const sources=new Map(),errors=[];
+    for(const doc of activeDocs(invoiceDocs))for(const inv of doc.rows||[]){
+      const key=invoiceNo(inv)+'|'+lineText(inv.invoiceLine);
+      if(!sources.has(key))sources.set(key,[]);sources.get(key).push(inv);
+    }
+    for(const r of records||[]){
+      if(r.manualReceiving)continue;
+      const list=sources.get(clean(r.invoiceNo)+'|'+lineText(r.line))||[];
+      const matches=list.filter(inv=>digits(inv.productCode)===digits(r.ch2Code));
+      if(matches.length!==1){pushIssue(errors,`Invoice ${r.invoiceNo} line ${r.line} CH2 ${r.ch2Code}: no unique source invoice line proves these exported values.`);continue;}
+      const inv=matches[0],check=(label,value,source,dp)=>{if(n(source)!=null&&fixed(value,dp)!==fixed(source,dp))pushIssue(errors,`${wholesaleReviewLabel(inv)}: exported ${label} differs from the source invoice.`);};
+      check('Qty',r.qty,inv.qtySupplied,3);check('Qty Supplied',r.qtySupplied,inv.qtySupplied,3);
+      check('Unit Price',r.unitPrice,inv.unitPriceExGst,4);check('Extended ex GST',r.extended,inv.extendedExGst,2);
+      check('GST',r.gst,inv.gstAmount,2);check('Total inc GST',r.total,inv.totalIncGst,2);
+      check('Normal W/S',r.normalWs,inv.normalWholesale,2);check('Disc %',r.disc,inv.discountPct,2);
+    }
+    return {ok:errors.length===0,checked:(records||[]).filter(r=>!r.manualReceiving).length,errors};
+  }
+
   function buildLegacyFiles(invoiceDocs,refs,posOrder,reconciliation,options={}){
     const grouped=groupDocuments(invoiceDocs,posOrder,options);if(grouped.errors.length)return {ok:false,errors:grouped.errors,warnings:grouped.warnings||[],files:[]};
     const errors=[],warnings=[...(grouped.warnings||[])],orderNo=clean(posOrder&&posOrder.orderNumber||reconciliation&&reconciliation.orderNumber),groups=grouped.groups||[];
@@ -612,10 +640,15 @@
     for(const g of groups){for(const f of g.sourceFiles||[])sourceFiles.add(f);for(const d of g.docs||[])docs.push(d);}
     const mergedGroup={number:primary,numbers:new Set(numbers),sourceFiles,docs,orderLinks:groups.map(g=>g.orderLink).filter(Boolean)};
     const payload=buildInvoicePayload(mergedGroup,refs,posOrder,reconciliation,options),validation=validatePayload(payload);errors.push(...validation.errors);warnings.push(...validation.warnings);
-    const keyRows=new Map();for(const r of payload.records){if(!keyRows.has(r.subId))keyRows.set(r.subId,new Set());keyRows.get(r.subId).add(sourceRowKey(r.pos));}
-    for(const [key,rows] of keyRows)if(rows.size>1)warnings.push(`DUPLICATE IMPORT KEY "${key}" is used by ${rows.size} different POS order rows. Review the selected keys; export remains available.`);
+    const invoiceAccuracy=validateInvoiceAccuracy(payload.records,docs);errors.push(...invoiceAccuracy.errors);
+    const keyRows=new Map();for(const r of payload.records){if(!keyRows.has(r.subId))keyRows.set(r.subId,[]);keyRows.get(r.subId).push(r);}
+    for(const [key,rows] of keyRows)if(new Set(rows.map(r=>sourceRowKey(r.pos))).size>1){
+      const products=rows.map(r=>`invoice ${r.invoiceNo} line ${r.line} · CH2 ${r.ch2Code} · PLU ${clean(r.pos&&r.pos.plu)||'?'} · barcode ${clean(r.pos&&r.pos.barcode)||'?'} · ${r.description} · invoice quantity ${qtyText(r.qtySupplied)}`).join('; ');
+      warnings.push(`SHARED POS SUB ID "${key}" — ${products}. This is a valid POS label and is preserved. Products and invoice values remain separate in the TXT. POSActive may apply the shared key to the wrong row; verify these exact products after importing. Export remains available.`);
+    }
+    for(const r of payload.records){const posTax=n(r.pos&&r.pos.gstPct),sourceTax=r.extended>0?round(r.gst/r.extended*100,0):null;if(posTax!=null&&sourceTax!=null&&posTax!==sourceTax)warnings.push(`Invoice ${r.invoiceNo} line ${r.line} · CH2 ${r.ch2Code} · ${r.description}: invoice GST ${fixed(r.gst,2)} implies ${sourceTax}% while POS uses ${posTax}%. Invoice GST is preserved in TXT; POSActive may recalculate using the product GST setting.`);}
     if(numbers.length>1)warnings.unshift(`MERGED POSACTIVE IMPORT — ${numbers.length} supplier invoices (${numbers.join(', ')}) are combined into one 15-column TXT for POS order ${orderNo}. Each product row retains its original supplier Invoice No.`);
-    const file={filename:importFilename(numbers,orderNo),...payload,validation,invoiceNumbers:numbers};
+    const file={filename:importFilename(numbers,orderNo),...payload,validation,invoiceAccuracy,invoiceNumbers:numbers};
     return {ok:errors.length===0,errors,warnings,files:[file],invoiceNumbers:numbers};
   }
 
@@ -628,5 +661,5 @@
     const f=built.files[0];downloadBlob(new Blob([f.text],{type:'text/plain;charset=utf-8'}),f.filename);return {filename:f.filename,files:1,rows:f.records.length,columns:15,validation:f.validation,warnings:built.warnings,receivingAdjustments:f.receivingChanges.length,totals:f.totals,sourceTotals:f.sourceTotals,invoiceNumbers:f.invoiceNumbers||[],matchCheck:f.matchCheck||null};
   }
 
-  PHF.posImport={CONTRACT,groupDocuments,buildLegacyFiles,validatePayload,exportLegacyPosImport,makeTsv,parseTsv,resolveImportIdentity,reviewImportKeys,exportKeyReview,importFilename,masterRecordsForPos,posWholesaleFallback,invoiceOnlyKey,invoiceOnlyEntries,posActiveMatchCheck,orderSupplierOf};
+  PHF.posImport={CONTRACT,groupDocuments,buildLegacyFiles,validateInvoiceAccuracy,validatePayload,exportLegacyPosImport,makeTsv,parseTsv,resolveImportIdentity,reviewImportKeys,exportKeyReview,importFilename,masterRecordsForPos,posWholesaleFallback,invoiceOnlyKey,invoiceOnlyEntries,posActiveMatchCheck,orderSupplierOf};
 })(window);
