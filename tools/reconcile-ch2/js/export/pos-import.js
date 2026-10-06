@@ -1,3 +1,4 @@
+// Reconcile CH2 v2.7.2 — 07 Oct 2026 07:24 AEDT: wholesale discrepancies are review warnings.
 (function(global){
   'use strict';
   const PHF=global.PHFReconcile=global.PHFReconcile||{};
@@ -282,6 +283,9 @@
   // CH2_WHOLESALE_EX_GST reference or derived from Unit Price ÷ Disc %) is supporting
   // data, not invoice arithmetic, so a small reference/invoice difference is a review
   // note and never blocks the download.
+  function wholesaleReviewLabel(inv){
+    return `Invoice ${invoiceNo(inv)||'?'} · line ${lineText(inv&&inv.invoiceLine)||'?'} · CH2 product ${clean(inv&&inv.productCode)||'?'} · ${clean(inv&&inv.description)||'Description unavailable'}`;
+  }
   function wsBackfilled(inv){const s=clean(inv&&inv.normalWholesaleSource);return !!s&&s!=='INVOICE';}
   function validateSourceInvoiceRow(inv,errors,warnings){
     const ln=lineText(inv&&inv.invoiceLine)||'?';const q=n(inv&&inv.qtySupplied),unit=n(inv&&inv.unitPriceExGst),ext=n(inv&&inv.extendedExGst),gst=n(inv&&inv.gstAmount)||0,total=n(inv&&inv.totalIncGst),ws=n(inv&&inv.normalWholesale),disc=n(inv&&inv.discountPct);
@@ -289,8 +293,8 @@
     if(unit==null){pushIssue(errors,`Invoice line ${ln}: Unit Price ex GST is missing.`);return;}
     if(q>0&&unit>0&&ext!=null&&Math.abs(round(unit*q,2)-round(ext,2))>0.02)pushIssue(errors,`Invoice line ${ln}: Unit Price × Qty does not equal Extended ex GST.`);
     if(q>0&&unit>0&&ws!=null&&disc!=null&&Math.abs(ws*(1-disc/100)-unit)>0.011){
-      if(wsBackfilled(inv))pushIssue(warnings,`Invoice line ${ln}: Normal W/S was not printed by CH2; the filled value ${fixed(ws,2)} (${clean(inv.normalWholesaleSource)}) less ${fixed(disc,2)}% differs from Unit Price ${fixed(unit,4)}. Review only; download remains available.`);
-      else pushIssue(errors,`Invoice line ${ln}: Normal W/S less discount does not equal Unit Price.`);
+      if(wsBackfilled(inv))pushIssue(warnings,`${wholesaleReviewLabel(inv)}: Normal W/S was not printed by CH2; the filled value ${fixed(ws,2)} (${clean(inv.normalWholesaleSource)}) less ${fixed(disc,2)}% differs from Unit Price ${fixed(unit,4)}. Review only; download remains available.`);
+      else pushIssue(warnings,`${wholesaleReviewLabel(inv)}: Normal W/S less discount does not equal Unit Price. Printed invoice values are preserved; review only, download remains available.`);
     }
     if(ext!=null&&gst>0&&Math.abs(round(ext*0.10,2)-round(gst,2))>0.011)pushIssue(errors,`Invoice line ${ln}: GST is not 10% of Extended ex GST.`);
     if(ext!=null&&total!=null&&Math.abs(round(ext+gst,2)-round(total,2))>0.011)pushIssue(errors,`Invoice line ${ln}: Extended ex GST + GST does not equal Total.`);
@@ -473,8 +477,8 @@
       if(subId&&subId!==ch2Code)warnings.push(`IMPORT SUB ID — CH2 ${ch2Code} uses ${importIdentity.source} key ${subId} for ${description}.`);
       const predWs=round(round(ext/outQty,2)/(1-disc/100),2),wsRounded=round(normalWs,2),wsDiff=round(predWs-wsRounded,2);
       if(Math.abs(wsDiff)>0.011){
-        if(wsSource)pushIssue(warnings,`Invoice line ${lineText(inv.invoiceLine)}: predicted POSActive WS ${predWs.toFixed(2)} differs from the filled Normal W/S ${wsRounded.toFixed(2)} (${wsSource}). Review only; download remains available.`);
-        else pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)}: predicted POSActive WS ${predWs.toFixed(2)} differs from Normal W/S ${wsRounded.toFixed(2)} by more than 1c.`);
+        if(wsSource)pushIssue(warnings,`${wholesaleReviewLabel(inv)}: predicted POSActive WS ${predWs.toFixed(2)} differs from the filled Normal W/S ${wsRounded.toFixed(2)} (${wsSource}). Review only; download remains available.`);
+        else pushIssue(warnings,`${wholesaleReviewLabel(inv)}: predicted POSActive WS ${predWs.toFixed(2)} differs from Normal W/S ${wsRounded.toFixed(2)} by more than 1c. Printed invoice values are preserved; review only, download remains available.`);
       }
       else if(Math.abs(wsDiff)>0.0001)warnings.push(`Invoice line ${lineText(inv.invoiceLine)}: POSActive WS is expected to round to ${predWs.toFixed(2)} vs invoice Normal W/S ${wsRounded.toFixed(2)} (1c rounding).`);
       records.push({
