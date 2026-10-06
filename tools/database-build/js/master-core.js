@@ -1,4 +1,4 @@
-/* MasterCore v2.0.0 — Combined Master (browser port of MASTER Step 3 V30.15, no pandas / no database).
+/* MasterCore v2.2.0 — Combined Master (browser port of MASTER Step 3 V30.15, no pandas / no database).
    Everything runs in the browser at the time the page is used.
 
    Same as Python V30.15:
@@ -15,11 +15,11 @@
        best-scoring candidate wins when several supplier rows share a barcode or code.
      - brand agreement also checks brand abbreviations, discount brand prefixes, discontinued ZZZ prefixes,
        initials (M&P = MARTIN & PLEASANCE) and the brand appearing in the description.
-     - every supplier row appears exactly once (matched or "Only"); Python could repeat a UHP row that matched by SUB ID.
+     - primary output contains one row per POS source row; unmatched suppliers are excluded.
      - MATCH_BASIS column (full file only) shows the points behind every link and any rejected barcode link. */
 (function (g) {
   'use strict';
-  const VERSION = '2.0.0';
+  const VERSION = '2.2.0';
 
   // ---------------------------------------------------------------- constants (Python V30.15)
   const COLUMN_MAPPINGS = {
@@ -824,7 +824,7 @@
         if (uhp) {
           const u = pythonMatch(src, posBrand, uhpIndex);
           if (u.row) {
-            uhpRow = u.row; if (u.kind === 'Barcode Match') usedUhpBarcodes.add(src.bc);
+            uhpRow = u.row; usedUhp.add(uhpRow.UHP_INDEX); if (u.kind === 'Barcode Match') usedUhpBarcodes.add(src.bc);
             stats[{ 'Barcode Match': 'barcode_uhp', 'Brand+SubID Match': 'brand_subid_uhp', 'Code Match': 'code_uhp' }[u.kind]]++;
             status = status === 'POS Only' ? `${u.kind} (UHP)` : status + ' + UHP';
             basis.push(`UHP: ${u.kind} (Python V30.15 rules)`);
@@ -883,56 +883,11 @@
       all.push(m);
     });
 
-    // CH2-only rows (+ UHP by barcode with a second point)
-    for (const r of ch2Records) {
-      if (usedCh2.has(r.CH2_INDEX)) continue;
-      stats.ch2_only++;
-      let uhpRow = null, basis = '';
-      if (uhp && r.__bc && pythonMode) {
-        if (uhpIndex.byBarcode.has(r.__bc)) { uhpRow = uhpIndex.byBarcode.get(r.__bc)[0]; usedUhpBarcodes.add(r.__bc); basis = 'UHP: Barcode Match (Python V30.15 rules)'; stats.ch2_only_uhp++; }
-      } else if (uhp && r.__bc) {
-        const src = { bc: r.__bc, subId: '', brands: r.__brands, desc: r.__desc, ws: r.__ws };
-        const u = bestMatch(src, uhpIndex, aliases, 3);
-        if (u.best && !usedUhp.has(u.best.row.UHP_INDEX)) { uhpRow = u.best.row; usedUhp.add(uhpRow.UHP_INDEX); basis = basisText('UHP', u.best); stats.ch2_only_uhp++; }
-        else if (u.best) { uhpRow = u.best.row; basis = basisText('UHP', u.best); stats.ch2_only_uhp++; }
-        else if (u.rejected && u.rejected.basis.includes('BARCODE')) basis = `UHP REJECTED ${u.rejected.points}/3: ${u.rejected.basis.join(' + ')} only · item ${u.rejected.row[uk.code] ?? ''}`;
-      }
-      const m = Object.assign({}, strip(r), uhpRow ? strip(uhpRow) : {});
-      m.POS_INDEX = '';
-      m.CH2_INDEX = r.CH2_INDEX;
-      m.UHP_INDEX = uhpRow ? uhpRow.UHP_INDEX : '';
-      m.MATCH_STATUS = uhpRow ? 'CH2 Only + UHP' : 'CH2 Only';
-      m.MASTER_BRAND = cleanBrand(r[sk.brand] ?? '');
-      m.MASTER_BARCODE = r.__bc;
-      m.MASTER_POS_PLU = '';
-      m.AV_INDEX = ''; m.AV_BRAND = ''; m.AV_BARCODE = '';
-      m[MATCH_BASIS] = basis;
-      if (safeInt(m.SOH_TOTAL, 0) > 0) stats.soh_match++;
-      const pricing = calculatePricing(m, pk, sk, uk, disc);
-      Object.assign(m, pricing);
-      tallyDiscount(pricing.DISCOUNT_TYPE);
-      all.push(m);
-    }
-
-    // UHP-only rows: every UHP row that was not linked above appears once.
-    const uhpOnly = pythonMode
-      ? [...uhpIndex.byBarcode.entries()].filter(([bc]) => !usedUhpBarcodes.has(bc)).map(([, list]) => list[0])
-      : uhpRecords.filter(r => !usedUhp.has(r.UHP_INDEX));
-    for (const r of uhpOnly) {
-      stats.uhp_only++;
-      const m = strip(r);
-      m.POS_INDEX = ''; m.CH2_INDEX = ''; m.UHP_INDEX = r.UHP_INDEX;
-      m.MATCH_STATUS = 'UHP Only';
-      m.MASTER_BRAND = cleanBrand(r[uk.brand] ?? '');
-      m.MASTER_BARCODE = r.__bc;
-      m.MASTER_POS_PLU = '';
-      m.AV_INDEX = ''; m.AV_BRAND = ''; m.AV_BARCODE = '';
-      m[MATCH_BASIS] = '';
-      const pricing = calculatePricing(m, pk, sk, uk, disc);
-      Object.assign(m, pricing);
-      tallyDiscount(pricing.DISCOUNT_TYPE);
-      all.push(m);
-    }
+    // Primary master is a POS left join: unmatched supplier rows are excluded.
+    stats.excluded_ch2 = ch2Records.filter(r => !usedCh2.has(r.CH2_INDEX)).length;
+    stats.excluded_uhp = uhpRecords.filter(r => pythonMode
+      ? !usedUhp.has(r.UHP_INDEX) && !usedUhpBarcodes.has(r.__bc)
+      : !usedUhp.has(r.UHP_INDEX)).length;
 
     // Sort alphabetically by MASTER_BRAND, then MASTER_BARCODE (stable, like Python list.sort).
     const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);

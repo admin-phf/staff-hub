@@ -1,5 +1,5 @@
 (function(){'use strict';
-const VERSION='v21.0.0', CH2V='v1.0.0', UHPV='v1.0.1', MASTERV='v2.0.0', POSV='v5.0.1';
+const VERSION='v21.4.0', CH2V='v1.0.0', UHPV='v1.0.1', MASTERV='v2.2.0', POSV='v5.0.1';
 const C=window.CH2Core,U=window.UHPCore,M=window.MasterCore;
 const $=s=>document.querySelector(s), state={files:{},outputs:new Map(),models:{},urls:[],validation:{},stageStatus:{}};
 const FILES=[
@@ -104,7 +104,6 @@ async function buildMaster(){if(!state.models.pos){if(!state.files.stock||!state
  const prog=(label)=>(sheet,r)=>stageSet('master','running',`Writing ${label} — ${r.toLocaleString()} / ${(n+2).toLocaleString()} rows…`);
  let fullBlob=await M.writeMasterWorkbook('full',res,{onProgress:prog('full merged dataset')});await verifyMasterWorkbook(fullBlob,'Full_Data',res.outHeaders,res.records,'full');
  addOutput('master','master-full',fullName,fullBlob,`${n.toLocaleString()} rows · ${res.outHeaders.length} columns · full merged dataset`);
- downloadBlob(fullBlob,fullName);
  let selBlob=await M.writeMasterWorkbook('selected',res,{onProgress:prog('selected master')});await verifyMasterWorkbook(selBlob,'Selected_Data',res.selectedHeaders,res.records,'selected');
  addOutput('master','master-selected',selName,selBlob,`${n.toLocaleString()} rows · ${res.selectedHeaders.length} columns · styled selected master${state.files.discounts?' · discounts applied':''}`);
  let orderCount=res.order.records.length;
@@ -112,7 +111,8 @@ async function buildMaster(){if(!state.models.pos){if(!state.files.stock||!state
  state.models.master={...res,fullHeaders:res.outHeaders};
  let st=res.stats,ch2Linked=st.barcode_ch2+st.brand_subid_ch2+st.code_ch2+st.subid_ws_ch2,uhpLinked=st.barcode_uhp+st.brand_subid_uhp+st.code_uhp+st.subid_ws_uhp,rej=st.rejected_ch2+st.rejected_uhp;
  let fulfil=state.files.availability?` · order check ${res.validation.integrity}%`:'';
- stageSet('master','done',`Complete — ${n.toLocaleString()} master records · POS→CH2 ${ch2Linked.toLocaleString()} · POS→Unique ${uhpLinked.toLocaleString()} · CH2 only ${st.ch2_only.toLocaleString()} · Unique only ${st.uhp_only.toLocaleString()}${rej?` · ${rej} single-point barcode link${rej===1?'':'s'} held back for review (see MATCH_BASIS)`:''}${fulfil} · ${orderCount?3:2} outputs verified · full file downloaded.`)}
+ downloadBlob(fullBlob,fullName);
+ stageSet('master','done',`Complete — ${n.toLocaleString()} master records · POS→CH2 ${ch2Linked.toLocaleString()} · POS→Unique ${uhpLinked.toLocaleString()} · CH2 excluded ${st.excluded_ch2.toLocaleString()} · Unique excluded ${st.excluded_uhp.toLocaleString()}${rej?` · ${rej} single-point barcode link${rej===1?'':'s'} held back for review (see MATCH_BASIS)`:''}${fulfil} · ${orderCount?3:2} outputs verified · full file downloaded.`)}
 async function buildStage(id){let keep=false;document.querySelectorAll('.stage-build').forEach(b=>b.disabled=true);try{if(id==='pos')await buildPos();else if(id==='ch2')await buildCh2();else if(id==='uhp')await buildUhp();else await buildMaster();setGlobal(`${STAGE_NAMES[id]} complete — ${state.outputs.size} output file${state.outputs.size===1?'':'s'} ready below${id==='master'?'; the full merged dataset was downloaded automatically':''}.`,'success');keep=true}catch(e){console.error(e);stageSet(id,'error','Error: '+e.message);setGlobal(`${STAGE_NAMES[id]} failed: ${e.message}`,'error');keep=true}finally{document.querySelectorAll('.stage-build').forEach(b=>b.disabled=false);updateBuildAll(keep)}}
 async function buildAll(){let b=$('#buildAllBtn');b.disabled=true;document.querySelectorAll('.stage-build').forEach(x=>x.disabled=true);try{gpct(5);setGlobal('Stage 1 of 4 — building POS database…','running');await buildPos();gpct(28);setGlobal('Stage 2 of 4 — building Oborne / CH2 database…','running');await buildCh2();gpct(53);setGlobal('Stage 3 of 4 — building Unique / UHP database…','running');await buildUhp();gpct(76);setGlobal('Stage 4 of 4 — building Combined Master from in-memory outputs…','running');await buildMaster();gpct(100);setGlobal(`Complete — ${state.outputs.size} output files are ready below; the full merged dataset was downloaded automatically. No re-uploading was used between stages.`,'success');setTimeout(()=>gpct(0),700)}catch(e){console.error(e);gpct(0);setGlobal('Build All stopped: '+e.message,'error')}finally{document.querySelectorAll('.stage-build').forEach(x=>x.disabled=false);updateBuildAll(true)}}
 renderUploads();renderStageNav();renderStages();renderOutputs();bindNavigation();updateBuildAll();$('#buildAllBtn').onclick=buildAll;$('#clearAllBtn').onclick=()=>{for(const u of state.urls)URL.revokeObjectURL(u);location.reload()};
