@@ -82,3 +82,9 @@ body:not(.database-builder-page) .panel,body:not(.database-builder-page) .result
 @media(min-width:1900px){.builder-shell.dashboard-mode{grid-template-columns:340px minmax(0,1fr)}.input-nav-item small{max-width:220px}}
 @media(max-width:1250px){.input-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.stage-dashboard{grid-template-columns:1fr!important}}
 @media(max-width:900px){.builder-shell.dashboard-mode{grid-template-columns:1fr}.dashboard-mode .builder-sidebar{position:relative;top:auto;height:auto;max-height:none}.dashboard-intro{grid-template-columns:1fr}.input-summary{grid-template-columns:1fr}.stage-dashboard{grid-template-columns:1fr!important}}
+/* v21.0.0 — all-outputs list: filename above its row/column summary; master callout with three notes */
+.outputs-panel .output-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}
+.outputs-panel .output-row code{display:block;font-weight:600;overflow-wrap:anywhere}
+.outputs-panel .output-row span{display:block;margin-top:3px;font-size:12px}
+.outputs-panel .output-row .output-actions{width:auto}
+.stage-dashboard .master-callout>div:last-child:nth-child(odd){grid-column:1/-1}
