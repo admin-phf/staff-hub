@@ -1,4 +1,17 @@
-# Prahran Health Foods — CH2 Reconciler v2.9.0
+# Prahran Health Foods — CH2 Reconciler v2.9.1
+
+## v2.9.1 — shared and blank Sub IDs in the POSActive prediction (09 Oct 2026 09:05 AEDT)
+
+- Several invoiced products with the same Sub ID (e.g. `SPECIAL ORDER`): POSActive matches invoice lines by Sub ID only, so it
+  applies all of them to the first order row with that Sub ID — the last line is what that row keeps and the other rows stay
+  unreceived. The POSActive prediction now models this, lists each shared Sub ID with its lines and the $ effect, and the review
+  notes say which products share a Sub ID.
+- Invoiced products with a blank Sub ID are listed in the review notes (POSActive cannot match them).
+- Checked on 105-0008843 (invoices 74155537 + 74156399): TXT $6,916.07 − $49.86 GOODMIX BLEND 11 (blank Sub ID) + $7.32 GST
+  settings − $44.88 three `SPECIAL ORDER` lines (Amazonia, Blooms Tri-Magnesium, Weleda) + $0.42 cents = $6,829.07 predicted
+  Adjusted Total; Current $7,077.24.
+
+# Prahran Health Foods — CH2 Reconciler v2.9.0 (previous)
 
 ## v2.9.0 — POSActive total prediction, GST differences, Sub ID % check, compact POS Layout (09 Oct 2026 00:26 AEDT)
 

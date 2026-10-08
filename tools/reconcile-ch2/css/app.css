@@ -645,3 +645,7 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .pos-predict-eq small{display:block;color:#4a5a70;font-size:10.5px;margin-top:3px}
 @media(max-width:900px){.pos-predict-grid{grid-template-columns:1fr 1fr}.pos-predict-eq{grid-column:1/-1}}
 .results .preview-pos td.pos-subid-unreadable{background:#FCE8E6!important;color:#a50e0e;font-weight:800}
+.pos-predict-shared{margin-top:8px;padding:6px 9px;border:1px solid #f1c7c7;border-radius:6px;background:#fff;color:#3c2a2a}
+.pos-predict-shared b{display:block;color:#a50e0e;font-size:11.5px}
+.pos-predict-shared span{display:block;margin-top:2px;line-height:1.4}
+.pos-predict-shared small{display:block;margin-top:3px;color:#5f4b4b;font-size:10.5px}

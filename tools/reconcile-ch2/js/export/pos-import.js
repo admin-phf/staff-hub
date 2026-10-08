@@ -1,4 +1,6 @@
-// Reconcile CH2 v2.9.0 — 09 Oct 2026 00:26 AEDT: predicts POSActive's Current / Adjusted Total after import (Sub IDs it can
+// Reconcile CH2 v2.9.1 — 09 Oct 2026 09:05 AEDT: the prediction also models several lines sharing one Sub ID (e.g. SPECIAL
+// ORDER): POSActive puts them all on the first order row with that Sub ID and the last line wins.
+// v2.9.0 — 09 Oct 2026 00:26 AEDT: predicts POSActive's Current / Adjusted Total after import (Sub IDs it can
 // match, cents-rounded costs, product GST) and flags Sub IDs containing % $ " that POSActive's import cannot match.
 // v2.8.0 — 08 Oct 2026 17:20 AEDT: POSActive import uses the Found quantity (overs and unders) with the CH2 invoice
 // prices; price, arithmetic and data checks are review warnings and never block the download. Only a file that cannot be
@@ -598,21 +600,40 @@
   //   Current  = Σ old AdjDPrc × order Qty × (1 + POS GST%)   — matched rows only
   //   Adjusted = Σ new AdjDPrc × imported Qty × (1 + POS GST%)
   function cents(v){const x=Number(v)||0;return Math.round((x+(x>=0?1:-1)*1e-9)*100)/100;}
-  function posActivePrediction(records,matchCheck){
+  // Several TXT lines with the same Sub ID (e.g. "SPECIAL ORDER"): POSActive applies each line to the FIRST order row with
+  // that Sub ID, so the last line overwrites the earlier ones there and the other rows with that Sub ID get nothing (seen on a
+  // real import: Tea Tonic 10 + Cabot 2 → Tea Tonic row 2 units at Cabot's cost, Cabot row 0).
+  function posActivePrediction(records,matchCheck,posOrder){
     const missing=new Set(((matchCheck&&matchCheck.mismatches)||[]).map(m=>`${clean(m.invoiceNo)}|${clean(m.line)}`));
-    const out={current:0,adjusted:0,txtTotal:0,unmatchedTotal:0,unmatchedLines:0,gstEffect:0,gstLines:[],rounding:0,matchedLines:0};
+    const out={current:0,adjusted:0,txtTotal:0,unmatchedTotal:0,unmatchedLines:0,gstEffect:0,gstLines:[],sharedEffect:0,sharedKeys:[],rounding:0,matchedLines:0};
+    const gstOf=(p,r)=>n(p&&p.raw&&p.raw.gst_tax_pc)??n(p&&p.gstPct)??(n(r&&r.extended)?round(n(r.gst)/n(r.extended)*100,0):0);
+    const oldCost=p=>{const raw=(p&&p.raw)||{};return {d:n(raw.adjdprce)??n(p&&p.expectedUnit)??0,q:n(raw.qty)??n(p&&p.orderedQty)??0};};
+    const keyOf=p=>typeof (p&&p.subIdRaw)==='string'?p.subIdRaw:clean(p&&p.subId);
+    const orderRows=sortedPos(posOrder),groups=new Map(),applied=[];
     for(const r of records||[]){
       const total=n(r.total)||0;out.txtTotal+=total;
       if(missing.has(`${clean(r.invoiceNo)}|${clean(r.line)}`)){out.unmatchedTotal+=total;out.unmatchedLines++;continue;}
-      const p=r.pos||{},raw=p.raw||{},qty=n(r.qty)||0;if(qty<=0)continue;out.matchedLines++;
-      const g=n(raw.gst_tax_pc)??n(p.gstPct)??(n(r.extended)?round(n(r.gst)/n(r.extended)*100,0):0),newD=cents((n(r.extended)||0)/qty);
-      const oldD=n(raw.adjdprce)??n(p.expectedUnit)??newD,ordQty=n(raw.qty)??n(p.orderedQty)??qty;
-      out.adjusted+=newD*qty*(1+g/100);if(!p.invoiceOnly&&!r.manualReceiving)out.current+=oldD*ordQty*(1+g/100);
-      const posGst=(n(r.extended)||0)*g/100,diff=round(posGst-(n(r.gst)||0),2);
-      if(Math.abs(diff)>0.011){out.gstEffect+=diff;out.gstLines.push({line:r.line,invoiceNo:r.invoiceNo,description:clean(p.description)||clean(r.description),posGst:g,invoiceGst:n(r.extended)?round((n(r.gst)||0)/n(r.extended)*100,1):0,diff});}
+      if(!((n(r.qty)||0)>0))continue;
+      const key=r.subId!=null?String(r.subId):'';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(r);
     }
-    for(const k of ['current','adjusted','txtTotal','unmatchedTotal','gstEffect'])out[k]=round(out[k],2);
-    out.rounding=round(out.adjusted-(out.txtTotal-out.unmatchedTotal+out.gstEffect),2);
+    for(const [key,list] of groups){
+      if(list.length===1){applied.push({r:list[0],row:list[0].pos||{}});continue;}
+      const last=list[list.length-1],first=orderRows.find(p=>!p.invoiceOnly&&keyOf(p)===key)||list[0].pos||{};
+      applied.push({r:last,row:first,shared:true});
+      const g=gstOf(first,last),gotQty=n(last.qty)||0,newD=cents((n(last.extended)||0)/gotQty),effect=round(newD*gotQty*(1+g/100)-list.reduce((a,x)=>a+(n(x.total)||0),0),2);
+      out.sharedEffect+=effect;
+      out.sharedKeys.push({subId:key,effect,appliedTo:{posIndex:first.posIndex,description:clean(first.description)},kept:{line:last.line,invoiceNo:last.invoiceNo,description:clean(last.pos&&last.pos.description)||clean(last.description),qty:gotQty},
+        lines:list.map(x=>({line:x.line,invoiceNo:x.invoiceNo,description:clean(x.pos&&x.pos.description)||clean(x.description),qty:n(x.qty)||0,total:n(x.total)||0,posIndex:x.pos&&x.pos.posIndex}))});
+    }
+    for(const {r,row,shared} of applied){
+      const qty=n(r.qty)||0,g=gstOf(row,r),newD=cents((n(r.extended)||0)/qty),old=oldCost(row);out.matchedLines++;
+      out.adjusted+=newD*qty*(1+g/100);if(!row.invoiceOnly&&!r.manualReceiving)out.current+=old.d*(old.q||qty)*(1+g/100);
+      if(shared)continue;
+      const diff=round((n(r.extended)||0)*g/100-(n(r.gst)||0),2);
+      if(Math.abs(diff)>0.011){out.gstEffect+=diff;out.gstLines.push({line:r.line,invoiceNo:r.invoiceNo,description:clean(row.description)||clean(r.description),posGst:g,invoiceGst:n(r.extended)?round((n(r.gst)||0)/n(r.extended)*100,1):0,diff});}
+    }
+    for(const k of ['current','adjusted','txtTotal','unmatchedTotal','gstEffect','sharedEffect'])out[k]=round(out[k],2);
+    out.rounding=round(out.adjusted-(out.txtTotal-out.unmatchedTotal+out.gstEffect+out.sharedEffect),2);
     return out;
   }
 
@@ -708,11 +729,12 @@
     const keyRows=new Map();for(const r of payload.records){if(!keyRows.has(r.subId))keyRows.set(r.subId,[]);keyRows.get(r.subId).push(r);}
     for(const [key,rows] of keyRows)if(new Set(rows.map(r=>sourceRowKey(r.pos))).size>1){
       const products=rows.map(r=>`invoice ${r.invoiceNo} line ${r.line} · CH2 ${r.ch2Code} · PLU ${clean(r.pos&&r.pos.plu)||'?'} · barcode ${clean(r.pos&&r.pos.barcode)||'?'} · ${r.description} · imported quantity ${qtyText(r.qtySupplied)}`).join('; ');
-      warnings.push(`SHARED POS SUB ID "${key}" — ${products}. This is a valid POS label and is preserved. Products and invoice values remain separate in the TXT. POSActive may apply the shared key to the wrong row; verify these exact products after importing. Export remains available.`);
+      const last=rows[rows.length-1];
+      warnings.push(`SHARED POS SUB ID "${key}" — ${products}. POSActive matches invoice lines by Sub ID only, so it applies all ${rows.length} lines to the first order row with "${key}": the last one (line ${last.line} ${last.description}, qty ${qtyText(last.qtySupplied)}) ends up on that row and the other rows with "${key}" stay unreceived. Give each of these products its own Sub ID in POSActive (e.g. its CH2 code), re-export the order and run again — or check and correct these rows by hand after importing. Export remains available.`);
     }
     for(const r of payload.records){const posTax=n(r.pos&&r.pos.gstPct),sourceTax=r.extended>0?round(r.gst/r.extended*100,0):null;if(posTax!=null&&sourceTax!=null&&posTax!==sourceTax)warnings.push(`Invoice ${r.invoiceNo} line ${r.line} · CH2 ${r.ch2Code} · ${r.description}: invoice GST ${fixed(r.gst,2)} implies ${sourceTax}% while POS uses ${posTax}%. Invoice GST is preserved in TXT; POSActive may recalculate using the product GST setting.`);}
     if(numbers.length>1)warnings.unshift(`MERGED POSACTIVE IMPORT — ${numbers.length} supplier invoices (${numbers.join(', ')}) are combined into one 15-column TXT for POS order ${orderNo}. Each product row retains its original supplier Invoice No.`);
-    const file={filename:importFilename(numbers,orderNo),...payload,validation,invoiceAccuracy,invoiceNumbers:numbers,posActive:posActivePrediction(payload.records,payload.matchCheck)};
+    const file={filename:importFilename(numbers,orderNo),...payload,validation,invoiceAccuracy,invoiceNumbers:numbers,posActive:posActivePrediction(payload.records,payload.matchCheck,posOrder)};
     for(const m of (payload.matchCheck&&payload.matchCheck.mismatches)||[])if(m.unreadable)warnings.push(`POSACTIVE CANNOT MATCH — invoice ${m.invoiceNo} line ${m.line} · ${m.posDescription||m.description} · Sub ID "${m.subId}": ${m.advice}`);
     if(file.posActive.gstLines.length)warnings.push(`GST REVIEW — ${file.posActive.gstLines.length} imported line${file.posActive.gstLines.length===1?'':'s'} have CH2 GST different from the product's POSActive GST setting (${file.posActive.gstLines.slice(0,6).map(x=>`line ${x.line} ${x.description}: invoice ${x.invoiceGst}% vs POS ${x.posGst}%`).join('; ')}${file.posActive.gstLines.length>6?'; …':''}). POSActive totals with the product setting, so its adjusted total will differ from the invoice by ${fixed(file.posActive.gstEffect,2)}.`);
     return {ok:errors.length===0,errors,warnings,files:[file],invoiceNumbers:numbers};
