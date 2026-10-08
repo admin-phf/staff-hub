@@ -23,28 +23,29 @@
   // allowed to absorb spare viewport width or give it back first on a smaller window.
   const POS_VIEW_COLUMNS=[
     {key:'__unpack',label:'✓',kind:'check',cls:'unpack-cell',min:48,max:58,sortable:false},
-    {key:'__pos_order_index',label:'POS Index',kind:'number',dp:0,align:'center',cls:'pos-code pos-order-index',min:58,max:76,grow:.01,stretch:.01,hardMax:96},
-    {key:'__invoice_line',label:'CH2 Line',kind:'text',align:'center',cls:'pos-code pos-invoice-line',min:50,max:78,grow:.01,stretch:.01,hardMax:100},
+    {key:'__pos_order_index',label:'POS Index',kind:'number',dp:0,align:'center',cls:'pos-code pos-order-index pos-narrow',min:40,max:60,grow:.005,stretch:.005,hardMax:72},
+    {key:'__invoice_line',label:'CH2 Line',kind:'text',align:'center',cls:'pos-code pos-invoice-line pos-narrow',min:38,max:60,grow:.005,stretch:.005,hardMax:72},
     {key:'main_id',label:'Product #',kind:'text',cls:'pos-code',min:112,max:185,grow:.10,stretch:.11,hardMax:260},
-    {key:'__pos_brand',label:'POS Brand',kind:'text',cls:'pos-brand',min:78,max:170,grow:.12,stretch:.15,hardMax:280},
+    {key:'__pos_brand',label:'POS Brand',kind:'text',cls:'pos-brand',min:112,max:200,grow:.16,stretch:.18,hardMax:300},
     {key:'plu',label:'POS PLU',kind:'text',cls:'pos-code',min:58,max:96,grow:.05,stretch:.06,hardMax:140},
     {key:'sub_id',label:'POS Sub ID',kind:'text',cls:'pos-code',min:74,max:155,grow:.06,stretch:.08,hardMax:240},
     {key:'__ch2_item_code',label:'CH2 ITEM CODE',kind:'text',cls:'pos-code pos-ch2-item-code',min:78,max:132,grow:.05,stretch:.06,hardMax:180},
     {key:'descr',label:'Product Description',kind:'text',cls:'pos-desc',min:220,max:520,grow:.30,stretch:.38,hardMax:940},
-    {key:'gst_tax_pc',label:'GST %',kind:'number',dp:0,min:44,max:60,grow:.01},
-    {key:'units',label:'Units',kind:'number',dp:0,min:40,max:54,grow:.01},
-    {key:'qty',label:'Qty',kind:'number',dp:0,min:40,max:54,grow:.01},
+    {key:'gst_tax_pc',label:'GST %',kind:'number',dp:0,cls:'pos-narrow',min:36,max:54,grow:.005},
+    {key:'units',label:'Units',kind:'number',dp:0,cls:'pos-narrow',min:34,max:48,grow:.005},
+    {key:'qty',label:'Qty',kind:'number',dp:0,cls:'pos-narrow',min:32,max:48,grow:.005},
     {key:'__unpack_add',label:'Add Qty',kind:'qtyinput',cls:'unpack-qty-entry-cell',min:72,max:92,grow:.01,sortable:false},
     {key:'__unpack_total',label:'Found',kind:'qtytotal',cls:'unpack-qty-total-cell',min:56,max:74,grow:.01},
-    {key:'mupc',label:'MU%',kind:'number',dp:2,min:46,max:64,grow:.015},
-    {key:'gppc',label:'GP%',kind:'number',dp:2,min:46,max:62,grow:.015},
-    {key:'__invoice_discount',label:'Discount %',kind:'number',dp:2,min:64,max:82,grow:.015},
-    {key:'adjrrprce',label:'AdjRRPrc',kind:'number',dp:2,min:62,max:92,grow:.04,stretch:.035,hardMax:118},
-    {key:'adjwsprce',label:'AdjWSPrc',kind:'number',dp:2,min:62,max:92,grow:.04,stretch:.035,hardMax:118},
-    {key:'adjcatprce',label:'AdjCatPrc',kind:'number',dp:2,min:62,max:92,grow:.035,stretch:.025,hardMax:112},
-    {key:'adjdprce',label:'AdjDPrc',kind:'number',dp:2,min:62,max:92,grow:.04,stretch:.035,hardMax:118},
-    {key:'or_qty',label:'Adj Qty',kind:'number',dp:0,min:50,max:70,grow:.01},
-    {key:'__row_total_inc_gst',label:'Total inc GST',kind:'number',dp:2,min:78,max:110,grow:.025,stretch:.02,hardMax:135}
+    {key:'mupc',label:'MU%',kind:'number',dp:2,min:44,max:62,grow:.012},
+    {key:'gppc',label:'GP%',kind:'number',dp:2,min:44,max:60,grow:.012},
+    {key:'__invoice_discount',label:'Disc %',kind:'number',dp:2,min:52,max:76,grow:.012},
+    // A zero-width space lets the long POSActive price headings wrap as Adj / RRPrc when the window is narrow.
+    {key:'adjrrprce',label:'Adj\u200bRRPrc',kind:'number',dp:2,min:56,max:88,grow:.035,stretch:.03,hardMax:112},
+    {key:'adjwsprce',label:'Adj\u200bWSPrc',kind:'number',dp:2,min:56,max:88,grow:.035,stretch:.03,hardMax:112},
+    {key:'adjcatprce',label:'Adj\u200bCatPrc',kind:'number',dp:2,min:56,max:88,grow:.03,stretch:.025,hardMax:108},
+    {key:'adjdprce',label:'Adj\u200bDPrc',kind:'number',dp:2,min:56,max:88,grow:.035,stretch:.03,hardMax:112},
+    {key:'or_qty',label:'Adj Qty',kind:'number',dp:0,cls:'pos-narrow',min:38,max:60,grow:.008},
+    {key:'__row_total_inc_gst',label:'Total inc GST',kind:'number',dp:2,cls:'pos-row-total',min:74,max:110,grow:.025,stretch:.02,hardMax:135}
   ];
 
   const posMeasureCanvas=document.createElement('canvas');
@@ -158,6 +159,7 @@
 
   function validExt(file,allowed){const ext='.'+(file.name.split('.').pop()||'').toLowerCase();return allowed.includes(ext);}
   function prettySize(bytes){if(bytes<1024)return `${bytes} B`;if(bytes<1024*1024)return `${(bytes/1024).toFixed(1)} KB`;return `${(bytes/1024/1024).toFixed(1)} MB`;}
+  function signedMoney(v){const x=Number(v)||0;return `${x<0?'−':'+'}${money(Math.abs(x))}`;}
   function money(v,dp=2){return v==null||!Number.isFinite(Number(v))?'—':`$${Number(v).toLocaleString(undefined,{minimumFractionDigits:dp,maximumFractionDigits:dp})}`;}
   function qty(v){return v==null?'—':Number(v).toLocaleString(undefined,{maximumFractionDigits:3});}
   function fileRow(file,onRemove){const div=document.createElement('div');div.className='file-row';const label=document.createElement('span');label.textContent=`✓ ${file.name} · ${prettySize(file.size)}`;const btn=document.createElement('button');btn.type='button';btn.textContent='Remove';btn.onclick=onRemove;div.append(label,btn);return div;}
@@ -302,14 +304,15 @@
       const sub=cleanText(pos&&pos.subId);if(!sub)continue;
       const special=[...new Set((sub.match(/["$%]/g)||[]))];
       const promoLike=/[A-Za-z]/.test(sub)&&/\s/.test(sub)&&/\b(?:ORDER|PER|SKU|PROMO|SPECIAL|FREE|OFF|DEAL|BUY|SAVE)\b/i.test(sub);
-      if(!special.length&&!promoLike)continue;
+      // v2.9.0 — confirmed on a real import (105-0008845): POSActive's invoice import drops % $ " from the Sub ID it reads,
+      // so a Sub ID such as “3 PER SKU 25%” can never match the order. Promotion-like text without those characters is fine.
+      if(!special.length)continue;
       const line=invoiceLineDisplay(detail)||'?',ch2=ch2ItemCodeDisplay(detail)||'not resolved',product=cleanText(pos&&pos.description)||cleanText(pos&&pos.barcode)||'product';
-      const why=special.length?`contains special character${special.length===1?'':'s'} ${special.map(x=>`“${x}”`).join(', ')}`:'resembles ordering/promotion text';
-      notes.push(`POS SUB ID REVIEW — CH2 line ${line} · POS row ${i+1} (${product}): POS Sub ID “${sub}” ${why}. POSActive permits these characters and export remains enabled. CH2 ITEM CODE: ${ch2}. If POSActive reports a supplier-order mismatch, confirm that this POS Sub ID is the intended supplier key.`);
+      notes.push(`POSACTIVE CANNOT MATCH — CH2 line ${line} · POS row ${i+1} (${product}): POS Sub ID “${sub}” contains ${special.map(x=>`“${x}”`).join(', ')}. POSActive's invoice import drops ${special.length===1?'this character':'these characters'}, reads it as “${sub.replace(/["$%]/g,'').trim()}” and reports “Invoice items do not match suppliers order items”, leaving this line unapplied. Change the Sub ID in POSActive to one without ${special.join(' ')} (e.g. CH2 code ${ch2}), re-export the order and run again — or apply this line by hand.`);
     }
     return notes;
   }
-  const SUB_ID_REVIEW_DISABLED=true;
+  const SUB_ID_REVIEW_DISABLED=false;
   function posColumnValue(pos,c,detail=null){
     if(!pos||!c)return '';
     if(c.key==='__import_sub_id')return importIdentityFor(pos,detail).importSubId;
@@ -392,7 +395,7 @@
     // proven 15-column exporter so short/over/zero Found quantities are reflected in
     // the footer exactly the same way they will be in the downloaded file.  Column 14
     // is Total inc GST, so this value is explicitly GST-inclusive.
-    let adjusted=null,adjustedEx=null,adjustedGst=null,supplierInvoiceTotal=null,records=[],matchCheck=null;
+    let adjusted=null,adjustedEx=null,adjustedGst=null,supplierInvoiceTotal=null,records=[],matchCheck=null,posActive=null;
     try{
       if(PHF.posImport&&typeof PHF.posImport.buildLegacyFiles==='function'&&state.docs&&state.docs.length&&state.posParsed&&state.result){
         const built=PHF.posImport.buildLegacyFiles(state.docs,state.refs,state.posParsed,state.result,posExportOptions());
@@ -403,6 +406,7 @@
           supplierInvoiceTotal=built.files.reduce((sum,file)=>sum+(numberValue(file&&file.sourceTotals&&file.sourceTotals.total)||0),0);
           records=built.files.flatMap(file=>Array.isArray(file&&file.records)?file.records:[]);
           matchCheck=built.files[0]&&built.files[0].matchCheck||null;
+          posActive=built.files[0]&&built.files[0].posActive||null;
         }
       }
     }catch(err){console.warn('Could not calculate live POSActive import total',err);}
@@ -453,7 +457,7 @@
       const gstPct=Math.max(0,numberValue(raw.gst_tax_pc)??numberValue(pos.gstPct)??0);
       notInvoicedTotal+=currentPrice*qtyNow*(1+gstPct/100);
     }
-    return {current,matchedCurrent,adjusted,adjustedEx,adjustedGst,supplierInvoiceTotal,invoiceOnlyCount:invoiceOnlyRows.length,invoiceOnlyTotal,invoiceOnlyReceivedCount:receivedInvoiceOnly.length,invoiceOnlyReceivedTotal,matchCheck,
+    return {posActive,current,matchedCurrent,adjusted,adjustedEx,adjustedGst,supplierInvoiceTotal,invoiceOnlyCount:invoiceOnlyRows.length,invoiceOnlyTotal,invoiceOnlyReceivedCount:receivedInvoiceOnly.length,invoiceOnlyReceivedTotal,matchCheck,
       invoiceOnlyAll:invoiceOnlyEntries().map(e=>({line:e.inv&&e.inv.invoiceLine,invoiceNumber:e.inv&&e.inv.invoiceNumber,description:cleanText(e.pos&&e.pos.description)||cleanText(e.inv&&e.inv.description),total:numberValue(e.inv&&e.inv.totalIncGst)||0,ticked:receivedInvoiceOnlyKeys.has(String(e.pos&&e.pos.sourceRow)),qty:numberValue(e.inv&&e.inv.qtySupplied),code:cleanText(e.inv&&e.inv.productCode),subId:(()=>{const id=importIdentityFor(e.pos,e.detail);return id?id.importSubId:'';})(),diagnosis:e.pos&&e.pos.orderDiagnosis||null,tickAll:tickAllCovers(e.pos),supplierNote:e.pos&&e.pos.supplierMismatch?`set to ${e.pos.posSupplierLabel} in POSActive; this order is ${e.pos.orderSupplierLabel}`:(e.pos&&!e.pos.inMaster?'not in POS master':'')})),notInvoicedCount,notInvoicedTotal,manualCount:manualRecords.length,manualTotal,recordCount:records.length};
   }
 
@@ -479,15 +483,43 @@
     const supLabel=(invoiceOnlyEntries().map(e=>e.pos&&e.pos.orderSupplierLabel).find(Boolean))||'';
     const orderFileBlock=io.length?`<div class="pos-orderfile-check"><div class="pos-orderfile-head"><strong>Not on POS order</strong><span>${escapeHtml(pfName)} · ${pfRows} product row${pfRows===1?'':'s'}${pf.orderNumber?` · order ${escapeHtml(pf.orderNumber)}`:''}${supLabel?` · ${escapeHtml(supLabel)}`:''}</span></div><p>${io.length} billed product${io.length===1?' is':'s are'} <b>not on the POS order</b>, so ${io.length===1?'it is':'they are'} held in the <b>Invoiced · not on POS order</b> section at the top of POS Layout (POS Index <b>INV</b>) and excluded from the POSActive TXT unless ticked. For each invoice line the app checks every POS PLU and barcode linked to its CH2 code, and the CH2 code as a Sub ID, against the uploaded order. If a product below should be on this order, add it in POSActive, export the order again and re-run — it will then match normally with its exact order Sub ID.</p><div class="pos-orderfile-list">${io.map(x=>`<div class="pos-orderfile-item"><b>Line ${escapeHtml(x.line)} · ${escapeHtml(x.description)}</b><span class="pos-orderfile-meta">CH2 ${escapeHtml(x.code||'?')} · qty ${escapeHtml(x.qty??'')} · ${money(x.total)} · TXT Sub ID “${escapeHtml(x.subId||'')}” · ${x.ticked?'<b>ticked — included in TXT</b>':x.tickAll?'on the order — Tick all includes it':'excluded from TXT (tick to include)'}</span><span class="pos-orderfile-reason">${escapeHtml(x.diagnosis?x.diagnosis.chip:'NOT ON POS ORDER')}</span><small>${escapeHtml(x.diagnosis?x.diagnosis.detail:'')}</small></div>`).join('')}</div></div>`:'';
     const mc=totals.matchCheck,matchBlock=mc&&mc.total?`<div class="pos-match-check ${mc.mismatches.length?'bad':'good'}"><div class="pos-match-head"><strong>POSActive match check</strong><span>${mc.matched} of ${mc.total} TXT line${mc.total===1?'':'s'} match a Sub ID on POS order ${escapeHtml(mc.orderNumber||'')}${mc.mismatches.length?` · POSActive will report ${mc.mismatches.length} as “Invoice items do not match suppliers order items”`:' · no POSActive matching warning expected'}</span></div>${mc.mismatches.length?`<div class="pos-match-list">${mc.mismatches.map(m=>`<div class="pos-match-item"><b>Line ${escapeHtml(m.line)} · ${escapeHtml(m.posDescription||m.description)}</b><span class="pos-match-key">Sub ID ${escapeHtml(m.subId||'(blank)')}</span><span class="pos-match-reason">${escapeHtml(m.reason)}</span><small>${escapeHtml(m.advice)}</small></div>`).join('')}</div>`:''}</div>`:'';
-    box.innerHTML=`${orderFileBlock}<div class="pos-balance-heading"><div><strong>POSActive balancing check</strong><span>These figures come from the exact TXT payload currently ready to download.</span></div><span class="pos-balance-status ${exportBalances?'pass':'review'}">${exportBalances?'FILE BALANCES':'REVIEW'}</span></div><div class="pos-balance-grid">${[
-      card('Expected POSActive total',money(totals.adjusted),'Use when CP Inc GST is ON','primary'),
+    // v2.9.0 — GST differences between the CH2 invoice and the product's POSActive GST setting.
+    const gr=gstReview().list,grEffect=gr.reduce((a,g)=>a+g.effect,0);
+    const gstBlock=gr.length?`<div class="pos-gst-check"><div class="pos-gst-head"><strong>GST differences</strong><span>${gr.length} product${gr.length===1?'':'s'} · CH2 invoice GST ≠ POSActive GST setting · ${signedMoney(grEffect)} in POSActive's total</span></div><p>CH2 charged a different GST rate from the product's GST % in POSActive. The TXT keeps CH2's figures, but POSActive costs and totals each product with its own GST setting, so its adjusted total will not equal the invoice by this amount. These rows show <b>INV</b> and the invoice rate in the GST % column. If CH2 is right, change the product's GST in POSActive; if POSActive is right, ask CH2 for a corrected invoice.</p><div class="pos-gst-list">${gr.map(g=>`<div class="pos-gst-item"><b>${g.posIndex==='INV'?'INV':`POS ${escapeHtml(g.posIndex)}`} · ${escapeHtml(g.description)}</b><span class="pos-gst-meta">CH2 line ${escapeHtml(g.lines)} · ${escapeHtml(g.codes)} · ${money(g.ext)} ex GST</span><span class="pos-gst-rates">Invoice ${escapeHtml(g.invRate)}% (${money(g.gst)}) · POSActive ${escapeHtml(g.posRate)}%</span><small>${signedMoney(g.effect)} in POSActive's total</small></div>`).join('')}</div></div>`:'';
+    // v2.9.0 — what POSActive will show in the order's Current / Adjusted Total after the import, and why it differs from
+    // the invoice (lines POSActive cannot match, GST settings, cost rounding to cents).
+    const pa=totals.posActive,paBlock=pa&&pa.txtTotal?`<div class="pos-posactive-predict"><div class="pos-predict-head"><strong>POSActive after import (predicted)</strong><span>The order's Current / Adjusted Total once this TXT is applied</span></div><div class="pos-predict-grid"><div class="pos-predict-card current"><span>Current Total</span><strong>${money(pa.current)}</strong><small>Old costs × order qty, matched rows</small></div><div class="pos-predict-card adjusted"><span>Adjusted Total</span><strong>${money(pa.adjusted)}</strong><small>New costs × imported qty</small></div><div class="pos-predict-eq"><b>${money(pa.txtTotal)} TXT</b>${pa.unmatchedLines?` − ${money(pa.unmatchedTotal)} not applied (${pa.unmatchedLines} line${pa.unmatchedLines===1?'':'s'} POSActive cannot match — see the match check)`:''}${Math.abs(pa.gstEffect)>0.004?` ${pa.gstEffect>=0?'+':'−'} ${money(Math.abs(pa.gstEffect))} GST settings (see GST differences)`:''}${Math.abs(pa.rounding)>0.004?` ${pa.rounding>=0?'+':'−'} ${money(Math.abs(pa.rounding))} cost rounding to cents`:''} = <b>${money(pa.adjusted)}</b><small>POSActive applies only Sub IDs it can match, sets each cost to Extended ÷ Qty rounded to the cent and totals with the product's own GST %.</small></div></div></div>`:'';
+    box.innerHTML=`${orderFileBlock}${gstBlock}<div class="pos-balance-heading"><div><strong>POSActive balancing check</strong><span>These figures come from the exact TXT payload currently ready to download.</span></div><span class="pos-balance-status ${exportBalances?'pass':'review'}">${exportBalances?'FILE BALANCES':'REVIEW'}</span></div><div class="pos-balance-grid">${[
+      card('POSActive import total (TXT)',money(totals.adjusted),'Invoice Total shown on POSActive’s Apply Invoice screen','primary'),
       card('CP Inc GST off',money(totals.adjustedEx),'Expected ex-GST footer'),
       card('GST in import',money(totals.adjustedGst),'Included in expected total'),
       card('Same imported rows—old prices',money(totals.matchedCurrent),'Current POS prices and import quantities'),
       card('Full current POS order',money(totals.current),'Every ordered row, inc GST'),
       card('Supplier invoice total',money(totals.supplierInvoiceTotal),'Before invoice-only omissions or receiving changes')
-    ].join('')}</div><div class="pos-balance-equation"><strong>${money(totals.adjustedEx)} ex GST + ${money(totals.adjustedGst)} GST = ${money(totals.adjusted)} expected in POSActive</strong><span>Compare like-for-like: same order, same included rows and the same CP Inc GST setting.</span></div>${invoiceEquation}${matchBlock}${cautions.length?`<div class="pos-balance-cautions">${cautions.map(x=>`<span>${escapeHtml(x)}</span>`).join('')}</div>`:''}`;
+    ].join('')}</div><div class="pos-balance-equation"><strong>${money(totals.adjustedEx)} ex GST + ${money(totals.adjustedGst)} GST = ${money(totals.adjusted)} in the TXT</strong><span>Compare like-for-like: same order, same included rows and the same CP Inc GST setting.</span></div>${paBlock}${invoiceEquation}${matchBlock}${cautions.length?`<div class="pos-balance-cautions">${cautions.map(x=>`<span>${escapeHtml(x)}</span>`).join('')}</div>`:''}`;
   }
+
+  // v2.9.0 — GST review: products whose CH2 invoice GST differs from the product's GST % in POSActive. POSActive totals
+  // with its own setting, so these lines make POSActive's adjusted total differ from the invoice. Cached per result.
+  let gstReviewCache={result:null,map:new Map(),list:[]};
+  function gstReview(){
+    if(gstReviewCache.result===state.result)return gstReviewCache;
+    const map=new Map(),list=[],details=posDetailMap();
+    const add=(pos,detail)=>{
+      const inv=(detail&&detail.invoiceRows)||[];if(!pos||!inv.length)return;
+      const ext=inv.reduce((a,r)=>a+(numberValue(r.extendedExGst)||0),0),gst=inv.reduce((a,r)=>a+(numberValue(r.gstAmount)||0),0);if(!(ext>0))return;
+      const posRate=numberValue(rawValue(pos,'gst_tax_pc'))??numberValue(pos.gstPct);if(posRate==null)return;
+      const invRate=Math.round(gst/ext*1000)/10;if(Math.abs(invRate-posRate)<0.5)return;
+      const item={sourceRow:String(pos.sourceRow),posIndex:pos.invoiceOnly?'INV':pos.posIndex,description:cleanText(pos.description)||cleanText(inv[0]&&inv[0].description),invoiceDescription:cleanText(inv[0]&&inv[0].description),
+        lines:inv.map(r=>cleanText(r.invoiceLine)).filter(Boolean).join(', '),codes:[...new Set(inv.map(r=>cleanText(r.productCode)).filter(Boolean))].join(', '),posRate,invRate,ext:Math.round(ext*100)/100,gst:Math.round(gst*100)/100,
+        effect:Math.round((ext*posRate/100-gst)*100)/100,invoiceOnly:!!pos.invoiceOnly};
+      map.set(item.sourceRow,item);list.push(item);
+    };
+    for(const pos of sortedPosRows())add(pos,details.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:'')));
+    for(const e of invoiceOnlyEntries())add(e.pos,e.detail);
+    gstReviewCache={result:state.result,map,list};return gstReviewCache;
+  }
+  function gstReviewText(g){return `CH2 invoice line ${g.lines} charged ${g.invRate}% GST (${money(g.gst)} on ${money(g.ext)} ex GST) but this product is set to ${g.posRate}% GST in POSActive. POSActive totals with its own setting, so this line counts ${signedMoney(g.effect)} against the invoice. If CH2 is right, change the product's GST in POSActive; if POSActive is right, ask CH2 for a corrected invoice.`;}
 
   // v2.6.30 — billed invoice lines that are not on the POS order are appended to POS
   // Layout as receivable rows (cached per reconciliation result).
@@ -831,7 +863,8 @@
     const hpad=(parseFloat(headStyle.paddingLeft)||0)+(parseFloat(headStyle.paddingRight)||0)+6;
     // v2.6.32 — each heading needs its longest word plus the 11px arrow gutter on both sides.
     // This is also the floor when columns are narrowed to fit the window, so headings stay centred.
-    const headNeed=POS_VIEW_COLUMNS.map(c=>{posMeasureCtx.font=headFont;const w=Math.max(0,...String(c.label).split(/\s+/).filter(Boolean).map(x=>posMeasureCtx.measureText(x).width));return Math.ceil(w+(c.sortable===false?0:22)+hpad);});
+    const narrowFont=`${headStyle.fontWeight} 11px ${headStyle.fontFamily}`,isNarrow=c=>/\bpos-narrow\b/.test(c.cls||'');
+    const headNeed=POS_VIEW_COLUMNS.map(c=>{posMeasureCtx.font=isNarrow(c)?narrowFont:headFont;const w=Math.max(0,...String(c.label).split(/[\s\u200b]+/).filter(Boolean).map(x=>posMeasureCtx.measureText(x).width));return Math.ceil(w+(c.sortable===false?0:14)+(isNarrow(c)?6+6:hpad));});
     const widths=POS_VIEW_COLUMNS.map((c,i)=>{
       let maxText=0;
       // v2.6.30 — headings wrap between words, so a column only needs its longest heading
@@ -841,7 +874,7 @@
       posMeasureCtx.font=bodyFont;
       for(let r=0;r<rows.length;r++){
         const pos=rows[r],detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(r),notSupplied=!detail||Number(detail.suppliedQty||0)<=0;
-        const text=posSizingText(pos,c,detail,notSupplied);maxText=Math.max(maxText,posMeasureCtx.measureText(text).width+pad);
+        const text=posSizingText(pos,c,detail,notSupplied);maxText=Math.max(maxText,posMeasureCtx.measureText(text).width+(isNarrow(c)?12:pad));
       }
       if(c.kind==='bool'||c.kind==='check')maxText=Math.max(maxText,30);
       return clampWidth(Math.ceil(maxText),Math.max(c.min,headNeed[i]),Math.max(c.max,headNeed[i]));
@@ -892,6 +925,11 @@
     total=Math.ceil(widths.reduce((a,b)=>a+b,0));
     const group=ensurePosColgroup(),cols=[...group.children];cols.forEach((col,i)=>{col.style.width=`${Math.round(widths[i])}px`;});
     els.table.style.width=`${total}px`;els.table.style.minWidth=`${total}px`;
+    // v2.9.0 — if a narrow window still needs a horizontal scroll, the row Total column and the Current / Adjusted
+    // footer totals stay pinned to the right edge so they are always visible.
+    const w=k=>Math.round(widths[POS_VIEW_COLUMNS.findIndex(c=>c.key===k)]||0),rTot=w('__row_total_inc_gst'),rAdj=rTot+w('or_qty'),rCur=rAdj+w('adjdprce');
+    els.table.classList.toggle('pos-overflow',total>available+1);
+    els.table.style.setProperty('--pos-right-total','0px');els.table.style.setProperty('--pos-right-current',`${rAdj}px`);els.table.style.setProperty('--pos-right-label',`${rCur}px`);
   }
   function schedulePosColumnSizing(){
     clearTimeout(posResizeTimer);posResizeTimer=setTimeout(()=>requestAnimationFrame(measurePosColumns),35);
@@ -995,13 +1033,13 @@
     // v2.6.30 — one header-cell builder for the main sticky header and the Completed section
     // header row, so both carry the same sortable headings (sorting applies to both sections).
     const headerCell=(c,withControls)=>{
-      const cls=[c.kind==='check'?'unpack-head':'',c.kind==='bool'?'pos-bool-head':'',(['number','qtyinput','qtytotal'].includes(c.kind))?'num':'',(c.kind==='bool'||c.kind==='check'||c.align==='center')?'center':''].filter(Boolean).join(' ');
+      const cls=[c.kind==='check'?'unpack-head':'',c.kind==='bool'?'pos-bool-head':'',(['number','qtyinput','qtytotal'].includes(c.kind))?'num':'',(c.kind==='bool'||c.kind==='check'||c.align==='center')?'center':'',...String(c.cls||'').split(/\s+/).filter(x=>x==='pos-narrow'||x==='pos-row-total')].filter(Boolean).join(' ');
       if(!withControls&&c.kind==='check')return `<th class="${cls}" scope="col">✓</th>`;
       if(!withControls&&c.kind==='qtyinput')return `<th class="${cls}" scope="col">${escapeHtml(c.label)}</th>`;
       if(c.kind==='check')return `<th class="${cls}" title="Tick all / untick all POS rows for the POSActive download"><div class="pos-header-stack"><button type="button" class="unpack-check unpack-check-all ${allSelected?'checked':''} ${partSelected?'partial':''}" data-toggle-all aria-pressed="${allSelected?'true':'false'}" title="${allSelected?'Untick all — clear all Found quantities and return rows to Remaining':'Tick all — untouched rows use expected CH2 supplied qty'}"><span aria-hidden="true">${allSelected?'✓':partSelected?'−':''}</span></button><span class="pos-header-mini-label">All</span></div></th>`;
       if(c.kind==='qtyinput')return `<th class="${cls}"><div class="pos-header-stack"><span>${escapeHtml(c.label)}</span><button type="button" class="pos-header-action" data-clear-qty title="Clear all Found quantities and receiving selections">Clear qty</button></div></th>`;
       const sortable=c.sortable!==false,active=sortable&&state.posSortKey===c.key,arrow=active?(state.posSortDir==='desc'?'▼':'▲'):'↕';
-      return `<th${cls?` class="${cls}"`:''}>${sortable?`<button type="button" class="pos-sort-button ${active?'active':''}" data-sort-key="${escapeHtml(c.key)}" title="Sort by ${escapeHtml(c.label)}">${escapeHtml(c.label)}<span aria-hidden="true">${arrow}</span></button>`:escapeHtml(c.label)}</th>`;
+      return `<th${cls?` class="${cls}"`:''}>${sortable?`<button type="button" class="pos-sort-button ${active?'active':''}" data-sort-key="${escapeHtml(c.key)}" title="Sort by ${escapeHtml(String(c.label).replace(/\u200b/g,''))}">${escapeHtml(c.label)}<span aria-hidden="true">${arrow}</span></button>`:escapeHtml(c.label)}</th>`;
     };
     els.tableHead.innerHTML=`<tr>${POS_VIEW_COLUMNS.map(c=>headerCell(c,true)).join('')}</tr>`;
     const sections=posPreviewSections(detailBySourceRow);
@@ -1034,7 +1072,10 @@
         }else if(c.kind==='bool'){const checked=boolValue(v);html=`<span class="pos-checkbox ${c.flag||''} ${checked?'checked':''}" aria-label="${checked?'Checked':'Not checked'}">${checked?'✓':''}</span>`;}
         else if(c.kind==='number'){
           html=escapeHtml(fixed(v,c.dp??2));const target=comparisonTarget(pos,detail,c.key),move=c.key==='__invoice_discount'?discountMove(v,target):priceMove(v,target);
-          if(c.key==='__row_total_inc_gst'){
+          if(c.key==='gst_tax_pc'){
+            const g=gstReview().map.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''));
+            if(g){extraCls=' pos-gst-diff';html=`<span class="pos-gst-value">${html}</span><span class="pos-gst-chip">INV ${escapeHtml(g.invRate)}</span>`;title=gstReviewText(g);}
+          }else if(c.key==='__row_total_inc_gst'){
             const rowQty=state.unpackCounts.has(checkKey)?unpackCountFor(pos):(numberValue(detail&&detail.suppliedQty)??numberValue(rawValue(pos,'qty'))??numberValue(pos.orderedQty)??0);
             title=`${displayUnpackCount(rowQty)} × AdjCatPrc ${fixed(discountedPosPrice(pos,detail),2) || '—'} plus GST ${fixed(rawValue(pos,'gst_tax_pc')||pos.gstPct||0,0)}%`;
           }else if(c.key==='__invoice_discount'&&!notSupplied){
@@ -1062,6 +1103,7 @@
             const invoiced=!!(detail&&Array.isArray(detail.invoiceRows)&&detail.invoiceRows.length);
             if(pos.invoiceOnly&&v){const id=importIdentityFor(pos,detail),row=pos.orderDiagnosis&&pos.orderDiagnosis.orderRow;title=row?`Exported exactly as on the order file row POS index ${row.posIndex}: "${v}"`:`Not on the POS order · Sub ID "${v}" exported exactly from ${id&&id.source?id.source:'POS master'} if ticked. If this product should be on the order, add it in POSActive, re-export the order and run again to use its exact order Sub ID.`;}
             else if(typeof pos.subIdRaw==='string'&&!String(v).trim()&&invoiced){extraCls=' pos-subid-blank';html='<span class="pos-subid-blank-mark">(blank)</span>';title='Sub ID is blank on the POS order and is exported blank, exactly as stored in POSActive. Set a Sub ID on the product in POSActive and re-export the order if the import cannot match it.';}
+            else if(v&&/["$%]/.test(String(v))&&invoiced){extraCls=' pos-subid-unreadable';title=`POSActive cannot match this Sub ID: its invoice import drops ${[...new Set(String(v).match(/["$%]/g))].join(' ')} and reads "${String(v).replace(/["$%]/g,'').trim()}". Change the Sub ID in POSActive (e.g. to the CH2 code), re-export the order and run again.`;}
             else if(v)title=`Exported exactly as on the POS order: "${v}"`;
           }
         }
@@ -1165,6 +1207,7 @@
     if(t.lowConfidenceLines){const low=r.detail.filter(x=>x.matchConfidence==='LOW').slice(0,8).map(x=>`${x.posDescription} [${x.matchMethods||'fallback match'}]`);notes.push(`${t.lowConfidenceLines} matched line(s) have LOW confidence and should be reviewed${low.length?`: ${low.join('; ')}`:'.'}`);}
     if(t.auditDataMissing)notes.push(`${t.auditDataMissing} matched POS line(s) cannot receive a complete CH2 discount/wholesale audit because the supplier invoice did not print all required audit fields.`);
     const posIdentityNotes=posSubIdReviewNotes();notes.push(...posIdentityNotes);
+    const gstList=gstReview().list;if(gstList.length){const eff=gstList.reduce((a,g)=>a+g.effect,0);notes.push(`GST REVIEW — ${gstList.length} product${gstList.length===1?' has':'s have'} CH2 invoice GST different from the product's POSActive GST setting: ${gstList.slice(0,8).map(g=>`${g.posIndex==='INV'?'INV':`POS ${g.posIndex}`} ${g.description} (invoice ${g.invRate}% vs POSActive ${g.posRate}%)`).join('; ')}${gstList.length>8?'; …':''}. POSActive totals with its own setting, so its adjusted total will differ from the invoice by ${signedMoney(eff)}. Rows show INV and the invoice rate in the GST % column.`);}
     if(integ.ok)notes.unshift('Integrity checks passed: POS source order is locked, every parsed invoice row is accounted for exactly once, and supplier invoice arithmetic is valid.');else notes.unshift(...integ.errors.map(x=>`INTEGRITY REVIEW: ${x} — downloads remain available; check these rows before importing.`));notes.push(...(integ.warnings||[]));notes.push('Excel output keeps every POS order line in the exact uploaded sequence. Genuine invoice-only lines are appended only after the complete POS order block.');
     els.warningBox.classList.remove('hidden','ok','bad');if(!integ.ok)els.warningBox.classList.add('bad');else if(!posIdentityNotes.length)els.warningBox.classList.add('ok');els.warningBox.innerHTML='<strong>Review notes:</strong><br>'+notes.map(escapeHtml).join('<br>');
     renderOrderOverrideUi();renderPreview(r);updateDownloadButton();els.results.scrollIntoView({behavior:'smooth',block:'start'});

@@ -598,3 +598,50 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 
 /* v13 universal shell + full-width workspace */
 .wrap{width:100%;max-width:none;margin:0;padding:20px 20px 48px}.topbar{display:none}.panel,.results,.reference-strip{max-width:none;width:100%}.results .table-wrap{width:100%}
+
+/* v2.9.0 — compact POS Layout: narrow numeric columns, a 7px sort-arrow gutter instead of 11px, smaller headings on
+   the narrow columns, and — only when a narrow window still scrolls sideways — the row Total column and the
+   Current / Adjusted totals pinned to the right edge. */
+.results .preview-pos thead th .pos-sort-button,
+.results .preview-pos tbody tr.pos-section-head>th .pos-sort-button{padding:2px 7px}
+.results .preview-pos th.pos-narrow{font-size:11px;padding-left:3px;padding-right:3px}
+.results .preview-pos td.pos-narrow{padding-left:3px;padding-right:3px}
+.results .preview-pos table.pos-overflow th.pos-row-total,
+.results .preview-pos table.pos-overflow td.pos-row-total,
+.results table.pos-preview-table.pos-overflow th.pos-row-total,
+.results table.pos-preview-table.pos-overflow td.pos-row-total{position:sticky;right:var(--pos-right-total,0px);z-index:4;box-shadow:-2px 0 4px rgba(15,35,60,.12)}
+.results table.pos-preview-table.pos-overflow td.pos-row-total{background:inherit;background-color:#fff}
+.results table.pos-preview-table.pos-overflow tbody tr:nth-child(even) td.pos-row-total{background-color:#f6f8fb}
+.results table.pos-preview-table.pos-overflow thead th.pos-row-total{z-index:8}
+.results table.pos-preview-table.pos-overflow tfoot .pos-total-adjusted{position:sticky;right:var(--pos-right-total,0px);z-index:7}
+.results table.pos-preview-table.pos-overflow tfoot .pos-total-current{position:sticky;right:var(--pos-right-current,0px);z-index:7}
+.results table.pos-preview-table.pos-overflow tfoot .pos-total-label{position:sticky;right:var(--pos-right-label,0px);z-index:7;background:#fff}
+
+/* v2.9.0 — GST differences (CH2 invoice GST vs the product's POSActive GST setting) and the POSActive after-import prediction. */
+.pos-gst-check{padding:9px 12px;background:#FDF0E6;border-bottom:1px solid #f2c39b;color:#4a2a10;font-size:11.5px}
+.pos-gst-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.pos-gst-head strong{font-size:13px;color:#8a3b00}
+.pos-gst-head span{font-weight:800;color:#6b3a10}
+.pos-gst-check p{margin:5px 0 6px;line-height:1.4}
+.pos-gst-list{display:grid;gap:5px}
+.pos-gst-item{display:grid;grid-template-columns:minmax(220px,1.3fr) minmax(220px,1.2fr) minmax(200px,1fr) minmax(120px,.5fr);gap:10px;align-items:baseline;padding:5px 8px;background:#fff;border:1px solid #f2c39b;border-radius:6px;color:#3a2a20}
+.pos-gst-meta{font-size:10.5px;color:#5f4a3a}
+.pos-gst-rates{font-weight:900;font-size:10.5px;letter-spacing:.02em;color:#a04500}
+.pos-gst-item small{color:#5f4a3a;font-size:10.5px;font-weight:800;text-align:right}
+@media(max-width:1100px){.pos-gst-item{grid-template-columns:1fr}.pos-gst-item small{text-align:left}}
+.results .preview-pos td.pos-gst-diff{background:#FDF0E6!important;color:#8a3b00;font-weight:800}
+.results .preview-pos td.pos-gst-diff .pos-gst-chip{display:block;margin-top:1px;font-size:8.5px;font-weight:900;letter-spacing:.03em;line-height:1;color:#a04500;white-space:nowrap}
+.pos-posactive-predict{margin:8px 12px 10px;padding:9px 12px;border:1px solid #c6d6ea;border-radius:8px;background:#F4F8FD;color:#1d2d44;font-size:11.5px}
+.pos-predict-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.pos-predict-head strong{font-size:13px;color:#0b3e78}
+.pos-predict-head span{color:#4a5a70;font-weight:700}
+.pos-predict-grid{display:grid;grid-template-columns:180px 180px minmax(0,1fr);gap:10px;align-items:stretch;margin-top:7px}
+.pos-predict-card{padding:7px 10px;border-radius:6px;color:#fff}
+.pos-predict-card span,.pos-predict-card small{display:block;font-size:10px;font-weight:800;letter-spacing:.03em;opacity:.9}
+.pos-predict-card strong{display:block;font-size:17px;font-weight:900;margin:2px 0}
+.pos-predict-card.current{background:#075394}
+.pos-predict-card.adjusted{background:#ef1982}
+.pos-predict-eq{align-self:center;line-height:1.45}
+.pos-predict-eq small{display:block;color:#4a5a70;font-size:10.5px;margin-top:3px}
+@media(max-width:900px){.pos-predict-grid{grid-template-columns:1fr 1fr}.pos-predict-eq{grid-column:1/-1}}
+.results .preview-pos td.pos-subid-unreadable{background:#FCE8E6!important;color:#a50e0e;font-weight:800}

@@ -1,4 +1,29 @@
-# Prahran Health Foods — CH2 Reconciler v2.8.0
+# Prahran Health Foods — CH2 Reconciler v2.9.0
+
+## v2.9.0 — POSActive total prediction, GST differences, Sub ID % check, compact POS Layout (09 Oct 2026 00:26 AEDT)
+
+- **POSActive after import (predicted):** the balancing panel now shows the Current / Adjusted Total POSActive will display
+  once the TXT is applied, and why it differs from the invoice: lines POSActive cannot match, GST settings and cent rounding.
+  POSActive applies only Sub IDs it matches, sets each cost to Extended ÷ Qty rounded to the cent and totals with the
+  product's own GST %. Checked on 105-0008845: Current $1,239.38 / Adjusted $1,231.53, exactly as POSActive showed.
+- **Sub IDs with % $ ":** POSActive's invoice import drops these characters (`3 PER SKU 25%` is read as `3 PER SKU 25`), so the
+  line is reported as "Invoice items do not match suppliers order items" and not applied. The match check, review notes and the
+  Sub ID cell (red) now say so, with the fix: change the Sub ID in POSActive (e.g. to the CH2 code) and re-export the order.
+- **GST differences:** products where CH2's invoice GST differs from the product's GST % in POSActive are listed in a GST
+  differences panel (like Not on POS order), in the review notes, and on the row (GST % cell shows `INV` and the invoice rate),
+  with the $ effect on POSActive's total.
+- **POS Layout fits wider:** POS Index, CH2 Line, GST %, Units, Qty and Adj Qty are narrower, long price headings wrap
+  (Adj / RRPrc), Discount % is Disc %, POS Brand is wider. If a narrow window still scrolls sideways, Total inc GST and the
+  Current / Adjusted totals stay pinned on the right.
+- **Clear input files:** Clear order files (POS order + invoices) and Clear all input files (also removes the saved reference
+  data, after a confirm) in the Input files rail.
+- The page title links back to the Staff Hub, like the logo.
+
+Suggested commit summary:
+
+`v2.9.0: Predict POSActive totals, show GST differences, flag % Sub IDs, compact POS Layout, rail clear buttons`
+
+# Prahran Health Foods — CH2 Reconciler v2.8.0 (previous)
 
 ## v2.8.0 — Found quantities in the POSActive TXT, nothing blocks a download, Drop All Input Files Here (08 Oct 2026 17:20 AEDT)
 

@@ -1,5 +1,5 @@
 (function(){'use strict';
-const VERSION='v21.5.0', CH2V='v1.0.0', UHPV='v1.0.1', MASTERV='v2.3.0', POSV='v5.0.1';
+const VERSION='v21.6.0', CH2V='v1.0.0', UHPV='v1.0.1', MASTERV='v2.3.0', POSV='v5.0.1';
 const C=window.CH2Core,U=window.UHPCore,M=window.MasterCore;
 const $=s=>document.querySelector(s), state={files:{},outputs:new Map(),models:{},urls:[],validation:{},stageStatus:{},bulk:[]};
 const FILES=[
@@ -171,5 +171,7 @@ function renderBulk(){let host=$('#bulkResults'),badge=$('#bulkCount');if(!host)
  host.querySelectorAll('[data-bulk-select]').forEach(s=>s.onchange=()=>{let i=+s.dataset.bulkSelect,b=host.querySelector(`[data-bulk-assign="${i}"]`),r=state.bulk[i];r.choice=s.value;if(b){let same=live(r)&&s.value===r.id;b.disabled=same;b.textContent=same?'Assigned':'Assign'}});
  host.querySelectorAll('[data-bulk-assign]').forEach(b=>b.onclick=()=>bulkAssign(+b.dataset.bulkAssign))}
 function wireBulkDrop(){let d=$('#bulkDrop'),i=$('#bulkInput');if(!d||!i)return;d.onclick=()=>i.click();d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();i.click()}};i.onchange=()=>{let f=[...i.files];i.value='';bulkAccept(f)};d.ondragover=e=>{e.preventDefault();d.classList.add('drag')};d.ondragleave=()=>d.classList.remove('drag');d.ondrop=e=>{e.preventDefault();d.classList.remove('drag');bulkAccept(e.dataTransfer?.files)}}
-renderUploads();renderStageNav();renderStages();renderOutputs();bindNavigation();wireBulkDrop();renderBulk();updateBuildAll();$('#buildAllBtn').onclick=buildAll;$('#clearAllBtn').onclick=()=>{for(const u of state.urls)URL.revokeObjectURL(u);location.reload()};
+renderUploads();renderStageNav();renderStages();renderOutputs();bindNavigation();wireBulkDrop();renderBulk();updateBuildAll();
+// v21.6.0 — Clear input files (rail): removes every loaded input; generated outputs stay downloadable.
+{let c=$('#railClearInputs');if(c)c.onclick=()=>{if(!Object.keys(state.files).length&&!state.bulk.length)return;for(const id of Object.keys(state.files))delete state.files[id];state.validation={};state.models={};for(const st of STAGES)stageSet(st.id,'waiting','Input files cleared. Output files from the last build stay available below.');state.bulk=[];renderInputNav();renderBulk();$('#inputWorkspace').innerHTML='<div class="empty-output">Select an input on the left to inspect, upload or replace it.</div>';document.querySelectorAll('[data-input]').forEach(b=>b.classList.remove('active'));updateBuildAll();setGlobal('Input files cleared. Generated output files stay available below until Clear Session.','info')}}$('#buildAllBtn').onclick=buildAll;$('#clearAllBtn').onclick=()=>{for(const u of state.urls)URL.revokeObjectURL(u);location.reload()};
 })();

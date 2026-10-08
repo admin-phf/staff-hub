@@ -92,3 +92,7 @@ body.phf-page-reconcile #bulkDrop.dropzone{border:2px dashed var(--phf-grey-line
 body.phf-page-reconcile #bulkDrop.dropzone strong{color:var(--phf-navy)}
 body.phf-page-reconcile #bulkDrop.dropzone:hover,body.phf-page-reconcile #bulkDrop.dropzone.drag{border-color:var(--phf-blue);background:var(--phf-blue-bg)}
 body.phf-page-reconcile #bulkDrop.dropzone:hover strong,body.phf-page-reconcile #bulkDrop.dropzone.drag strong{color:var(--phf-blue-ink)}
+/* v2.9.0 — Clear order files / Clear all input files in the Input files rail. */
+body.phf-page-reconcile .sidebar-actions{display:flex;gap:6px;flex-wrap:wrap;padding:6px 10px 10px}
+body.phf-page-reconcile .sidebar-actions .btn{flex:1 1 auto;min-height:32px;padding:6px 10px;font-size:11.5px;white-space:nowrap}
+body.phf-page-reconcile .sidebar-actions .rail-clear-all{color:var(--phf-red-ink);border-color:var(--phf-red-line);background:#fff}

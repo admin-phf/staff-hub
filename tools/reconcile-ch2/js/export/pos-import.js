@@ -1,4 +1,6 @@
-// Reconcile CH2 v2.8.0 — 08 Oct 2026 17:20 AEDT: POSActive import uses the Found quantity (overs and unders) with the CH2 invoice
+// Reconcile CH2 v2.9.0 — 09 Oct 2026 00:26 AEDT: predicts POSActive's Current / Adjusted Total after import (Sub IDs it can
+// match, cents-rounded costs, product GST) and flags Sub IDs containing % $ " that POSActive's import cannot match.
+// v2.8.0 — 08 Oct 2026 17:20 AEDT: POSActive import uses the Found quantity (overs and unders) with the CH2 invoice
 // prices; price, arithmetic and data checks are review warnings and never block the download. Only a file that cannot be
 // written correctly (15-column contract, CRLF, no supplied rows) stops the export.
 (function(global){
@@ -563,7 +565,17 @@
     const orderNo=clean(posOrder&&posOrder.orderNumber),orderKeys=new Set(((posOrder&&posOrder.rows)||[]).map(exactKey).filter(k=>String(k).trim())),mismatches=[];
     for(const r of records||[]){
       const key=r&&r.subId!=null?String(r.subId):'',pos=(r&&r.pos)||{},name=clean(pos.description)||clean(r&&r.description);
-      if(key.trim()&&orderKeys.has(key))continue;
+      // v2.9.0 — POSActive's invoice import drops % $ and " from the Sub ID it reads (an order Sub ID "3 PER SKU 25%" is read
+      // as "3 PER SKU 25"), so that line can never match the order even though the TXT carries the exact key.
+      const dropped=(key.match(/[%$"]/g)||[]);
+      if(key.trim()&&orderKeys.has(key)&&!dropped.length)continue;
+      if(dropped.length&&key.trim()){
+        const seen=key.replace(/[%$"]/g,'').replace(/\s+$/,'');
+        mismatches.push({invoiceNo:r.invoiceNo,line:r.line,subId:key,description:clean(r.description),posDescription:name,reason:`SUB ID HAS ${[...new Set(dropped)].join(' ')} — POSACTIVE CANNOT MATCH IT`,
+          advice:`POSActive's invoice import drops ${[...new Set(dropped)].map(c=>c==='"'?'quote marks':c).join(' and ')} from Sub IDs, so it reads "${key}" as "${seen}", cannot find it on order ${orderNo} and leaves this line unapplied ($${fixed(r.total,2)} inc GST is missing from POSActive's adjusted total). Change the product's Sub ID in POSActive to one without ${[...new Set(dropped)].join(' ')} (for example the CH2 code ${clean(r.ch2Code)||'shown on the invoice'}), re-export the order and run again — or apply this line by hand in POSActive.`,
+          total:n(r.total)||0,invoiceOnly:!!pos.invoiceOnly,manual:!!r.manualReceiving,sourceRow:pos.sourceRow,unreadable:true});
+        continue;
+      }
       let reason,advice;
       if(pos.invoiceOnly&&pos.orderDiagnosis){reason=pos.orderDiagnosis.chip;advice=pos.orderDiagnosis.detail;}
       else if(pos.invoiceOnly&&pos.supplierMismatch){reason=`NOT ON POS ORDER — POSACTIVE SUPPLIER ${pos.posSupplier}`;advice=`CH2 invoiced ${name}, but POSActive assigns it to ${pos.posSupplierLabel}, not ${pos.orderSupplierLabel||'this order’s supplier'}, so it never appears on CH2 orders. To receive it through this import: change its POSActive supplier to ${pos.orderSupplier} with Sub ID ${pos.ch2Code||key} (or add it to order ${orderNo} with Sub ID ${key||'blank'}), re-export the order and run again. Otherwise untick it and receive it against ${pos.posSupplierLabel}.`;}
@@ -578,6 +590,30 @@
       mismatches.push({invoiceNo:r.invoiceNo,line:r.line,subId:key,description:clean(r.description),posDescription:name,reason,advice,total:n(r.total)||0,invoiceOnly:!!pos.invoiceOnly,manual:!!r.manualReceiving,sourceRow:pos.sourceRow});
     }
     return {total:(records||[]).length,matched:(records||[]).length-mismatches.length,mismatches,orderNumber:orderNo};
+  }
+
+  // v2.9.0 — what POSActive will show in the order's "Current / Adjusted Total" after this TXT is applied (checked against a
+  // real import: 105-0008845 → 1239.38 / 1231.53). POSActive applies only lines whose Sub ID it matches; for each it sets
+  // AdjDPrc = Extended ex GST ÷ Qty (rounded to cents) and totals with the product's own GST %, not the invoice GST.
+  //   Current  = Σ old AdjDPrc × order Qty × (1 + POS GST%)   — matched rows only
+  //   Adjusted = Σ new AdjDPrc × imported Qty × (1 + POS GST%)
+  function cents(v){const x=Number(v)||0;return Math.round((x+(x>=0?1:-1)*1e-9)*100)/100;}
+  function posActivePrediction(records,matchCheck){
+    const missing=new Set(((matchCheck&&matchCheck.mismatches)||[]).map(m=>`${clean(m.invoiceNo)}|${clean(m.line)}`));
+    const out={current:0,adjusted:0,txtTotal:0,unmatchedTotal:0,unmatchedLines:0,gstEffect:0,gstLines:[],rounding:0,matchedLines:0};
+    for(const r of records||[]){
+      const total=n(r.total)||0;out.txtTotal+=total;
+      if(missing.has(`${clean(r.invoiceNo)}|${clean(r.line)}`)){out.unmatchedTotal+=total;out.unmatchedLines++;continue;}
+      const p=r.pos||{},raw=p.raw||{},qty=n(r.qty)||0;if(qty<=0)continue;out.matchedLines++;
+      const g=n(raw.gst_tax_pc)??n(p.gstPct)??(n(r.extended)?round(n(r.gst)/n(r.extended)*100,0):0),newD=cents((n(r.extended)||0)/qty);
+      const oldD=n(raw.adjdprce)??n(p.expectedUnit)??newD,ordQty=n(raw.qty)??n(p.orderedQty)??qty;
+      out.adjusted+=newD*qty*(1+g/100);if(!p.invoiceOnly&&!r.manualReceiving)out.current+=oldD*ordQty*(1+g/100);
+      const posGst=(n(r.extended)||0)*g/100,diff=round(posGst-(n(r.gst)||0),2);
+      if(Math.abs(diff)>0.011){out.gstEffect+=diff;out.gstLines.push({line:r.line,invoiceNo:r.invoiceNo,description:clean(p.description)||clean(r.description),posGst:g,invoiceGst:n(r.extended)?round((n(r.gst)||0)/n(r.extended)*100,1):0,diff});}
+    }
+    for(const k of ['current','adjusted','txtTotal','unmatchedTotal','gstEffect'])out[k]=round(out[k],2);
+    out.rounding=round(out.adjusted-(out.txtTotal-out.unmatchedTotal+out.gstEffect),2);
+    return out;
   }
 
   function makeTsv(rows){
@@ -676,7 +712,9 @@
     }
     for(const r of payload.records){const posTax=n(r.pos&&r.pos.gstPct),sourceTax=r.extended>0?round(r.gst/r.extended*100,0):null;if(posTax!=null&&sourceTax!=null&&posTax!==sourceTax)warnings.push(`Invoice ${r.invoiceNo} line ${r.line} · CH2 ${r.ch2Code} · ${r.description}: invoice GST ${fixed(r.gst,2)} implies ${sourceTax}% while POS uses ${posTax}%. Invoice GST is preserved in TXT; POSActive may recalculate using the product GST setting.`);}
     if(numbers.length>1)warnings.unshift(`MERGED POSACTIVE IMPORT — ${numbers.length} supplier invoices (${numbers.join(', ')}) are combined into one 15-column TXT for POS order ${orderNo}. Each product row retains its original supplier Invoice No.`);
-    const file={filename:importFilename(numbers,orderNo),...payload,validation,invoiceAccuracy,invoiceNumbers:numbers};
+    const file={filename:importFilename(numbers,orderNo),...payload,validation,invoiceAccuracy,invoiceNumbers:numbers,posActive:posActivePrediction(payload.records,payload.matchCheck)};
+    for(const m of (payload.matchCheck&&payload.matchCheck.mismatches)||[])if(m.unreadable)warnings.push(`POSACTIVE CANNOT MATCH — invoice ${m.invoiceNo} line ${m.line} · ${m.posDescription||m.description} · Sub ID "${m.subId}": ${m.advice}`);
+    if(file.posActive.gstLines.length)warnings.push(`GST REVIEW — ${file.posActive.gstLines.length} imported line${file.posActive.gstLines.length===1?'':'s'} have CH2 GST different from the product's POSActive GST setting (${file.posActive.gstLines.slice(0,6).map(x=>`line ${x.line} ${x.description}: invoice ${x.invoiceGst}% vs POS ${x.posGst}%`).join('; ')}${file.posActive.gstLines.length>6?'; …':''}). POSActive totals with the product setting, so its adjusted total will differ from the invoice by ${fixed(file.posActive.gstEffect,2)}.`);
     return {ok:errors.length===0,errors,warnings,files:[file],invoiceNumbers:numbers};
   }
 
@@ -691,5 +729,5 @@
     const f=built.files[0];downloadBlob(new Blob([f.text],{type:'text/plain;charset=utf-8'}),f.filename);return {filename:f.filename,files:1,rows:f.records.length,columns:15,validation:f.validation,warnings:built.warnings,receivingAdjustments:f.receivingChanges.length,totals:f.totals,sourceTotals:f.sourceTotals,invoiceNumbers:f.invoiceNumbers||[],matchCheck:f.matchCheck||null};
   }
 
-  PHF.posImport={CONTRACT,groupDocuments,buildLegacyFiles,validateInvoiceAccuracy,validatePayload,exportLegacyPosImport,makeTsv,parseTsv,resolveImportIdentity,reviewImportKeys,exportKeyReview,importFilename,masterRecordsForPos,posWholesaleFallback,invoiceOnlyKey,invoiceOnlyEntries,posActiveMatchCheck,orderSupplierOf};
+  PHF.posImport={posActivePrediction,CONTRACT,groupDocuments,buildLegacyFiles,validateInvoiceAccuracy,validatePayload,exportLegacyPosImport,makeTsv,parseTsv,resolveImportIdentity,reviewImportKeys,exportKeyReview,importFilename,masterRecordsForPos,posWholesaleFallback,invoiceOnlyKey,invoiceOnlyEntries,posActiveMatchCheck,orderSupplierOf};
 })(window);

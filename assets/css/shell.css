@@ -18,3 +18,7 @@
 /* Keep the centred desktop layout; move metadata down before it can overlap. */
 @media(max-width:1250px){.phf-shell-header{flex-wrap:wrap;gap:12px;justify-content:flex-start}.phf-shell-title{position:static;transform:none;margin-left:auto}.phf-shell-meta{flex-basis:100%}.phf-shell-copy h1{font-size:20px!important}}
 @media(max-width:650px){.phf-shell-header{padding:14px 16px;margin:12px 12px 0}.phf-shell-logo{width:235px;max-width:100%}.phf-shell-title{margin:0;flex-basis:100%;min-width:0}.phf-shell-copy{flex-wrap:wrap}.phf-shell-copy h1{font-size:18px!important;white-space:normal}.phf-shell-meta{align-items:flex-start;text-align:left;margin:0}.phf-shell-nav{justify-content:flex-start}.phf-shell-updated{white-space:normal}.phf-full{padding-left:12px!important;padding-right:12px!important}}
+/* v21.6.0 — the tool title (icon + name) is a home button, like the Prahran Health Foods logo. */
+a.phf-shell-title{color:inherit;text-decoration:none;border-radius:12px;padding:4px 8px;margin:-4px -8px;transition:background-color .15s}
+a.phf-shell-title:hover{background:rgba(16,40,72,.06)}
+a.phf-shell-title:focus-visible{outline:2px solid #1967D2;outline-offset:2px}

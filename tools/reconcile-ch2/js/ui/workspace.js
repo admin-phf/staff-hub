@@ -259,6 +259,18 @@
     OUTPUTS.forEach(s=>{const e=$(s);if(e)mo.observe(e,{childList:true,characterData:true,subtree:true});});
   }
 
-  wireReferenceDrops();wireBulkDrop();observe();render();renderBulk();loadReferenceStatus();
+  /* ---------- clear input files from the rail (v2.9.0) ---------- */
+  function wireRailClear(){
+    const order=$('#railClearOrder'),all=$('#railClearAll'),clear=$('#clearBtn');
+    if(order)order.onclick=()=>{if(clear)clear.click();bulk.length=0;renderBulk();schedule();};
+    if(all)all.onclick=async()=>{
+      if(!global.confirm('Clear all input files?\n\nThis removes the POS order and supplier invoices from this session AND the saved POS / master and Supplier + discount rules from this browser. You will need to drop the reference files again before the next run.'))return;
+      if(clear)clear.click();bulk.length=0;renderBulk();
+      try{if(PHF.referenceStore)await PHF.referenceStore.clear();}catch(err){console.error(err);}
+      ref.message.master=ref.message.supplier='';ref.invalid.master=ref.invalid.supplier=false;
+      await loadReferenceStatus();const app=global.PHFReconcileApp;if(app&&app.refreshReferenceStatus)await app.refreshReferenceStatus();render();
+    };
+  }
+  wireReferenceDrops();wireBulkDrop();wireRailClear();observe();render();renderBulk();loadReferenceStatus();
   global.PHFReconcileWorkspace={select,render,bulkAccept};
 })(window);
