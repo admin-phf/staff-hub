@@ -45,8 +45,9 @@
         if(integ.footerOk===false)footerFailures.push(`${doc.sourceFile}: invoice footer does not reconcile (${integ.footerDetail||'totals mismatch'}).`);
       }else footerWarnings.push(`${doc.sourceFile}: invoice footer totals were not machine-readable; line arithmetic was still checked.`);
     });
-    checks.push(check('Invoice line arithmetic',lineFailures.length===0,lineFailures.length?lineFailures.join(' '):'All parsed billed lines pass quantity × unit and GST/total checks.'));
-    checks.push(check('Invoice footer totals',footerFailures.length===0,footerFailures.length?footerFailures.join(' '):(footerWarnings.length?footerWarnings.join(' '):'Parsed line totals reconcile to the supplier invoice footer.'),footerWarnings.length?'warning':'error'));
+    // v2.8.0 — supplier price / arithmetic differences are review notes: items can only be corrected once they are in POSActive, so they never block a download.
+    checks.push(check('Invoice line arithmetic',lineFailures.length===0,lineFailures.length?lineFailures.join(' ')+' Review only; downloads remain available.':'All parsed billed lines pass quantity × unit and GST/total checks.',lineFailures.length?'warning':'error'));
+    checks.push(check('Invoice footer totals',footerFailures.length===0,footerFailures.length?footerFailures.join(' ')+' Review only; downloads remain available.':(footerWarnings.length?footerWarnings.join(' '):'Parsed line totals reconcile to the supplier invoice footer.'),(footerFailures.length||footerWarnings.length)?'warning':'error'));
 
     const allocated=[];
     detail.forEach(d=>(d.invoiceRows||[]).forEach(r=>allocated.push(invoiceRowId(r))));

@@ -6,7 +6,7 @@
   <title>Prahran Health Foods — Reconcile CH2 Order</title>
   <link rel="stylesheet" href="../../assets/css/shell.css?v=19.0.0">
   <link rel="stylesheet" href="./css/app.css?v=2639">
-  <link rel="stylesheet" href="./css/workspace.css?v=2.7.0">
+  <link rel="stylesheet" href="./css/workspace.css?v=2.8.0">
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
@@ -16,15 +16,15 @@
 <body class="phf-page-reconcile">
   <header class="phf-shell-header header-container">
   <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
-  <div class="phf-shell-title center-section"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg></span><div class="phf-shell-copy title-row"><h1>Reconcile CH2 Order</h1><p class="phf-shell-version version-text">v2.7.3</p></div></div>
-  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Reconcile CH2 Order</span></nav><p class="phf-shell-updated build-details">Updated 07 Oct 2026 08:02 AEDT</p></div>
+  <div class="phf-shell-title center-section"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg></span><div class="phf-shell-copy title-row"><h1>Reconcile CH2 Order</h1><p class="phf-shell-version version-text">v2.8.0</p></div></div>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Reconcile CH2 Order</span></nav><p class="phf-shell-updated build-details">Updated 08 Oct 2026 17:20 AEDT</p></div>
 </header>
   <main class="wrap phf-full">
 
     <div class="builder-shell" id="reconcileWorkspace">
       <aside class="builder-sidebar" aria-label="Reconciliation input files">
         <div class="sidebar-title">Input files</div>
-        <div class="sidebar-helper">Drop each file directly onto its matching row, or click a row to open it.</div>
+        <div class="sidebar-helper">Drop each file onto its matching row, or drop them all together in Drop All Input Files.</div>
         <div id="inputNav"></div>
         <div class="sidebar-footer"><strong>Saved vs session</strong>Reference data stays saved in this browser. Order files are held in memory for this session only. <a href="./reference-admin.html">Reference admin</a></div>
       </aside>
@@ -32,6 +32,13 @@
       <section class="builder-workspace">
         <section class="panel dashboard-intro">
           <p>Compare the POS back-end order with one or more CH2 / supplier invoices. The selected files are processed in your browser and are not uploaded to this website.</p>
+        </section>
+
+        <section class="panel bulk-drop-panel" id="bulkDropPanel" aria-label="Drop all input files">
+          <div class="results-head"><div><h2>Drop All Input Files Here</h2><p>Drop the POS order, supplier invoices and any reference files together. Each file is identified and assigned to its input; anything unclear is listed for review. Nothing runs until you press Run reconciliation.</p></div><div class="result-badge" id="bulkCount">0 FILES</div></div>
+          <div class="dropzone bulk-dropzone" id="bulkDrop" tabindex="0" role="button" aria-label="Drop or choose all input files"><div><strong>Drop all input files here</strong><small>or click to choose several files · PDF / XLS / XLSX / CSV</small></div></div>
+          <input class="hidden" type="file" id="bulkInput" multiple accept=".pdf,.xls,.xlsx,.xlsm,.csv">
+          <div class="bulk-results" id="bulkResults"></div>
         </section>
 
         <div class="reference-strip hidden" id="referenceStrip" aria-live="polite">
@@ -85,8 +92,8 @@
         <section class="stage-dashboard single" aria-label="Reconciliation action">
           <div id="stage-reconcile">
             <section class="panel stage-panel stage-view-card">
-              <div class="stage-head"><div class="stage-title"><span class="stepnum">1</span><div><h2>Reconcile CH2 order <small>v2.7.3</small></h2></div></div><span class="small-badge wait" id="stageBadge">WAITING</span></div>
-              <p class="stage-description">POS back-end order + supplier invoices → receiving checklist, POSActive import and exception report.</p>
+              <div class="stage-head"><div class="stage-title"><span class="stepnum">1</span><div><h2>Reconcile CH2 order <small>v2.8.0</small></h2></div></div><span class="small-badge wait" id="stageBadge">WAITING</span></div>
+              <p class="stage-description">POS back-end order + supplier invoices → receiving checklist, POSActive import (Found quantities at CH2 invoice prices) and exception report. Price and data checks are review notes; downloads stay available.</p>
               <div class="status info stage-status" id="status">Add one POS order and at least one supplier invoice to continue.</div>
               <div class="progress hidden" id="progress"><div id="progressBar"></div></div>
               <div class="stage-actions"><button class="btn primary stage-build" id="runBtn" disabled>Run reconciliation</button><button class="btn" id="clearBtn">Clear files</button></div>
@@ -113,7 +120,7 @@
       <div class="order-override-panel hidden" id="orderOverrideBox" aria-live="polite"></div>
       <div class="notice hidden" id="importKeySummary" aria-live="polite"></div>
       <div class="pos-tools hidden" id="posTools">
-        <span class="pos-tools-note">Receiving checklist · Add Qty accumulates in Found · Enter moves to the next Add Qty row · exact Found = invoiced/supplied qty completes automatically · under/over counts stay in Remaining until resolved or manually ticked · if an exact count is later corrected short/over it returns to Remaining; only a left-checkbox manual acceptance stays completed · unticking a row clears Found so a miscount can be restarted · unticked rows are treated as not supplied in the POSActive download · a ticked not-invoiced row with Found &gt; 0 is added to the POSActive download as a manual receiving line · Tick all covers POS-order rows; INV rows (billed but not on the POS order) are held in their own section at the top and stay excluded from the TXT until ticked individually · Not on POS order explains why each INV row was not matched · enter 0 to clear Found and account for none supplied · Clear qty is above Add Qty · click sortable column headings to reorder Remaining and Completed sections · Total inc GST = receiving qty × AdjCatPrc + GST · POS Index preserves the original POS-order sequence · CH2 Line identifies supplier invoice lines · Found: red = under, grey = correct, green = over</span>
+        <span class="pos-tools-note">Receiving checklist · Add Qty accumulates in Found · Enter moves to the next Add Qty row · exact Found = invoiced/supplied qty completes automatically · under/over counts stay in Remaining until resolved or manually ticked · if an exact count is later corrected short/over it returns to Remaining; only a left-checkbox manual acceptance stays completed · unticking a row clears Found so a miscount can be restarted · unticked rows are treated as not supplied in the POSActive download · the POSActive download imports each row's Found quantity (overs and unders) with the CH2 invoice prices · a ticked not-invoiced row with Found &gt; 0 is added to the POSActive download as a manual receiving line · Tick all covers POS-order rows; INV rows (billed but not on the POS order) are held in their own section at the top and stay excluded from the TXT until ticked individually · Not on POS order explains why each INV row was not matched · enter 0 to clear Found and account for none supplied · Clear qty is above Add Qty · click sortable column headings to reorder Remaining and Completed sections · Total inc GST = receiving qty × AdjCatPrc + GST · POS Index preserves the original POS-order sequence · CH2 Line identifies supplier invoice lines · Found: red = under, grey = correct, green = over</span>
       </div>
       <div class="pos-balance-panel hidden" id="posBalancePanel" aria-live="polite"></div>
       <div class="actions result-actions result-controls-sticky" aria-label="Reconciliation downloads and views">
@@ -151,14 +158,14 @@
   <script src="./js/reference/reference-config.js?v=2638"></script>
   <script src="./js/reference/reference-data.js?v=2638"></script>
   <script src="./js/core/schema.js?v=2638"></script>
-  <script src="./js/core/integrity.js?v=2638"></script>
+  <script src="./js/core/integrity.js?v=2.8.0"></script>
   <script src="./js/parsers/pos-order.js?v=2638"></script>
   <script src="./js/parsers/supplier-invoice.js?v=2638"></script>
   <script src="./js/core/reconcile.js?v=2638"></script>
-  <script src="./js/core/linked-pos.js?v=2638"></script>
-  <script src="./js/export/pos-import.js?v=273-20261007"></script>
-  <script src="./js/export/report.js?v=2638"></script>
-  <script src="./js/app.js?v=2.7.0"></script>
-  <script src="./js/ui/workspace.js?v=2.7.0"></script>
+  <script src="./js/core/linked-pos.js?v=2.8.0"></script>
+  <script src="./js/export/pos-import.js?v=2.8.0"></script>
+  <script src="./js/export/report.js?v=2.8.0"></script>
+  <script src="./js/app.js?v=2.8.0"></script>
+  <script src="./js/ui/workspace.js?v=2.8.0"></script>
 </body>
 </html>

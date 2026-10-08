@@ -1,4 +1,30 @@
-# Prahran Health Foods — CH2 Reconciler v2.6.38
+# Prahran Health Foods — CH2 Reconciler v2.8.0
+
+## v2.8.0 — Found quantities in the POSActive TXT, nothing blocks a download, Drop All Input Files Here (08 Oct 2026 17:20 AEDT)
+
+- **POSActive TXT = what was physically received.** Each ticked / counted POS Layout row imports its **Found** quantity, overs
+  and unders included. Everything else on the line — CH2 code, supplier code, description, Normal W/S, Unit Price ex GST,
+  Disc % and GST rate — comes from the CH2 invoice line. When Found differs, Extended, GST and Total are recalculated at the
+  invoice unit price. Found 0 / unticked still omits the line. One product on several invoice lines is filled in invoice-line
+  order (the last line takes any excess); a back-ordered line (supplied 0, price printed) imports its Found quantity at that
+  price. (v2.7.3 kept the invoice quantity whenever Found was positive.)
+- **Checks never block.** Unit × Qty, GST 10%, Ext + GST = Total, import / invoice total gaps, the per-line invoice check,
+  integrity checks, Full Excel layout checks, duplicate invoice uploads (an identical copy is used once; the same number with different lines is kept), unreadable invoice / order numbers,
+  order-override mismatches, missing CH2 codes and TAB / line breaks in a Sub ID (replaced with a space) are review notes.
+  All downloads are enabled once a run has finished. Only a TXT that cannot be written correctly stops: no supplied rows,
+  or the 15-column / CRLF self-checks.
+- Kept from v2.7.2 / v2.7.3: product details (invoice, line, CH2 code, description) on every W/S note, the SHARED POS SUB ID
+  listing (now with imported quantities) and invoice-vs-POS GST notes.
+- **Drop All Input Files Here:** drop every file at once. PDFs and invoice spreadsheets → Supplier invoices; the
+  merged_alligned master → POS / master and the discount rules → Supplier + discount rules (both validated and saved, as on
+  their own rows); the POS order export → POS back-end order. Unclear files stay listed with a picker. Nothing runs until
+  **Run reconciliation** is pressed; the rail rows and cards work as before.
+
+Suggested commit summary:
+
+`v2.8.0: Import Found quantities at CH2 invoice prices, never block downloads, add Drop All Input Files`
+
+# Prahran Health Foods — CH2 Reconciler v2.6.38 (previous)
 
 ## v2.6.38 — "Invoiced · not on POS order" section at the top of POS Layout, no separator lines
 

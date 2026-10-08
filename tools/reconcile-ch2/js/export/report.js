@@ -174,14 +174,16 @@
 
   async function buildValidatedBuffer(output,posOrder){
     const wb=await buildWorkbook(output),rawBuffer=await wb.xlsx.writeBuffer(),buffer=await enforceExactPackage(rawBuffer),validation=await PHF.integrity.validateWorkbookBuffer(buffer,output,posOrder);
-    if(!validation.ok)throw new Error(`Excel integrity validation failed: ${validation.errors.join(' | ')}`);return {buffer,validation};
+    // v2.8.0 — the workbook is written; layout checks that fail are returned as review notes instead of stopping the download.
+    if(!validation.ok)console.warn('Excel layout checks to review',validation.errors);return {buffer,validation};
   }
 
   async function exportReference(invoiceDocs,refs,posOrder,reconciliation){
     const outputs=PHF.linkedPos.buildReferenceOutputs(invoiceDocs,refs,posOrder,reconciliation);if(!outputs.length)throw new Error('No supplier invoice output could be created.');
-    if(outputs.length===1){const built=await buildValidatedBuffer(outputs[0],posOrder);downloadBlob(new Blob([built.buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),outputs[0].filename);return outputs;}
+    outputs.layoutWarnings=[];for(const out of outputs)if(out.integrity&&!out.integrity.ok)outputs.layoutWarnings.push(...out.integrity.errors.map(e=>`${out.filename}: ${e}`));
+    if(outputs.length===1){const built=await buildValidatedBuffer(outputs[0],posOrder);outputs.layoutWarnings.push(...(built.validation.errors||[]));downloadBlob(new Blob([built.buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),outputs[0].filename);return outputs;}
     if(!global.JSZip)throw new Error('ZIP export library did not load. Refresh the page and try again.');
-    const zip=new global.JSZip();for(const out of outputs){const built=await buildValidatedBuffer(out,posOrder);zip.file(out.filename,built.buffer);}
+    const zip=new global.JSZip();for(const out of outputs){const built=await buildValidatedBuffer(out,posOrder);outputs.layoutWarnings.push(...(built.validation.errors||[]).map(e=>`${out.filename}: ${e}`));zip.file(out.filename,built.buffer);}
     const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'}),stamp=new Date().toLocaleDateString('en-AU').replace(/\//g,'.');downloadBlob(blob,`CH2_CURRENT_RECONCILIATIONS_${stamp}.zip`);return outputs;
   }
 

@@ -184,7 +184,8 @@
 
     const filename=`CH2_PO_${safe(meta.customerPo||posOrder.orderNumber||meta.invoiceNumber,'NO_PO')}_INV_${safe(meta.invoiceNumber||doc.sourceFile,'NO_INV')}_${dateForFilename(meta.invoiceDate)}_PRODUCT_EXTRACT_LINKED_POS.xlsx`;
     const output={rows:out,filename,invoiceNumber:meta.invoiceNumber,customerPo:meta.customerPo,tax,total,sourceFile:doc.sourceFile,posOrderRows:posOrder.rows.length,extraRows:extras.length,doc};
-    const integrity=PHF.integrity.validateOutput(output,posOrder);if(!integrity.ok)throw new Error(`Export blocked: ${integrity.errors.join(' | ')}`);output.integrity=integrity;return output;
+    // v2.8.0 — output checks are review notes (shown after the download), never a block.
+    const integrity=PHF.integrity.validateOutput(output,posOrder);if(!integrity.ok)console.warn('Reconciliation output checks to review',integrity.errors);output.integrity=integrity;return output;
   }
   function buildReferenceOutputs(invoiceDocs,refs,posOrder,reconciliation){return (invoiceDocs||[]).filter(d=>d.type!=='CREDIT_NOTE'&&(d.rows||[]).length).map(d=>buildRowsForDocument(d,refs,posOrder,reconciliation));}
 

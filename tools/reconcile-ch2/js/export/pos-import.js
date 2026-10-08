@@ -1,4 +1,6 @@
-// Reconcile CH2 v2.7.3 — 07 Oct 2026 07:24 AEDT: wholesale discrepancies are review warnings.
+// Reconcile CH2 v2.8.0 — 08 Oct 2026 17:20 AEDT: POSActive import uses the Found quantity (overs and unders) with the CH2 invoice
+// prices; price, arithmetic and data checks are review warnings and never block the download. Only a file that cannot be
+// written correctly (15-column contract, CRLF, no supplied rows) stops the export.
 (function(global){
   'use strict';
   const PHF=global.PHFReconcile=global.PHFReconcile||{};
@@ -40,7 +42,9 @@
   function docMeta(doc){const first=(doc&&doc.rows||[])[0]||{},m=(doc&&doc.meta)||{};return {number:clean(first.invoiceNumber||m.invoiceNumber),customerPo:clean(first.customerPo||m.customerPo),sourceFile:clean(doc&&doc.sourceFile)};}
   function sortedPos(posOrder){return ((posOrder&&posOrder.rows)||[]).slice().sort((a,b)=>{const ar=Number(a&&a.sourceRow),br=Number(b&&b.sourceRow);if(Number.isFinite(ar)&&Number.isFinite(br)&&ar!==br)return ar-br;return Number(a&&a.posIndex||0)-Number(b&&b.posIndex||0);});}
   function detailBySourceRow(reconciliation){const map=new Map();for(const d of (reconciliation&&reconciliation.detail)||[]){const k=String(d&&d.sourceRow!=null?d.sourceRow:'');if(k&&!map.has(k))map.set(k,d);}return map;}
-  function invoiceRowsFor(detail,group){const nums=group&&group.numbers instanceof Set?group.numbers:new Set([clean(group&&group.number)].filter(Boolean));return ((detail&&detail.invoiceRows)||[]).filter(r=>nums.has(invoiceNo(r))||(group.sourceFiles.has(clean(r&&r.sourceFile))&&!invoiceNo(r)));}
+  // Rows from a duplicate upload of the same invoice (droppedFiles) are left out, so only the first copy is imported.
+  function droppedRow(group,r){return !!(group&&group.droppedFiles&&group.droppedFiles.has(clean(r&&r.sourceFile)));}
+  function invoiceRowsFor(detail,group){const nums=group&&group.numbers instanceof Set?group.numbers:new Set([clean(group&&group.number)].filter(Boolean));return ((detail&&detail.invoiceRows)||[]).filter(r=>!droppedRow(group,r)&&(nums.has(invoiceNo(r))||(group.sourceFiles.has(clean(r&&r.sourceFile))&&!invoiceNo(r))));}
   function pushIssue(list,msg,limit=60){if(list.length<limit)list.push(msg);}
   function sum(rows,key){return round((rows||[]).reduce((a,r)=>a+(n(r&&r[key])||0),0),2);}
   function sumQty(rows){return round((rows||[]).reduce((a,r)=>a+(n(r&&r.qtySupplied)||0),0),3);}
@@ -261,16 +265,24 @@
   function groupDocuments(invoiceDocs,posOrder,options={}){
     const docs=activeDocs(invoiceDocs),groups=[],byNo=new Map(),errors=[],warnings=[],posNo=clean(posOrder&&posOrder.orderNumber);
     for(const doc of docs){
-      const m=docMeta(doc);if(!m.number){pushIssue(errors,`${m.sourceFile||'Supplier invoice'}: invoice number is missing.`);continue;}
+      const m=docMeta(doc);if(!m.number){pushIssue(warnings,`${m.sourceFile||'Supplier invoice'}: invoice number could not be read, so this file is left out of the POSActive TXT (POSActive needs the invoice number). Check the file and run again to include it.`);continue;}
       if(!byNo.has(m.number)){const g={number:m.number,customerPo:m.customerPo,sourceFiles:new Set(),docs:[],orderLink:null};byNo.set(m.number,g);groups.push(g);}
       const g=byNo.get(m.number);g.docs.push(doc);if(m.sourceFile)g.sourceFiles.add(m.sourceFile);if(m.customerPo&&!g.customerPo)g.customerPo=m.customerPo;
     }
     for(const g of groups){
-      const files=[...g.sourceFiles];if(g.docs.length>1)pushIssue(errors,`Invoice ${g.number} was uploaded more than once${files.length?` (${files.join(', ')})`:''}. Remove the duplicate copy before creating the POS import file.`);
-      if(!posNo){pushIssue(errors,`Invoice ${g.number}: uploaded POS order number is missing.`);continue;}
+      const files=[...g.sourceFiles];
+      if(g.docs.length>1){
+        // An identical copy (same lines, codes and quantities) is used once; files with the same invoice number but different
+        // lines (split pages, a re-issued invoice) are all kept.
+        const sig=d=>(d.rows||[]).map(r=>[lineText(r.invoiceLine),digits(r.productCode),qtyText(r.qtySupplied),fixed(r.unitPriceExGst,4)].join(':')).sort().join('|');
+        const keep=[],seen=new Map(),dropped=[];for(const d of g.docs){const k=sig(d);if(seen.has(k)){dropped.push(clean(d.sourceFile));continue;}seen.set(k,clean(d.sourceFile));keep.push(d);}
+        if(dropped.length){pushIssue(warnings,`Invoice ${g.number} was uploaded more than once (${files.join(', ')}). The identical cop${dropped.length===1?'y':'ies'} ${dropped.join(', ')} ${dropped.length===1?'is':'are'} not used again in the POSActive TXT.`);g.docs=keep;g.droppedFiles=new Set(dropped);g.sourceFiles=new Set(keep.map(d=>clean(d.sourceFile)).filter(Boolean));}
+        else pushIssue(warnings,`Invoice ${g.number} spans ${g.docs.length} files with different lines (${files.join(', ')}); all of them are used.`);
+      }
+      if(!posNo){pushIssue(warnings,`Invoice ${g.number}: the uploaded POS order number could not be read; the TXT is named with CURRENT. Check the order file if POSActive needs the order number.`);g.orderLink={mode:'NO ORDER NUMBER',invoiceNumber:g.number,originalCustomerPo:g.customerPo,posOrder:''};continue;}
       if(g.customerPo&&!sameRef(g.customerPo,posNo)){
         const explicit=overrideTarget(options,g.number);
-        if(explicit&&!sameRef(explicit,posNo)){pushIssue(errors,`Invoice ${g.number}: saved order override points to ${explicit}, but the uploaded POS order is ${posNo}.`);continue;}
+        if(explicit&&!sameRef(explicit,posNo))pushIssue(warnings,`Invoice ${g.number}: saved order override points to ${explicit}, but the uploaded POS order is ${posNo}. The uploaded POS order is used.`);
         const mode=explicit?'MANUAL':'AUTO';g.orderLink={mode,invoiceNumber:g.number,originalCustomerPo:g.customerPo,posOrder:posNo};
         warnings.push(`${mode} POS ORDER LINK — Invoice ${g.number}: CH2 Customer PO ${g.customerPo} differs from uploaded POS order ${posNo}. The uploaded POS order is used only for POSActive routing/filename; the original CH2 Customer PO remains unchanged in the reconciliation audit.`);
       }else g.orderLink={mode:'DIRECT',invoiceNumber:g.number,originalCustomerPo:g.customerPo,posOrder:posNo};
@@ -289,15 +301,17 @@
   function wsBackfilled(inv){const s=clean(inv&&inv.normalWholesaleSource);return !!s&&s!=='INVOICE';}
   function validateSourceInvoiceRow(inv,errors,warnings){
     const ln=lineText(inv&&inv.invoiceLine)||'?';const q=n(inv&&inv.qtySupplied),unit=n(inv&&inv.unitPriceExGst),ext=n(inv&&inv.extendedExGst),gst=n(inv&&inv.gstAmount)||0,total=n(inv&&inv.totalIncGst),ws=n(inv&&inv.normalWholesale),disc=n(inv&&inv.discountPct);
-    if(q==null||q<0){pushIssue(errors,`Invoice line ${ln}: Quantity Supplied is missing/invalid.`);return;}
-    if(unit==null){pushIssue(errors,`Invoice line ${ln}: Unit Price ex GST is missing.`);return;}
-    if(q>0&&unit>0&&ext!=null&&Math.abs(round(unit*q,2)-round(ext,2))>0.02)pushIssue(errors,`Invoice line ${ln}: Unit Price × Qty does not equal Extended ex GST.`);
+    // v2.8.0 — every check here is a review note: the TXT always carries the printed CH2 unit price, Normal W/S and Disc %,
+    // and prices can only be corrected once the items are in POSActive.
+    if(q==null||q<0){pushIssue(warnings,`${wholesaleReviewLabel(inv)}: Quantity Supplied could not be read; the line is imported only with the Found quantity entered in POS Layout.`);return;}
+    if(unit==null){pushIssue(warnings,`${wholesaleReviewLabel(inv)}: Unit Price ex GST could not be read, so this line is left out of the TXT. Key it manually in POSActive.`);return;}
+    if(q>0&&unit>0&&ext!=null&&Math.abs(round(unit*q,2)-round(ext,2))>0.02)pushIssue(warnings,`PRICE CHECK — ${wholesaleReviewLabel(inv)}: Unit Price ${fixed(unit,4)} × Qty ${qtyText(q)} = ${fixed(unit*q,2)}, invoice Extended ex GST is ${fixed(ext,2)}. Review only; download remains available.`);
     if(q>0&&unit>0&&ws!=null&&disc!=null&&Math.abs(ws*(1-disc/100)-unit)>0.011){
       if(wsBackfilled(inv))pushIssue(warnings,`${wholesaleReviewLabel(inv)}: Normal W/S was not printed by CH2; the filled value ${fixed(ws,2)} (${clean(inv.normalWholesaleSource)}) less ${fixed(disc,2)}% differs from Unit Price ${fixed(unit,4)}. Review only; download remains available.`);
       else pushIssue(warnings,`${wholesaleReviewLabel(inv)}: Normal W/S less discount does not equal Unit Price. Printed invoice values are preserved; review only, download remains available.`);
     }
-    if(ext!=null&&gst>0&&Math.abs(round(ext*0.10,2)-round(gst,2))>0.011)pushIssue(errors,`Invoice line ${ln}: GST is not 10% of Extended ex GST.`);
-    if(ext!=null&&total!=null&&Math.abs(round(ext+gst,2)-round(total,2))>0.011)pushIssue(errors,`Invoice line ${ln}: Extended ex GST + GST does not equal Total.`);
+    if(ext!=null&&gst>0&&Math.abs(round(ext*0.10,2)-round(gst,2))>0.011)pushIssue(warnings,`PRICE CHECK — ${wholesaleReviewLabel(inv)}: GST ${fixed(gst,2)} is not 10% of Extended ex GST ${fixed(ext,2)}. Review only; download remains available.`);
+    if(ext!=null&&total!=null&&Math.abs(round(ext+gst,2)-round(total,2))>0.011)pushIssue(warnings,`PRICE CHECK — ${wholesaleReviewLabel(inv)}: Extended ex GST ${fixed(ext,2)} + GST ${fixed(gst,2)} does not equal Total ${fixed(total,2)}. Review only; download remains available.`);
     if(q===0)warnings.push(`Invoice line ${ln}: excluded because supplied quantity is zero.`);
     if(unit===0)warnings.push(`Invoice line ${ln}: excluded because it is a free/bonus line (unit price 0.0000). Key it manually if required.`);
   }
@@ -306,23 +320,29 @@
     if((rows||[]).length<=1)return true;const first=rows[0],eq=(a,b,t)=>{const x=n(a),y=n(b);return x!=null&&y!=null&&Math.abs(x-y)<=t;};
     return rows.every(r=>eq(r.unitPriceExGst,first.unitPriceExGst,0.00011)&&eq(r.discountPct,first.discountPct,0.011)&&eq(r.normalWholesale,first.normalWholesale,0.011)&&eq(r.gstPct,first.gstPct,0.05));
   }
+  // v2.8.0 — the Found quantity is what was physically received and is what POSActive imports (overs and unders).
+  // One POS item spread over several billed lines is allocated in invoice-line order: earlier lines up to their supplied
+  // quantity, the last priced line takes any excess. A line CH2 printed with a price but supplied 0 (back order) or with an
+  // unreadable quantity can still carry a Found quantity; $0 / unpriced lines cannot (key those manually).
   function allocateReceiving(rows,target,errors,label,warnings){
-    const src=(rows||[]).slice().sort((a,b)=>(n(a&&a.invoiceLine)||0)-(n(b&&b.invoiceLine)||0)),original=round(src.reduce((a,r)=>a+(n(r&&r.qtySupplied)||0),0),3),t=round(Math.max(0,n(target)||0),3);
-    if(t>0){if(Math.abs(t-original)>0.0005)pushIssue(warnings||errors,`${label}: Found ${qtyText(t)} differs from invoice quantity ${qtyText(original)}. All included invoice lines preserve their printed supplied quantities.`);return new Map(src.map(r=>[invoiceKey(r),n(r.qtySupplied)||0]));}
-    // v2.6.28 — the user's Found quantity is authoritative. When one POS item spans invoice
-    // lines with different terms, allocate in invoice-line order and flag it for review
-    // instead of blocking the download.
-    if(src.length>1&&!sameCommercialTerms(src))pushIssue(warnings||errors,`${label}: receiving quantity was changed from ${qtyText(original)} to ${qtyText(t)} across invoice lines with different price/discount terms. Found was allocated in invoice-line order (earlier lines filled first, the last line takes any excess); review the per-line quantities in POSActive.`);
-    const out=new Map();let remaining=t;
+    const all=(rows||[]).slice().sort((a,b)=>(n(a&&a.invoiceLine)||0)-(n(b&&b.invoiceLine)||0)),priced=all.filter(r=>(n(r&&r.unitPriceExGst)||0)!==0);
+    const src=[...priced.filter(r=>(n(r&&r.qtySupplied)||0)>0),...priced.filter(r=>!((n(r&&r.qtySupplied)||0)>0))];
+    const original=round(src.reduce((a,r)=>a+Math.max(0,n(r&&r.qtySupplied)||0),0),3),t=round(Math.max(0,n(target)||0),3),out=new Map();
+    for(const r of all)out.set(invoiceKey(r),0);
+    if(!src.length){if(t>0)pushIssue(warnings||errors,`${label}: Found ${qtyText(t)}, but the invoice line has no price (a $0 / bonus line), so nothing is imported for it. Key it manually in POSActive.`);return out;}
+    if(t>0&&Math.abs(t-original)>0.0005)pushIssue(warnings||errors,`${label}: Found ${qtyText(t)} vs CH2 supplied ${qtyText(original)} — the POSActive TXT imports the Found quantity (${t>original?'over':'under'} by ${qtyText(Math.abs(t-original))}) at the CH2 invoice unit price.`);
+    if(t>0&&src.length>1&&Math.abs(t-original)>0.0005&&!sameCommercialTerms(src))pushIssue(warnings||errors,`${label}: Found was spread across invoice lines with different price/discount terms in invoice-line order (earlier lines filled first, the last line takes any excess); review the per-line quantities in POSActive.`);
+    let remaining=t;
     for(let i=0;i<src.length;i++){
       const r=src[i],orig=Math.max(0,n(r.qtySupplied)||0),q=i===src.length-1?remaining:Math.min(orig,remaining);out.set(invoiceKey(r),round(Math.max(0,q),3));remaining=round(Math.max(0,remaining-q),3);
     }
+    if(t>0&&original<=0)pushIssue(warnings||errors,`${label}: CH2 supplied 0 on the invoice (back order or unreadable quantity) but Found is ${qtyText(t)} — imported at the CH2 invoice unit price.`);
     return out;
   }
 
   function validateMasterForContext(ctx,inv,refs,posRows,errors,warnings){
     const pos=ctx.pos,index=ctx.index,id=ctx.identity,pc=digits(inv&&inv.productCode),candidates=masterCandidatesForInvoiceRow(inv,refs);
-    if(!pc){pushIssue(errors,`${lineLabel(pos,index)}: a supplied invoice line has no CH2 product code.`);return;}
+    if(!pc){pushIssue(warnings,`${lineLabel(pos,index)}: a supplied invoice line has no CH2 product code; it is exported with a blank CH2 Code and POSActive matches it on the Sub ID.`);return;}
     if(!candidates.length){warnings.push(`${lineLabel(pos,index)}: MASTER CODE NOT FOUND — CH2 product ${pc} is absent from the current POS/master crosswalk. The POS order match is preserved and POSActive will perform its own final Sub ID validation.`);return;}
     if(candidates.some(rec=>candidateMatchesIdentity(rec,id)))return;
     const anchored=candidates.filter(candidateHasPosIdentity);
@@ -388,7 +408,7 @@
       else if(code(pos&&pos.plu)){subId=code(pos.plu);keySource='POS PLU FALLBACK';}
       else if(digits(pos&&pos.barcode)){subId=digits(pos.barcode);keySource='POS BARCODE FALLBACK';}
     }
-    if(/[\t\r\n]/.test(subId))pushIssue(errors,`${label}: Sub ID contains a TAB or line break, which would corrupt the 15-column POSActive file. Correct the POS Sub ID before export.`);
+    if(/[\t\r\n]/.test(subId)){pushIssue(warnings,`${label}: Sub ID contains a TAB or line break; it was replaced with a space so the 15-column file stays valid. Check the Sub ID in POSActive.`);subId=subId.replace(/[\t\r\n]+/g,' ');}
     const description=sanitizeDataText(clean(pos&&pos.description)||clean(recs[0]&&recs[0].POS_DESCR))||'MANUAL RECEIVING';
     warnings.push(`MANUAL RECEIVING LINE — ${label}: Found ${qtyText(found)}, not invoiced by CH2. Added as invoice ${invoiceNoValue} line ${lineNo} · Normal WS ${fixed(normalWs,2)} (${wsSource}) less ${fixed(disc,2)}% (${discSource}) = ${fixed(unit,4)} ex GST · GST ${fixed(gstRate,0)}% · total ${fixed(total,2)} inc GST. POSActive matches on Sub ID "${subId||'(blank)'}" (${keySource}); confirm it exists on the open POSActive order.`);
     if(!subId)pushIssue(warnings,`${label}: MANUAL RECEIVING — no Sub ID, PLU or barcode could be resolved; POSActive may not be able to match this line.`);
@@ -401,7 +421,7 @@
 
   function buildInvoicePayload(group,refs,posOrder,reconciliation,options={}){
     const errors=[],warnings=[],posRows=sortedPos(posOrder),details=detailBySourceRow(reconciliation),contexts=[],invoiceToContext=new Map(),allocation=new Map(),receivingChanges=[],omittedNotSupplied=[],manualContexts=[];
-    const groupNums=group&&group.numbers instanceof Set?group.numbers:new Set([clean(group&&group.number)].filter(Boolean)),unmatched=((reconciliation&&reconciliation.unmatchedInvoice)||[]).filter(r=>groupNums.has(invoiceNo(r))||group.sourceFiles.has(clean(r&&r.sourceFile)));
+    const groupNums=group&&group.numbers instanceof Set?group.numbers:new Set([clean(group&&group.number)].filter(Boolean)),unmatched=((reconciliation&&reconciliation.unmatchedInvoice)||[]).filter(r=>!droppedRow(group,r)&&(groupNums.has(invoiceNo(r))||group.sourceFiles.has(clean(r&&r.sourceFile))));
     // v2.6.30 — invoice-only lines ticked / counted in POS Layout are received like any
     // other line; unreceived ones are omitted (as before) and listed.
     const invoiceOnlyOmitted=[],invoiceOnlyReceived=[];
@@ -450,7 +470,7 @@
     for(const inv of invoiceRows){
       const key=invoiceKey(inv),ctx=invoiceToContext.get(key);if(!ctx)continue;
       const originalQty=Math.max(0,n(inv&&inv.qtySupplied)||0),unit=n(inv&&inv.unitPriceExGst);let disc=n(inv&&inv.discountPct),normalWs=n(inv&&inv.normalWholesale),wsSource=wsBackfilled(inv)?clean(inv.normalWholesaleSource):'';
-      if(originalQty<=0||unit==null||unit===0)continue;
+      if(unit==null||unit===0)continue;
       // v2.6.28 — CH2 did not print Normal W/S and the reconciliation could not fill it
       // from CH2_WHOLESALE_EX_GST: derive it from the printed discount, otherwise use the
       // matched POS row's master/order wholesale. Missing data is a review note, not a block.
@@ -461,19 +481,18 @@
       if(normalWs==null){const fb=posWholesaleFallback(ctx.pos,refs);if(fb.value!=null){normalWs=round(fb.value,2);wsSource=fb.source;warnings.push(`Invoice line ${lnText} · ${lineLabel(ctx.pos,ctx.index)}: Normal W/S not printed; ${fixed(normalWs,2)} used from ${fb.source}.`);}}
       if(disc==null&&normalWs!=null&&normalWs>0){const d=round((1-unit/normalWs)*100,2);if(d>=0&&d<100){disc=d;warnings.push(`Invoice line ${lnText}: Disc % not printed; ${fixed(disc,2)}% derived from Unit Price ÷ Normal W/S for POSActive.`);}}
       if(disc==null||normalWs==null||normalWs<=0){normalWs=round(unit,2);disc=0;wsSource=wsSource||'UNIT PRICE (NO W/S OR DISC %)';pushIssue(warnings,`Invoice line ${lnText}: Normal W/S and Disc % could not be confirmed; exported with Normal WS = Unit Price ${fixed(unit,2)} and 0% discount. Review AdjWSPrc in POSActive.`);}
-      const allocatedQty=allocation.has(key)?allocation.get(key):originalQty;
-      // Invoice is authoritative for included billed rows. Found=0 still excludes a row;
-      // positive Found counts are receiving notes, not replacement invoice figures.
-      const outQty=allocatedQty>0?originalQty:0;
-      if(allocatedQty>0&&Math.abs(allocatedQty-originalQty)>0.0005)pushIssue(warnings,`${wholesaleReviewLabel(inv)}: Found allocation ${qtyText(allocatedQty)} differs from invoice quantity ${qtyText(originalQty)}. The TXT preserves the invoice quantity.`);
-      if(outQty<=0){omittedNotSupplied.push({inv,ctx,selected:selectedOverride(options,ctx.pos)});continue;}
+      // v2.8.0 — Found (POS Layout receiving) is the imported quantity, overs and unders included. Every other value —
+      // CH2 code, supplier code, description, Normal W/S, unit price, Disc % and GST rate — comes from the CH2 invoice line;
+      // Extended, GST and Total are recalculated at the invoice unit price when the quantity differs. Found 0 omits the line.
+      const outQty=allocation.has(key)?allocation.get(key):originalQty;
+      if(outQty<=0){if(originalQty>0)omittedNotSupplied.push({inv,ctx,selected:selectedOverride(options,ctx.pos)});continue;}
       const adjusted=Math.abs(outQty-originalQty)>0.0005,ext=adjusted?round(unit*outQty,2):round(inv.extendedExGst,2),gstRate=n(inv.gstPct)!=null?n(inv.gstPct):((n(inv.gstAmount)||0)>0?10:0),gst=adjusted?round(ext*gstRate/100,2):round(inv.gstAmount,2),total=adjusted?round(ext+gst,2):round(inv.totalIncGst,2);
       const importIdentity=resolveImportIdentity(ctx.pos,refs,ctx.invRows,options);
-      const ch2Code=digits(inv.productCode),subId=importIdentity.importSubId,rawSupplierCode=clean(inv.supplierSku),rawDescription=clean(inv.description),supplierCode=sanitizeDataText(rawSupplierCode),description=sanitizeDataText(rawDescription);
+      const ch2Code=digits(inv.productCode),subId=String(importIdentity.importSubId??'').replace(/[\t\r\n]+/g,' '),rawSupplierCode=clean(inv.supplierSku),rawDescription=clean(inv.description),supplierCode=sanitizeDataText(rawSupplierCode),description=sanitizeDataText(rawDescription);
       for(const issue of importIdentity.issues)pushIssue(warnings,`Invoice line ${lineText(inv.invoiceLine)} · ${lineLabel(ctx.pos,ctx.index)} · Import Sub ID "${subId}" (${importIdentity.source}): ${issue}`);
       if(/["$%]/.test(rawSupplierCode))warnings.push(`Invoice line ${lineText(inv.invoiceLine)}: POSActive-forbidden quote / dollar / percent character removed from Supplier Code for import only; reconciliation data is unchanged.`);
       if(/["$%]/.test(rawDescription))warnings.push(`Invoice line ${lineText(inv.invoiceLine)}: POSActive-forbidden quote / dollar / percent character removed from Description for import only; reconciliation data is unchanged.`);
-      if(/[\t\r\n]/.test(subId))pushIssue(errors,`Invoice line ${lineText(inv.invoiceLine)} · ${lineLabel(ctx.pos,ctx.index)}: Sub ID contains a TAB or line break, which would corrupt the 15-column POSActive file. Correct the POS Sub ID before export.`);
+      if(/[\t\r\n]/.test(subId))pushIssue(warnings,`Invoice line ${lineText(inv.invoiceLine)} · ${lineLabel(ctx.pos,ctx.index)}: Sub ID contains a TAB or line break; it was replaced with a space so the 15-column file stays valid. Check the Sub ID in POSActive.`);
       // v2.6.31 — the Sub ID (column 5) is written exactly as stored in POSActive, including
       // spaces and % $ " characters (e.g. `3 PER SKU 25%`). Only TAB/CR/LF are refused above
       // because they would split the tab-delimited record.
@@ -513,14 +532,14 @@
     if(!records.length&&invoiceRows.some(r=>(n(r&&r.qtySupplied)||0)>0&&(n(r&&r.unitPriceExGst)||0)!==0))pushIssue(errors,'No supplied POSActive rows remain. Tick at least one POS Layout item (or use Tick All) before downloading the import file.');
 
     const totals={qty:round(records.reduce((a,r)=>a+r.qtySupplied,0),3),ext:round(records.reduce((a,r)=>a+r.extended,0),2),gst:round(records.reduce((a,r)=>a+r.gst,0),2),total:round(records.reduce((a,r)=>a+r.total,0),2)};
-    if(Math.abs(round(totals.ext+totals.gst-totals.total,2))>0.02)pushIssue(errors,`Invoice ${group.number}: POSActive import totals do not balance (${totals.ext.toFixed(2)} + GST ${totals.gst.toFixed(2)} ≠ ${totals.total.toFixed(2)}).`);
+    if(Math.abs(round(totals.ext+totals.gst-totals.total,2))>0.02)pushIssue(warnings,`PRICE CHECK — Invoice ${group.number}: POSActive import totals do not balance (${totals.ext.toFixed(2)} + GST ${totals.gst.toFixed(2)} ≠ ${totals.total.toFixed(2)}). The printed invoice line values are kept; review only, download remains available.`);
     if(!receivingChanges.length){
       if(Math.abs(totals.qty-sourceTotals.qty)>0.001||Math.abs(totals.ext-sourceTotals.ext)>0.02||Math.abs(totals.gst-sourceTotals.gst)>0.02||Math.abs(totals.total-sourceTotals.total)>0.02){
         const msg=`Invoice ${group.number}: generated file totals do not equal the parsed invoice totals.`;
-        if(invoiceOnlyOmitted.length)pushIssue(warnings,`${msg} This is expected because ${invoiceOnlyOmitted.length} invoice-only line${invoiceOnlyOmitted.length===1?' was':'s were'} omitted.`);else pushIssue(errors,msg);
+        if(invoiceOnlyOmitted.length)pushIssue(warnings,`${msg} This is expected because ${invoiceOnlyOmitted.length} invoice-only line${invoiceOnlyOmitted.length===1?' was':'s were'} omitted.`);else pushIssue(warnings,`PRICE CHECK — ${msg} (TXT ${totals.total.toFixed(2)} vs invoice ${sourceTotals.total.toFixed(2)}). Review only; download remains available.`);
       }
     }else{
-      warnings.push(`POS LAYOUT RECEIVING REVIEW — ${receivingChanges.length} product${receivingChanges.length===1?'':'s'} have receiving differences. Included billed rows preserve CH2 invoice quantities; Found=0 exclusions and explicitly manual lines can change the total. POSActive import total is ${totals.total.toFixed(2)} vs supplier invoice ${sourceTotals.total.toFixed(2)}; the full reconciliation workbook remains unchanged and preserves the original invoice.`);
+      warnings.push(`POS LAYOUT RECEIVING — ${receivingChanges.length} product${receivingChanges.length===1?'':'s'} received a different quantity from CH2's invoice. The POSActive TXT imports the Found quantities (overs and unders) at the CH2 invoice prices: import total ${totals.total.toFixed(2)} vs supplier invoice ${sourceTotals.total.toFixed(2)}. The full reconciliation workbook is unchanged and keeps the original invoice.`);
       for(const x of receivingChanges.slice(0,12))warnings.push(`${lineLabel(x.pos,x.index)}: CH2 supplied ${qtyText(x.invoiceQty)} → POS Layout Found ${qtyText(x.found)}${x.manual?' (manual receiving line — not on the CH2 invoice)':''}.`);
     }
 
@@ -572,7 +591,7 @@
       // valid literal Sub ID data and are preserved; they are review warnings only.
       return row.map((v,colIndex)=>{
         if(rowIndex===0)return clean(v);
-        if(colIndex===4){const x=v==null?'':String(v);if(/[\t\r\n]/.test(x))throw new Error(`POSActive Sub ID in logical row ${rowIndex+1} contains a TAB or line break.`);return x;}
+        if(colIndex===4)return (v==null?'':String(v)).replace(/[\t\r\n]+/g,' ');
         return sanitizeDataText(v);
       }).join('\t');
     }).join('\r\n')+'\r\n';
@@ -613,8 +632,11 @@
     return `oborne_invoice${numbers.length>1?'s':''}_{${invoicePart}}_(${safePart(orderNo)}).txt`;
   }
 
+  // v2.8.0 — proves every exported value against its CH2 invoice line. Prices (unit, Normal W/S, Disc %) must be the
+  // invoice's own; quantities are the Found quantities, so a received line is checked as Unit × Found = Extended and
+  // Extended + GST = Total. Differences are review notes; they never stop the download.
   function validateInvoiceAccuracy(records,invoiceDocs){
-    const sources=new Map(),errors=[];
+    const sources=new Map(),warnings=[];
     for(const doc of activeDocs(invoiceDocs))for(const inv of doc.rows||[]){
       const key=invoiceNo(inv)+'|'+lineText(inv.invoiceLine);
       if(!sources.has(key))sources.set(key,[]);sources.get(key).push(inv);
@@ -623,27 +645,33 @@
       if(r.manualReceiving)continue;
       const list=sources.get(clean(r.invoiceNo)+'|'+lineText(r.line))||[];
       const matches=list.filter(inv=>digits(inv.productCode)===digits(r.ch2Code));
-      if(matches.length!==1){pushIssue(errors,`Invoice ${r.invoiceNo} line ${r.line} CH2 ${r.ch2Code}: no unique source invoice line proves these exported values.`);continue;}
-      const inv=matches[0],check=(label,value,source,dp)=>{if(n(source)!=null&&fixed(value,dp)!==fixed(source,dp))pushIssue(errors,`${wholesaleReviewLabel(inv)}: exported ${label} differs from the source invoice.`);};
-      check('Qty',r.qty,inv.qtySupplied,3);check('Qty Supplied',r.qtySupplied,inv.qtySupplied,3);
-      check('Unit Price',r.unitPrice,inv.unitPriceExGst,4);check('Extended ex GST',r.extended,inv.extendedExGst,2);
-      check('GST',r.gst,inv.gstAmount,2);check('Total inc GST',r.total,inv.totalIncGst,2);
-      check('Normal W/S',r.normalWs,inv.normalWholesale,2);check('Disc %',r.disc,inv.discountPct,2);
+      if(matches.length!==1){pushIssue(warnings,`INVOICE CHECK — Invoice ${r.invoiceNo} line ${r.line} CH2 ${r.ch2Code||'(blank)'}: no single source invoice line could be found to compare the exported values with. Review this line in POSActive.`);continue;}
+      const inv=matches[0],check=(label,value,source,dp)=>{if(n(source)!=null&&fixed(value,dp)!==fixed(source,dp))pushIssue(warnings,`INVOICE CHECK — ${wholesaleReviewLabel(inv)}: exported ${label} ${fixed(value,dp)} differs from the invoice ${fixed(source,dp)}. Review only; download remains available.`);};
+      check('Unit Price',r.unitPrice,inv.unitPriceExGst,4);
+      if(!wsBackfilled(inv))check('Normal W/S',r.normalWs,inv.normalWholesale,2);
+      check('Disc %',r.disc,inv.discountPct,2);
+      if(r.receivingAdjusted){
+        if(fixed(round(r.unitPrice*r.qty,2),2)!==fixed(r.extended,2))pushIssue(warnings,`INVOICE CHECK — ${wholesaleReviewLabel(inv)}: Found ${qtyText(r.qty)} × Unit ${fixed(r.unitPrice,4)} does not equal exported Extended ${fixed(r.extended,2)}.`);
+        if(fixed(round(r.extended+r.gst,2),2)!==fixed(r.total,2))pushIssue(warnings,`INVOICE CHECK — ${wholesaleReviewLabel(inv)}: exported Extended + GST does not equal Total.`);
+      }else{
+        check('Qty',r.qty,inv.qtySupplied,3);check('Qty Supplied',r.qtySupplied,inv.qtySupplied,3);
+        check('Extended ex GST',r.extended,inv.extendedExGst,2);check('GST',r.gst,inv.gstAmount,2);check('Total inc GST',r.total,inv.totalIncGst,2);
+      }
     }
-    return {ok:errors.length===0,checked:(records||[]).filter(r=>!r.manualReceiving).length,errors};
+    return {ok:warnings.length===0,checked:(records||[]).filter(r=>!r.manualReceiving).length,errors:[],warnings};
   }
 
   function buildLegacyFiles(invoiceDocs,refs,posOrder,reconciliation,options={}){
     const grouped=groupDocuments(invoiceDocs,posOrder,options);if(grouped.errors.length)return {ok:false,errors:grouped.errors,warnings:grouped.warnings||[],files:[]};
     const errors=[],warnings=[...(grouped.warnings||[])],orderNo=clean(posOrder&&posOrder.orderNumber||reconciliation&&reconciliation.orderNumber),groups=grouped.groups||[];
-    const numbers=[...new Set(groups.map(g=>clean(g&&g.number)).filter(Boolean))],primary=numbers[0]||'CURRENT',sourceFiles=new Set(),docs=[];
-    for(const g of groups){for(const f of g.sourceFiles||[])sourceFiles.add(f);for(const d of g.docs||[])docs.push(d);}
-    const mergedGroup={number:primary,numbers:new Set(numbers),sourceFiles,docs,orderLinks:groups.map(g=>g.orderLink).filter(Boolean)};
+    const numbers=[...new Set(groups.map(g=>clean(g&&g.number)).filter(Boolean))],primary=numbers[0]||'CURRENT',sourceFiles=new Set(),droppedFiles=new Set(),docs=[];
+    for(const g of groups){for(const f of g.sourceFiles||[])sourceFiles.add(f);for(const f of g.droppedFiles||[])droppedFiles.add(f);for(const d of g.docs||[])docs.push(d);}
+    const mergedGroup={number:primary,numbers:new Set(numbers),sourceFiles,droppedFiles,docs,orderLinks:groups.map(g=>g.orderLink).filter(Boolean)};
     const payload=buildInvoicePayload(mergedGroup,refs,posOrder,reconciliation,options),validation=validatePayload(payload);errors.push(...validation.errors);warnings.push(...validation.warnings);
-    const invoiceAccuracy=validateInvoiceAccuracy(payload.records,docs);errors.push(...invoiceAccuracy.errors);
+    const invoiceAccuracy=validateInvoiceAccuracy(payload.records,docs);warnings.push(...invoiceAccuracy.warnings);
     const keyRows=new Map();for(const r of payload.records){if(!keyRows.has(r.subId))keyRows.set(r.subId,[]);keyRows.get(r.subId).push(r);}
     for(const [key,rows] of keyRows)if(new Set(rows.map(r=>sourceRowKey(r.pos))).size>1){
-      const products=rows.map(r=>`invoice ${r.invoiceNo} line ${r.line} · CH2 ${r.ch2Code} · PLU ${clean(r.pos&&r.pos.plu)||'?'} · barcode ${clean(r.pos&&r.pos.barcode)||'?'} · ${r.description} · invoice quantity ${qtyText(r.qtySupplied)}`).join('; ');
+      const products=rows.map(r=>`invoice ${r.invoiceNo} line ${r.line} · CH2 ${r.ch2Code} · PLU ${clean(r.pos&&r.pos.plu)||'?'} · barcode ${clean(r.pos&&r.pos.barcode)||'?'} · ${r.description} · imported quantity ${qtyText(r.qtySupplied)}`).join('; ');
       warnings.push(`SHARED POS SUB ID "${key}" — ${products}. This is a valid POS label and is preserved. Products and invoice values remain separate in the TXT. POSActive may apply the shared key to the wrong row; verify these exact products after importing. Export remains available.`);
     }
     for(const r of payload.records){const posTax=n(r.pos&&r.pos.gstPct),sourceTax=r.extended>0?round(r.gst/r.extended*100,0):null;if(posTax!=null&&sourceTax!=null&&posTax!==sourceTax)warnings.push(`Invoice ${r.invoiceNo} line ${r.line} · CH2 ${r.ch2Code} · ${r.description}: invoice GST ${fixed(r.gst,2)} implies ${sourceTax}% while POS uses ${posTax}%. Invoice GST is preserved in TXT; POSActive may recalculate using the product GST setting.`);}
@@ -652,7 +680,9 @@
     return {ok:errors.length===0,errors,warnings,files:[file],invoiceNumbers:numbers};
   }
 
-  function errorMessage(errors){const list=(errors||[]),shown=list.slice(0,12),rest=Math.max(0,list.length-shown.length);return `POS import blocked — ${list.length} validation issue${list.length===1?'':'s'}:\n• ${shown.join('\n• ')}${rest?`\n• …and ${rest} more.`:''}`;}
+  // Only problems that stop a correct 15-column file from being written reach here (no supplied rows, no readable
+  // invoice, a serialisation self-check). Price, quantity and data differences are warnings and never block.
+  function errorMessage(errors){const list=(errors||[]),shown=list.slice(0,12),rest=Math.max(0,list.length-shown.length);return `POSActive import file could not be created — ${list.length} problem${list.length===1?'':'s'}:\n• ${shown.join('\n• ')}${rest?`\n• …and ${rest} more.`:''}`;}
   function downloadBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);}
 
   async function exportLegacyPosImport(invoiceDocs,refs,posOrder,reconciliation,options={}){

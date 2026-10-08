@@ -910,7 +910,7 @@
     els.posFiles.replaceChildren();if(state.pos)els.posFiles.append(fileRow(state.pos,()=>{resetReceivingState({clearStorage:true});state.pos=null;state.result=null;state.posParsed=null;state.runIntegrity=null;state.orderOverrides=new Map();renderFiles();hideResults();}));
     els.invoiceFiles.replaceChildren();state.invoices.forEach((f,i)=>els.invoiceFiles.append(fileRow(f,()=>{resetReceivingState({clearStorage:true});state.invoices.splice(i,1);state.result=null;state.docs=[];state.runIntegrity=null;state.orderOverrides=new Map();renderFiles();hideResults();})));
     const filesReady=!!state.pos&&state.invoices.length>0,ready=filesReady&&state.referenceReady;els.runBtn.disabled=!ready;
-    if(!state.referenceReady)setStatus('Reference data is not ready on this computer. Drop the POS / master and Supplier + discount rules files on their rows under Reference data.','warn');
+    if(!state.referenceReady)setStatus('Reference data is not ready on this computer. Drop the POS / master and Supplier + discount rules files on their rows under Reference data, or in Drop All Input Files Here.','warn');
     else if(filesReady)setStatus(`Ready: 1 POS order and ${state.invoices.length} supplier invoice${state.invoices.length===1?'':'s'} selected.`,'ok');
     else setStatus('Add one POS order and at least one supplier invoice to continue.','info');
   }
@@ -921,7 +921,8 @@
   function pill(status){let cls='bad';if(status==='OK')cls='ok';else if(status==='BETTER PRICE')cls='better';else if(/REVIEW|LOW/.test(status))cls='review';return `<span class="status-pill ${cls}">${escapeHtml(status)}</span>`;}
   function kpi(label,value,cls=''){return `<div class="kpi ${cls}"><div class="n">${escapeHtml(value)}</div><div class="l">${escapeHtml(label)}</div></div>`;}
   function updateDownloadButton(){
-    const ready=!!(state.runIntegrity&&state.runIntegrity.ok);
+    // v2.8.0 — integrity, price and data checks are review notes; every download is available once a run has finished.
+    const ready=!!(state.result&&state.docs&&state.docs.length&&state.refs);
     // v2.6.29 — the green primary button (shown first) is the download for the current view:
     // POS layout → POSActive Import.txt · Exceptions → Exceptions.xlsx · All lines → Full Reconciliation.xlsx.
     const viewPrimary=state.previewView==='all'?els.fullDownloadBtn:els.downloadBtn;
@@ -929,12 +930,12 @@
     if(els.fullDownloadBtn){
       els.fullDownloadBtn.textContent='Download Full Reconciliation.xlsx';
       els.fullDownloadBtn.disabled=!ready;
-      els.fullDownloadBtn.title=ready?'Download the original complete 43-column linked-POS reconciliation workbook. Barcodes are stored as exact text.':'Excel export is blocked until all integrity checks pass.';
+      els.fullDownloadBtn.title=ready?'Download the original complete 43-column linked-POS reconciliation workbook. Barcodes are stored as exact text.':'Run the reconciliation first.';
     }
     if(els.fullCsvDownloadBtn){
       els.fullCsvDownloadBtn.textContent='Download Full Reconciliation.csv';
       els.fullCsvDownloadBtn.disabled=!ready;
-      els.fullCsvDownloadBtn.title=ready?'Download the same 43-column reconciliation as an Excel-safe UTF-8 CSV. Barcodes use a text formula so leading zeroes remain visible when opened directly in Excel.':'CSV export is blocked until all integrity checks pass.';
+      els.fullCsvDownloadBtn.title=ready?'Download the same 43-column reconciliation as an Excel-safe UTF-8 CSV. Barcodes use a text formula so leading zeroes remain visible when opened directly in Excel.':'Run the reconciliation first.';
     }
     if(els.keyReviewBtn)els.keyReviewBtn.disabled=!state.result;
     if(!els.downloadBtn)return;
@@ -949,7 +950,7 @@
     els.downloadBtn.textContent=labels[state.previewView]||'Download Current View';
     const posLinkBlocked=false;
     els.downloadBtn.disabled=!ready;
-    els.downloadBtn.title=!ready?'Export is blocked until all integrity checks pass.':`Download the ${state.previewView==='pos'?'POSActive 15-column tab-delimited import file; only ticked/accounted POS Layout rows are supplied, with Found quantities applied':'exceptions workbook'}.`;
+    els.downloadBtn.title=!ready?'Run the reconciliation first.':`Download the ${state.previewView==='pos'?'POSActive 15-column tab-delimited import file; ticked/accounted POS Layout rows are imported with their Found quantities (overs and unders) at the CH2 invoice prices':'exceptions workbook'}.`;
   }
   function setViewButtons(){
     const map={exceptions:els.viewExceptionsBtn,all:els.viewAllBtn,pos:els.viewPosBtn};
@@ -1156,21 +1157,21 @@
 
   function renderResults(){
     const r=state.result;if(!r)return;const t=r.totals,integ=state.runIntegrity||{ok:false,errors:['Integrity not run'],warnings:[]};els.results.classList.remove('hidden');const pf=state.posParsed||{},ioN=invoiceOnlyEntries().length;els.resultSub.textContent=`${r.orderNumber?`Order ${r.orderNumber} · `:''}${t.matchedInvoiceLines}/${t.invoiceLines} supplier lines matched to the POS order · order file ${pf.sourceFile||'?'} (${((pf.rows)||[]).length} product rows)${ioN?` · ${ioN} billed product${ioN===1?'':'s'} not on the POS order (INV rows — see Not on POS order)`:''}.`;
-    els.kpis.innerHTML=[kpi('POS lines',t.posLines),kpi('Exceptions',t.exceptionLines,t.exceptionLines?'bad':'good'),kpi('Unmatched invoices',t.unmatchedInvoiceLines,t.unmatchedInvoiceLines?'bad':'good'),kpi('Better price',t.betterPriceLines,'good'),kpi('Potential missed $',money(t.missedTotal),t.missedTotal>0?'bad':'good'),kpi('Integrity',integ.ok?'PASS':'BLOCKED',integ.ok?'good':'bad')].join('');
-    const notes=[...(r.warnings||[])];
+    els.kpis.innerHTML=[kpi('POS lines',t.posLines),kpi('Exceptions',t.exceptionLines,t.exceptionLines?'bad':'good'),kpi('Unmatched invoices',t.unmatchedInvoiceLines,t.unmatchedInvoiceLines?'bad':'good'),kpi('Better price',t.betterPriceLines,'good'),kpi('Potential missed $',money(t.missedTotal),t.missedTotal>0?'bad':'good'),kpi('Integrity',integ.ok?'PASS':'REVIEW',integ.ok?'good':'bad')].join('');
+    const notes=[...(state.duplicateInvoiceNotes||[]),...(r.warnings||[])];
     const posDiag=state.posParsed&&state.posParsed.diagnostics||{},restored=Number(posDiag.enrichedRows||0),ambiguousRestores=Number(posDiag.ambiguousMasterRows||0);
     if(restored)notes.push(`POS SOURCE RESTORED — ${restored} order row${restored===1?'':'s'} arrived without one or more standard identifier columns. Missing identifiers were restored only where the aligned master had one unambiguous value for the exact POS PLU. Restored Sub IDs are used for matching only — the POSActive TXT always sends each order row's Sub ID exactly as stored in the order file.`);
     if(ambiguousRestores)notes.push(`POS SOURCE REVIEW — ${ambiguousRestores} order row${ambiguousRestores===1?' has':'s have'} conflicting master candidates and were not filled automatically.`);
     if(t.lowConfidenceLines){const low=r.detail.filter(x=>x.matchConfidence==='LOW').slice(0,8).map(x=>`${x.posDescription} [${x.matchMethods||'fallback match'}]`);notes.push(`${t.lowConfidenceLines} matched line(s) have LOW confidence and should be reviewed${low.length?`: ${low.join('; ')}`:'.'}`);}
     if(t.auditDataMissing)notes.push(`${t.auditDataMissing} matched POS line(s) cannot receive a complete CH2 discount/wholesale audit because the supplier invoice did not print all required audit fields.`);
     const posIdentityNotes=posSubIdReviewNotes();notes.push(...posIdentityNotes);
-    if(integ.ok)notes.unshift('Integrity checks passed: POS source order is locked, every parsed invoice row is accounted for exactly once, and supplier invoice arithmetic is valid.');else notes.unshift(...integ.errors.map(x=>`INTEGRITY BLOCK: ${x}`));notes.push(...(integ.warnings||[]));notes.push('Excel output keeps every POS order line in the exact uploaded sequence. Genuine invoice-only lines are appended only after the complete POS order block.');
+    if(integ.ok)notes.unshift('Integrity checks passed: POS source order is locked, every parsed invoice row is accounted for exactly once, and supplier invoice arithmetic is valid.');else notes.unshift(...integ.errors.map(x=>`INTEGRITY REVIEW: ${x} — downloads remain available; check these rows before importing.`));notes.push(...(integ.warnings||[]));notes.push('Excel output keeps every POS order line in the exact uploaded sequence. Genuine invoice-only lines are appended only after the complete POS order block.');
     els.warningBox.classList.remove('hidden','ok','bad');if(!integ.ok)els.warningBox.classList.add('bad');else if(!posIdentityNotes.length)els.warningBox.classList.add('ok');els.warningBox.innerHTML='<strong>Review notes:</strong><br>'+notes.map(escapeHtml).join('<br>');
     renderOrderOverrideUi();renderPreview(r);updateDownloadButton();els.results.scrollIntoView({behavior:'smooth',block:'start'});
   }
 
   async function run(){
-    if(!state.pos||!state.invoices.length||!state.referenceReady){setStatus('Reference data is not ready on this computer. Drop the POS / master and Supplier + discount rules files on their rows under Reference data.','warn');return;}
+    if(!state.pos||!state.invoices.length||!state.referenceReady){setStatus('Reference data is not ready on this computer. Drop the POS / master and Supplier + discount rules files on their rows under Reference data, or in Drop All Input Files Here.','warn');return;}
     els.runBtn.disabled=true;els.clearBtn.disabled=true;hideResults();setProgress(4);setStatus('Loading POS/master and discount reference data…','info');
     try{
       state.refs=await PHF.referenceStore.parseStored();setProgress(18);setStatus(`Reference data ready: ${state.refs.master.info.records.toLocaleString()} CH2 codes and ${state.refs.supplier.info.discountRules.toLocaleString()} discount rules. Reading POS order…`,'info');
@@ -1182,10 +1183,16 @@
       state.orderOverrides=new Map();
       const restored=Number(pos.diagnostics&&pos.diagnostics.enrichedRows||0);
       setProgress(35);setStatus(`POS order read: ${pos.rows.length} ordered product lines${restored?` · ${restored} row${restored===1?'':'s'} restored from the exact POS PLU in the aligned master`:''}. Receiving checklist reset for a new run. Reading supplier invoice(s)…`,'info');
-      const docs=[];for(let i=0;i<state.invoices.length;i++){const doc=await PHF.parseSupplierInvoice(state.invoices[i]);docs.push(doc);setProgress(35+Math.round(((i+1)/state.invoices.length)*38));}state.docs=docs;
+      const parsed=[];for(let i=0;i<state.invoices.length;i++){const doc=await PHF.parseSupplierInvoice(state.invoices[i]);parsed.push(doc);setProgress(35+Math.round(((i+1)/state.invoices.length)*38));}
+      // v2.8.0 — an identical copy of an invoice (same number, lines, codes, quantities and prices — e.g. a renamed download) is
+      // used once so quantities are not doubled. Files with the same number but different lines are all kept. A note, not a block.
+      const docs=[],seenInvoices=new Map();state.duplicateInvoiceNotes=[];
+      const docSig=doc=>(doc.rows||[]).map(r=>[cleanText(r.invoiceLine),cleanText(r.productCode),cleanText(r.qtySupplied),cleanText(r.unitPriceExGst)].join(':')).sort().join('|');
+      for(const doc of parsed){const no=cleanText((doc&&doc.rows&&doc.rows[0]&&doc.rows[0].invoiceNumber)||(doc&&doc.meta&&doc.meta.invoiceNumber)),key=`${doc&&doc.type}|${no}|${docSig(doc)}`;if(no&&seenInvoices.has(key)){state.duplicateInvoiceNotes.push(`DUPLICATE INVOICE — ${doc.sourceFile} is an identical copy of invoice ${no} (already read from ${seenInvoices.get(key)}), so it was left out of this run. Remove it if it was added by mistake.`);continue;}if(no)seenInvoices.set(key,doc.sourceFile);docs.push(doc);}
+      state.docs=docs;
       const invoiceCount=docs.reduce((a,d)=>a+(d.rows||[]).length,0);setStatus(`Supplier invoices read: ${invoiceCount} billed product lines. Matching to POS order…`,'info');setProgress(82);
       state.result=PHF.reconcile(pos,docs,state.refs);state.runIntegrity=PHF.integrity.validateRun(pos,docs,state.result);state.result.integrity=state.runIntegrity;setProgress(100);
-      const t=state.result.totals,ioRun=invoiceOnlyEntries(),ioNote=ioRun.length?` ${ioRun.length} billed product${ioRun.length===1?' is':'s are'} not on the POS order (${ioRun.slice(0,3).map(e=>cleanText(e.pos&&e.pos.description)).join(', ')}${ioRun.length>3?', …':''}) — excluded from the POSActive TXT unless ticked. See Not on POS order.`:'';if(state.runIntegrity.ok)setStatus(`Complete: ${t.matchedInvoiceLines}/${t.invoiceLines} invoice lines matched. ${t.exceptionLines} POS line exception${t.exceptionLines===1?'':'s'}${t.unmatchedInvoiceLines?`, ${t.unmatchedInvoiceLines} unmatched invoice line${t.unmatchedInvoiceLines===1?'':'s'}`:''}. Integrity PASS.${ioNote}`,ioRun.length?'warn':'ok');else setStatus(`Reconciliation completed, but Excel export is blocked by ${state.runIntegrity.errors.length} integrity check${state.runIntegrity.errors.length===1?'':'s'}. Review the notes below.`,'warn');
+      const t=state.result.totals,ioRun=invoiceOnlyEntries(),ioNote=ioRun.length?` ${ioRun.length} billed product${ioRun.length===1?' is':'s are'} not on the POS order (${ioRun.slice(0,3).map(e=>cleanText(e.pos&&e.pos.description)).join(', ')}${ioRun.length>3?', …':''}) — excluded from the POSActive TXT unless ticked. See Not on POS order.`:'';if(state.runIntegrity.ok)setStatus(`Complete: ${t.matchedInvoiceLines}/${t.invoiceLines} invoice lines matched. ${t.exceptionLines} POS line exception${t.exceptionLines===1?'':'s'}${t.unmatchedInvoiceLines?`, ${t.unmatchedInvoiceLines} unmatched invoice line${t.unmatchedInvoiceLines===1?'':'s'}`:''}. Integrity PASS.${ioNote}`,ioRun.length?'warn':'ok');else setStatus(`Reconciliation completed with ${state.runIntegrity.errors.length} integrity check${state.runIntegrity.errors.length===1?'':'s'} to review (see the notes below). All downloads remain available.${ioNote}`,'warn');
       state.previewView='pos';renderResults();setTimeout(hideProgress,500);
     }catch(err){console.error(err);hideProgress();setStatus(err&&err.message?err.message:String(err),'warn');}
     finally{els.runBtn.disabled=!(state.pos&&state.invoices.length&&state.referenceReady);els.clearBtn.disabled=false;}
@@ -1195,14 +1202,14 @@
   els.clearBtn.onclick=()=>{resetReceivingState({clearStorage:true});state.pos=null;state.invoices=[];state.result=null;state.docs=[];state.posParsed=null;state.previewView='pos';state.runIntegrity=null;state.unpackChecked=new Set();state.unpackManualChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;state.receivingMigratedFrom266=false;state.orderOverrides=new Map();els.posInput.value='';els.invoiceInput.value='';hideResults();hideProgress();renderFiles();};
   els.runBtn.onclick=run;
   if(els.fullDownloadBtn)els.fullDownloadBtn.onclick=async()=>{
-    if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok)return;
+    if(!state.result||!state.docs.length||!state.refs)return;
     els.fullDownloadBtn.disabled=true;els.fullDownloadBtn.textContent='Building Full Excel…';
-    try{await PHF.exportReference(state.docs,state.refs,state.posParsed,state.result);setStatus('Full reconciliation Excel generated successfully.','ok');}
+    try{const out=await PHF.exportReference(state.docs,state.refs,state.posParsed,state.result),review=(out&&out.layoutWarnings)||[];if(review.length)setStatus(`Full reconciliation Excel generated · ${review.length} layout check${review.length===1?'':'s'} to review (the file is complete): ${review.slice(0,3).join(' | ')}`,'warn');else setStatus('Full reconciliation Excel generated successfully.','ok');}
     catch(err){console.error(err);setStatus(err&&err.message?err.message:String(err),'warn');}
     finally{updateDownloadButton();}
   };
   if(els.fullCsvDownloadBtn)els.fullCsvDownloadBtn.onclick=async()=>{
-    if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok)return;
+    if(!state.result||!state.docs.length||!state.refs)return;
     els.fullCsvDownloadBtn.disabled=true;els.fullCsvDownloadBtn.textContent='Building CSV…';
     try{await PHF.exportReferenceCsv(state.docs,state.refs,state.posParsed,state.result);setStatus('Full reconciliation CSV generated successfully. Barcodes are Excel-safe text.','ok');}
     catch(err){console.error(err);setStatus(err&&err.message?err.message:String(err),'warn');}
@@ -1216,7 +1223,7 @@
   els.downloadBtn.onclick=async()=>{
     const activeKey=document.activeElement;if(activeKey&&activeKey.matches('.import-key-input'))commitImportKey(activeKey);
     commitActiveReceivingInput();
-    if(!state.result||!state.docs.length||!state.refs||!state.runIntegrity||!state.runIntegrity.ok||state.previewView==='all')return;
+    if(!state.result||!state.docs.length||!state.refs||state.previewView==='all')return;
     els.downloadBtn.disabled=true;els.downloadBtn.textContent=state.previewView==='pos'?'Building merged TXT…':'Building Excel…';
     try{
       const exportResult=await PHF.exportView(state.previewView,state.docs,state.refs,state.posParsed,state.result,posExportOptions());
@@ -1237,9 +1244,8 @@
       const message=err&&err.message?err.message:String(err);
       setStatus(message,'warn');
       if(state.previewView==='pos'){
-        // POS import validation can intentionally block an unsafe file.  Make that
-        // reason visible at the point of action instead of only in the Step 3 status
-        // area above the results, which may be off-screen on long POS previews.
+        // Only a file that cannot be written correctly reaches here (no supplied rows, unreadable invoice, a
+        // 15-column self-check). Show the reason at the point of action — price and data notes never get here.
         try{globalThis.alert(message);}catch(_e){}
       }
     }
@@ -1304,6 +1310,6 @@
     if(strip){const warn=document.createElement('div');warn.className='notice bad stale-build-notice';warn.textContent=`index.html is older than the loaded scripts (v${PHF.schema&&PHF.schema.BUILD?PHF.schema.BUILD.version:'?'}). Re-upload index.html from the same release so every control and fix loads.`;strip.parentNode.insertBefore(warn,strip);}
   }
   // v2.7.0 — lets the input rail (js/ui/workspace.js) re-check reference data after saving it from the rail.
-  global.PHFReconcileApp=Object.assign(global.PHFReconcileApp||{},{refreshReferenceStatus});
+  global.PHFReconcileApp=Object.assign(global.PHFReconcileApp||{},{refreshReferenceStatus,setStatus});
   refreshReferenceStatus();
 })(window);

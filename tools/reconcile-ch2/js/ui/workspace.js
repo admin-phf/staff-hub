@@ -1,4 +1,4 @@
-/* Reconcile CH2 v2.7.0 — input rail + workspace, laid out like Build Master Databases.
+/* Reconcile CH2 v2.8.0 — input rail + workspace, laid out like Build Master Databases, with Drop All Input Files Here.
    The reconciliation engine (app.js) is unchanged: this script reads the page state app.js
    already maintains (file lists, run button, status, results, download buttons) and forwards
    files dropped on the rail to app.js's own file inputs. Reference files dropped on the rail
@@ -164,6 +164,93 @@
     });
   }
 
+  /* ---------- Drop All Input Files Here (v2.8.0) ----------
+     Every dropped file is identified from its headings (file name only as a fallback): PDFs and readable invoice
+     spreadsheets → Supplier invoices, merged_alligned master → POS / master, discount rules → Supplier + discount rules,
+     BROWSEORDERFILES-style exports → POS back-end order. Each is handed to the same handler as its own control; anything
+     ambiguous, duplicated or unrecognised stays listed with a picker. Nothing runs until Run reconciliation is pressed. */
+  const bulk=[];
+  const TITLES=Object.fromEntries(INPUTS.map(d=>[d.id,d.title]));
+  const norm=v=>String(v==null?'':v).trim().toUpperCase().replace(/[^A-Z0-9%]+/g,' ').trim();
+  async function sniff(file){
+    const X=global.XLSX;if(!X)throw new Error('Spreadsheet library did not load.');
+    const ext=(String(file.name||'').split('.').pop()||'').toLowerCase();
+    const wb=(ext==='csv'||ext==='txt')?X.read(await file.text(),{type:'string',sheetRows:20}):X.read(await file.arrayBuffer(),{type:'array',sheetRows:20});
+    const heads=[];for(const n of wb.SheetNames.slice(0,6)){const rows=X.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:null,raw:true,blankrows:false});for(const r of rows.slice(0,15))for(const v of r||[])if(v!=null&&String(v).trim())heads.push(norm(v));}
+    return {sheets:wb.SheetNames.map(norm),heads};
+  }
+  async function identify(file){
+    const name=String(file.name||''),low=name.toLowerCase();
+    if(/\.pdf$/i.test(name))return {file,id:'invoices',status:'match',msg:'PDF — recognised as a supplier invoice.'};
+    if(!/\.(xlsx|xlsm|xls|csv|txt)$/i.test(name))return {file,id:'',status:'unrecognised',msg:'Not a PDF or spreadsheet — choose the input it belongs to, or leave it unassigned.'};
+    let s;try{s=await sniff(file);}catch(err){return {file,id:'',status:'unreadable',msg:`Could not read this file (${err&&err.message?err.message:err}).`};}
+    const has=t=>s.heads.some(h=>h===t||h.includes(t)),ids=[];
+    // The merged master has MATCH_STATUS (and, from v21.5.0, OD_* discount audit columns); the rules files have POS DISCOUNT% or a
+    // SUPPLIER MERGE sheet. When a file shows both, the file name decides, otherwise it is left for review.
+    const nameMaster=/merged_al+igned/.test(low),nameRules=/ongoing.?discount|supplier.?merge|pos.?db/.test(low);
+    const isMaster=nameMaster||(has('POS MASTER BARCODE')&&has('MATCH STATUS'));
+    const isRules=nameRules||has('POS DISCOUNT')||s.sheets.some(n=>n.includes('SUPPLIER MERGE'))||(!has('MATCH STATUS')&&has('OD DISCOUNT'));
+    if(isMaster&&!isRules)ids.push('master');
+    else if(isRules&&!isMaster)ids.push('supplier');
+    else if(isMaster&&isRules){if(nameMaster&&!nameRules)ids.push('master');else if(nameRules&&!nameMaster)ids.push('supplier');else ids.push('master','supplier');}
+    if(has('OR QTY')&&(has('ADJWSPRCE')||has('ADJDPRCE'))){if(/\.(xls|xlsx|csv)$/i.test(name))ids.push('pos');else return {file,id:'',choices:['pos'],status:'invalid',msg:'Looks like a POS order, but the POS order must be an .xls, .xlsx or .csv file — save it in one of those formats and drop it again.'};}
+    if(ids.length===1)return {file,id:ids[0],status:'match',msg:`Recognised as ${TITLES[ids[0]]} from its headings.`};
+    if(ids.length>1)return {file,id:'',choices:ids,status:'ambiguous',msg:`Could be ${ids.map(i=>TITLES[i]).join(' or ')} — choose the input it belongs to.`};
+    if(PHF.parseSupplierInvoice){try{const doc=await PHF.parseSupplierInvoice(file);if(doc&&(doc.rows||[]).length)return {file,id:'invoices',status:'match',msg:`Recognised as a supplier invoice (${doc.rows.length} billed line${doc.rows.length===1?'':'s'}).`};}catch(err){}}
+    return {file,id:'',status:'unrecognised',msg:'Not recognised from its headings — choose the input it belongs to, or leave it unassigned.'};
+  }
+  async function assign(r,id){
+    const def=INPUTS.find(d=>d.id===id);if(!def)return false;
+    if(def.kind==='ref'){await saveReference(def,r.file);const ok=!!ref[def.id]&&!ref.invalid[def.id]&&ref[def.id].name===r.file.name;r.msg=ok?`Saved as ${def.title} — ${ref.message[def.id]||'validated'}.`:`Not saved as ${def.title} — ${ref.message[def.id]||'structure not recognised'}`;return ok;}
+    const okExt=def.id==='pos'?/\.(xls|xlsx|csv)$/i:/\.(pdf|xls|xlsx|csv)$/i;
+    if(!okExt.test(String(r.file.name||''))){r.msg=`Not added — ${def.title} accepts ${def.id==='pos'?'.xls, .xlsx or .csv':'PDF, .xls, .xlsx or .csv'} files.`;return false;}
+    acceptFiles(id,[r.file]);r.msg=`Added to ${def.title}.`;return true;
+  }
+  async function bulkAccept(list){
+    const files=[...(list||[])];if(!files.length)return;
+    const start=bulk.length;files.forEach(f=>bulk.push({file:f,id:'',status:'reading',msg:'Reading and identifying…'}));renderBulk();
+    const found=[];for(let i=0;i<files.length;i++){const r=await identify(files[i]);bulk[start+i]=r;found.push(r);renderBulk();}
+    for(const single of ['master','supplier','pos']){const rs=found.filter(r=>r.status==='match'&&r.id===single);if(rs.length>1)for(const r of rs){r.status='duplicate';r.choice=single;r.msg=`${rs.length} dropped files look like ${TITLES[single]} — assign the one to use.`;}}
+    // Reference data first (saved and validated), then the order, then all invoices together.
+    for(const id of ['master','supplier','pos']){for(const r of found.filter(x=>x.status==='match'&&x.id===id)){r.status=await assign(r,id)?'assigned':'invalid';renderBulk();}}
+    const inv=found.filter(x=>x.status==='match'&&x.id==='invoices');if(inv.length){acceptFiles('invoices',inv.map(r=>r.file));for(const r of inv){r.status='assigned';r.msg=r.msg.replace(/\.$/,'')+' — added to Supplier invoices.';}}
+    renderBulk();schedule();
+    const review=found.filter(r=>r.status!=='assigned').length,app=global.PHFReconcileApp,text=`${found.length-review} of ${found.length} dropped file${found.length===1?'':'s'} assigned automatically${review?` · ${review} need${review===1?'s':''} review in Drop All Input Files`:''}. Nothing has been run — press Run reconciliation when ready.`;
+    if(app&&app.setStatus)app.setStatus(text,review?'warn':'info');else{const st=$('#status');if(st){st.className='status '+(review?'warn':'info');st.textContent=text;}}
+  }
+  async function bulkAssignRow(i){
+    const r=bulk[i],sel=document.querySelector(`[data-bulk-select="${i}"]`),id=sel?sel.value:'';if(!r)return;
+    if(!id){r.msg='Choose the input this file belongs to first.';renderBulk();return;}
+    r.status='reading';r.msg=`Adding to ${TITLES[id]}…`;renderBulk();
+    const ok=await assign(r,id);r.id=id;r.status=ok?'assigned':'invalid';
+    if(ok)for(const o of bulk)if(o!==r&&o.status==='duplicate'&&o.choice===id){o.status='review';o.msg=`Not used — ${r.file.name} was assigned to ${TITLES[id]}.`;}
+    renderBulk();schedule();
+  }
+  function renderBulk(){
+    const host=$('#bulkResults'),badge=$('#bulkCount');if(!host)return;
+    const done=bulk.filter(r=>r.status==='assigned').length,review=bulk.filter(r=>!['assigned','reading'].includes(r.status)).length;
+    if(badge){badge.textContent=bulk.length?`${done} ASSIGNED${review?` · ${review} TO REVIEW`:''}`:'0 FILES';badge.className='result-badge'+(bulk.length?(review?' warn':' ok'):'');}
+    if(!bulk.length){host.innerHTML='';return;}
+    host.innerHTML=bulk.map((r,i)=>{
+      const ok=r.status==='assigned',cls=ok?'ok':r.status==='reading'?'reading':(r.status==='unrecognised'||r.status==='unreadable')?'bad':'review';
+      const chip=ok?'ASSIGNED':r.status==='reading'?'CHECKING':(r.status==='unrecognised'||r.status==='unreadable')?'NOT RECOGNISED':'REVIEW';
+      const pick=r.choice||r.id||(r.choices&&r.choices[0])||'';
+      const opts='<option value="">Choose input…</option>'+INPUTS.map(d=>`<option value="${d.id}"${pick===d.id?' selected':''}>${esc(d.title)}${r.choices&&r.choices.includes(d.id)&&!ok?' (suggested)':''}</option>`).join('');
+      return `<div class="bulk-row ${cls}"><div class="bulk-file"><strong>${esc(r.file.name)}</strong><span>${prettySize(r.file.size)} · ${esc(r.msg)}</span></div><span class="bulk-state">${chip}</span><div class="bulk-assign">${r.status==='reading'?'':`<select data-bulk-select="${i}" aria-label="Input for ${esc(r.file.name)}">${opts}</select><button type="button" class="btn small" data-bulk-assign="${i}"${ok?' disabled':''}>${ok?'Assigned':'Assign'}</button>`}</div></div>`;
+    }).join('');
+    host.querySelectorAll('[data-bulk-select]').forEach(s=>s.onchange=()=>{const i=+s.dataset.bulkSelect,r=bulk[i],b=host.querySelector(`[data-bulk-assign="${i}"]`);r.choice=s.value;if(b){const same=r.status==='assigned'&&s.value===r.id;b.disabled=same;b.textContent=same?'Assigned':'Assign';}});
+    host.querySelectorAll('[data-bulk-assign]').forEach(b=>b.onclick=()=>bulkAssignRow(+b.dataset.bulkAssign));
+  }
+  function wireBulkDrop(){
+    const zone=$('#bulkDrop'),input=$('#bulkInput');if(!zone||!input)return;
+    zone.onclick=()=>input.click();
+    zone.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();input.click();}};
+    input.onchange=()=>{const f=[...(input.files||[])];input.value='';bulkAccept(f);};
+    ['dragenter','dragover'].forEach(evt=>zone.addEventListener(evt,e=>{e.preventDefault();zone.classList.add('drag');}));
+    ['dragleave','drop'].forEach(evt=>zone.addEventListener(evt,e=>{e.preventDefault();zone.classList.remove('drag');}));
+    zone.addEventListener('drop',e=>{const f=e.dataTransfer&&e.dataTransfer.files;if(f&&f.length)bulkAccept(f);});
+  }
+
   /* ---------- watch the state app.js maintains ---------- */
   function observe(){
     const mo=new MutationObserver(schedule);
@@ -172,6 +259,6 @@
     OUTPUTS.forEach(s=>{const e=$(s);if(e)mo.observe(e,{childList:true,characterData:true,subtree:true});});
   }
 
-  wireReferenceDrops();observe();render();loadReferenceStatus();
-  global.PHFReconcileWorkspace={select,render};
+  wireReferenceDrops();wireBulkDrop();observe();render();renderBulk();loadReferenceStatus();
+  global.PHFReconcileWorkspace={select,render,bulkAccept};
 })(window);

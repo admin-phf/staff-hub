@@ -82,9 +82,40 @@ body:not(.database-builder-page) .panel,body:not(.database-builder-page) .result
 @media(min-width:1900px){.builder-shell.dashboard-mode{grid-template-columns:340px minmax(0,1fr)}.input-nav-item small{max-width:220px}}
 @media(max-width:1250px){.input-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.stage-dashboard{grid-template-columns:1fr!important}}
 @media(max-width:900px){.builder-shell.dashboard-mode{grid-template-columns:1fr}.dashboard-mode .builder-sidebar{position:relative;top:auto;height:auto;max-height:none}.dashboard-intro{grid-template-columns:1fr}.input-summary{grid-template-columns:1fr}.stage-dashboard{grid-template-columns:1fr!important}}
-/* v21.0.0 — all-outputs list: filename above its row/column summary; master callout with three notes */
-.outputs-panel .output-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}
-.outputs-panel .output-row code{display:block;font-weight:600;overflow-wrap:anywhere}
-.outputs-panel .output-row span{display:block;margin-top:3px;font-size:12px}
-.outputs-panel .output-row .output-actions{width:auto}
+/* v21.5.0 — generated output files use the same rows and Download buttons as Reconcile CH2 Order
+   (tools/reconcile-ch2/css/workspace.css "Generated output files"), in the all-outputs panel and in each stage card. */
+body.phf-page-db .outputs-panel .output-list{margin:0;border:0}
+body.phf-page-db :is(.outputs-panel,.stage-output-inline) .output-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:10px 0;border:0}
+body.phf-page-db :is(.outputs-panel,.stage-output-inline) .output-row+.output-row{border-top:1px solid var(--phf-line)}
+body.phf-page-db :is(.outputs-panel,.stage-output-inline) .output-row code{display:block;font-size:13px;font-weight:600;color:var(--phf-ink);white-space:normal;overflow:visible;overflow-wrap:anywhere}
+body.phf-page-db :is(.outputs-panel,.stage-output-inline) .output-row span{display:block;margin:2px 0 0;font-size:12px;color:var(--phf-muted)}
+body.phf-page-db :is(.outputs-panel,.stage-output-inline) .output-row .output-warning{color:var(--phf-amber-ink)}
+body.phf-page-db :is(.outputs-panel,.stage-output-inline) .output-row .output-actions{display:block;width:auto}
+body.phf-page-db :is(.outputs-panel,.stage-output-inline,.auto-download) .download-link{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:7px 14px;border:1px solid transparent;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;text-decoration:none}
+body.phf-page-db :is(.outputs-panel,.stage-output-inline) .empty-output{border-radius:8px}
+body.phf-page-db .stage-output-inline{margin-top:10px}
+/* Auto-download notice under the Build All status, with a manual button if the browser blocked it. */
+body.phf-page-db .auto-download{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;margin-top:10px;padding:10px 14px;border:1px solid var(--phf-green-line);border-radius:8px;background:var(--phf-green-bg)}
+body.phf-page-db .auto-download[hidden]{display:none}
+body.phf-page-db .auto-download strong{display:block;font-size:13px;color:var(--phf-ink);overflow-wrap:anywhere}
+body.phf-page-db .auto-download span{display:block;margin-top:2px;font-size:12px;color:var(--phf-muted)}
+/* Drop All Input Files Here — one drop zone that identifies and assigns every input; rows needing review stay listed. */
+body.phf-page-db .bulk-drop-panel{padding:14px 16px}
+body.phf-page-db .bulk-dropzone{margin-top:10px;min-height:64px;padding:14px}
+body.phf-page-db .bulk-results{display:grid;gap:0;margin-top:6px}
+body.phf-page-db .bulk-results:empty{display:none}
+body.phf-page-db .bulk-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--phf-line)}
+body.phf-page-db .bulk-row:first-child{border-top:0}
+body.phf-page-db .bulk-file strong{display:block;font-size:13px;color:var(--phf-ink);overflow-wrap:anywhere}
+body.phf-page-db .bulk-file span{display:block;margin-top:2px;font-size:12px;color:var(--phf-muted)}
+body.phf-page-db .bulk-state{font-size:10px;font-weight:800;letter-spacing:.06em;padding:3px 7px;border-radius:999px;border:1px solid var(--phf-line);background:var(--phf-grey-bg);color:var(--phf-grey-ink);white-space:nowrap}
+body.phf-page-db .bulk-row.ok .bulk-state{background:var(--phf-green-bg);border-color:var(--phf-green-line);color:var(--phf-green-ink)}
+body.phf-page-db .bulk-row.review .bulk-state{background:var(--phf-amber-bg);border-color:var(--phf-amber-line);color:var(--phf-amber-ink)}
+body.phf-page-db .bulk-row.bad .bulk-state{background:var(--phf-red-bg);border-color:var(--phf-red-line);color:var(--phf-red-ink)}
+body.phf-page-db .bulk-row.review .bulk-file span,body.phf-page-db .bulk-row.bad .bulk-file span{color:var(--phf-ink)}
+body.phf-page-db .bulk-assign{display:flex;gap:6px;align-items:center}
+body.phf-page-db .bulk-assign select{min-height:32px;max-width:230px;padding:5px 8px;border:1px solid var(--phf-line-strong);border-radius:6px;background:#fff;font:inherit;font-size:12px;color:var(--phf-ink)}
+body.phf-page-db .bulk-assign .btn{min-height:32px;padding:6px 12px;font-size:12px}
+body.phf-page-db .result-badge.warn{background:var(--phf-amber-bg);border-color:var(--phf-amber-line);color:var(--phf-amber-ink)}
+@media(max-width:820px){body.phf-page-db .bulk-row{grid-template-columns:1fr}body.phf-page-db .bulk-assign select{max-width:none;flex:1}}
 .stage-dashboard .master-callout>div:last-child:nth-child(odd){grid-column:1/-1}

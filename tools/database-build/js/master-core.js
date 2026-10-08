@@ -1,4 +1,4 @@
-/* MasterCore v2.2.0 — Combined Master (browser port of MASTER Step 3 V30.15, no pandas / no database).
+/* MasterCore v2.3.0 — Combined Master (browser port of MASTER Step 3 V30.15, no pandas / no database).
    Everything runs in the browser at the time the page is used.
 
    Same as Python V30.15:
@@ -8,18 +8,21 @@
      - availability lookup, warehouse fulfilment priority and shortfall
      - pricing (cheapest CH2 / UHP W/S, RRP from same source, GST UHP > CH2 > POS)
      - output columns, sort (MASTER_BRAND, MASTER_BARCODE), number formats, highlight / red fonts and SUBTOTAL totals row
-   Improvements:
-     - multi-point matching for every supplier: BARCODE (cleaned + unified to the POS 13-digit form), SUB ID, BRAND and
-       W/S (within 40% or $0.50 of POS W/S or last price; UHP unit W/S also checked). A supplier row is accepted only with at
-       least 2 points, one of them BARCODE or SUB ID (SUB ID + W/S alone also needs a shared description word); the
-       best-scoring candidate wins when several supplier rows share a barcode or code.
-     - brand agreement also checks brand abbreviations, discount brand prefixes, discontinued ZZZ prefixes,
-       initials (M&P = MARTIN & PLEASANCE) and the brand appearing in the description.
-     - primary output contains one row per POS source row; unmatched suppliers are excluded.
-     - MATCH_BASIS column (full file only) shows the points behind every link and any rejected barcode link. */
+   Matching (points mode, used by the Staff Hub):
+     1. BARCODE first — cleaned and unified to the POS 13-digit form. A barcode match links on its own; brand and W/S add
+        points, and a barcode-only link is flagged in MATCH_BASIS for checking.
+     2. No barcode match: SUB ID / supplier code, BRAND and W/S (within 40% or $0.50 of POS W/S or last price; UHP unit W/S
+        also checked) with at least 2 points including SUB ID (SUB ID + W/S alone also needs a shared description word).
+     3. Still unlinked: BRAND + DESCRIPTION (+ W/S) — products bought elsewhere that CH2 / Unique also list, such as
+        Herbs of Gold rows with no CH2 barcode. Pack sizes must agree and both rows must clearly pick each other.
+     - one-to-one: a CH2 or Unique row is linked to at most one POS row (strongest link wins; the other POS row keeps a note).
+     - every CH2 and Unique row appears in the master exactly once (linked, or "CH2 Only" / "UHP Only"), barcode-less rows included;
+       To-Order PLUs that are not in POS appear as "AV Only" rows so the order file keeps every line.
+     - MATCH_BASIS + source / audit columns (AV_SOURCE_ROWS, OD_* discount rule) in the full file only.
+   matchMode 'python' reproduces V30.15 exactly and is used only to verify the port. */
 (function (g) {
   'use strict';
-  const VERSION = '2.2.0';
+  const VERSION = '2.3.0';
 
   // ---------------------------------------------------------------- constants (Python V30.15)
   const COLUMN_MAPPINGS = {
@@ -48,7 +51,7 @@
       description: ['POS DESCR', 'POS_DESCR', 'POS DESCRIPTION', 'OD_POS_DESCR', 'OD_POS DESCR'],
       discount_pct: ['POS DISCOUNT%', 'POS DISCOUNT %', 'POS_DISCOUNT_PCT', 'OD_Discount %', 'OD_DISCOUNT %', 'OD_DISCOUNT_PCT'],
       markup_pct: ['POS MARKUP%', 'POS MARKUP %', 'POS_MARKUP_PCT', 'OD_Markup %', 'OD_MARKUP %', 'OD_MARKUP_PCT'],
-      member: ['POS MEMBER', 'POS_MEMBER'], match: ['POS MATCH', 'POS_MATCH']
+      member: ['POS MEMBER', 'POS_MEMBER', 'OD_MEMBER'], match: ['POS MATCH', 'POS_MATCH', 'OD_MATCH'], index: ['INDEX', 'OD_INDEX']
     },
     availability: {
       plu: ['PLU / SKU', 'PLU', 'SKU', 'ITEM_CODE'], quantity: ['Qty / Units', 'QUANTITY', 'QTY', 'UNITS'],
@@ -100,6 +103,9 @@
     'SOH_353_BRISBANE_4PL', 'SOH_355_TOWNSVILLE', 'SOH_370_PERTH', ...PRICING_HEADERS, ...AV_COLUMNS, ...OF_COLUMNS
   ];
   const MATCH_BASIS = 'MATCH_BASIS';
+  // Source / audit columns added after MATCH_BASIS in the full master only: the To-Order lines behind AV_QTY_UNITS and the
+  // ongoing-discount rule that priced the row (OD_SOURCE_ROW = row in the discounts workbook).
+  const AUDIT_COLUMNS = ['AV_SOURCE_ROWS', 'OD_SOURCE_ROW', 'OD_INDEX', 'OD_RULE', 'OD_DISCOUNT_PCT', 'OD_MARKUP_PCT', 'OD_MEMBER', 'OD_MATCH', 'OD_DESCR'];
 
   // Excel formatting sets (Python V30.8 – V30.10)
   const COUNT_COLUMNS = new Set(['MASTER_BARCODE', 'MATCH_STATUS', 'POS_INDEX', 'CH2_INDEX', 'UHP_INDEX', 'AV_INDEX', 'AV_SUPPLIER_NUMBER']);
@@ -380,18 +386,25 @@
     };
     const data = rowsToDicts(hdrs, rows.slice(headerRow));
     const get = (row, key) => (kc[key] !== undefined ? row[kc[key]] : row['']) ?? '';
-    for (const row of data) {
+    for (let j = 0; j < data.length; j++) {
+      const row = data[j];
       const disc = parsePercentFraction(get(row, 'discount_pct'), null);
       if (disc === null) continue;
       let mark = kc.markup_pct ? parsePercentFraction(get(row, 'markup_pct'), null) : null;
       if (mark === null) mark = 1.0 - disc;
       if (disc < 0 || disc > 1 || mark < 0 || mark > 1) continue;
-      const rule = [1.0 - disc, mark];
       const sup = safeInt(get(row, 'supplier_discount'));
       const brand = cleanBrand(get(row, 'brand'));
       const prefix = cleanBrand(get(row, 'brand_prefix'));
       const plu = cleanLookupIdentifier(get(row, 'plu'));
       const bc = cleanBarcode(get(row, 'barcode'));
+      // Third element = source / audit details of the rule (written to the OD_* columns of the full master).
+      const scope = plu ? `PLU ${plu}` : bc ? `BARCODE ${bc}` : brand ? `BRAND ${brand}` : prefix ? `BRAND PREFIX ${prefix}` : sup ? `SUPPLIER ${sup}` : 'ALL';
+      const rule = [1.0 - disc, mark, {
+        row: headerRow + j + 1, index: pyStr(get(row, 'index')).trim(), discount: disc, markup: mark,
+        member: pyStr(get(row, 'member')).trim(), match: pyStr(get(row, 'match')).trim(), description: pyStr(get(row, 'description')).trim(),
+        rule: scope + (sup && scope.indexOf('SUPPLIER') !== 0 ? ` · supplier ${sup}` : '')
+      }];
       res.rules++;
       if (sup && !brand && !prefix && !plu && !bc) {
         keepBest(res.supplier, sup, rule);
@@ -460,7 +473,7 @@
   }
   // rows: array of arrays (first row = headers). Values kept as given (CSV = text, like Python's csv module).
   function buildAvailability(rows, posRecords, posKeys) {
-    const out = { lookup: new Map(), meta: new Map(), supplier: new Map(), keys: {}, rows: 0 };
+    const out = { lookup: new Map(), meta: new Map(), supplier: new Map(), lines: new Map(), keys: {}, rows: 0 };
     if (!rows || rows.length < 1) return out;
     const hdrs = (rows[0] || []).map((h, i) => (h === null || h === undefined || h === '') ? `COLUMN_${i + 1}` : String(h).trim().replace(/﻿/g, ''));
     const kc = findColumns(hdrs, 'availability');
@@ -474,10 +487,13 @@
       if (plu) posMeta.set(plu, { brand: row[posKeys.brand] ?? '', barcode: row[posKeys.barcode] ?? '' }); // last POS row wins (Python)
     }
     let idx = 1;
-    for (const row of data) {
+    for (let j = 0; j < data.length; j++) {
+      const row = data[j];
       const plu = pyStr(row[kc.plu]).trim();
       if (!plu || plu === 'nan') continue;
       const qty = safeInt(row[kc.quantity] ?? 0, 0);
+      if (!out.lines.has(plu)) out.lines.set(plu, []);
+      out.lines.get(plu).push(j + 2);
       if (!out.lookup.has(plu)) {
         const m = posMeta.get(plu) || {};
         out.meta.set(plu, { AV_INDEX: idx++, AV_BRAND: m.brand ?? '', AV_BARCODE: m.barcode ?? '' });
@@ -571,10 +587,11 @@
       if (eff && disc.barcode.has(`${barcode}|${eff}`)) cands.push(['BARCODE', disc.barcode.get(`${barcode}|${eff}`)]);
       if (disc.barcode.has(barcode)) cands.push(['BARCODE', disc.barcode.get(barcode)]);
     }
+    let rule = null;
     if (cands.length) {
       let best = cands[0];
       for (const c of cands) if (c[1][0] < best[1][0]) best = c;
-      type = best[0]; mult = best[1][0]; markup = best[1][1];
+      type = best[0]; mult = best[1][0]; markup = best[1][1]; rule = best[1][2] || null;
     }
     let newWsp = null, newLast = null;
     if (baseWsp !== null) { newWsp = baseWsp; newLast = mult < 1.0 ? baseWsp * mult : baseWsp; }
@@ -586,7 +603,10 @@
     return {
       CURRENT_WSP: posWsp, NEW_WSP: newWsp, WSP_CHANGE_PCT: wspPct, 'WSP_CHANGE_$': wspDollar,
       CURRENT_LAST_PRICE: posLast, NEW_LAST_PRICE: newLast, CHANGE_PCT_LAST_PRICE: lastPct, 'WSP_CHANGE_$_LAST_PRICE': lastDollar,
-      DISCOUNT_TYPE: type, DISCOUNT_PCT: display, CURRENT_RRP: posRrp, NEW_RRP: newRrp, HAS_GST: finalGst
+      DISCOUNT_TYPE: type, DISCOUNT_PCT: display, CURRENT_RRP: posRrp, NEW_RRP: newRrp, HAS_GST: finalGst,
+      OD_SOURCE_ROW: rule && mult < 1.0 ? rule.row : '', OD_INDEX: rule && mult < 1.0 ? rule.index : '', OD_RULE: rule && mult < 1.0 ? rule.rule : '',
+      OD_DISCOUNT_PCT: rule && mult < 1.0 ? rule.discount : '', OD_MARKUP_PCT: rule && mult < 1.0 ? rule.markup : '',
+      OD_MEMBER: rule && mult < 1.0 ? rule.member : '', OD_MATCH: rule && mult < 1.0 ? rule.match : '', OD_DESCR: rule && mult < 1.0 ? rule.description : ''
     };
   }
 
@@ -720,6 +740,214 @@
     return `${label} ${m.points}/${m.max}: ${m.basis.join(' + ')}`;
   }
 
+  // ---------------------------------------------------------------- brand + description matching (v2.3.0)
+  /* For supplier rows with no shared barcode or SUB ID — e.g. a POS product bought elsewhere that CH2 / Unique also list
+     (Herbs of Gold rows on CH2 carry no barcode and POS keeps HoG's own code as SUB ID). Brands must agree, pack sizes must
+     not conflict, the shorter description's words must all appear (abbreviations allowed: HG LTHEANINE 14C = Herbs of Gold
+     L-Theanine 14c) and W/S must be close unless the descriptions are the same. Links are one-to-one and only made when
+     both rows pick each other clearly; near-identical POS duplicates prefer the active (non-ZZZ) row with the closest W/S. */
+  const DESC_UNIT_RE = /(\d+(?:\.\d+)?)\s*(VEGE?\s*CAPS?(?:ULES)?|VEG\s*CAPS?|V\s*CAPS?|VCAPS?|VC|CAPSULES?|CAPS?|SOFT\s*GELS?|SOFTGELS?|SG|TABLETS?|TABS?|TAB|TB|T|C|MLS?|LTR?S?|LITRES?|L|KGS?|GRAMS?|GMS?|GM|G|MCG|UG|MG|IU|SACHETS?|SACH|SACS?|PACK|PK|TEA\s*BAGS?|TBAGS?|TEABAGS?|BAGS?|LOZ(?:ENGES?)?|GUMMIES|CHEWS?|PAIRS?|S)(?![A-Z])/g;
+  function descUnit(u) {
+    u = u.replace(/\s+/g, '');
+    if (/^(VEGE?CAPS?(ULES)?|VEGCAPS?|VCAPS?|VC|CAPSULES?|CAPS?|C|SOFTGELS?|SG)$/.test(u)) return 'C';
+    if (/^(TABLETS?|TABS?|TAB|TB|T)$/.test(u)) return 'T';
+    if (/^MLS?$/.test(u)) return 'ML';
+    if (/^(LTR?S?|LITRES?|L)$/.test(u)) return 'L';
+    if (/^KGS?$/.test(u)) return 'KG';
+    if (/^(GRAMS?|GMS?|GM|G)$/.test(u)) return 'G';
+    if (/^(MCG|UG)$/.test(u)) return 'MCG';
+    if (/^(SACHETS?|SACH|SACS?|S)$/.test(u)) return 'S';
+    if (/^(PACK|PK|PAIRS?)$/.test(u)) return 'PK';
+    if (/^(TEABAGS?|TBAGS?|BAGS?)$/.test(u)) return 'BAG';
+    if (/^LOZ/.test(u)) return 'LOZ';
+    if (/^(GUMMIES|CHEWS?)$/.test(u)) return 'GUM';
+    return u;
+  }
+  const PACK_CLASS = { C: 'count', T: 'count', S: 'count', PK: 'count', BAG: 'count', LOZ: 'count', GUM: 'count', G: 'weight', ML: 'volume' };
+  function parseDescription(desc, dropWords) {
+    let s = stripZ(cleanBrand(desc)).replace(/['’`]/g, '').replace(/\.\.+/g, ' … ').replace(/(\d),(\d{3})/g, '$1$2');
+    s = s.replace(/(^|[^A-Z0-9])([A-Z])-(?=[A-Z]{3})/g, '$1$2');           // L-THEANINE = LTHEANINE, N-ACETYL = NACETYL
+    s = s.replace(/(\d+)\s*X\s*(?=\d)/g, ' ');                       // 14X38G multipack → 38G
+    const sizes = [], nums = [];
+    s = s.replace(DESC_UNIT_RE, (m, n, u) => {
+      let v = Number(n), unit = descUnit(u);
+      if (unit === 'KG') { v *= 1000; unit = 'G'; } else if (unit === 'L') { v *= 1000; unit = 'ML'; }
+      sizes.push([Math.round(v * 1000) / 1000, unit]); return ' ';
+    });
+    s = s.replace(/(^|[^A-Z0-9])(\d+(?:\.\d+)?)(?![A-Z0-9])/g, (m, pre, n) => { nums.push(Number(n)); return pre + ' '; });
+    const words = s.split(/[^A-Z0-9…]+/).filter(w => w && w !== 'X' && !dropWords.has(w));
+    return { words, sizes, nums, text: words.filter(w => w !== '…').join('') };
+  }
+  function sizesCompatible(a, b) {
+    const byUnit = x => { const m = new Map(); for (const [v, u] of x.sizes) { if (!m.has(u)) m.set(u, new Set()); m.get(u).add(v); } return m; };
+    const A = byUnit(a), B = byUnit(b);
+    let shared = 0;
+    for (const [u, vs] of A) if (B.has(u)) { shared++; if (![...vs].some(v => B.get(u).has(v))) return { ok: false }; }
+    const counts = x => new Set(x.sizes.filter(s => s[1] === 'C' || s[1] === 'T').map(s => s[0]));
+    const ca = counts(a), cb = counts(b);
+    if (ca.size && cb.size && ![...ca].some(v => cb.has(v))) return { ok: false };
+    const classes = x => new Set(x.sizes.map(s => PACK_CLASS[s[1]]).filter(Boolean));
+    const ka = classes(a), kb = classes(b);
+    if (ka.size && kb.size && ![...ka].some(k => kb.has(k))) return { ok: false };
+    const allA = new Set([...a.nums, ...a.sizes.map(s => s[0])]), allB = new Set([...b.nums, ...b.sizes.map(s => s[0])]);
+    for (const n of a.nums) if (allB.size && !allB.has(n)) return { ok: false };
+    for (const n of b.nums) if (allA.size && !allA.has(n)) return { ok: false };
+    return { ok: true, sameSize: shared > 0 };
+  }
+  function trigramCounts(s) { const m = new Map(), t = ' ' + s + ' '; for (let i = 0; i < t.length - 2; i++) { const k = t.slice(i, i + 3); m.set(k, (m.get(k) || 0) + 1); } return m; }
+  function diceSimilarity(a, b) {
+    if (!a.length || !b.length) return 0;
+    const A = trigramCounts(a), B = trigramCounts(b); let inter = 0, na = 0, nb = 0;
+    for (const v of A.values()) na += v;
+    for (const v of B.values()) nb += v;
+    for (const [k, v] of A) if (B.has(k)) inter += Math.min(v, B.get(k));
+    return 2 * inter / (na + nb);
+  }
+  function abbreviates(w, full) {
+    if (w === full) return true;
+    if (w.length < 3 || w[0] !== full[0] || w.length > full.length) return false;
+    if (full.startsWith(w)) return true;
+    let j = 0; for (const ch of full) { if (ch === w[j]) j++; if (j === w.length) break; }
+    return j === w.length;
+  }
+  function wordCoverage(aw, bw) {
+    const B = bw.filter(w => w !== '…' && w.length >= 2), text = B.join(''), starts = [];
+    let p = 0; for (const w of B) { starts.push(p); p += w.length; }
+    const inText = w => { for (const st of starts) { if (text[st] !== w[0]) continue; let j = 0, i = st; for (; i < text.length && j < w.length; i++) if (text[i] === w[j]) j++; if (j === w.length && i - st <= w.length * 2.5) return true; } return false; };
+    let hit = 0, n = 0;
+    for (let i = 0; i < aw.length; i++) {
+      const w = aw[i];
+      if (w === '…' || w.length < 2) continue;
+      n++;
+      if (B.some(f => abbreviates(w, f))) hit++;
+      else if (aw[i - 1] === '…' && B.some(f => f.endsWith(w))) hit++;         // POS "PAE..OUGH" — tail of a cut word
+      else if (aw[i + 1] === '…' && B.some(f => f.startsWith(w))) hit++;       // head of a cut word
+      else if (w.length >= 5 && (text.includes(w) || inText(w))) hit++;       // ULTRAMUSNIGHT = ULTRA MUSCLEZE NIGHT
+    }
+    return n ? hit / n : 0;
+  }
+  function descriptionSimilarity(a, b) {
+    const d = diceSimilarity(a.text, b.text), ca = wordCoverage(a.words, b.words), cb = wordCoverage(b.words, a.words);
+    const na = a.words.filter(w => w !== '…' && w.length >= 2).length, nb = b.words.filter(w => w !== '…' && w.length >= 2).length;
+    const short = na < nb ? ca : nb < na ? cb : Math.max(ca, cb), long = na < nb ? cb : nb < na ? ca : Math.min(ca, cb);
+    return { score: short * 0.5 + long * 0.2 + d * 0.3, dice: d, short, long };
+  }
+  function wsRelative(a, b) {
+    let best = null;
+    for (const x of a) { if (!(x > 0)) continue; for (const y of b) { if (!(y > 0)) continue; const r = Math.abs(x - y) / Math.max(x, y); if (best === null || r < best) best = r; } }
+    return best;
+  }
+  // Brand names only (no description words): equal, alias / abbreviation file, whole-word containment (4+ letters) or initials.
+  function brandNameInfo(b, aliases) {
+    return brandForms(b, aliases).map(f => ({ c: compact(f), w: ' ' + f.replace(/[^A-Z0-9]+/g, ' ').trim() + ' ', i: initials(f) })).filter(x => x.c);
+  }
+  function brandInfoAgrees(A, B) {
+    for (const x of A) for (const y of B) {
+      if (x.c === y.c) return true;
+      if (Math.min(x.c.length, y.c.length) >= 4 && (x.w.includes(y.w) || y.w.includes(x.w))) return true;
+      if ((x.i.length >= 2 && x.i === y.c) || (y.i.length >= 2 && y.i === x.c)) return true;
+    }
+    return false;
+  }
+  // Common first word of descriptions per brand (HG for Herbs of Gold, BIOC for BioCeuticals) — removed before comparing.
+  function descriptionPrefixes(items) {
+    const counts = new Map();
+    for (const it of items) {
+      const b = cleanBrand(it.brands[0] || ''), w = stripZ(cleanBrand(it.desc)).split(/[^A-Z0-9]+/).filter(Boolean)[0];
+      if (!b || !w) continue;
+      if (!counts.has(b)) counts.set(b, new Map());
+      const m = counts.get(b); m.set(w, (m.get(w) || 0) + 1);
+    }
+    const out = new Map();
+    for (const [b, m] of counts) { let tot = 0; for (const v of m.values()) tot += v; const s = new Set(); for (const [w, v] of m) if (v >= 3 && v / tot >= 0.25) s.add(w); out.set(b, s); }
+    return out;
+  }
+  function prepareDescriptionItems(items, aliases) {
+    const prefixes = descriptionPrefixes(items);
+    for (const it of items) {
+      const drop = new Set();
+      for (const b of it.brands) {
+        for (const f of brandForms(b, aliases)) { for (const w of f.split(/[^A-Z0-9]+/)) if (w) drop.add(w); drop.add(compact(f)); const i = initials(f); if (i) drop.add(i); }
+        const p = prefixes.get(cleanBrand(b)); if (p) for (const w of p) drop.add(w);
+      }
+      it.parsed = parseDescription(it.desc, drop);
+    }
+  }
+  /* left / right: [{key, brands:[...], desc, ws:[...], zz}] (already filtered to unlinked rows).
+     Returns Map(leftItem -> {item: rightItem, score, sim, wsr, sameSize}). */
+  function matchByDescription(left, right, aliases) {
+    const out = new Map();
+    if (!left.length || !right.length) return out;
+    prepareDescriptionItems(left, aliases); prepareDescriptionItems(right, aliases);
+    const rightByBrand = new Map();
+    for (const r of right) for (const b of new Set(r.brands.map(cleanBrand).filter(Boolean))) { if (!rightByBrand.has(b)) rightByBrand.set(b, []); rightByBrand.get(b).push(r); }
+    const rightInfo = [...rightByBrand.keys()].map(rb => [rb, brandNameInfo(rb, aliases)]), agreeCache = new Map();
+    const agreeing = b => {
+      if (!agreeCache.has(b)) { const info = brandNameInfo(b, aliases); agreeCache.set(b, rightInfo.filter(([, ri]) => brandInfoAgrees(info, ri)).map(([rb]) => rb)); }
+      return agreeCache.get(b);
+    };
+    const edges = [];
+    for (const l of left) {
+      if (!l.parsed.words.length) continue;
+      const seen = new Set();
+      for (const b of new Set(l.brands.map(cleanBrand).filter(Boolean))) for (const rb of agreeing(b)) for (const r of rightByBrand.get(rb)) {
+        if (seen.has(r)) continue; seen.add(r);
+        if (!r.parsed.words.length) continue;
+        const sc = sizesCompatible(l.parsed, r.parsed);
+        if (!sc.ok) continue;
+        const sim = descriptionSimilarity(l.parsed, r.parsed);
+        if (sim.short < 0.8 || sim.score < 0.5) continue;
+        const wsr = wsRelative(l.ws, r.ws), wsOk = wsr !== null && wsr <= WS_TOLERANCE;
+        if (wsr !== null && !wsOk && !(sim.short === 1 && sim.dice >= 0.9 && sc.sameSize)) continue;
+        if (l.bc && r.bc && l.bc !== r.bc && !(wsOk && sc.sameSize && sim.score >= 0.85)) continue;   // two different real barcodes: near-certain only
+        const score = sim.score + (wsOk ? 0.08 : 0) + (sc.sameSize ? 0.04 : 0) - (l.zz ? 0.03 : 0) - (r.zz ? 0.03 : 0);
+        edges.push({ l, r, score, sim, wsr, wsOk, sameSize: sc.sameSize });
+      }
+    }
+    // near-identical rows on the same side (POS duplicates) do not block each other; prefer active, then closest W/S.
+    const dupCache = new Map();
+    const isDup = (x, y) => {
+      if (x === y) return true;
+      const k = x.key < y.key ? x.key + '|' + y.key : y.key + '|' + x.key;
+      if (!dupCache.has(k)) { const sc = sizesCompatible(x.parsed, y.parsed); dupCache.set(k, sc.ok && descriptionSimilarity(x.parsed, y.parsed).short >= 0.8); }
+      return dupCache.get(k);
+    };
+    const better = (a, b) => (a.score - b.score > 0.02) || (Math.abs(a.score - b.score) <= 0.02 && ((a.l.zz + a.r.zz) < (b.l.zz + b.r.zz) || ((a.l.zz + a.r.zz) === (b.l.zz + b.r.zz) && (a.wsr ?? 9) < (b.wsr ?? 9))));
+    const usedL = new Set(), usedR = new Set();
+    for (let round = 0; round < 6; round++) {
+      const byL = new Map(), byR = new Map();
+      for (const e of edges) {
+        if (usedL.has(e.l) || usedR.has(e.r)) continue;
+        if (!byL.has(e.l)) byL.set(e.l, []); byL.get(e.l).push(e);
+        if (!byR.has(e.r)) byR.set(e.r, []); byR.get(e.r).push(e);
+      }
+      const pick = (list, side) => {
+        let best = list[0];
+        for (const e of list) if (better(e, best)) best = e;
+        const other = side === 'l' ? 'r' : 'l';
+        let rival = -1;
+        for (const e of list) if (e !== best && !isDup(e[other], best[other])) rival = Math.max(rival, e.score);
+        return best.score - rival >= 0.05 ? best : null;
+      };
+      let added = 0;
+      for (const [l, list] of byL) {
+        const e = pick(list, 'l');
+        if (!e || pick(byR.get(e.r), 'r') !== e) continue;
+        out.set(l, { item: e.r, score: e.score, sim: e.sim, wsr: e.wsr, wsOk: e.wsOk, sameSize: e.sameSize });
+        usedL.add(l); usedR.add(e.r); added++;
+      }
+      if (!added) break;
+    }
+    return out;
+  }
+  function descriptionBasis(label, m) {
+    const pts = ['BRAND', 'DESCRIPTION'];
+    if (m.wsOk) pts.push('W/S');
+    let txt = `${label} ${pts.length}/4: ${pts.join(' + ')} (no shared barcode / SUB ID · description ${Math.round(Math.min(1, m.sim.score) * 100)}%`;
+    if (m.wsr !== null && !m.wsOk) txt += ` · W/S differs ${Math.round(m.wsr * 100)}% — check`;
+    return txt + ')';
+  }
+
   // ---------------------------------------------------------------- merge (Step 3 STEP 2 – STEP 7)
   /* input = {
        pos:{headers, rows}, ch2:{headers, rows}, uhp:{headers, rows}|null,
@@ -765,32 +993,35 @@
 
     const disc = input.discountRows ? loadDiscounts(input.discountRows, posRecords, pk)
       : { supplier: new Map(), brand: new Map(), plu: new Map(), barcode: new Map(), supplierBrand: new Map(), headerRow: 1, rules: 0, keys: {} };
-    const av = input.availabilityRows ? buildAvailability(input.availabilityRows, posRecords, pk) : { lookup: new Map(), meta: new Map(), supplier: new Map(), keys: {}, rows: 0 };
+    const av = input.availabilityRows ? buildAvailability(input.availabilityRows, posRecords, pk) : { lookup: new Map(), meta: new Map(), supplier: new Map(), lines: new Map(), keys: {}, rows: 0 };
 
     let outHeaders = ['MASTER_BRAND', 'MASTER_BARCODE', 'MASTER_POS_PLU', 'MATCH_STATUS', 'POS_INDEX', 'CH2_INDEX', 'UHP_INDEX', 'AV_INDEX',
       ...pos.headers, ...ch2.headers, ...(uhp ? uhp.headers : []), ...SOH_COLUMNS, ...PRICING_HEADERS, ...AV_COLUMNS, ...OF_COLUMNS];
     outHeaders = uniq(outHeaders.map(h => String(h)));
-    outHeaders.push(MATCH_BASIS);
+    outHeaders.push(MATCH_BASIS, ...AUDIT_COLUMNS);
 
     const stats = {
       barcode_ch2: 0, brand_subid_ch2: 0, code_ch2: 0, subid_ws_ch2: 0, barcode_uhp: 0, brand_subid_uhp: 0, code_uhp: 0, subid_ws_uhp: 0,
       rejected_ch2: 0, rejected_uhp: 0, pos_only: 0, ch2_only: 0, ch2_only_uhp: 0, uhp_only: 0, soh_match: 0, av_match: 0,
       supplier_discount: 0, supplier_via_brand: 0, brand_discount: 0, plu_discount: 0, barcode_discount: 0, no_discount: 0,
-      brand_mismatch_accepted: 0
+      brand_mismatch_accepted: 0, desc_ch2: 0, desc_uhp: 0, desc_ch2_uhp: 0, barcode_only_ch2: 0, barcode_only_uhp: 0,
+      one_to_one_ch2: 0, one_to_one_uhp: 0, av_only: 0
     };
     const usedCh2 = new Set(), usedUhp = new Set(), usedUhpBarcodes = new Set();
     const pythonMode = input.matchMode === 'python';
     const all = [];
     const strip = r => { const o = {}; for (const k in r) if (k.slice(0, 2) !== '__') o[k] = r[k]; return o; };
-    const label = (src, sup, m) => {
+    const label = (sup, m) => {
       const b = m.basis;
+      if (m.tier === 'desc') return `Brand+Description Match (${sup})`;
       if (b.includes('BARCODE')) return `Barcode Match (${sup})`;
       if (b.includes('BRAND')) return (m.exactBrand ? 'Brand+SubID Match' : 'Code Match') + ` (${sup})`;
       return `SubID+W/S Match (${sup})`;
     };
     const countMatch = (sup, m) => {
       const k = sup.toLowerCase();
-      if (m.basis.includes('BARCODE')) { stats['barcode_' + k]++; if (!m.basis.includes('BRAND')) stats.brand_mismatch_accepted++; }
+      if (m.tier === 'desc') { stats['desc_' + k]++; return; }
+      if (m.basis.includes('BARCODE')) { stats['barcode_' + k]++; if (!m.basis.includes('BRAND')) stats.brand_mismatch_accepted++; if (m.points === 1) stats['barcode_only_' + k]++; }
       else if (m.basis.includes('BRAND')) stats[(m.exactBrand ? 'brand_subid_' : 'code_') + k]++;
       else stats['subid_ws_' + k]++;
     };
@@ -802,92 +1033,239 @@
       else stats.no_discount++;
     };
 
-    posRecords.forEach((row, i) => {
-      const src = {
-        bc: cleanBarcode(row[pk.barcode] ?? ''),
-        subId: cleanCode(row[pk.sub_id] ?? ''),
-        brands: [row[pk.brand] ?? '', row.POS_BRAND ?? ''].filter(v => pyStr(v).trim()),
-        desc: pyStr(row[pk.description] ?? ''),
-        ws: [safeFloat(row[pk.wsp] ?? ''), safeFloat(row[pk.last_price] ?? '')]
-      };
-      const posBrand = cleanBrand(row[pk.brand] ?? ''), posPlu = pyStr(row[pk.plu] ?? '').trim();
-      let status = 'POS Only';
-      const basis = [];
-      let supRow = null, uhpRow = null;
-      if (pythonMode) {
-        const c = pythonMatch(src, posBrand, ch2Index);
+    // ---- POS → supplier links. ch2Link[i] / uhpLink[i] = {row, status, basis, tier, ...} for POS row i.
+    const ch2Link = new Array(posRecords.length).fill(null), uhpLink = new Array(posRecords.length).fill(null);
+    const posNotes = posRecords.map(() => []);
+    const posSrc = posRecords.map((row, i) => ({
+      i, key: 'P' + i,
+      bc: cleanBarcode(row[pk.barcode] ?? ''),
+      subId: cleanCode(row[pk.sub_id] ?? ''),
+      brands: [row[pk.brand] ?? '', row.POS_BRAND ?? ''].filter(v => pyStr(v).trim()),
+      desc: pyStr(row[pk.description] ?? ''),
+      ws: [safeFloat(row[pk.wsp] ?? ''), safeFloat(row[pk.last_price] ?? '')],
+      posBrand: cleanBrand(row[pk.brand] ?? ''),
+      zz: /^Z{2,}/.test(cleanBrand(row[pk.description] ?? '')) || /^Z{2,}/.test(cleanBrand(row.POS_BRAND ?? '')) ? 1 : 0
+    }));
+    if (pythonMode) {
+      posSrc.forEach(src => {
+        const c = pythonMatch(src, src.posBrand, ch2Index);
         if (c.row) {
-          supRow = c.row; usedCh2.add(supRow.CH2_INDEX); status = `${c.kind} (CH2)`;
+          usedCh2.add(c.row.CH2_INDEX);
           stats[{ 'Barcode Match': 'barcode_ch2', 'Brand+SubID Match': 'brand_subid_ch2', 'Code Match': 'code_ch2' }[c.kind]]++;
-          basis.push(`CH2: ${c.kind} (Python V30.15 rules)`);
+          ch2Link[src.i] = { row: c.row, status: `${c.kind} (CH2)`, basis: `CH2: ${c.kind} (Python V30.15 rules)` };
         } else if (c.rejected) stats.rejected_ch2++;
         if (uhp) {
-          const u = pythonMatch(src, posBrand, uhpIndex);
+          const u = pythonMatch(src, src.posBrand, uhpIndex);
           if (u.row) {
-            uhpRow = u.row; usedUhp.add(uhpRow.UHP_INDEX); if (u.kind === 'Barcode Match') usedUhpBarcodes.add(src.bc);
+            if (u.kind === 'Barcode Match') usedUhpBarcodes.add(src.bc);
             stats[{ 'Barcode Match': 'barcode_uhp', 'Brand+SubID Match': 'brand_subid_uhp', 'Code Match': 'code_uhp' }[u.kind]]++;
-            status = status === 'POS Only' ? `${u.kind} (UHP)` : status + ' + UHP';
-            basis.push(`UHP: ${u.kind} (Python V30.15 rules)`);
+            uhpLink[src.i] = { row: u.row, kind: u.kind, basis: `UHP: ${u.kind} (Python V30.15 rules)` };
           } else if (u.rejected) stats.rejected_uhp++;
         }
-      } else {
-        const c = bestMatch(src, ch2Index, aliases, 4);
-        if (c.best) {
-          c.best.exactBrand = posBrand && cleanBrand(c.best.row[sk.brand] ?? '') === posBrand;
-          supRow = c.best.row; usedCh2.add(supRow.CH2_INDEX); status = label(src, 'CH2', c.best); countMatch('CH2', c.best);
-          basis.push(basisText('CH2', c.best));
-        } else if (c.rejected && c.rejected.basis.includes('BARCODE')) {
-          stats.rejected_ch2++; basis.push(`CH2 REJECTED ${c.rejected.points}/4: ${c.rejected.basis.join(' + ')} only · item ${c.rejected.row[sk.code] ?? ''}`);
-        }
-        if (uhp) {
-          const u = bestMatch(src, uhpIndex, aliases, 4);
-          if (u.best) {
-            u.best.exactBrand = posBrand && cleanBrand(u.best.row[uk.brand] ?? '') === posBrand;
-            uhpRow = u.best.row; usedUhp.add(uhpRow.UHP_INDEX); countMatch('UHP', u.best);
-            status = status === 'POS Only' ? label(src, 'UHP', u.best) : status + ' + UHP';
-            basis.push(basisText('UHP', u.best));
-          } else if (u.rejected && u.rejected.basis.includes('BARCODE')) {
-            stats.rejected_uhp++; basis.push(`UHP REJECTED ${u.rejected.points}/4: ${u.rejected.basis.join(' + ')} only · item ${u.rejected.row[uk.code] ?? ''}`);
+      });
+    } else {
+      /* One-to-one: every candidate pair is scored, then the strongest pairs are linked first (barcode before SUB ID, more
+         points first, closest W/S, active POS row before ZZZ, then file order). A supplier row is never reused, so a POS
+         duplicate that loses keeps a note naming the POS row that holds the link. Rows still free are then compared on
+         brand + description. */
+      const linkSupplier = (sup, index, keys, links, used, idxKey) => {
+        const edges = [];
+        for (const src of posSrc) {
+          const seen = new Set(), cands = [];
+          if (src.bc && index.byBarcode.has(src.bc)) for (const r of index.byBarcode.get(src.bc)) if (!seen.has(r)) { seen.add(r); cands.push(r); }
+          if (src.subId && index.byCode.has(src.subId)) for (const r of index.byCode.get(src.subId)) if (!seen.has(r)) { seen.add(r); cands.push(r); }
+          let rejected = null;
+          for (const r of cands) {
+            const s = scoreCandidate(src, r, aliases);
+            const hasBc = s.basis.includes('BARCODE');
+            if (!(hasBc || (s.points >= 2 && s.hasId))) { if (!rejected || s.points > rejected.points) rejected = { row: r, ...s }; continue; }
+            edges.push({ src, row: r, rank: (hasBc ? 100 : 0) + s.points * 4 + (s.basis.includes('SUB ID') ? 1 : 0), wsr: wsRelative(src.ws, r.__ws), ...s });
           }
+          if (rejected) src['rejected' + sup] = rejected;
         }
+        edges.sort((a, b) => b.rank - a.rank || a.src.zz - b.src.zz || (a.wsr ?? 9) - (b.wsr ?? 9) || a.src.i - b.src.i || a.row[idxKey] - b.row[idxKey]);
+        const holder = new Map();
+        for (const e of edges) {
+          if (links[e.src.i] || holder.has(e.row)) continue;
+          e.max = 4; e.exactBrand = e.src.posBrand && cleanBrand(e.row[keys.brand] ?? '') === e.src.posBrand;
+          let basis = basisText(sup, e);
+          if (e.points === 1) basis += ' (barcode only — brand and W/S differ, check)';
+          links[e.src.i] = { row: e.row, m: e, basis, tier: 'id' };
+          holder.set(e.row, e.src); used.add(e.row[idxKey]);
+        }
+        // Brand + description for POS rows and supplier rows that are both still free.
+        const left = index.records.filter(r => !used.has(r[idxKey])).map(r => ({
+          key: sup + r[idxKey], row: r, brands: r.__brands, desc: r.__desc, ws: r.__ws,
+          zz: /^Z{2,}/.test(cleanBrand(r.__desc)) ? 1 : 0, bc: r.__bc
+        }));
+        const right = posSrc.filter(s => !links[s.i]);
+        const found = matchByDescription(left, right, aliases);
+        for (const [l, f] of found) {
+          const src = f.item;
+          const m = { tier: 'desc', basis: ['BRAND', 'DESCRIPTION'].concat(f.wsOk ? ['W/S'] : []), points: f.wsOk ? 3 : 2, max: 4, ...f };
+          links[src.i] = { row: l.row, m, basis: descriptionBasis(sup, f), tier: 'desc' };
+          used.add(l.row[idxKey]);
+          if (src['rejected' + sup]) delete src['rejected' + sup];
+        }
+        // POS rows that lost their barcode / SUB ID candidate to another POS row (and found nothing else) keep a note.
+        const noted = new Set();
+        for (const e of edges) {
+          if (links[e.src.i] || noted.has(e.src.i) || !holder.has(e.row)) continue;
+          noted.add(e.src.i); stats['one_to_one_' + sup.toLowerCase()]++;
+          posNotes[e.src.i].push(`${sup} item ${e.row[keys.code] ?? ''} (${e.basis.join(' + ')}) is linked to POS row ${holder.get(e.row).i + 2} — one supplier row per POS product`);
+        }
+      };
+      linkSupplier('CH2', ch2Index, sk, ch2Link, usedCh2, 'CH2_INDEX');
+      if (uhp) linkSupplier('UHP', uhpIndex, uk, uhpLink, usedUhp, 'UHP_INDEX');
+      for (const src of posSrc) {
+        for (const [sup, keys] of [['CH2', sk], ['UHP', uk]]) {
+          const rj = src['rejected' + sup];
+          if (!rj || (sup === 'CH2' ? ch2Link : uhpLink)[src.i]) continue;
+          stats['rejected_' + sup.toLowerCase()]++;
+          if (rj.points >= 2) posNotes[src.i].push(`${sup} not linked ${rj.points}/4: ${rj.basis.join(' + ') || 'SUB ID only'} · item ${rj.row[keys.code] ?? ''}`);
+        }
+      }
+    }
+
+    // ---- POS rows (one master row per POS row)
+    const avMatched = new Set();
+    const applyAvailability = (m, plu) => {
+      stats.av_match++; avMatched.add(plu);
+      const qty = av.lookup.get(plu), meta = av.meta.get(plu) || {};
+      m.AV_INDEX = safeInt(meta.AV_INDEX ?? '', '');
+      m.AV_BRAND = meta.AV_BRAND ?? '';
+      m.AV_BARCODE = meta.AV_BARCODE ?? '';
+      m.AV_PLU_SKU = plu;
+      m.AV_QTY_UNITS = qty;
+      m.AV_SUPPLIER_NUMBER = av.supplier.get(plu) ?? '';
+      m.AV_SOURCE_ROWS = (av.lines.get(plu) || []).join(', ');
+      const itemSoh = {};
+      for (const col of SOH_COLUMNS) itemSoh[col] = safeInt(m[col] ?? 0, 0);
+      const f = calculateOrderFulfillment(qty, itemSoh);
+      for (const col of OF_COLUMNS) if (col in f) m[col] = f[col];
+    };
+    posRecords.forEach((row, i) => {
+      const src = posSrc[i], cl = ch2Link[i], ul = uhpLink[i];
+      const supRow = cl ? cl.row : null, uhpRow = ul ? ul.row : null;
+      let status = 'POS Only';
+      const basis = [];
+      if (pythonMode) {
+        if (cl) { status = cl.status; basis.push(cl.basis); }
+        if (ul) { status = status === 'POS Only' ? `${ul.kind} (UHP)` : status + ' + UHP'; basis.push(ul.basis); }
+      } else {
+        if (cl) { status = label('CH2', cl.m); countMatch('CH2', cl.m); basis.push(cl.basis); }
+        if (ul) { countMatch('UHP', ul.m); status = status === 'POS Only' ? label('UHP', ul.m) : status + ' + UHP'; basis.push(ul.basis); }
+        basis.push(...posNotes[i]);
       }
       const m = Object.assign({}, row, supRow ? strip(supRow) : {}, uhpRow ? strip(uhpRow) : {});
       m.POS_INDEX = i + 2;
       m.CH2_INDEX = supRow ? supRow.CH2_INDEX : '';
       m.UHP_INDEX = uhpRow ? uhpRow.UHP_INDEX : '';
       m.MATCH_STATUS = status;
-      m.MASTER_BRAND = posBrand;
+      m.MASTER_BRAND = src.posBrand;
       m.MASTER_BARCODE = src.bc;
-      m.MASTER_POS_PLU = posPlu;
+      m.MASTER_POS_PLU = pyStr(row[pk.plu] ?? '').trim();
       m.AV_INDEX = '';
       m[MATCH_BASIS] = basis.join(' · ');
       if (supRow && safeInt(m.SOH_TOTAL, 0) > 0) stats.soh_match++;
       const pricing = calculatePricing(m, pk, sk, uk, disc);
       Object.assign(m, pricing);
       tallyDiscount(pricing.DISCOUNT_TYPE);
-      if (posPlu && av.lookup.has(posPlu)) {
-        stats.av_match++;
-        const qty = av.lookup.get(posPlu), meta = av.meta.get(posPlu) || {};
-        m.AV_INDEX = safeInt(meta.AV_INDEX ?? '', '');
-        m.AV_BRAND = meta.AV_BRAND ?? '';
-        m.AV_BARCODE = meta.AV_BARCODE ?? '';
-        m.AV_PLU_SKU = posPlu;
-        m.AV_QTY_UNITS = qty;
-        m.AV_SUPPLIER_NUMBER = av.supplier.get(posPlu) ?? '';
-        const itemSoh = {};
-        for (const col of SOH_COLUMNS) itemSoh[col] = safeInt(m[col] ?? 0, 0);
-        const f = calculateOrderFulfillment(qty, itemSoh);
-        for (const col of OF_COLUMNS) if (col in f) m[col] = f[col];
-      }
+      if (m.MASTER_POS_PLU && av.lookup.has(m.MASTER_POS_PLU)) applyAvailability(m, m.MASTER_POS_PLU);
       if (status === 'POS Only') stats.pos_only++;
       all.push(m);
     });
 
-    // Primary master is a POS left join: unmatched supplier rows are excluded.
-    stats.excluded_ch2 = ch2Records.filter(r => !usedCh2.has(r.CH2_INDEX)).length;
-    stats.excluded_uhp = uhpRecords.filter(r => pythonMode
-      ? !usedUhp.has(r.UHP_INDEX) && !usedUhpBarcodes.has(r.__bc)
-      : !usedUhp.has(r.UHP_INDEX)).length;
+    // ---- CH2 rows not linked to POS: every one is kept (CH2 data fully preserved), linked one-to-one to a free UHP row
+    //      by barcode first, then by brand + description.
+    const ch2Only = ch2Records.filter(r => !usedCh2.has(r.CH2_INDEX));
+    const ch2OnlyUhp = new Map();
+    if (uhp && pythonMode) {
+      for (const r of ch2Only) if (r.__bc && uhpIndex.byBarcode.has(r.__bc)) { ch2OnlyUhp.set(r, { row: uhpIndex.byBarcode.get(r.__bc)[0], basis: 'UHP: Barcode Match (Python V30.15 rules)' }); usedUhpBarcodes.add(r.__bc); }
+    } else if (uhp) {
+      const edges = [];
+      for (const r of ch2Only) {
+        if (!r.__bc || !uhpIndex.byBarcode.has(r.__bc)) continue;
+        const src = { bc: r.__bc, subId: '', brands: r.__brands, desc: r.__desc, ws: r.__ws };
+        for (const u of uhpIndex.byBarcode.get(r.__bc)) {
+          if (usedUhp.has(u.UHP_INDEX)) continue;
+          const s = scoreCandidate(src, u, aliases);
+          edges.push({ r, u, s, wsr: wsRelative(r.__ws, u.__ws) });
+        }
+      }
+      edges.sort((a, b) => b.s.points - a.s.points || (a.wsr ?? 9) - (b.wsr ?? 9) || a.r.CH2_INDEX - b.r.CH2_INDEX || a.u.UHP_INDEX - b.u.UHP_INDEX);
+      for (const e of edges) {
+        if (ch2OnlyUhp.has(e.r) || usedUhp.has(e.u.UHP_INDEX)) continue;
+        e.s.max = 3;
+        ch2OnlyUhp.set(e.r, { row: e.u, basis: basisText('UHP', e.s) + (e.s.points === 1 ? ' (barcode only — check)' : '') });
+        usedUhp.add(e.u.UHP_INDEX);
+      }
+      const left = ch2Only.filter(r => !ch2OnlyUhp.has(r)).map(r => ({ key: 'C' + r.CH2_INDEX, row: r, brands: r.__brands, desc: r.__desc, ws: r.__ws, zz: 0, bc: r.__bc }));
+      const right = uhpRecords.filter(u => !usedUhp.has(u.UHP_INDEX)).map(u => ({ key: 'U' + u.UHP_INDEX, row: u, brands: u.__brands, desc: u.__desc, ws: u.__ws, zz: 0, bc: u.__bc }));
+      for (const [l, f] of matchByDescription(left, right, aliases)) {
+        ch2OnlyUhp.set(l.row, { row: f.item.row, basis: descriptionBasis('UHP', f), desc: true });
+        usedUhp.add(f.item.row.UHP_INDEX);
+      }
+    }
+    for (const r of ch2Only) {
+      stats.ch2_only++;
+      const link = ch2OnlyUhp.get(r) || null, uhpRow = link ? link.row : null;
+      if (link) { stats.ch2_only_uhp++; if (link.desc) stats.desc_ch2_uhp++; }
+      const m = Object.assign({}, strip(r), uhpRow ? strip(uhpRow) : {});
+      m.POS_INDEX = '';
+      m.CH2_INDEX = r.CH2_INDEX;
+      m.UHP_INDEX = uhpRow ? uhpRow.UHP_INDEX : '';
+      m.MATCH_STATUS = uhpRow ? 'CH2 Only + UHP' : 'CH2 Only';
+      m.MASTER_BRAND = cleanBrand(r[sk.brand] ?? '');
+      m.MASTER_BARCODE = r.__bc;
+      m.MASTER_POS_PLU = '';
+      m.AV_INDEX = ''; m.AV_BRAND = ''; m.AV_BARCODE = '';
+      m[MATCH_BASIS] = link ? link.basis : (pythonMode ? '' : 'Not in POS — no POS row matched by barcode, SUB ID or brand + description');
+      if (safeInt(m.SOH_TOTAL, 0) > 0) stats.soh_match++;
+      const pricing = calculatePricing(m, pk, sk, uk, disc);
+      Object.assign(m, pricing);
+      tallyDiscount(pricing.DISCOUNT_TYPE);
+      all.push(m);
+    }
+
+    // ---- UHP rows not linked above: every one appears once (rows without a barcode included).
+    const uhpOnly = pythonMode
+      ? [...uhpIndex.byBarcode.entries()].filter(([bc]) => !usedUhpBarcodes.has(bc)).map(([, list]) => list[0])
+      : uhpRecords.filter(r => !usedUhp.has(r.UHP_INDEX));
+    for (const r of uhpOnly) {
+      stats.uhp_only++;
+      const m = strip(r);
+      m.POS_INDEX = ''; m.CH2_INDEX = ''; m.UHP_INDEX = r.UHP_INDEX;
+      m.MATCH_STATUS = 'UHP Only';
+      m.MASTER_BRAND = cleanBrand(r[uk.brand] ?? '');
+      m.MASTER_BARCODE = r.__bc;
+      m.MASTER_POS_PLU = '';
+      m.AV_INDEX = ''; m.AV_BRAND = ''; m.AV_BARCODE = '';
+      m[MATCH_BASIS] = pythonMode ? '' : 'Not in POS or CH2' + (r.__bc ? '' : ' · no barcode on the Unique row');
+      const pricing = calculatePricing(m, pk, sk, uk, disc);
+      Object.assign(m, pricing);
+      tallyDiscount(pricing.DISCOUNT_TYPE);
+      all.push(m);
+    }
+
+    // ---- To-Order lines whose PLU is not in POS: kept as AV Only rows so every ordered unit stays in both outputs.
+    for (const [plu, qty] of (pythonMode ? new Map() : av.lookup)) {
+      if (avMatched.has(plu)) continue;
+      stats.av_only++;
+      const meta = av.meta.get(plu) || {};
+      const m = { POS_INDEX: '', CH2_INDEX: '', UHP_INDEX: '', MATCH_STATUS: 'AV Only', MASTER_BRAND: '', MASTER_BARCODE: '', MASTER_POS_PLU: plu };
+      m.AV_INDEX = safeInt(meta.AV_INDEX ?? '', '');
+      m.AV_BRAND = ''; m.AV_BARCODE = '';
+      m.AV_PLU_SKU = plu; m.AV_QTY_UNITS = qty; m.AV_SUPPLIER_NUMBER = av.supplier.get(plu) ?? '';
+      m.AV_SOURCE_ROWS = (av.lines.get(plu) || []).join(', ');
+      for (const col of OF_COLUMNS) if (col !== 'OF_SHORTFALL') m[col] = '';
+      if (qty > 0) m.OF_SHORTFALL = qty;
+      m[MATCH_BASIS] = `To-Order PLU ${plu} is not in the POS stock file — kept so the order total stays complete`;
+      const pricing = calculatePricing(m, pk, sk, uk, disc);
+      Object.assign(m, pricing);
+      tallyDiscount(pricing.DISCOUNT_TYPE);
+      all.push(m);
+    }
 
     // Sort alphabetically by MASTER_BRAND, then MASTER_BARCODE (stable, like Python list.sort).
     const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -900,7 +1278,8 @@
       version: VERSION, matchMode: pythonMode ? 'python' : 'points', records: all, outHeaders, selectedHeaders: SELECTED_OUTPUT_COLUMNS.slice(),
       order: { internal: orderInternal, display: ['ORDERED', ...orderInternal.map(c => CUSTOM_COLUMN_RENAMES[c] || c)], records: orderRecords },
       stats, soh: soh.stats, sohOverlaid, discounts: { headerRow: disc.headerRow, rules: disc.rules, keys: disc.keys },
-      availability: { rows: av.rows, uniquePlus: av.lookup.size, keys: av.keys }, validation, keys: { pk, sk, uk }, ms: Date.now() - t0
+      availability: { rows: av.rows, uniquePlus: av.lookup.size, keys: av.keys }, validation, keys: { pk, sk, uk }, ms: Date.now() - t0,
+      sources: { discounts: input.discountRows || null, availability: input.availabilityRows || null }
     };
   }
 
@@ -935,6 +1314,8 @@
     return v;
   }
   function columnFormat(internal, isOrder) {
+    if (internal === 'OD_DISCOUNT_PCT' || internal === 'OD_MARKUP_PCT') return '0.00%';
+    if (internal === 'OD_SOURCE_ROW') return '0';
     if (CURRENCY_COLS.includes(internal)) return CURRENCY_FMT;
     if (PERCENTAGE_COLS.includes(internal)) return '0.00%';
     if (RATES_AS_NUMBERS.includes(internal)) return '0.00';
@@ -944,7 +1325,7 @@
     return null;
   }
   function columnWidth(h) {
-    if (['POS_DESCR', 'POS_POS_DESC', 'CH2_LONG_DESCRIPTION_ENHANCED', 'CH2_LONG_DESCRIPTION', 'UHP_DESCRIPTION', MATCH_BASIS].includes(h)) return 36;
+    if (['POS_DESCR', 'POS_POS_DESC', 'CH2_LONG_DESCRIPTION_ENHANCED', 'CH2_LONG_DESCRIPTION', 'UHP_DESCRIPTION', MATCH_BASIS, 'OD_RULE', 'OD_DESCR'].includes(h)) return 36;
     return Math.min(30, Math.max(10, String(h).length + 2));
   }
   /* kind: 'full' | 'selected' | 'order'. Returns a Blob. */
@@ -1020,7 +1401,30 @@
         yield { cells: totals.map(t => t[0]), styles: totals.map(t => t[1]), height: 25 };
       }
     };
-    return X.writeWorkbook([sheet], st, opts || {});
+    const sheets = [sheet];
+    // Full file only: the Ongoing Discounts and To-Order files exactly as loaded, so the specials and order lines behind the
+    // OD_* / AV_* columns stay visible in the master (sheet 1 is unchanged).
+    if (kind === 'full' && result.sources) {
+      const srcHeader = st.style({ font: { bold: true }, fill: 'D9E1F2' });
+      const addSource = (name, rows, headerIndex) => {
+        if (!rows || !rows.length) return;
+        const width = Math.max(1, ...rows.map(r => (r || []).length));
+        sheets.push({
+          name, columnCount: width, freeze: `A${headerIndex + 2}`, dimension: `A1:${X.colLetter(width)}${rows.length}`,
+          widths: new Array(width).fill(16),
+          rows: function* () {
+            for (let r = 0; r < rows.length; r++) {
+              const row = rows[r] || [], cells = new Array(width);
+              for (let c = 0; c < width; c++) { const v = row[c]; cells[c] = v === null || v === undefined ? '' : v; }
+              yield { cells, styles: r === headerIndex ? srcHeader : 0 };
+            }
+          }
+        });
+      };
+      if (result.sources.discounts) addSource('Ongoing_Discounts_Source', result.sources.discounts, Math.max(0, detectDiscountHeaderRow(result.sources.discounts) - 1));
+      if (result.sources.availability) addSource('To_Order_Source', result.sources.availability, 0);
+    }
+    return X.writeWorkbook(sheets, st, opts || {});
   }
 
   // ---------------------------------------------------------------- legacy API (master.html v1)
@@ -1031,11 +1435,11 @@
 
   g.MasterCore = {
     VERSION, COLUMN_MAPPINGS, SELECTED: SELECTED_OUTPUT_COLUMNS, SELECTED_OUTPUT_COLUMNS, SOH: SOH_COLUMNS, SOH_COLUMNS, ACTIVE_RAW_SOH_COLUMNS,
-    PRICING_HEADERS, AV_COLUMNS, OF_COLUMNS, CUSTOM_COLUMNS, MATCH_BASIS,
+    PRICING_HEADERS, AV_COLUMNS, OF_COLUMNS, CUSTOM_COLUMNS, MATCH_BASIS, AUDIT_COLUMNS,
     findColumns, findCols: findColumns, cleanBarcode, cleanCode, cleanBrand, cleanLookup: cleanLookupIdentifier, cleanLookupIdentifier,
     brandsMatch: brandsMatchFuzzy, brandsMatchFuzzy, safeFloat, safeInt, parsePercentFraction, cleanPosColumnValue,
     detectSohLayout, readRawSohLookup, overlayRawSoh, detectDiscountHeaderRow, loadDiscounts, parseCsvText, buildAvailability,
-    calculateOrderFulfillment, calculatePricing, brandAgrees, wsClose, buildMaster, validateOrderFulfillment, writeMasterWorkbook,
+    calculateOrderFulfillment, calculatePricing, brandAgrees, wsClose, parseDescription, sizesCompatible, descriptionSimilarity, matchByDescription, buildMaster, validateOrderFulfillment, writeMasterWorkbook,
     detectDiscountRows(rows) { const hr = detectDiscountHeaderRow(rows); const headers = headerList(rows[hr - 1]); const kc = findColumns(headers, 'discounts'); return { headerRow: hr - 1, headers, map: kc.discount_pct ? { discount: headers.indexOf(kc.discount_pct) } : {}, data: rows.slice(hr) }; },
     merge
   };
