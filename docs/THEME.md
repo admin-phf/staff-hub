@@ -17,6 +17,7 @@ Each page's `<body>` has a scope class so the theme never leaks between tools:
 | Build Master Databases | `database-builder-page phf-page-db` |
 | Legacy stage pages (ch2 / uhp / master) | `database-builder-page phf-page-db phf-page-db-legacy` |
 | Update Specials | `phf-page-specials` |
+| POS Supplier Merge | `database-builder-page phf-page-db phf-page-merge` (Build Master Databases rules + `merge.css`) |
 
 ## Structure colours
 | Token | Hex | Use |

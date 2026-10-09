@@ -186,3 +186,22 @@ All implemented stages keep source business files local to the browser and gener
   column and footer totals right (`table.pos-overflow`) when the window still scrolls.
 - Rails: `#railClearOrder` / `#railClearAll` (workspace.js) and `#railClearInputs` (pipeline.js; outputs kept).
 - Every tool page's title block is `a.phf-shell-title` linking to the Staff Hub (`assets/css/shell.css` v21.6.0).
+
+## Staff Hub v21.7.0 — POS Supplier Merge v1.0.0 (10 Oct 2026 02:30 AEDT)
+- New tool `tools/pos-supplier-merge/` and a Staff Hub tile. The POS Supplier Merge Google Sheet (Apps Script v6.3.87)
+  now runs in the browser with the Build Master Databases layout: Input files rail, Drop All Input Files, input readiness,
+  three stage cards, Run All, generated output files, and a full-width OUT_MERGED_DATA review table.
+- Engine parity: the four Apps Script files are kept **unchanged** in `engine/` and run in a Web Worker on
+  `js/sheets-shim.js`, an in-memory stand-in for SpreadsheetApp / Utilities / PropertiesService / LockService / HtmlService
+  (values, formulas used by OUT_MERGED_DATA, notes, number formats for display values, filters, rows / columns).
+  Formatting calls are accepted and ignored. Opened from a file, the engine runs in `engine-frame.html` instead.
+- Inputs: POS Database (Stage 1 POS DB output of Build Master Databases = TMP_MERGED_POS_DATA), Supplier Updates
+  (CH2 / UHP `_pos_db` outputs = IN_SUPPLIER, several files combined) for this session; SRC reference tables saved in
+  this browser (IndexedDB `phf-pos-supplier-merge`). A downloaded copy of the Google Sheet fills every input from its tabs.
+- Outputs: the POS INSERT / POS UPDATE TXT files from EXPORT POS FILES, and a review workbook (XlsxLite) with
+  OUT_MERGED_DATA, OUT_POS_INSERT, OUT_POS_UPDATE, supplier STATUS and reference tabs.
+- Verification: on the 09 Oct test data (1,149 POS + 623 supplier rows) both TXT files are byte-identical to the Apps
+  Script run through the test harness; 31,149 POS + 2,523 supplier rows run in about 8 seconds.
+- Theme: the page uses `database-builder-page phf-page-db phf-page-merge`, so it takes the Build Master Databases theme
+  rules unchanged; tool-only rules (three stage columns, amber "recommended" rows, review table) are in
+  `tools/pos-supplier-merge/css/merge.css`. `assets/css/theme.css` is unchanged.

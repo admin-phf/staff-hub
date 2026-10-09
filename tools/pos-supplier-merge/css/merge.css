@@ -1,0 +1,80 @@
+/* PHF Staff Hub — POS Supplier Merge v1.0.0 (10 Oct 2026)
+   Tool-only additions. Layout and colours come from css/app.css (same layout as
+   Build Master Databases) and the shared assets/css/theme.css (linked last). */
+
+/* Three stage cards side by side */
+body.phf-page-merge .stage-dashboard.merge-stages{grid-template-columns:repeat(3,minmax(0,1fr))!important;align-items:stretch}
+@media(max-width:1100px){body.phf-page-merge .stage-dashboard.merge-stages{grid-template-columns:1fr!important}}
+
+/* Intro + engine state */
+body.phf-page-merge .dashboard-intro{grid-template-columns:minmax(0,1fr) 300px}
+body.phf-page-merge .engine-state{display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right}
+body.phf-page-merge .engine-state small{font-size:11px;color:var(--phf-muted);font-weight:600}
+@media(max-width:900px){body.phf-page-merge .dashboard-intro{grid-template-columns:1fr}body.phf-page-merge .engine-state{align-items:flex-start;text-align:left}}
+
+/* Recommended reference rows = amber (caution), the same meaning as the theme */
+body.phf-page-merge .input-nav-item.recommended.missing{background:var(--phf-amber-bg)!important;border-color:var(--phf-amber-line)!important}
+body.phf-page-merge .input-nav-item.recommended.missing .input-dot{background:#FCE9B8!important;color:var(--phf-amber-ink)!important}
+body.phf-page-merge .input-nav-item.recommended.missing .input-state{background:#fff!important;color:var(--phf-amber-ink)!important;border:1px solid var(--phf-amber-line)}
+body.phf-page-merge .summary-chip.warn{background:var(--phf-amber-bg);border-color:var(--phf-amber-line);color:var(--phf-amber-ink)}
+body.phf-page-merge .input-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
+body.phf-page-merge .sidebar-actions .btn{flex:1 1 120px}
+body.phf-page-merge .file-row span{min-width:0;overflow-wrap:anywhere}
+body.phf-page-merge .file-row .miss-cols{display:block;font-style:normal;font-size:11.5px;color:var(--phf-amber-ink);margin-top:2px}
+
+/* Review panel — full width under the dashboard */
+body.phf-page-merge .review-panel{margin:16px 0 28px}
+body.phf-page-merge .review-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin:14px 0 12px}
+body.phf-page-merge .review-kpi{border:1px solid #D5DBE0;background:var(--phf-grey-bg);border-radius:9px;padding:9px 11px;color:#4A5562}
+body.phf-page-merge .review-kpi strong{display:block;font-size:19px;line-height:1.1;color:var(--phf-ink)}
+body.phf-page-merge .review-kpi span{display:block;font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;margin-top:3px}
+body.phf-page-merge .review-kpi.match{background:var(--phf-blue-bg);border-color:var(--phf-blue-line);color:var(--phf-blue-ink)}
+body.phf-page-merge .review-kpi.new{background:var(--phf-green-bg);border-color:var(--phf-green-line);color:var(--phf-green-ink)}
+body.phf-page-merge .review-kpi.warn{background:var(--phf-amber-bg);border-color:var(--phf-amber-line);color:var(--phf-amber-ink)}
+body.phf-page-merge .review-kpi.up{background:var(--phf-red-bg);border-color:var(--phf-red-line);color:var(--phf-red-ink)}
+body.phf-page-merge .review-kpi.down{background:var(--phf-blue-bg);border-color:var(--phf-blue-line);color:var(--phf-blue-ink)}
+body.phf-page-merge .review-kpi.review{background:#F3E8FD;border-color:#D7B9F7;color:#7627BB}
+body.phf-page-merge .review-filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
+body.phf-page-merge .review-filters input[type=search]{flex:1 1 320px;min-height:36px;border:1px solid var(--phf-line-strong);border-radius:8px;padding:6px 10px;font-size:13px}
+body.phf-page-merge .review-filters select{min-height:36px;border:1px solid var(--phf-line-strong);border-radius:8px;padding:6px 8px;font-size:12.5px;max-width:260px;background:#fff}
+body.phf-page-merge .review-filters input:focus,body.phf-page-merge .review-filters select:focus{outline:2px solid var(--phf-blue-line);border-color:var(--phf-blue)}
+body.phf-page-merge .review-table-wrap{overflow:auto;max-height:70vh;border:1px solid var(--phf-line);border-radius:10px;background:#fff}
+body.phf-page-merge .review-table{border-collapse:separate;border-spacing:0;width:100%;min-width:1650px;font-size:11.5px}
+body.phf-page-merge .review-table th{position:sticky;top:0;z-index:2;background:var(--phf-navy);color:var(--phf-gold);font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;text-align:left;padding:8px 8px;white-space:nowrap;border-right:1px solid rgba(255,255,255,.08)}
+body.phf-page-merge .review-table td{padding:6px 8px;vertical-align:top;border-bottom:1px solid #E3E8ED;color:var(--phf-ink);line-height:1.35}
+body.phf-page-merge .review-table tbody tr:nth-child(odd) td{background:#F5F5F5}
+body.phf-page-merge .review-table tbody tr:nth-child(even) td{background:var(--phf-alt)}
+body.phf-page-merge .review-table tbody tr:hover td{background:#FFF9E6}
+body.phf-page-merge .review-table td.rv-num{text-align:center;color:var(--phf-muted);white-space:nowrap}
+body.phf-page-merge .review-table td.rv-brand{white-space:nowrap;font-weight:600}
+body.phf-page-merge .review-table td.rv-descr{min-width:200px;max-width:300px}
+body.phf-page-merge .review-table td.rv-strong{font-weight:700}
+body.phf-page-merge .review-table td.rv-money{white-space:nowrap}
+body.phf-page-merge .review-table td.rv-notes{min-width:240px;max-width:380px;color:#4A5562;font-size:11px}
+body.phf-page-merge .review-table td.rv-audit-col,body.phf-page-merge .review-table th.rv-audit-col{text-align:center;width:34px}
+body.phf-page-merge .review-table td.warn-cell{background:var(--phf-amber-bg)!important;color:var(--phf-amber-ink);font-weight:700}
+body.phf-page-merge .review-table .rv-extra{display:block;font-size:10.5px;color:var(--phf-muted);margin-top:2px}
+body.phf-page-merge .review-table .rv-extra.warn{color:var(--phf-amber-ink);font-weight:700}
+body.phf-page-merge .review-table .rv-arrow{color:var(--phf-muted)}
+body.phf-page-merge .review-table .rv-empty{text-align:center;padding:26px;color:var(--phf-muted);background:#fff!important}
+body.phf-page-merge .rv-chip{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.04em;padding:3px 7px;border-radius:999px;border:1px solid #D5DBE0;background:var(--phf-grey-bg);color:#4A5562;white-space:nowrap}
+body.phf-page-merge .rv-chip.match{background:var(--phf-blue-bg);border-color:var(--phf-blue-line);color:#1565C0}
+body.phf-page-merge .rv-chip.new{background:var(--phf-green-bg);border-color:var(--phf-green-line);color:var(--phf-green-ink)}
+body.phf-page-merge .rv-chip.warn{background:#FEF3E2;border-color:var(--phf-amber-line);color:#B35900}
+body.phf-page-merge .rv-chip.review{background:#F3E8FD;border-color:#D7B9F7;color:#7627BB}
+body.phf-page-merge .rv-chip.up{background:var(--phf-red-bg);border-color:var(--phf-red-line);color:#C5221F}
+body.phf-page-merge .rv-chip.down{background:var(--phf-blue-bg);border-color:var(--phf-blue-line);color:#1A73E8}
+body.phf-page-merge .rv-chip.flat{color:#7B8794}
+body.phf-page-merge .rv-audit{font-size:13px}
+body.phf-page-merge .rv-audit.ok{color:var(--phf-green)}
+body.phf-page-merge .rv-audit.bad{color:var(--phf-red)}
+body.phf-page-merge .rv-audit.unk{color:#9AA0A6}
+body.phf-page-merge .review-pager{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:10px;font-size:12px;color:var(--phf-muted)}
+body.phf-page-merge .review-panel[hidden]{display:none!important}
+
+/* Review panel heading = the same navy / gold band as every workspace panel */
+body.phf-page-merge .review-panel{--phf-pad:20px;padding:20px}
+body.phf-page-merge .review-panel>.results-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--phf-navy);color:var(--phf-gold);padding:10px 16px;min-height:46px;border-radius:calc(var(--phf-radius) - 1px) calc(var(--phf-radius) - 1px) 0 0;margin:-20px -20px 16px;font-family:var(--phf-font)}
+body.phf-page-merge .review-panel>.results-head>div:first-child{flex:1 1 auto}
+body.phf-page-merge .review-panel>.results-head h2{margin:0!important;font:700 12.5px/1.3 var(--phf-font)!important;letter-spacing:.1em!important;text-transform:uppercase!important;color:var(--phf-gold)!important}
+body.phf-page-merge .review-panel>.results-head p{color:var(--phf-band-text)!important;font-size:11.5px!important;font-weight:600!important;margin:0!important}
