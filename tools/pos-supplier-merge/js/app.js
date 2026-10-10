@@ -5,11 +5,18 @@
  * v1.1.0: Supplier Updates sheet on the page (totals bar, 16 headings, paste rows).
  * v1.2.0: the sheet is editable (cells, paste at a cell, add / delete rows, undo), full width under the stages and
  *         always shown; every input in the rail has its own ✕ to remove it.
+ * v1.3.0: Staff Hub Library — the POS Database and supplier files from Build Master Databases and the shared Ongoing
+ *         Discounts file load on open (assets/js/phf-library.js); files dropped here for Ongoing Discounts are saved to it.
  */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.2.0';
+  var TOOL_VERSION = 'v1.3.0';
+  // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
+  // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
+  var LIB = window.PHFLibrary || null, LIB_TOOL = 'pos-supplier-merge';
+  var LIB_LOAD = [{ id: 'pos', kind: 'lib:pos-db' }, { id: 'sup', kind: 'lib:ch2-db' }, { id: 'sup', kind: 'lib:uhp-db' }, { id: 'disc', kind: 'lib:ref-discounts' }];
+  var LIB_SHARED = { disc: 'lib:ref-discounts' };
   var M = window.PHFMergeMap;
   var $ = function (s) { return document.querySelector(s); };
   var SHEETS = {
@@ -214,7 +221,9 @@
     setGlobal('Reading ' + file.name + '…', 'running');
     return readWorkbook(file).then(function (sheets) {
       var best = mapForInput(id, sheets);
-      addToInput(id, fileEntry(file, best.tab, best.mapped));
+      var entry = fileEntry(file, best.tab, best.mapped);
+      addToInput(id, entry);
+      if (LIB && LIB_SHARED[id]) LIB.put(LIB_SHARED[id], file, { name: file.name, source: 'POS Supplier Merge' }).then(function (r) { entry.libKind = LIB_SHARED[id]; entry.libSavedAt = r.savedAt; entry.libWhen = LIB.when(r); if (inputDef(id).stored) refSave(id); renderAll(); if (state.activeInput === id) showInput(id); }).catch(function (e) { console.warn('Library save failed', e); });
       setGlobal(def.title + ': ' + file.name + ' loaded — ' + fmtN(best.mapped.report.rows) + ' rows.', 'success');
       renderAll(); showInput(id);
       return true;
@@ -226,6 +235,7 @@
   }
   function removeFile(id, idx) {
     var cur = state.inputs[id]; if (!cur) return;
+    libForget(id, cur.files.slice(idx, idx + 1));
     cur.files.splice(idx, 1);
     if (id === 'sup') supView.undo = [];
     if (!cur.files.length) { delete state.inputs[id]; if (inputDef(id).stored) refDelete(id); }
@@ -304,8 +314,10 @@
   }
 
   // ------------------------------------------------------------ rail + cards
+  function libStaleFiles(id) { var x = state.inputs[id]; return ((x && x.files) || []).filter(function (f) { return f.libSavedAt && !LIB_SHARED[id] && LIB && LIB.isStale({ savedAt: f.libSavedAt }); }); }
   function railState(def) {
     var f = loaded(def.id);
+    if (f && libStaleFiles(def.id).length) return { cls: 'loaded lib-stale', dot: '!', text: 'CHECK DATE' };
     if (f) return { cls: 'loaded', dot: '✓', text: def.stored ? 'SAVED' : 'LOADED' };
     if (def.required) return { cls: 'missing required', dot: '!', text: 'REQUIRED' };
     if (def.recommended) return { cls: 'missing recommended', dot: '!', text: 'RECOMMENDED' };
@@ -315,7 +327,8 @@
     var x = state.inputs[def.id];
     if (!x || !x.files.length) return def.required ? 'Required · drop here' : def.recommended ? 'Recommended · drop here' : 'Optional · drop here';
     var rows = x.files.reduce(function (a, f) { return a + f.data.length; }, 0);
-    return (x.files.length > 1 ? x.files.length + ' files · ' : x.files[0].name + ' · ') + fmtN(rows) + ' rows';
+    var lib = x.files.some(function (f) { return f.libKind; });
+    return (x.files.length > 1 ? x.files.length + ' files · ' : x.files[0].name + ' · ') + fmtN(rows) + ' rows' + (lib ? ' · Library' : '');
   }
   function renderInputNav() {
     var host = $('#inputNav');
@@ -348,7 +361,7 @@
   function removeInputs(ids, message) {
     if (state.busy) { setGlobal('A stage is running — remove files when it finishes.', 'missing'); return; }
     var gone = ids.filter(function (id) { return state.inputs[id]; });
-    gone.forEach(function (id) { delete state.inputs[id]; if (inputDef(id).stored) refDelete(id); });
+    gone.forEach(function (id) { libForget(id, state.inputs[id].files); delete state.inputs[id]; if (inputDef(id).stored) refDelete(id); });
     if (ids.indexOf('sup') >= 0) { supView.undo = []; supView.sel = null; supView.note = ''; }
     state.bulk = state.bulk.filter(function (rec) {
       if (!rec.ids || !rec.ids.length) return true;
@@ -373,7 +386,7 @@
     var badgeCls = has ? 'done' : def.required ? 'required' : 'wait';
     var files = has ? x.files.map(function (f, i) {
       var rep = f.report || {};
-      return '<div class="file-row"><span><strong>' + esc(f.name) + '</strong>' + (f.tab ? ' · tab ' + esc(f.tab) : '') + ' · ' + fmtN(f.data.length) + ' rows · ' + (rep.found || 0) + ' / ' + (rep.total || 0) + ' columns' + (rep.missing && rep.missing.length ? ' <em class="miss-cols">not in file: ' + esc(rep.missing.join(', ')) + '</em>' : '') + '</span><button type="button" data-remove="' + i + '">Remove</button></div>';
+      return '<div class="file-row"><span><strong>' + esc(f.name) + '</strong>' + (f.tab ? ' · tab ' + esc(f.tab) : '') + ' · ' + fmtN(f.data.length) + ' rows · ' + (rep.found || 0) + ' / ' + (rep.total || 0) + ' columns' + (rep.missing && rep.missing.length ? ' <em class="miss-cols">not in file: ' + esc(rep.missing.join(', ')) + '</em>' : '') + libNote(id, f) + '</span><button type="button" data-remove="' + i + '">Remove</button></div>';
     }).join('') : '';
     var status = problem ? problem : has ? (def.stored ? 'Saved in this browser ' + esc(x.savedAt || '') : 'Loaded ' + esc(x.files[x.files.length - 1].loadedAt || '')) : 'Not loaded';
     $('#inputWorkspace').innerHTML =
@@ -1241,6 +1254,49 @@
   }
   function refreshSupSheet() { if ($('#supSheet')) drawSup(); }
 
+  // ------------------------------------------------- Staff Hub Library (v1.3.0)
+  function libNote(id, f) {
+    if (!f.libSavedAt || !LIB) return '';
+    var rec = { savedAt: f.libSavedAt }, stale = !LIB_SHARED[id] && LIB.isStale(rec);
+    return '<em class="lib-from' + (stale ? ' stale' : '') + '">' + (LIB_SHARED[id] ? 'Saved in the Library ' : 'From the Library · built ') + esc(LIB.when(rec)) + ' (' + esc(LIB.ago(rec)) + ')' + (stale ? ' — over a day old: check it is the latest build' : '') + '</em>';
+  }
+  // Inputs removed from this page: a Library file is not loaded here again until a newer copy is saved; the shared
+  // Ongoing Discounts file is one saved copy for every tool, so removing it deletes it from the Library.
+  function libForget(id, files) {
+    if (!LIB) return;
+    (files || []).forEach(function (f) {
+      if (!f || !f.libKind) return;
+      if (LIB_SHARED[id]) LIB.remove(f.libKind).catch(function () {});
+      else LIB.dismiss(LIB_TOOL, { kind: f.libKind, savedAt: f.libSavedAt });
+    });
+  }
+  function libLoad() {
+    if (!LIB) return Promise.resolve([]);
+    var got = [];
+    return LIB_LOAD.reduce(function (p, j) {
+      return p.then(function () {
+        return LIB.get(j.kind).then(function (rec) {
+          if (!rec || !rec.blob) return;
+          var cur = state.inputs[j.id], files = (cur && cur.files) || [];
+          if (LIB_SHARED[j.id]) { if (files.length && files[0].libSavedAt === rec.savedAt) return; }
+          else {
+            if (LIB.isDismissed(LIB_TOOL, rec)) return;
+            if (j.id === 'pos' && files.length) return;                                  // a file dropped here wins
+            if (files.some(function (f) { return f.libKind === j.kind || f.name === rec.name; })) return;
+          }
+          var file = LIB.toFile(rec);
+          return readWorkbook(file).then(function (sheets) {
+            var best = mapForInput(j.id, sheets), entry = fileEntry(file, best.tab, best.mapped);
+            entry.libKind = j.kind; entry.libSavedAt = rec.savedAt; entry.libWhen = LIB.when(rec);
+            if (LIB_SHARED[j.id] && state.inputs[j.id]) state.inputs[j.id].files = [];
+            addToInput(j.id, entry);
+            got.push(LIB.info(j.kind).label + ' (' + LIB.when(rec) + ')');
+          });
+        }).catch(function (e) { console.warn('Library load failed', j.kind, e); });
+      });
+    }, Promise.resolve()).then(function () { return got; });
+  }
+
   // ----------------------------------------------------------------- boot
   function renderAll() { renderInputNav(); renderInputSummary(); updateRunButtons(); }
   function boot() {
@@ -1255,10 +1311,15 @@
       removeInputs(M.INPUTS.filter(function (d) { return d.stored; }).map(function (d) { return d.id; }), 'Saved reference data removed from this browser.');
     };
     renderAll();
-    refLoadAll().then(function () {
+    refLoadAll().then(function () { renderAll(); return libLoad(); }).then(function (got) {
       renderAll();
       var saved = M.INPUTS.filter(function (d) { return d.stored && loaded(d.id); }).length;
-      setGlobal((saved ? saved + ' saved reference table' + (saved === 1 ? '' : 's') + ' loaded from this browser. ' : '') + readinessText(), requiredReady() ? 'ready' : 'missing');
+      setGlobal((got && got.length ? 'From the Library: ' + got.join(' · ') + '. ' : '') + (saved ? saved + ' saved reference table' + (saved === 1 ? '' : 's') + ' loaded from this browser. ' : '') + readinessText(), requiredReady() ? 'ready' : 'missing');
+      if (state.activeInput) showInput(state.activeInput);
+    });
+    if (LIB) LIB.onChange(function (msg) {
+      var use = LIB_LOAD.filter(function (j) { return j.kind === msg.kind; })[0];
+      if (msg.action === 'put' && use && !LIB_SHARED[use.id]) setGlobal('A newer ' + LIB.info(msg.kind).label + ' was saved to the Library (' + LIB.when(msg.record) + '). Reload this page to use it, or keep working with the files loaded now.', 'info');
     });
     startEngine().then(function () { updateRunButtons(); }).catch(function (e) { setGlobal('The merge engine could not start: ' + e.message, 'error'); });
   }

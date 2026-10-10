@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS Supplier Merge v1.2.0 (10 Oct 2026)
+/* PHF Staff Hub — POS Supplier Merge v1.3.0 (10 Oct 2026)
    Tool-only additions. Layout and colours come from css/app.css (same layout as
    Build Master Databases) and the shared assets/css/theme.css (linked last). */
 
@@ -156,3 +156,11 @@ body.phf-page-merge .input-nav-wrap{position:relative}
 body.phf-page-merge .input-nav-wrap.has-del .input-nav-item{padding-right:32px!important}
 body.phf-page-merge .input-nav-del{position:absolute;top:50%;right:8px;transform:translateY(-50%);width:18px;height:18px;padding:0;border-radius:50%;border:1px solid var(--phf-line-strong);background:#fff;color:var(--phf-red);font-size:10px;font-weight:900;line-height:16px;text-align:center;cursor:pointer;z-index:3;opacity:.85}
 body.phf-page-merge .input-nav-del:hover,body.phf-page-merge .input-nav-del:focus-visible{background:var(--phf-red-bg);border-color:var(--phf-red-line);opacity:1;outline:none}
+
+/* v1.3.0 — Staff Hub Library: where a loaded file came from; amber when a Library build is over a day old */
+body.phf-page-merge .file-row .lib-from{display:block;font-style:normal;font-size:11.5px;color:var(--phf-green-ink);margin-top:2px;font-weight:600}
+body.phf-page-merge .file-row .lib-from.stale{color:var(--phf-amber-ink)}
+body.phf-page-merge .input-nav-item.loaded.lib-stale{background:var(--phf-amber-bg)!important;border-color:var(--phf-amber-line)!important}
+body.phf-page-merge .input-nav-item.loaded.lib-stale .input-dot{background:#FCE9B8!important;color:var(--phf-amber-ink)!important}
+body.phf-page-merge .input-nav-item.loaded.lib-stale .input-state{background:#fff!important;color:var(--phf-amber-ink)!important;border:1px solid var(--phf-amber-line)}
+body.phf-page-merge .input-nav-item.loaded.lib-stale strong{color:var(--phf-amber-ink)!important}

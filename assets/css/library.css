@@ -1,0 +1,25 @@
+/* PHF Staff Hub — Library panel on the home page v1.0.0 (10 Oct 2026). Navy / gold band from theme.css. */
+.phf-lib{margin-top:16px}
+.phf-lib-body{padding:14px 18px 16px}
+.phf-lib-intro{margin:0 0 12px;font-size:13px;color:var(--phf-muted,#5B6672);line-height:1.5}
+.phf-lib-list{display:grid;gap:8px}
+.phf-lib-row{display:grid;grid-template-columns:30px minmax(0,2.2fr) minmax(0,1.2fr) 80px minmax(0,1.6fr) auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--phf-green-line,#9CCFAA);background:var(--phf-green-bg,#E6F4EA);border-radius:10px}
+.phf-lib-row.stale{border-color:var(--phf-amber-line,#F0D58A);background:var(--phf-amber-bg,#FFF7E0)}
+.phf-lib-dot{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--phf-green,#2E7D32);color:#fff;font-weight:900;font-size:13px}
+.phf-lib-row.stale .phf-lib-dot{background:#FCE9B8;color:var(--phf-amber-ink,#7A4F00)}
+.phf-lib-what strong{display:block;color:var(--phf-navy,#1E3A5F);font-size:13.5px}
+.phf-lib-what span,.phf-lib-when span,.phf-lib-flow span{display:block;font-size:11.5px;color:var(--phf-muted,#5B6672);overflow-wrap:anywhere}
+.phf-lib-when strong,.phf-lib-size{font-size:12.5px;color:var(--phf-ink,#1F2937);font-variant-numeric:tabular-nums}
+.phf-lib-row.stale .phf-lib-when span{color:var(--phf-amber-ink,#7A4F00);font-weight:700}
+.phf-lib-flow strong{display:block;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#4A5562}
+.phf-lib-btns{display:flex;gap:6px}
+.phf-lib-btn{min-height:32px;padding:6px 12px;border-radius:8px;border:1px solid var(--phf-line-strong,#C3CEDA);background:#fff;color:var(--phf-navy,#1E3A5F);font:700 12px var(--phf-font,inherit);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.phf-lib-btn.download{background:var(--phf-green,#2E7D32);border-color:var(--phf-green,#2E7D32);color:#fff}
+.phf-lib-btn.del{color:var(--phf-red,#C5221F);border-color:var(--phf-red-line,#F1B4AE);padding:6px 10px}
+.phf-lib-btn.del:hover{background:var(--phf-red-bg,#FCE8E6)}
+.phf-lib-btn.danger{color:var(--phf-red,#C5221F);border-color:var(--phf-red-line,#F1B4AE)}
+.phf-lib-btn:disabled{opacity:.5;cursor:not-allowed}
+.phf-lib-empty{padding:16px;border:1px dashed var(--phf-line-strong,#C3CEDA);border-radius:10px;color:var(--phf-muted,#5B6672);font-size:13px;text-align:center;background:#F7F9FA}
+.phf-lib-foot{display:flex;align-items:center;gap:12px;margin-top:12px;font-size:12px;color:var(--phf-muted,#5B6672)}
+.phf-lib-foot span{margin-right:auto}
+@media(max-width:1100px){.phf-lib-row{grid-template-columns:30px minmax(0,1fr) auto}.phf-lib-when,.phf-lib-size,.phf-lib-flow{grid-column:2}}

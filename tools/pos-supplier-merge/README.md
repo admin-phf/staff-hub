@@ -1,6 +1,6 @@
-# POS Supplier Merge v1.2.0 (Staff Hub v21.9.0)
+# POS Supplier Merge v1.3.0 (Staff Hub v21.10.0)
 
-Updated 10 Oct 2026 19:10 AEDT.
+Updated 10 Oct 2026 19:40 AEDT.
 
 The POS Supplier Merge Google Sheet, run in the browser. It uses the **same script files** as the
 Google Sheet (engine v6.3.88), so the matching, discontinued products, ZZZZ / DISC / SPEC ORD Sub IDs, pricing, OUT_MERGED_DATA
@@ -22,6 +22,15 @@ Files are recognised from their headings (the heading row can be row 1 or row 2)
 Google Sheet (File → Download → Microsoft Excel) can be dropped as one file: every recognised tab fills its
 input. Columns are matched by heading, `POS_MASTER_BARCODE` fills POS MAIN ID, and INDEX is renumbered
 1, 2, 3… the same way the Sheet's paste tidy does. STATUS columns are cleared because the merge writes them.
+
+## Staff Hub Library (v1.3.0)
+
+When the page opens, files saved in this browser's Staff Hub Library (see the home page) fill empty inputs:
+the **POS Database** and the **CH2 / Unique supplier imports** from the last Build Master Databases build, and the shared
+**Ongoing Discounts** file. Each shows "From the Library · built …"; a build over a day old turns the row amber
+(CHECK DATE). A file dropped on the page always wins. ✕ / Remove on a Library file stops it loading here again until
+a newer build is saved; Ongoing Discounts is one shared file, so removing it here deletes the saved copy. An Ongoing
+Discounts file dropped here is saved to the Library for Build Master Databases too.
 
 ## Supplier Updates sheet (v1.2.0 — editable)
 

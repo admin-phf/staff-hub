@@ -7,12 +7,13 @@
   <link rel="stylesheet" href="./assets/css/hub.css?v=19.0.0">
   <link rel="stylesheet" href="./assets/css/shell.css?v=21.6.0">
   <link rel="stylesheet" href="./assets/css/theme.css?v=20.0.0">
+  <link rel="stylesheet" href="./assets/css/library.css?v=1.0.0">
 </head>
 <body class="phf-page-hub">
   <header class="phf-shell-header header-container">
   <a class="phf-shell-logo logo-section" href="./index.html" aria-label="Return to Staff Hub"><img src="./assets/img/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
-  <div class="phf-shell-title center-section"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></span><div class="phf-shell-copy title-row"><h1>Staff Hub</h1><p class="phf-shell-version version-text">v21.9.0</p></div></div>
-  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><span aria-current="page">Staff Hub</span></nav><p class="phf-shell-updated build-details">Updated 10 Oct 2026 19:10 AEDT</p></div>
+  <div class="phf-shell-title center-section"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></span><div class="phf-shell-copy title-row"><h1>Staff Hub</h1><p class="phf-shell-version version-text">v21.10.0</p></div></div>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><span aria-current="page">Staff Hub</span></nav><p class="phf-shell-updated build-details">Updated 10 Oct 2026 19:40 AEDT</p></div>
 </header>
   <main class="wrap phf-full">
 
@@ -48,7 +49,7 @@
           </div>
           <h2>Build Master Databases</h2>
           <p>Merge and prepare the POS master database, then run the supplier database build stages from one workflow.</p>
-          <div class="vers" aria-label="Database Builder v21.8.0 component versions"><span>POS v5.0.1</span><span>CH2 v1.0.0</span><span>Unique v1.0.1</span><span>Master v2.4.0</span></div>
+          <div class="vers" aria-label="Database Builder v21.10.0 component versions"><span>POS v5.0.1</span><span>CH2 v1.0.0</span><span>Unique v1.0.1</span><span>Master v2.4.0</span></div>
           <span class="tile-go">Open tool <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></span>
         </a>
 
@@ -59,7 +60,7 @@
           </div>
           <h2>POS Supplier Merge</h2>
           <p>Merge supplier updates into the POS database: highlight new products, build OUT_MERGED_DATA, then export the POS insert and update files.</p>
-          <div class="vers" aria-label="POS Supplier Merge v1.2.0 component versions"><span>Tool v1.2.0</span><span>Engine v6.3.88</span></div>
+          <div class="vers" aria-label="POS Supplier Merge v1.3.0 component versions"><span>Tool v1.3.0</span><span>Engine v6.3.88</span></div>
           <span class="tile-go">Open tool <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg></span>
         </a>
 
@@ -101,7 +102,18 @@
       </div>
     </section>
 
+    <section class="hub-card phf-lib" id="libraryPanel" aria-labelledby="libHeading">
+      <div class="phf-band"><h2 id="libHeading">Library · saved in this browser</h2><small id="libSummary">Checking…</small></div>
+      <div class="phf-lib-body">
+        <p class="phf-lib-intro">Files the tools save for each other, so you don't drag them in again: Build Master Databases saves the POS Database, the supplier imports and the merged masters when a build finishes; reference files you load once are kept here too. POS Supplier Merge and Reconcile CH2 Order use them automatically. Everything stays in this browser on this computer — nothing is uploaded, and another browser or PC has its own Library.</p>
+        <div class="phf-lib-list" id="libList"></div>
+        <div class="phf-lib-foot"><span id="libUsage"></span><button type="button" class="phf-lib-btn danger" id="libClearAll">Delete all</button></div>
+      </div>
+    </section>
+
     <div class="note"><span class="note-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span><span><strong>Privacy:</strong> do not commit customer, invoice, order or other business data to this repository. The reconciliation tool is intended to process files locally in the staff member's browser.</span></div>
   </main>
+  <script src="./assets/js/phf-library.js?v=1.0.0"></script>
+  <script src="./assets/js/hub-library.js?v=1.0.0"></script>
 </body>
 </html>

@@ -1,3 +1,5 @@
+// v2.9.2 (10 Oct 2026): this store is also the Staff Hub Library (assets/js/phf-library.js). Build Master Databases saves
+// the full merged master here as "posMaster", so it is ready without dropping it. Clear removes only Reconcile's own files.
 (function(global){
   'use strict';
   const PHF=global.PHFReconcile=global.PHFReconcile||{};
@@ -79,7 +81,7 @@
   function openDb(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE,{keyPath:'kind'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
   async function save(kind,file){parsedCache=null;const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);store.delete('parsedReferenceCache');store.put({kind,name:file.name,size:file.size,lastModified:file.lastModified||0,savedAt:new Date().toISOString(),blob:file});tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
   async function load(kind){const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly'),req=tx.objectStore(STORE).get(kind);req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error);});}
-  async function clear(kind){parsedCache=null;const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);if(kind){store.delete(kind);store.delete('parsedReferenceCache');}else store.clear();tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
+  async function clear(kind){parsedCache=null;const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);if(kind){store.delete(kind);store.delete('parsedReferenceCache');}else{['posMaster','supplierMerge','parsedReferenceCache'].forEach(k=>store.delete(k));}tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
   async function saveParsedCache(cacheKey,master,supplier){
     try{const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put({kind:'parsedReferenceCache',cacheKey,master,supplier,savedAt:new Date().toISOString()});tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});return true;}
     catch(err){console.warn('Parsed reference cache could not be saved; current run remains valid.',err);return false;}
