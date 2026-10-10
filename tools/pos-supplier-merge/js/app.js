@@ -1,13 +1,15 @@
 /* PHF Staff Hub — POS Supplier Merge v1.1.0 (10 Oct 2026)
  * Page controller: input rail + drag and drop, saved reference data, the
- * engine (Web Worker running the unchanged Apps Script v6.3.87 files), the
+ * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
  * three merge stages, downloads and the OUT_MERGED_DATA review table.
  * v1.1.0: Supplier Updates sheet on the page (totals bar, 16 headings, paste rows).
+ * v1.2.0: the sheet is editable (cells, paste at a cell, add / delete rows, undo), full width under the stages and
+ *         always shown; every input in the rail has its own ✕ to remove it.
  */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.1.0';
+  var TOOL_VERSION = 'v1.2.0';
   var M = window.PHFMergeMap;
   var $ = function (s) { return document.querySelector(s); };
   var SHEETS = {
@@ -203,6 +205,7 @@
     cur.savedAt = melb();
     state.inputs[id] = cur;
     state.rev++;
+    if (id === 'sup') supView.undo = [];
     if (def.stored) refSave(id);
     invalidateResults('Inputs changed — run the stages again.');
   }
@@ -224,6 +227,7 @@
   function removeFile(id, idx) {
     var cur = state.inputs[id]; if (!cur) return;
     cur.files.splice(idx, 1);
+    if (id === 'sup') supView.undo = [];
     if (!cur.files.length) { delete state.inputs[id]; if (inputDef(id).stored) refDelete(id); }
     else if (inputDef(id).stored) refSave(id);
     state.rev++;
@@ -238,7 +242,7 @@
     if (!files.length) return;
     setGlobal('Identifying ' + files.length + ' file' + (files.length === 1 ? '' : 's') + '… (nothing will run)', 'running');
     var jobs = files.map(function (file) {
-      var rec = { file: file, status: 'reading', assigned: [], msg: 'Reading…' };
+      var rec = { file: file, status: 'reading', assigned: [], ids: [], msg: 'Reading…' };
       state.bulk.unshift(rec); renderBulk();
       return readWorkbook(file).then(function (sheets) {
         var recognised = 0, notes = [];
@@ -251,6 +255,7 @@
             if (!mp.data.length) { notes.push(sh.name + ': no data rows'); return; }
             addToInput(id, fileEntry(file, sh.name, mp));
             rec.assigned.push(inputDef(id).title + (sheets.length > 1 ? ' (tab ' + sh.name + ')' : '') + ' · ' + fmtN(mp.data.length) + ' rows');
+            rec.ids.push(id);
             recognised++;
           } catch (e) { notes.push(sh.name + ': ' + e.message); }
         });
@@ -284,7 +289,7 @@
       b.onclick = function () {
         var i = +b.dataset.bulkAssign, r = state.bulk[i], sel = host.querySelector('[data-bulk-select="' + i + '"]'), id = sel && sel.value;
         if (!r || !id) return;
-        acceptFile(id, r.file).then(function (ok) { if (ok) { r.status = 'assigned'; r.msg = 'Assigned to ' + inputDef(id).title; } renderBulk(); });
+        acceptFile(id, r.file).then(function (ok) { if (ok) { r.status = 'assigned'; r.msg = 'Assigned to ' + inputDef(id).title; r.assigned = [r.msg]; r.ids = [id]; } renderBulk(); });
       };
     });
   }
@@ -319,12 +324,13 @@
       var title = g === 'Reference data' ? 'Reference data · saved in this browser' : g;
       return '<div class="input-group"><div class="input-group-title">' + esc(title) + '</div>' + items.map(function (d) {
         var s = railState(d);
-        return '<button type="button" class="input-nav-item ' + s.cls + '" data-input="' + d.id + '" title="Click to open, or drop the ' + esc(d.title) + ' file here"><span class="input-dot">' + s.dot + '</span><span><strong>' + esc(d.title) + '</strong><small>' + esc(railSub(d)) + '</small></span><span class="input-state">' + s.text + '</span></button>';
+        return '<div class="input-nav-wrap' + (loaded(d.id) ? ' has-del' : '') + '"><button type="button" class="input-nav-item ' + s.cls + '" data-input="' + d.id + '" title="Click to open, or drop the ' + esc(d.title) + ' file here"><span class="input-dot">' + s.dot + '</span><span><strong>' + esc(d.title) + '</strong><small>' + esc(railSub(d)) + '</small></span><span class="input-state">' + s.text + '</span></button>' +
+          (loaded(d.id) ? '<button type="button" class="input-nav-del" data-del="' + d.id + '" title="Remove ' + esc(d.title) + (d.stored ? ' from this browser' : '') + '" aria-label="Remove ' + esc(d.title) + '">✕</button>' : '') + '</div>';
       }).join('') + '</div>';
     }).join('');
     host.querySelectorAll('[data-input]').forEach(function (b) {
       var id = b.dataset.input;
-      b.onclick = function () { showInput(id); };
+      b.onclick = function () { showInput(id); if (id === 'sup') scrollToSupSheet(); };
       b.ondragover = b.ondragenter = function (e) { e.preventDefault(); e.stopPropagation(); b.classList.add('drag-target'); };
       b.ondragleave = function (e) { e.preventDefault(); e.stopPropagation(); b.classList.remove('drag-target'); };
       b.ondrop = function (e) {
@@ -334,8 +340,32 @@
         list.reduce(function (p, f) { return p.then(function () { return acceptFile(id, f); }); }, Promise.resolve());
       };
     });
+    host.querySelectorAll('[data-del]').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); removeInputs([b.dataset.del]); }; });
     if (state.activeInput) { var a = host.querySelector('[data-input="' + state.activeInput + '"]'); if (a) a.classList.add('active'); }
   }
+  // v1.2.0: remove inputs straight away — the ✕ beside a rail row, or the two clear buttons. A saved reference table
+  // is deleted from this browser too. Drop-list rows that only filled those inputs go as well.
+  function removeInputs(ids, message) {
+    if (state.busy) { setGlobal('A stage is running — remove files when it finishes.', 'missing'); return; }
+    var gone = ids.filter(function (id) { return state.inputs[id]; });
+    gone.forEach(function (id) { delete state.inputs[id]; if (inputDef(id).stored) refDelete(id); });
+    if (ids.indexOf('sup') >= 0) { supView.undo = []; supView.sel = null; supView.note = ''; }
+    state.bulk = state.bulk.filter(function (rec) {
+      if (!rec.ids || !rec.ids.length) return true;
+      var keep = []; rec.ids.forEach(function (id, i) { if (ids.indexOf(id) < 0) keep.push(i); });
+      rec.assigned = keep.map(function (i) { return rec.assigned[i]; }); rec.ids = keep.map(function (i) { return rec.ids[i]; });
+      rec.msg = rec.assigned.join(' · ');
+      return rec.ids.length > 0;
+    });
+    renderBulk();
+    state.rev++;
+    invalidateResults('Inputs changed — run the stages again.');
+    renderAll();
+    if (state.activeInput) showInput(state.activeInput);
+    var names = gone.map(function (id) { return inputDef(id).title; });
+    setGlobal(message || ((names.length ? names.join(', ') + ' removed. ' : 'Nothing to remove. ') + readinessText()), requiredReady() ? 'ready' : 'missing');
+  }
+  function scrollToSupSheet() { var el = $('#supPanel'); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   function showInput(id, problem) {
     var def = inputDef(id); if (!def) return;
     state.activeInput = id;
@@ -363,7 +393,10 @@
     d.ondrop = function (e) { e.preventDefault(); d.classList.remove('drag'); take(e.dataTransfer && e.dataTransfer.files); };
     host.querySelectorAll('[data-remove]').forEach(function (b) { b.onclick = function () { removeFile(id, +b.dataset.remove); }; });
     document.querySelectorAll('[data-input]').forEach(function (b) { b.classList.toggle('active', b.dataset.input === id); });
-    if (id === 'sup') { host.insertAdjacentHTML('beforeend', supSheetHtml()); wireSupSheet(); }
+    if (id === 'sup') {
+      host.querySelector('.input-workspace-card').insertAdjacentHTML('beforeend', '<div class="sup-card-link"><button type="button" class="btn small" id="supJump">Open the IN_SUPPLIER sheet ↓</button><span>Edit, paste and check every supplier row in the sheet under the stages.</span></div>');
+      host.querySelector('#supJump').onclick = scrollToSupSheet;
+    }
   }
   function readinessText() {
     var miss = M.INPUTS.filter(function (d) { return d.required && !loaded(d.id); }).map(function (d) { return d.title; });
@@ -751,16 +784,18 @@
     $('#reviewNext').onclick = function () { state.review.page++; renderReviewPage(); };
   }
 
-  // ------------------------------------------- Supplier Updates sheet (v1.1.0)
-  /* The IN_SUPPLIER_/_PRODUCT_UPDATES tab shown on the page under the Supplier Updates card: the Sheet's row-1 totals bar
-     (worked out here, over the rows the search leaves visible — the Sheet's SUBTOTAL formulas do the same with a filter),
-     the 16 headings and every supplier row from all loaded files. Rows copied from Excel or Google Sheets can be pasted
-     straight in (Ctrl+V / ⌘V); they are added as a "Pasted rows" supplier entry next to any dropped files. */
+  // ------------------------------------- Supplier Updates sheet (v1.2.0, editable)
+  /* The IN_SUPPLIER_/_PRODUCT_UPDATES tab as a small spreadsheet, full width under the stages. Row 1 is the Sheet's
+     totals bar (worked out here over the rows the search leaves visible, like the Sheet's SUBTOTAL formulas), then the
+     16 headings and every supplier row from all loaded files. Click a cell to select it, type to change it, Ctrl+V
+     pastes from that cell. INDEX is numbered automatically and STATUS is written by the merge, so those two columns are
+     read-only. Rows typed or pasted below the last row go into an "Added rows" supplier entry. Every change updates the
+     supplier input for this session and resets the stages; Undo goes back one change at a time. */
   var SUP_HEADS = M.SCHEMAS[SHEETS.SUP].headers;
   var SUP_NUM = { 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1 };   // H–N: numbers when they look like numbers
   var SUP_TEXT = { 1: 1, 2: 1, 3: 1, 5: 1 };                       // B C D F stay text (codes keep leading zeros)
-  var SUP_PAGE = 100, PASTED = 'Pasted rows';
-  var supView = { q: '', page: 0, undo: [], note: '', noteType: 'info' };
+  var SUP_PAGE = 100, ADDED = 'Added rows', SUP_UNDO_MAX = 40;
+  var supView = { q: '', page: 0, undo: [], note: '', noteType: 'info', sel: null, vis: [], editing: null };
 
   function parseTsv(text) {
     var s = String(text || '').replace(/\r\n?/g, '\n'), rows = [], row = [], f = '', q = false, i = 0, n = s.length;
@@ -782,22 +817,37 @@
     }
     if (q) f = '"' + f;
     if (f !== '' || row.length) { row.push(f); rows.push(row); }
-    return rows.filter(function (r) { return r.some(function (c) { return String(c).trim() !== ''; }); });
+    while (rows.length && !rows[rows.length - 1].some(function (c) { return String(c).trim() !== ''; })) rows.pop();
+    return rows;
+  }
+  function supValue(c, v) {
+    if (v === undefined || v === null) return '';
+    if (typeof v !== 'string') return SUP_TEXT[c] ? String(v) : v;
+    v = v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '').trim();
+    if (SUP_NUM[c] && /^-?\$?\s?(\d{1,3}(,\d{3})+|\d+)?(\.\d+)?$/.test(v) && /\d/.test(v)) { var num = Number(v.replace(/[$,\s]/g, '')); if (isFinite(num)) return num; }
+    return v;
   }
   function coerceSupRow(o) {
-    for (var c = 0; c < 16; c++) {
-      var v = o[c];
-      if (v === undefined || v === null) { o[c] = ''; continue; }
-      if (typeof v !== 'string') { if (SUP_TEXT[c]) o[c] = String(v); continue; }
-      v = v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '').trim(); o[c] = v;
-      if (SUP_NUM[c] && /^-?\$?\s?(\d{1,3}(,\d{3})+|\d+)?(\.\d+)?$/.test(v) && /\d/.test(v)) { var num = Number(v.replace(/[$,\s]/g, '')); if (isFinite(num)) o[c] = num; }
-    }
+    for (var c = 0; c < 16; c++) o[c] = supValue(c, o[c]);
     o[0] = ''; o[15] = '';                                       // INDEX is renumbered, STATUS is written by the merge
     o.length = 16;
     return o;
   }
-  // Pasted block → 16-column rows. Headings (any order, row 1–8) are used when found; otherwise the columns are read by
-  // position: 16 columns = A–P, 14 or 15 = from B (POS SUPPLIER NAME), anything else from A when column 1 looks like INDEX.
+  function blankSupRow() { var o = new Array(16); for (var c = 0; c < 16; c++) o[c] = ''; return o; }
+  // Do the pasted columns look like supplier rows? D = barcode, J / K = prices.
+  function supRowsLookRight(rows) {
+    if (!rows.length) return false;
+    var bc = 0, ws = 0;
+    rows.forEach(function (o) {
+      var d = String(o[3] == null ? '' : o[3]).replace(/\s+/g, ''), j = o[9];
+      if (!d || /^\d{6,14}$/.test(d)) bc++;
+      if (j === '' || typeof j === 'number' || /^n\/?a$/i.test(String(j))) ws++;
+    });
+    return bc >= rows.length * 0.8 && ws >= rows.length * 0.8;
+  }
+  // A pasted block with no cell selected: headings (any order, row 1–8) are used when found; otherwise columns are
+  // read by position: 16 columns = A–P, 14 or 15 = from B (POS SUPPLIER NAME), anything else from A when column 1 looks
+  // like INDEX. The result is checked against the data (barcodes in D, prices in J).
   function mapPasted(rows) {
     var hr = M.findHeaderRow(rows, SUP_HEADS), out = { data: [], how: '', warn: [] };
     if (hr.row >= 0 && hr.score >= 3) {
@@ -811,129 +861,377 @@
       var idxLike = rows.filter(function (r) { return /^\d{1,6}$/.test(String(r[0]).trim()); }).length >= rows.length * 0.8;
       var start = width >= 16 ? 0 : (width === 14 || width === 15) ? 1 : (idxLike ? 0 : 1);
       out.data = rows.map(function (r) {
-        var o = new Array(16).fill('');
+        var o = blankSupRow();
         for (var c = 0; c + start < 16 && c < r.length; c++) o[c + start] = r[c];
         return coerceSupRow(o);
       }).filter(function (o) { return o.slice(1, 15).some(function (v) { return String(v).trim() !== ''; }); });
-      out.how = 'by position — ' + width + ' column' + (width === 1 ? '' : 's') + ' read as ' + window.XlsxLite.colLetter(start + 1) + '–' + window.XlsxLite.colLetter(Math.min(16, start + width));
-      if (width < 14 || width > 16) out.warn.push('no headings found and ' + width + ' columns pasted — check the columns line up');
+      out.how = 'as columns ' + window.XlsxLite.colLetter(start + 1) + '–' + window.XlsxLite.colLetter(Math.min(16, start + width));
+      if (!supRowsLookRight(out.data)) out.warn.push('column D does not look like barcodes or column J like W/S prices — click the first cell they belong in (e.g. B' + (supView.vis.length + 3) + ') and paste again, or Undo');
     }
     if (out.data.some(function (o) { return /e\+/i.test(String(o[3])); })) out.warn.push('some barcodes look like 9.3E+12 — format the barcode column as Number (0 decimals) or Text before copying');
-    if (out.data.some(function (o) { return o[3] === '' && o[6] === ''; })) out.warn.push('some rows have no SUP BARCODE or SUP PRODUCT');
     return out;
   }
-  function pastedEntry() {
-    var x = state.inputs.sup; if (!x) return null;
-    for (var i = 0; i < x.files.length; i++) if (x.files[i].pasted) return { entry: x.files[i], idx: i };
-    return null;
+
+  // ---- data: every supplier row in input order, with the file entry it belongs to
+  function supEntries() { var x = state.inputs.sup; return (x && x.files) || []; }
+  function addedEntry(create) {
+    var list = supEntries();
+    for (var i = 0; i < list.length; i++) if (list[i].added) return list[i];
+    if (!create) return null;
+    var e = { name: ADDED, size: 0, tab: '', added: true, data: [], loadedAt: melb(), report: { headerRow: 0, found: SUP_HEADS.length, total: SUP_HEADS.length, missing: [], rows: 0 } };
+    if (!state.inputs.sup) state.inputs.sup = { files: [], savedAt: melb() };
+    state.inputs.sup.files.push(e);
+    return e;
   }
-  function setPasted(data, note, type) {
-    var p = pastedEntry();
-    supView.note = note || ''; supView.noteType = type || 'info'; supView.page = 0;
-    if (!data.length) { supView.undo = []; if (p) removeFile('sup', p.idx); else { renderAll(); showInput('sup'); } return; }
-    addToInput('sup', { name: PASTED, size: 0, tab: '', pasted: true, data: data, loadedAt: melb(),
-      report: { headerRow: 0, found: SUP_HEADS.length, total: SUP_HEADS.length, missing: [], rows: data.length } });
-    renderAll(); showInput('sup');
+  function supModel() {
+    var refs = [];
+    supEntries().forEach(function (e) { e.data.forEach(function (row) { refs.push({ e: e, row: row }); }); });
+    var res = state.results[SHEETS.SUP], run = !!(res && res.length > 2 && res.length - 2 === refs.length);
+    var items = refs.map(function (ref, i) { return { ref: ref, n: i + 1, shown: run ? res[i + 2] : ref.row }; });
+    return { items: items, run: run, summary: run ? String((res[0] || [])[15] || '').trim() : '' };
   }
+  function supShown(it, c) {
+    if (c === 0) return String(it.n);
+    if (c === 15) return it.shown === it.ref.row ? '' : String(it.shown[15] == null ? '' : it.shown[15]);
+    var v = it.shown[c];
+    if (v === null || v === undefined) return '';
+    return typeof v === 'number' && (c === 8 || c === 9 || c === 10 || c === 13) ? String(Math.round(v * 10000) / 10000) : String(v);
+  }
+
+  // ---- changes: one undo snapshot per change, then the input / stages / rail / sheet refresh together
+  function supSnapshot() {
+    var x = state.inputs.sup;
+    if (!x) return null;
+    return x.files.map(function (e) {
+      return { e: e, data: e.data.map(function (row) { var a = row.slice(); if (row.__ed) a.__ed = Object.assign({}, row.__ed); return a; }) };
+    });
+  }
+  function supRestore(snap) {
+    if (!snap || !snap.length) { delete state.inputs.sup; return; }
+    snap.forEach(function (s) { s.e.data = s.data; });
+    state.inputs.sup = state.inputs.sup || { files: [], savedAt: melb() };
+    state.inputs.sup.files = snap.map(function (s) { return s.e; });
+  }
+  function supCommit(msg, type) {
+    var x = state.inputs.sup;
+    if (x) { x.files = x.files.filter(function (e) { return e.data.length; }); if (!x.files.length) delete state.inputs.sup; else x.savedAt = melb(); }
+    state.rev++;
+    invalidateResults('Supplier rows changed — run the stages again.');
+    renderAll();
+    if (state.activeInput === 'sup') showInput('sup');
+    if (msg !== undefined) { supView.note = msg; supView.noteType = type || 'info'; }
+    drawSup();
+  }
+  function supMutate(fn) {
+    if (state.busy) { supSay('A stage is running — try again when it finishes.', 'warn'); return false; }
+    var snap = supSnapshot(), res = fn();
+    if (!res) return false;
+    supView.undo.push(snap); if (supView.undo.length > SUP_UNDO_MAX) supView.undo.shift();
+    supCommit(res.msg, res.type);
+    return true;
+  }
+  function setSupCell(row, c, raw) {
+    if (c <= 0 || c >= 15) return false;
+    var v = supValue(c, raw);
+    if (String(row[c] == null ? '' : row[c]) === String(v)) return false;
+    row[c] = v;
+    row.__ed = row.__ed || {}; row.__ed[c] = true;
+    return true;
+  }
+
+  // ---- paste: at the selected cell (like Google Sheets), or by heading / position when nothing is selected
   function pasteToSupplier(text) {
-    if (state.busy) { supSay('A stage is running — paste again when it finishes.', 'missing'); return; }
+    if (state.busy) { supSay('A stage is running — paste again when it finishes.', 'warn'); return; }
     var rows = parseTsv(text);
-    if (!rows.length) { supSay('Nothing to paste — copy the rows in Excel or Google Sheets first.', 'missing'); return; }
+    if (!rows.length || !rows.some(function (r) { return r.some(function (c) { return String(c).trim() !== ''; }); })) { supSay('Nothing to paste — copy the cells in Excel or Google Sheets first.', 'warn'); return; }
+    var hr = M.findHeaderRow(rows, SUP_HEADS), sel = supView.sel;
+    if (sel && !(hr.row >= 0 && hr.score >= 3)) { pasteAtCell(rows, sel); return; }
     var m;
     try { m = mapPasted(rows); } catch (e) { supSay('Could not read the pasted rows: ' + e.message, 'error'); return; }
-    if (!m.data.length) { supSay('The pasted block has no supplier rows (only headings or blank rows).', 'missing'); return; }
-    var p = pastedEntry(), prev = p ? p.entry.data : [];
-    supView.undo.push(prev.length);
-    setPasted(prev.concat(m.data), fmtN(m.data.length) + ' row' + (m.data.length === 1 ? '' : 's') + ' pasted ' + m.how + '.' + (m.warn.length ? ' Check: ' + m.warn.join(' · ') + '.' : ''), m.warn.length ? 'missing' : 'success');
-    setGlobal('Supplier Updates: ' + fmtN(m.data.length) + ' pasted row' + (m.data.length === 1 ? '' : 's') + ' added — ' + fmtN(rowsOf('sup').length) + ' supplier rows in total. ' + readinessText(), m.warn.length ? 'missing' : 'success');
+    if (!m.data.length) { supSay('The pasted block has no supplier rows (only headings or blank rows).', 'warn'); return; }
+    var startRow = supModel().items.length;
+    supMutate(function () {
+      var e = addedEntry(true);
+      m.data.forEach(function (o) { e.data.push(o); });
+      return { msg: fmtN(m.data.length) + ' row' + (m.data.length === 1 ? '' : 's') + ' added ' + m.how + '.' + (m.warn.length ? ' Check: ' + m.warn.join(' · ') + '.' : ''), type: m.warn.length ? 'warn' : 'success' };
+    });
+    supGoTo(startRow, 1);
+    setGlobal('Supplier Updates: ' + fmtN(m.data.length) + ' row' + (m.data.length === 1 ? '' : 's') + ' added — ' + fmtN(rowsOf('sup').length) + ' supplier rows in total. ' + readinessText(), m.warn.length ? 'missing' : 'success');
   }
-  function supSay(msg, type) { supView.note = msg; supView.noteType = type || 'info'; var el = $('#supNote'); if (el) { el.className = 'status sup-note ' + supView.noteType; el.textContent = msg; el.hidden = !msg; } }
-  // Rows as the Sheet shows them: the merge results after stage 1 (with STATUS), otherwise the loaded files in order.
-  function supSource() {
-    var res = state.results[SHEETS.SUP], x = state.inputs.sup, from = [];
-    (x && x.files || []).forEach(function (f) { for (var i = 0; i < f.data.length; i++) from.push(f.pasted ? 1 : 0); });
-    if (res && res.length > 2) return { rows: res.slice(2), summary: String((res[0] || [])[15] || '').trim(), pasted: res.length - 2 === from.length ? from : [], run: true };
-    return { rows: rowsOf('sup').map(function (r, i) { var o = r.slice(0, 16); o[0] = String(i + 1); return o; }), summary: '', pasted: from, run: false };
+  function pasteAtCell(rows, sel) {
+    var r0 = Math.min(sel.r, sel.r2), c0 = Math.max(1, Math.min(sel.c, sel.c2)), vis = supView.vis;
+    // A 16-column block (A–P, INDEX first) pasted at column A or B keeps its columns: INDEX is skipped.
+    var width = Math.max.apply(null, rows.map(function (r) { return r.length; }));
+    var skipFirst = width >= 16 && c0 <= 1;
+    supMutate(function () {
+      var added = 0, changed = 0, cut = 0;
+      for (var i = 0; i < rows.length; i++) {
+        var cells = skipFirst ? rows[i].slice(1) : rows[i];
+        if (!cells.some(function (v) { return String(v).trim() !== ''; }) && !vis[r0 + i]) continue;
+        var target = vis[r0 + i] ? vis[r0 + i].ref.row : null;
+        if (!target) { target = blankSupRow(); addedEntry(true).data.push(target); added++; }
+        for (var j = 0; j < cells.length; j++) {
+          var c = c0 + j;
+          if (c >= 15) { if (String(cells[j]).trim() !== '' && c > 15) cut++; continue; }
+          if (setSupCell(target, c, cells[j])) changed++;
+        }
+      }
+      if (!changed && !added) return null;
+      var where = SUP_HEADS[c0] ? window.XlsxLite.colLetter(c0 + 1) + (r0 + 3) : '';
+      return { msg: 'Pasted at ' + where + ': ' + fmtN(changed) + ' cell' + (changed === 1 ? '' : 's') + ' changed' + (added ? ', ' + fmtN(added) + ' row' + (added === 1 ? '' : 's') + ' added' : '') + '.' + (cut ? ' ' + fmtN(cut) + ' value(s) past column O were left out (STATUS is written by the merge).' : ''), type: cut ? 'warn' : 'success' };
+    });
+    supView.sel = { r: r0, c: c0, r2: r0 + rows.length - 1, c2: Math.min(14, c0 + Math.max.apply(null, rows.map(function (r) { return r.length; })) - 1 - (skipFirst ? 1 : 0)) };
+    paintSel();
+  }
+
+  function supSay(msg, type) {
+    supView.note = msg || ''; supView.noteType = type || 'info';
+    var el = $('#supNote'); if (!el) return;
+    el.className = 'status sup-note ' + supView.noteType; el.textContent = supView.note; el.hidden = !supView.note;
   }
   function supStatusClass(v) {
     var s = String(v || '').toUpperCase();
     return !s ? '' : /UNMATCHABLE/.test(s) ? 'st-unm' : /NOT USED/.test(s) ? 'st-notused' : /MATCHED/.test(s) ? 'st-match' : /NEW/.test(s) ? 'st-new' : '';
   }
-  function supTotals(rows) {
-    var st = function (r) { return String(r[15] == null ? '' : r[15]).toUpperCase(); };
-    var cnt = function (re) { var n = 0; rows.forEach(function (r) { if (re.test(st(r))) n++; }); return n; };
-    var uniq = function (c) { var s = {}, n = 0; rows.forEach(function (r) { var v = String(r[c] == null ? '' : r[c]).trim(); if (v && !s[v]) { s[v] = 1; n++; } }); return n; };
-    var sum = function (c) { return rows.reduce(function (a, r) { var v = typeof r[c] === 'number' ? r[c] : Number(String(r[c] == null ? '' : r[c]).replace(/[$,\s]/g, '')); return a + (isFinite(v) && v > 0 ? v : 0); }, 0); };
-    return { total: rows.filter(function (r) { return String(r[0] == null ? '' : r[0]).trim() !== ''; }).length,
-      matched: cnt(/BEST BUY.*MATCHED|^MATCHED$/), newp: cnt(/BEST BUY.*NEW|^NEW/), notUsed: cnt(/NOT USED/), unm: cnt(/UNMATCHABLE/),
+  function supTotals(items) {
+    var st = function (it) { return supShown(it, 15).toUpperCase(); };
+    var cnt = function (re) { var n = 0; items.forEach(function (it) { if (re.test(st(it))) n++; }); return n; };
+    var uniq = function (c) { var s = {}, n = 0; items.forEach(function (it) { var v = supShown(it, c).trim(); if (v && !s[v]) { s[v] = 1; n++; } }); return n; };
+    var sum = function (c) { return items.reduce(function (a, it) { var v = Number(supShown(it, c).replace(/[$,\s]/g, '')); return a + (isFinite(v) && v > 0 ? v : 0); }, 0); };
+    return { total: items.length, matched: cnt(/BEST BUY.*MATCHED|^MATCHED$/), newp: cnt(/BEST BUY.*NEW|^NEW/), notUsed: cnt(/NOT USED/), unm: cnt(/UNMATCHABLE/),
       names: uniq(1), suppliers: uniq(2), barcodes: uniq(3), brands: uniq(4), ws: sum(9), rrp: sum(10) };
   }
   function money(n) { return '$' + Number(n || 0).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-  function supCell(v, c) {
-    var s = v == null ? '' : (typeof v === 'number' && (c === 9 || c === 10 || c === 13 || c === 8) ? v.toFixed(2) : String(v));
-    return s;
-  }
+
   function supSheetHtml() {
-    return '<div class="sup-sheet" id="supSheet" tabindex="0" aria-label="IN_SUPPLIER_/_PRODUCT_UPDATES sheet — click here and press Ctrl+V to paste rows">' +
-      '<div class="sup-head"><div><h3>IN_SUPPLIER_/_PRODUCT_UPDATES</h3><p>The Supplier Updates tab as the Google Sheet shows it. Copy rows in Excel or Google Sheets, click this sheet and press Ctrl+V (⌘V on Mac) — with or without the heading row.</p></div><span class="result-badge" id="supCount">0 ROWS</span></div>' +
+    return '<div class="sup-sheet" id="supSheet" tabindex="0" aria-label="IN_SUPPLIER_/_PRODUCT_UPDATES sheet">' +
+      '<div class="sup-head"><div><h3>IN_SUPPLIER_/_PRODUCT_UPDATES</h3><p>The Supplier Updates tab as the Google Sheet shows it. Click a cell and type to change it · Ctrl+V (⌘V) pastes from the selected cell · click an INDEX number to select rows · Ctrl+Z undoes.</p></div><span class="result-badge" id="supCount">0 ROWS</span></div>' +
       '<div class="sup-bar" id="supBar"></div>' +
       '<div class="sup-tools"><input type="search" id="supSearch" placeholder="Search barcode, brand, Sub ID, product or status…" aria-label="Search supplier rows">' +
-      '<button type="button" class="btn small primary" id="supPasteBtn" title="Read the clipboard and add the rows (or click the sheet and press Ctrl+V)">Paste rows</button>' +
-      '<button type="button" class="btn small" id="supUndo" title="Remove the rows added by the last paste">Undo last paste</button>' +
-      '<button type="button" class="btn small" id="supClearPasted" title="Remove every pasted row (dropped files stay)">Clear pasted rows</button>' +
+      '<button type="button" class="btn small primary" id="supPasteBtn" title="Paste the clipboard at the selected cell (or add the rows at the end when no cell is selected)">Paste</button>' +
+      '<button type="button" class="btn small" id="supAddRow" title="Add an empty row at the end and start typing in it">Add row</button>' +
+      '<button type="button" class="btn small" id="supDelRows" title="Delete the selected rows (click an INDEX number, Shift+click another to select several)">Delete rows</button>' +
+      '<button type="button" class="btn small" id="supUndo" title="Undo the last change (Ctrl+Z)">Undo</button>' +
+      '<button type="button" class="btn small" id="supClearAdded" title="Remove every row typed or pasted here (dropped supplier files stay)">Clear added rows</button>' +
       '<button type="button" class="btn small" id="supCopyHeads" title="Copy the 16 headings, ready to paste into Excel or Google Sheets as a template">Copy headings</button></div>' +
       '<div class="status sup-note" id="supNote" hidden></div>' +
-      '<div class="sup-table-wrap"><table class="sup-table"><thead><tr>' + SUP_HEADS.map(function (h, i) { return '<th class="sup-c' + i + '"><span class="sup-col">' + window.XlsxLite.colLetter(i + 1) + '</span>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody id="supBody"></tbody></table></div>' +
-      '<div class="review-pager"><button type="button" class="btn small" id="supPrev">‹ Previous</button><span id="supPage">Page 1</span><button type="button" class="btn small" id="supNext">Next ›</button></div></div>';
+      '<div class="sup-table-wrap" id="supWrap"><table class="sup-table"><thead><tr>' + SUP_HEADS.map(function (h, i) { return '<th class="sup-c' + i + (i === 0 || i === 15 ? ' sup-ro' : '') + '"><span class="sup-col">' + window.XlsxLite.colLetter(i + 1) + '</span>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody id="supBody"></tbody></table></div>' +
+      '<div class="review-pager"><span class="sup-sel-info" id="supSelInfo"></span><button type="button" class="btn small" id="supPrev">‹ Previous</button><span id="supPage">Page 1</span><button type="button" class="btn small" id="supNext">Next ›</button></div></div>';
   }
   function drawSup() {
     var host = $('#supSheet'); if (!host) return;
-    var src = supSource(), q = supView.q.trim().toUpperCase(), vis = [], from = [];
-    src.rows.forEach(function (r, i) { if (!q || r.join(' ').toUpperCase().indexOf(q) >= 0) { vis.push(r); from.push(src.pasted[i] || 0); } });
+    var model = supModel(), q = supView.q.trim().toUpperCase();
+    var vis = q ? model.items.filter(function (it) { var s = ''; for (var c = 0; c < 16; c++) s += supShown(it, c) + ' '; return s.toUpperCase().indexOf(q) >= 0; }) : model.items;
+    supView.vis = vis;
     var t = supTotals(vis);
-    var stat = src.run ? (src.summary || 'Stage 1 finished — no summary returned') : (src.rows.length ? 'STATUS is set when stage 1 runs (Highlight New Products + Best Buy)' : 'No supplier rows yet — drop supplier files above or paste rows here');
+    var stat = model.run ? (model.summary || 'Stage 1 finished — no summary returned') : (model.items.length ? 'STATUS is set when stage 1 runs (Highlight New Products + Best Buy)' : 'No supplier rows yet — drop supplier files above, or click B3 and paste rows here');
     var bc = function (label, val, cls, tip) { return '<div class="sup-bar-cell' + (cls ? ' ' + cls : '') + '"' + (tip ? ' title="' + esc(tip) + '"' : '') + '><span>' + label + '</span><strong>' + val + '</strong></div>'; };
     $('#supBar').innerHTML =
       '<div class="sup-bar-group">' + bc('TOTAL', fmtN(t.total)) + bc('⭐ MATCHED', fmtN(t.matched), 'is-match') + bc('🟢 NEW', fmtN(t.newp), 'is-new') + bc('🚫 NOT USED', fmtN(t.notUsed), 'is-muted') + bc('⚠️ UNMATCHABLE', fmtN(t.unm), 'is-warn') + '</div>' +
       '<div class="sup-bar-group">' + bc('SUPPLIER NAMES', fmtN(t.names)) + bc('TOTAL POS SUPPLIERS', fmtN(t.suppliers)) + bc('UNIQUE BARCODES', fmtN(t.barcodes), '', 'Column D (SUP BARCODE). In the Google Sheet this cell may be labelled UNIQUE BRANDS from an older layout — it counts barcodes.') + bc('UNIQUE BRANDS', fmtN(t.brands)) + bc('TOTAL WS', money(t.ws)) + bc('TOTAL RRP', money(t.rrp)) + '</div>' +
-      '<div class="sup-bar-status' + (src.run ? ' is-run' : '') + '"><span>STATUS</span>' + esc(stat) + (q ? ' <em>· totals are for the ' + fmtN(vis.length) + ' rows matching the search</em>' : '') + '</div>';
-    var pages = Math.max(1, Math.ceil(vis.length / SUP_PAGE));
+      '<div class="sup-bar-status' + (model.run ? ' is-run' : '') + '"><span>STATUS</span>' + esc(stat) + (q ? ' <em>· totals are for the ' + fmtN(vis.length) + ' rows matching the search</em>' : '') + '</div>';
+    var pages = Math.max(1, Math.ceil((vis.length + (q ? 0 : 1)) / SUP_PAGE));
     supView.page = Math.max(0, Math.min(supView.page, pages - 1));
-    var start = supView.page * SUP_PAGE, slice = vis.slice(start, start + SUP_PAGE);
-    $('#supBody').innerHTML = slice.length ? slice.map(function (r, k) {
-      var pasted = from[start + k];
-      return '<tr' + (pasted ? ' class="is-pasted"' : '') + '>' + SUP_HEADS.map(function (h, c) {
-        var s = supCell(r[c], c), cls = 'sup-c' + c + (c === 15 ? ' sup-status ' + supStatusClass(s) : '');
-        return '<td class="' + cls + '"' + (c === 6 || c === 15 ? ' title="' + esc(s) + '"' : '') + '>' + (c === 0 && pasted ? '<span class="sup-pasted-tag" title="Pasted row">P</span>' : '') + esc(s) + '</td>';
-      }).join('') + '</tr>';
-    }).join('') : '<tr><td colspan="16" class="sup-empty">' + (src.rows.length ? 'No rows match the search.' : '<strong>Paste rows here</strong> — click this sheet and press Ctrl+V (⌘V on Mac). Copy rows A–P, B–O or with the heading row; INDEX is renumbered and STATUS is set by the merge.') + '</td></tr>';
-    var pc = pastedEntry(), pn = pc ? pc.entry.data.length : 0;
-    var badge = $('#supCount'); badge.textContent = (q ? fmtN(vis.length) + ' OF ' : '') + fmtN(src.rows.length) + ' ROWS' + (pn ? ' · ' + fmtN(pn) + ' PASTED' : ''); badge.className = 'result-badge' + (src.rows.length ? ' ok' : '');
+    var start = supView.page * SUP_PAGE, end = Math.min(vis.length, start + SUP_PAGE), html = [];
+    for (var r = start; r < end; r++) {
+      var it = vis[r], ed = it.ref.row.__ed || {}, added = !!it.ref.e.added;
+      var cells = '';
+      for (var c = 0; c < 16; c++) {
+        var s = supShown(it, c);
+        var cls = 'sup-c' + c + (c === 0 || c === 15 ? ' sup-ro' : '') + (c === 15 ? ' sup-status ' + supStatusClass(s) : '') + (ed[c] ? ' is-edited' : '');
+        cells += '<td class="' + cls + '" data-r="' + r + '" data-c="' + c + '"' + ((c === 6 || c === 15) && s ? ' title="' + esc(s) + '"' : '') + '>' + (c === 0 && added ? '<span class="sup-added-tag" title="Added on this page">+</span>' : '') + esc(s) + '</td>';
+      }
+      html.push('<tr' + (added ? ' class="is-added"' : '') + '>' + cells + '</tr>');
+    }
+    // The empty row under the last row: type or paste into it to add rows (like the blank rows of a sheet).
+    if (end === vis.length && !q) {
+      var blank = '';
+      for (var c2 = 0; c2 < 16; c2++) blank += '<td class="sup-c' + c2 + (c2 === 0 || c2 === 15 ? ' sup-ro' : '') + '" data-r="' + vis.length + '" data-c="' + c2 + '">' + (c2 === 0 ? '<span class="sup-new-mark">' + (vis.length + 1) + '</span>' : '') + '</td>';
+      html.push('<tr class="sup-new-row">' + blank + '</tr>');
+    }
+    if (!vis.length && q) html.push('<tr><td colspan="16" class="sup-empty">No rows match the search.</td></tr>');
+    $('#supBody').innerHTML = html.join('');
+    var added = addedEntry(false), an = added ? added.data.length : 0;
+    var badge = $('#supCount'); badge.textContent = (q ? fmtN(vis.length) + ' OF ' : '') + fmtN(model.items.length) + ' ROWS' + (an ? ' · ' + fmtN(an) + ' ADDED' : ''); badge.className = 'result-badge' + (model.items.length ? ' ok' : '');
     $('#supPage').textContent = 'Page ' + (supView.page + 1) + ' of ' + pages + ' · ' + SUP_PAGE + ' rows per page';
     $('#supPrev').disabled = supView.page <= 0; $('#supNext').disabled = supView.page >= pages - 1;
-    $('#supUndo').disabled = !pn || !supView.undo.length || state.busy;
-    $('#supClearPasted').disabled = !pn || state.busy;
-    $('#supPasteBtn').disabled = state.busy;
+    $('#supUndo').disabled = !supView.undo.length || state.busy;
+    $('#supClearAdded').disabled = !an || state.busy;
+    ['#supPasteBtn', '#supAddRow'].forEach(function (s) { $(s).disabled = state.busy; });
     supSay(supView.note, supView.noteType);
+    paintSel();
   }
+
+  // ---- selection (anchor r,c → r2,c2; r = position in the search-filtered list)
+  function selBox() { var s = supView.sel; return s ? { r1: Math.min(s.r, s.r2), r2: Math.max(s.r, s.r2), c1: Math.min(s.c, s.c2), c2: Math.max(s.c, s.c2) } : null; }
+  function paintSel() {
+    var body = $('#supBody'); if (!body) return;
+    var b = selBox(), s = supView.sel;
+    body.querySelectorAll('td.is-sel,td.is-anchor').forEach(function (td) { td.classList.remove('is-sel', 'is-anchor'); });
+    var info = $('#supSelInfo');
+    if (!b) { if (info) info.textContent = ''; $('#supDelRows').disabled = true; return; }
+    body.querySelectorAll('td[data-r]').forEach(function (td) {
+      var r = +td.dataset.r, c = +td.dataset.c;
+      if (r >= b.r1 && r <= b.r2 && c >= b.c1 && c <= b.c2) td.classList.add('is-sel');
+      if (r === s.r2 && c === s.c2) td.classList.add('is-anchor');
+    });
+    var rowsSel = Math.min(b.r2, supView.vis.length - 1) - b.r1 + 1;
+    $('#supDelRows').disabled = state.busy || rowsSel < 1 || b.r1 >= supView.vis.length;
+    if (info) info.textContent = window.XlsxLite.colLetter(b.c1 + 1) + (b.r1 + 3) + (b.r2 !== b.r1 || b.c2 !== b.c1 ? ':' + window.XlsxLite.colLetter(b.c2 + 1) + (b.r2 + 3) : '') + (rowsSel > 1 ? ' · ' + fmtN(rowsSel) + ' rows' : '');
+  }
+  function supCellEl(r, c) { return document.querySelector('#supBody td[data-r="' + r + '"][data-c="' + c + '"]'); }
+  function supGoTo(r, c, extend) {
+    var max = supView.vis.length;               // the empty row under the last row is max
+    r = Math.max(0, Math.min(r, max)); c = Math.max(0, Math.min(15, c));
+    if (extend && supView.sel) { supView.sel.r2 = r; supView.sel.c2 = c; }
+    else supView.sel = { r: r, c: c, r2: r, c2: c };
+    var page = Math.floor(r / SUP_PAGE);
+    if (page !== supView.page) { supView.page = page; drawSup(); } else paintSel();
+    var el = supCellEl(r, c); if (el) el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }
+
+  // ---- editing one cell
+  function startEdit(initial) {
+    var s = supView.sel; if (!s || state.busy) return;
+    var r = s.r2, c = s.c2;
+    if (c === 0 || c === 15) { supSay(c === 0 ? 'INDEX is numbered automatically.' : 'STATUS is written by the merge (stage 1).', 'info'); return; }
+    var td = supCellEl(r, c); if (!td) return;
+    var it = supView.vis[r], cur = it ? (it.ref.row[c] == null ? '' : String(it.ref.row[c])) : '';
+    var inp = document.createElement('input');
+    inp.type = 'text'; inp.className = 'sup-edit'; inp.value = initial !== undefined ? initial : cur;
+    td.classList.add('is-editing'); td.appendChild(inp);
+    supView.editing = { r: r, c: c, input: inp, typed: initial !== undefined };
+    inp.focus(); if (initial === undefined) inp.select(); else inp.setSelectionRange(inp.value.length, inp.value.length);
+    inp.addEventListener('keydown', function (e) {
+      var ed = supView.editing; if (!ed) return;
+      if (e.key === 'Enter') { e.preventDefault(); commitEdit(); supGoTo(ed.r + (e.shiftKey ? -1 : 1), ed.c); $('#supSheet').focus(); }
+      else if (e.key === 'Tab') { e.preventDefault(); commitEdit(); supGoTo(ed.r, ed.c + (e.shiftKey ? -1 : 1)); $('#supSheet').focus(); }
+      else if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); $('#supSheet').focus(); }
+      else if (ed.typed && /^Arrow/.test(e.key)) { e.preventDefault(); commitEdit(); var d = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key]; supGoTo(ed.r + d[0], ed.c + d[1]); $('#supSheet').focus(); }
+      e.stopPropagation();
+    });
+    inp.addEventListener('paste', function (e) {
+      var txt = e.clipboardData && e.clipboardData.getData('text/plain');
+      if (txt && /[\t\n]/.test(txt.replace(/\r?\n$/, ''))) { e.preventDefault(); e.stopPropagation(); cancelEdit(); pasteToSupplier(txt); }
+    });
+    inp.addEventListener('blur', function () { if (supView.editing && supView.editing.input === inp) commitEdit(); });
+  }
+  function cancelEdit() {
+    var ed = supView.editing; if (!ed) return;
+    supView.editing = null;
+    if (ed.input.parentNode) { ed.input.parentNode.classList.remove('is-editing'); ed.input.parentNode.removeChild(ed.input); }
+  }
+  function commitEdit() {
+    var ed = supView.editing; if (!ed) return;
+    var val = ed.input.value;
+    cancelEdit();
+    var it = supView.vis[ed.r];
+    if (!it && String(val).trim() === '') return;
+    supMutate(function () {
+      var row = it ? it.ref.row : null;
+      if (!row) { row = blankSupRow(); addedEntry(true).data.push(row); }
+      var changed = setSupCell(row, ed.c, val);
+      if (!changed && it) return null;
+      return { msg: it ? 'Changed ' + window.XlsxLite.colLetter(ed.c + 1) + (ed.r + 3) + ' (' + SUP_HEADS[ed.c] + ').' : 'Row ' + (ed.r + 3) + ' added.', type: 'success' };
+    });
+  }
+  function clearSelectedCells() {
+    var b = selBox(); if (!b) return;
+    supMutate(function () {
+      var n = 0;
+      for (var r = b.r1; r <= b.r2; r++) { var it = supView.vis[r]; if (!it) continue; for (var c = Math.max(1, b.c1); c <= Math.min(14, b.c2); c++) if (setSupCell(it.ref.row, c, '')) n++; }
+      return n ? { msg: fmtN(n) + ' cell' + (n === 1 ? '' : 's') + ' cleared.', type: 'success' } : null;
+    });
+  }
+  function deleteSelectedRows() {
+    var b = selBox(); if (!b) return;
+    var targets = [];
+    for (var r = b.r1; r <= b.r2; r++) if (supView.vis[r]) targets.push(supView.vis[r].ref);
+    if (!targets.length) return;
+    supMutate(function () {
+      targets.forEach(function (ref) { var i = ref.e.data.indexOf(ref.row); if (i >= 0) ref.e.data.splice(i, 1); });
+      return { msg: fmtN(targets.length) + ' row' + (targets.length === 1 ? '' : 's') + ' deleted.', type: 'success' };
+    });
+    supView.sel = null; paintSel();
+  }
+  function supUndo() {
+    if (state.busy || !supView.undo.length) return;
+    cancelEdit();
+    supRestore(supView.undo.pop());
+    supCommit('Undone.', 'info');
+  }
+  function supCopy() {
+    var b = selBox(); if (!b) return '';
+    var lines = [];
+    for (var r = b.r1; r <= Math.min(b.r2, supView.vis.length - 1); r++) { var row = []; for (var c = b.c1; c <= b.c2; c++) row.push(supShown(supView.vis[r], c).replace(/[\t\n]/g, ' ')); lines.push(row.join('\t')); }
+    return lines.join('\n');
+  }
+
   function wireSupSheet() {
     var host = $('#supSheet'); if (!host) return;
     var t; $('#supSearch').value = supView.q;
-    $('#supSearch').oninput = function () { clearTimeout(t); t = setTimeout(function () { supView.q = $('#supSearch').value; supView.page = 0; drawSup(); }, 200); };
+    $('#supSearch').oninput = function () { clearTimeout(t); t = setTimeout(function () { supView.q = $('#supSearch').value; supView.page = 0; supView.sel = null; drawSup(); }, 200); };
     $('#supPrev').onclick = function () { supView.page--; drawSup(); };
     $('#supNext').onclick = function () { supView.page++; drawSup(); };
-    $('#supUndo').onclick = function () { var p = pastedEntry(); if (!p || !supView.undo.length) return; var keep = supView.undo.pop(); setPasted(p.entry.data.slice(0, keep), 'Last paste removed — ' + fmtN(p.entry.data.length - keep) + ' row' + (p.entry.data.length - keep === 1 ? '' : 's') + '.', 'info'); };
-    $('#supClearPasted').onclick = function () { var p = pastedEntry(); if (!p) return; if (!window.confirm('Remove all ' + fmtN(p.entry.data.length) + ' pasted rows? Dropped supplier files stay.')) return; supView.undo = []; setPasted([], 'Pasted rows cleared.', 'info'); };
+    $('#supUndo').onclick = supUndo;
+    $('#supDelRows').onclick = deleteSelectedRows;
+    $('#supAddRow').onclick = function () { supView.q = ''; $('#supSearch').value = ''; supView.page = 0; drawSup(); supGoTo(supView.vis.length, 1); host.focus(); startEdit(''); };
+    $('#supClearAdded').onclick = function () {
+      var e = addedEntry(false); if (!e) return;
+      var n = e.data.length;
+      supMutate(function () { e.data = []; return { msg: fmtN(n) + ' added row' + (n === 1 ? '' : 's') + ' removed.', type: 'info' }; });
+    };
     $('#supCopyHeads').onclick = function () {
       var txt = SUP_HEADS.join('\t');
       var done = function () { supSay('The 16 headings are on the clipboard — paste them into row 1 of a sheet, add the rows, then copy everything and paste it here.', 'success'); };
-      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, function () { supSay('The browser blocked the clipboard. Headings: ' + SUP_HEADS.join(' · '), 'missing'); });
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, function () { supSay('The browser blocked the clipboard. Headings: ' + SUP_HEADS.join(' · '), 'warn'); });
       else supSay('Headings: ' + SUP_HEADS.join(' · '), 'info');
     };
     $('#supPasteBtn').onclick = function () {
-      if (!navigator.clipboard || !navigator.clipboard.readText) { host.focus(); supSay('This browser does not let pages read the clipboard from a button — click the sheet and press Ctrl+V (⌘V on Mac).', 'missing'); return; }
-      navigator.clipboard.readText().then(pasteToSupplier, function () { host.focus(); supSay('The browser blocked reading the clipboard — click the sheet and press Ctrl+V (⌘V on Mac).', 'missing'); });
+      if (!navigator.clipboard || !navigator.clipboard.readText) { host.focus(); supSay('This browser does not let pages read the clipboard from a button — click a cell and press Ctrl+V (⌘V on Mac).', 'warn'); return; }
+      navigator.clipboard.readText().then(pasteToSupplier, function () { host.focus(); supSay('The browser blocked reading the clipboard — click a cell and press Ctrl+V (⌘V on Mac).', 'warn'); });
     };
+    var body = $('#supBody'), dragging = false;
+    body.addEventListener('mousedown', function (e) {
+      var td = e.target.closest('td[data-r]'); if (!td || e.target.classList.contains('sup-edit')) return;
+      if (supView.editing) commitEdit();
+      var r = +td.dataset.r, c = +td.dataset.c;
+      if (c === 0) {                                    // INDEX click = select whole rows
+        if (e.shiftKey && supView.sel) { supView.sel.r2 = r; supView.sel.c = 1; supView.sel.c2 = 14; }
+        else supView.sel = { r: r, c: 1, r2: r, c2: 14 };
+        paintSel();
+      } else supGoTo(r, c, e.shiftKey);
+      dragging = c !== 0 ? true : 'rows';
+      host.focus({ preventScroll: true });
+      e.preventDefault();
+    });
+    body.addEventListener('mouseover', function (e) {
+      if (!dragging || !supView.sel) return;
+      var td = e.target.closest('td[data-r]'); if (!td) return;
+      supView.sel.r2 = +td.dataset.r; if (dragging !== 'rows') supView.sel.c2 = +td.dataset.c;
+      paintSel();
+    });
+    document.addEventListener('mouseup', function () { dragging = false; });
+    body.addEventListener('dblclick', function (e) { var td = e.target.closest('td[data-r]'); if (!td) return; supGoTo(+td.dataset.r, +td.dataset.c); startEdit(); });
+    host.addEventListener('keydown', function (e) {
+      var tg = e.target; if (tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.tagName === 'BUTTON' || tg.tagName === 'SELECT')) return;
+      var s = supView.sel, mod = e.ctrlKey || e.metaKey;
+      if (mod && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); supUndo(); return; }
+      if (!s) return;
+      var moves = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+      if (moves[e.key]) { e.preventDefault(); supGoTo(s.r2 + moves[e.key][0], s.c2 + moves[e.key][1], e.shiftKey); return; }
+      if (e.key === 'Tab') { e.preventDefault(); supGoTo(s.r2, s.c2 + (e.shiftKey ? -1 : 1)); return; }
+      if (e.key === 'Enter' || e.key === 'F2') { e.preventDefault(); startEdit(); return; }
+      if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); clearSelectedCells(); return; }
+      if (e.key === 'Escape') { supView.sel = null; paintSel(); return; }
+      if (!mod && !e.altKey && e.key.length === 1) { e.preventDefault(); startEdit(e.key); }
+    });
+    host.addEventListener('copy', function (e) {
+      var tg = e.target; if (tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA')) return;
+      var txt = supCopy(); if (!txt) return;
+      e.clipboardData.setData('text/plain', txt); e.preventDefault();
+      supSay('Copied ' + ($('#supSelInfo').textContent || 'the selection') + '.', 'info');
+    });
     host.addEventListener('paste', function (e) {
       var tg = e.target; if (tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA')) return;
       var txt = e.clipboardData && e.clipboardData.getData('text/plain'); if (!txt) return;
@@ -947,23 +1245,14 @@
   function renderAll() { renderInputNav(); renderInputSummary(); updateRunButtons(); }
   function boot() {
     renderStages(); renderOutputs(); wireBulkDrop(); wireReview();
+    $('#supPanel').innerHTML = supSheetHtml(); wireSupSheet();
     $('#runAllBtn').onclick = function () { runTo('export'); };
     $('#clearAllBtn').onclick = function () { if (state.busy) return; invalidateResults('Results cleared.'); startEngine().then(updateRunButtons); setGlobal('Results cleared. Input files are kept.', 'info'); };
     $('#railClearSession').onclick = function () {
-      if (state.busy) return;
-      ['pos', 'sup'].forEach(function (id) { delete state.inputs[id]; });
-      supView.undo = []; supView.note = '';
-      state.rev++; state.bulk = []; renderBulk(); invalidateResults('Session files cleared.'); renderAll();
-      setGlobal('POS database and supplier files removed. Saved reference data is kept.', 'info');
-      if (state.activeInput) showInput(state.activeInput);
+      removeInputs(M.INPUTS.filter(function (d) { return !d.stored; }).map(function (d) { return d.id; }), 'POS database and supplier rows removed (including rows added in the sheet). Saved reference data is kept.');
     };
     $('#railClearReference').onclick = function () {
-      if (state.busy) return;
-      if (!window.confirm('Remove every reference table saved in this browser?')) return;
-      M.INPUTS.filter(function (d) { return d.stored; }).forEach(function (d) { delete state.inputs[d.id]; refDelete(d.id); });
-      state.rev++; invalidateResults('Reference data cleared.'); renderAll();
-      setGlobal('Saved reference data removed from this browser.', 'info');
-      if (state.activeInput) showInput(state.activeInput);
+      removeInputs(M.INPUTS.filter(function (d) { return d.stored; }).map(function (d) { return d.id; }), 'Saved reference data removed from this browser.');
     };
     renderAll();
     refLoadAll().then(function () {

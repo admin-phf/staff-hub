@@ -6,15 +6,15 @@
 <title>POS Supplier Merge | Prahran Health Foods</title>
 <link rel="stylesheet" href="../../assets/css/shell.css?v=21.6.0">
 <link rel="stylesheet" href="./css/app.css?v=1.0.0-20261010">
-<link rel="stylesheet" href="./css/merge.css?v=1.1.0-20261010">
+<link rel="stylesheet" href="./css/merge.css?v=1.2.0-20261010">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="../../assets/css/theme.css?v=20.0.0">
 </head>
 <body class="database-builder-page phf-page-db phf-page-merge">
 <header class="phf-shell-header header-container">
   <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
-  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="POS Supplier Merge — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg></span><div class="phf-shell-copy title-row"><h1>POS Supplier Merge</h1><p class="phf-shell-version version-text">v1.1.0</p></div></a>
-  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">POS Supplier Merge</span></nav><p class="phf-shell-updated build-details">Updated 10 Oct 2026 11:30 AEDT</p></div>
+  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="POS Supplier Merge — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg></span><div class="phf-shell-copy title-row"><h1>POS Supplier Merge</h1><p class="phf-shell-version version-text">v1.2.0</p></div></a>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">POS Supplier Merge</span></nav><p class="phf-shell-updated build-details">Updated 10 Oct 2026 19:10 AEDT</p></div>
 </header>
 
 <main class="workflow-wrap full-width-wrap phf-full">
@@ -24,15 +24,15 @@
       <div class="sidebar-helper">Drop each file onto its matching row, or drop them all together in Drop All Input Files.</div>
       <div id="inputNav"></div>
       <div class="sidebar-actions" aria-label="Clear input files">
-        <button type="button" class="btn small rail-clear-all" id="railClearSession" title="Remove the POS database and supplier files from this session (saved reference data stays)">Clear session files</button>
+        <button type="button" class="btn small rail-clear-all" id="railClearSession" title="Remove the POS database and every supplier row, including rows added in the sheet (saved reference data stays)">Clear session files</button>
         <button type="button" class="btn small" id="railClearReference" title="Remove every reference table saved in this browser">Clear saved reference</button>
       </div>
-      <div class="sidebar-footer"><strong>Saved vs session</strong><span>Reference data stays saved in this browser. The POS database and supplier files are held in memory for this session only.</span></div>
+      <div class="sidebar-footer"><strong>Saved vs session</strong><span>Reference data stays saved in this browser. The POS database and supplier rows (including sheet edits) are held in memory for this session only. ✕ removes one input straight away.</span></div>
     </aside>
 
     <section class="builder-workspace">
       <section class="panel dashboard-intro">
-        <p>Runs the POS Supplier Merge (Google Sheets script <strong id="engineVersion">v6.3.87</strong>) in this browser: Highlight New Products + Best Buy, Build OUT_MERGED_DATA, then Generate Insert + Update and Export POS Files. It takes the POS Database and supplier import files from Build Master Databases. Everything runs locally; nothing is uploaded.</p>
+        <p>Runs the POS Supplier Merge (Google Sheets script <strong id="engineVersion">v6.3.88</strong>) in this browser: Highlight New Products + Best Buy, Build OUT_MERGED_DATA, then Generate Insert + Update and Export POS Files. It takes the POS Database and supplier import files from Build Master Databases. Everything runs locally; nothing is uploaded.</p>
         <div class="engine-state" id="engineState"><span class="phf-pill">Engine starting…</span></div>
       </section>
 
@@ -66,6 +66,8 @@
     </section>
   </div>
 
+  <section class="sup-panel" id="supPanel" aria-label="IN_SUPPLIER_/_PRODUCT_UPDATES sheet"></section>
+
   <section class="panel review-panel" id="reviewPanel" hidden>
     <div class="results-head"><div><h2>OUT_MERGED_DATA review</h2><p id="reviewSub">Search and filter the merged rows. Download the review workbook above to work on the full sheet.</p></div><div class="result-badge" id="reviewCount">0 ROWS</div></div>
     <div class="review-kpis" id="reviewKpis"></div>
@@ -82,6 +84,6 @@
 </main>
 <script src="./js/merge-map.js?v=1.0.0"></script>
 <script src="./js/xlsx-writer.js?v=1.0.0"></script>
-<script src="./js/app.js?v=1.1.0"></script>
+<script src="./js/app.js?v=1.2.0"></script>
 </body>
 </html>

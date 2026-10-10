@@ -232,6 +232,15 @@
 //    - Supplier-discontinued matched rows: POS DESCR / descr is built from the supplier and POS text
 //      without their ZZZZ marker, then gets one leading "ZZZZ " (no ZZZZ repeated inside).
 //      SUP PRODUCT (Q) and ORIGINAL POS DESCR (O) still show the uploaded text unchanged.
+//  v6.3.88 discontinued brand scope (DS1):
+//    - Unmatched POS products are discontinued for every POS name of an uploaded brand, not only
+//      a POS brand spelled exactly like SUP BRAND: the 20-character POS brand form
+//      (BIOCEUTICALS CLINICA = BIOCEUTICALS CLINICAL) and POS brands the upload's barcode matches
+//      link to (AUSTRALIAN BUSH FLOW = BUSH FLOWER, MELROSE ORGANIC = MELROSE). See m13DS1… helpers.
+//    - Placeholder POS brands (DISCONTINUED, UNKNOWN, BOOK…) are never linked. SPECIAL ORDER /
+//      NO REORDER protection, matching, pricing and the discontinued row layout are unchanged.
+//    - Linked rows say why in NOTES; the build message shows how many were added this way.
+//    - Filtered-brand build reads the linked POS brands' TMP rows too.
 // =============================================================================
 
 var M13 = {
@@ -241,7 +250,7 @@ var M13 = {
 //    - Strong supplier/POS size conflicts are promoted to IDENTITY REVIEW.
 //    - Final POS DESCR cleanup removes duplicate type counts and repeated
 //      prefix/descriptor tokens without aggressive clipping.
-  VERSION: 'v6.3.87-zzzz-oldbrand-descr-v3',
+  VERSION: 'v6.3.88-discontinued-brand-scope-v1',
   // v6.3.86: [text found in the Sub ID, short label written before the POS PLU]. Blank Sub ID → PLU.
   SUBID_PLU_LABELS: [
     ['SPECIAL ORDER', 'SPEC ORD'], ['SPICAL ORDER', 'SPEC ORD'], ['SPRICAL ORDER', 'SPEC ORD'], ['SPEC ORD', 'SPEC ORD'],
@@ -249,6 +258,19 @@ var M13 = {
     ['UNKNOWN', 'UNKNOWN']
   ],
   SUBID_MAX_LEN: 15, // POS Sub ID field width
+  // v6.3.88 DS1 discontinued scope — POS names of the uploaded brands (m13DS1… helpers).
+  DS1_POS_BRAND_WIDTH: 20,     // POS brand field width (BIOCEUTICALS CLINICAL → BIOCEUTICALS CLINICA)
+  DS1_MIN_LINK_MATCHES: 2,     // barcode matches needed to link a POS brand whose name shares no word
+  DS1_MIN_LINK_SHARE: 0.5,     // …and the share of that POS brand's rows those matches must cover
+  DS1_PLACEHOLDER_BRANDS: ['DISCONTINUED', 'DISC', 'UNKNOWN', 'BOOK', 'BOOKS', 'MISC', 'MISCELLANEOUS', 'SPECIAL ORDER',
+    'GENERAL', 'VARIOUS', 'NO BRAND', 'NONE', 'IN HOUSE', 'HOUSE BRAND', 'TEST'],
+  DS1_GENERIC_WORDS: ['THE', 'AND', 'FOR', 'WITH', 'PTY', 'LTD', 'INC', 'COMPANY', 'NATURAL', 'NATURALS', 'NATURE', 'NATURES',
+    'ORGANIC', 'ORGANICS', 'HEALTH', 'HEALTHY', 'HEALTHCARE', 'PRODUCTS', 'PRODUCT', 'PROD', 'AUSTRALIA', 'AUSTRALIAN', 'AUS',
+    'AUST', 'INTERNATIONAL', 'LABS', 'LAB', 'LABORATORIES', 'FOOD', 'FOODS', 'CARE', 'BEAUTY', 'SKIN', 'SKINCARE', 'BODY',
+    'HOME', 'WELLNESS', 'NUTRITION', 'NUTRITIONAL', 'PROFESSIONAL', 'CLINICAL', 'CLINIC', 'PURE', 'LIFE', 'LIVING', 'BOOK',
+    'BOOKS', 'MISC', 'MISCELLANEOUS', 'SUPER', 'SUPERFOODS', 'HERBAL', 'HERBALS', 'HERBS', 'HERB', 'TEA', 'TEAS', 'OIL',
+    'OILS', 'ESSENTIAL', 'ESSENTIALS', 'REMEDIES', 'REMEDY', 'PHARMACEUTICALS', 'PHARMA', 'SOLUTIONS', 'SUPPLIES', 'GROUP',
+    'BRANDS', 'THERAPEUTICS', 'NATUROPATHICS', 'SPECIAL', 'ORDER'],
   HEADER_ROW: 2,
   DATA_ROW: 3,
   STATUS_COL: 16,
@@ -803,7 +825,7 @@ function buildOutMergedDataFromSupplierStatus() {
       ' rows | Matched: ' + m13Fmt_(built.counts.matched) +
       ' | New: ' + m13Fmt_(built.counts.newRows) +
       ' | Review: ' + m13Fmt_(built.counts.review) +
-      ' | Discontinued: ' + m13Fmt_(built.counts.discontinued) +
+      ' | Discontinued: ' + m13DS1DiscontinuedText_(built.counts) +
       ' | Skipped NOT USED: ' + m13Fmt_(built.counts.skippedNotUsed) +
       ' | ' + elapsed + 's';
     var timingMsg = 'Timing — STATUS ' + m13FM1Sec_(fm1Timing.status) +
@@ -932,6 +954,15 @@ function buildOutMergedDataFromFilteredBrands() {
 
     ss.toast('Building scoped TMP barcode indexes…', '🎯 Filtered Brand Merge', 60);
     var posBundle = m13BuildPosBundle_(shTmp, brandMap, findReplaceRules, tmpSource);
+
+    // v6.3.88 DS1: the selected brands may have other POS names (20-character POS form, or POS brands
+    // their barcodes match). Read those TMP rows too so their unmatched products can be discontinued.
+    var ds1Scope = m13DS1ExtendFilteredScope_(supplierSource, posBundle, brandMap, brandScope);
+    if (ds1Scope) {
+      ss.toast('Adding ' + ds1Scope.ds1Added + ' linked POS brand name(s) to the TMP scope…', '🎯 Filtered Brand Merge', 60);
+      tmpSource = m13FB3ReadScopedTmpSource_(shTmp, ds1Scope, brandMap, supplierIdentity);
+      posBundle = m13BuildPosBundle_(shTmp, brandMap, findReplaceRules, tmpSource);
+    }
     timing.tmp = Date.now() - stageStart;
     stageStart = Date.now();
 
@@ -966,7 +997,7 @@ function buildOutMergedDataFromFilteredBrands() {
       ' | Matched: ' + m13Fmt_(built.counts.matched) +
       ' | New: ' + m13Fmt_(built.counts.newRows) +
       ' | Review: ' + m13Fmt_(built.counts.review) +
-      ' | Discontinued: ' + m13Fmt_(built.counts.discontinued) +
+      ' | Discontinued: ' + m13DS1DiscontinuedText_(built.counts) +
       ' | Skipped NOT USED: ' + m13Fmt_(built.counts.skippedNotUsed) +
       ' | ' + elapsed + 's';
 
@@ -2096,6 +2127,7 @@ function m13BuildRows_(supData, supNotes, supHeaders, posBundle, brandMap, suppl
   var counts = { matched: 0, newRows: 0, review: 0, discontinued: 0, skippedNotUsed: 0, skippedBlank: 0, skippedOther: 0 };
   var usedPosRows = {};
   var supplierBrandKeys = {};
+  var ds1 = m13DS1NewContext_(); // v6.3.88: POS names of the uploaded brands, for the discontinued pass
   var supplierSheetRows = scopeCtx && scopeCtx.supplierSheetRows ? scopeCtx.supplierSheetRows : null;
 
   // DP5 description-only context: build a lightweight Q-token frequency map by
@@ -2114,6 +2146,7 @@ function m13BuildRows_(supData, supNotes, supHeaders, posBundle, brandMap, suppl
     if (supObj.rawBrand || supObj.translatedBrand) {
       supplierBrandKeys[m13NormBrand_(supObj.rawBrand)] = true;
       supplierBrandKeys[m13NormBrand_(supObj.translatedBrand)] = true;
+      m13DS1NoteSupplierBrand_(ds1, supObj.rawBrand, supObj.translatedBrand);
     }
 
     var status = m13Str_(m13ColVal_(supData[r], supHeaders, ['STATUS']));
@@ -2147,6 +2180,7 @@ function m13BuildRows_(supData, supNotes, supHeaders, posBundle, brandMap, suppl
 
     if (kind === 'MATCHED' && !pos) kind = 'REVIEW';
     if (kind === 'MATCHED' && pos) usedPosRows[pos.sheetRow] = true;
+    if (kind === 'MATCHED' && pos) m13DS1NoteMatch_(ds1, supObj.rawBrand, supObj.translatedBrand, pos);
 
     rows.push(m13BuildOneOutRow_(rows.length + 1, kind, supObj, pos, status, statusNote, supplierMap, discountRules, prefixMap, posBundle.brandDissnoMap, findReplaceRules));
     if (kind === 'MATCHED') counts.matched++;
@@ -2155,12 +2189,16 @@ function m13BuildRows_(supData, supNotes, supHeaders, posBundle, brandMap, suppl
   }
 
   if (M13.INCLUDE_DISCONTINUED) {
+    var ds1Scope = m13DS1ResolveScope_(ds1, posBundle, supplierBrandKeys);
     for (var p = 0; p < posBundle.rows.length; p++) {
       var posRow = posBundle.rows[p];
       if (!posRow || usedPosRows[posRow.sheetRow]) continue;
-      if (!supplierBrandKeys[posRow.brandKey]) continue;
+      var ds1Link = supplierBrandKeys[posRow.brandKey] ? null : ds1Scope[posRow.brandKey];
+      if (!supplierBrandKeys[posRow.brandKey] && !ds1Link) continue;
       if (m13ShouldSkipDiscontinuedPos_(posRow)) continue;
-      rows.push(m13BuildDiscontinuedOutRow_(rows.length + 1, posRow, supplierMap, discountRules, prefixMap));
+      var discRow = m13BuildDiscontinuedOutRow_(rows.length + 1, posRow, supplierMap, discountRules, prefixMap);
+      if (ds1Link) m13DS1AddNote_(discRow, posRow, ds1Link);
+      rows.push(discRow);
       counts.discontinued++;
     }
   }
@@ -2221,7 +2259,146 @@ function m13BuildRows_(supData, supNotes, supHeaders, posBundle, brandMap, suppl
   for (var si = 0; si < rows.length; si++) rows[si][0] = si + 1;
   // ─────────────────────────────────────────────────────────────────────────
 
+  counts.discontinuedLinked = m13DS1CountLinkedRows_(rows); // v6.3.88: shown in the build message
   return { rows: rows, counts: counts };
+}
+
+
+// =============================================================================
+//  v6.3.88 DS1 — DISCONTINUED SCOPE: EVERY POS NAME OF AN UPLOADED BRAND
+// =============================================================================
+// A POS product is discontinued when its brand is in the supplier upload and no upload row
+// matched it. Up to v6.3.87 "in the upload" meant the POS brand key equals a SUP BRAND key
+// (raw, or translated by SRC_POS_BRAND_NAME_CHANGES). When POS names the brand differently,
+// the rest of that POS brand was left alone, so a new catalogue added products beside the old
+// ones. DS1 also counts these POS brands as in the upload:
+//   T  the supplier brand cut to the 20-character POS brand field (BIOCEUTICALS CLINICA);
+//   W  a POS brand the upload's barcode matches link to, when the two names share a distinctive
+//      word or one name starts the other (AUSTRALIAN BUSH FLOW = BUSH FLOWER, BACH = BACH FLOWER
+//      REMEDIES, CHINA MED = CHINAMED SUN HERBAL);
+//   M  a POS brand with no name in common, when 2+ barcode matches link it and they cover at
+//      least half of that POS brand's rows (RESTQ = MARTIN & PLEASANCE).
+// Placeholder POS brands (DISCONTINUED, UNKNOWN, BOOK…) are never linked. Only the scope
+// changes: SPECIAL ORDER / NO REORDER protection and the discontinued row stay as they were.
+function m13DS1NewContext_() { return { truncKeys: {}, links: {} }; }
+
+function m13DS1Compact_(s) { return m13Upper_(s).replace(/^Z{3,}\s*/, '').replace(/[^A-Z0-9]/g, ''); }
+
+function m13DS1NoteSupplierBrand_(ctx, rawBrand, translatedBrand) {
+  var width = Number(M13.DS1_POS_BRAND_WIDTH || 20);
+  [rawBrand, translatedBrand].forEach(function (b) {
+    var s = m13Upper_(b).replace(/\s+/g, ' ');
+    if (s.length <= width) return;
+    var k = m13NormBrand_(s.slice(0, width).trim());
+    if (k && !ctx.truncKeys[k]) ctx.truncKeys[k] = m13Str_(b);
+  });
+}
+
+function m13DS1NoteMatch_(ctx, supRawBrand, supTranslatedBrand, pos) {
+  if (!pos || !pos.brandKey) return;
+  var link = ctx.links[pos.brandKey] || (ctx.links[pos.brandKey] = { posBrand: m13Str_(pos.brand || pos.translatedBrand), count: 0, supBrands: {} });
+  link.count++;
+  [supRawBrand, supTranslatedBrand].forEach(function (b) { b = m13Str_(b); if (b) link.supBrands[b] = (link.supBrands[b] || 0) + 1; });
+}
+
+function m13DS1IsPlaceholder_(brand) {
+  var c = m13DS1Compact_(brand);
+  if (!c) return true;
+  var list = M13.DS1_PLACEHOLDER_BRANDS || [];
+  for (var i = 0; i < list.length; i++) if (m13DS1Compact_(list[i]) === c) return true;
+  return false;
+}
+
+function m13DS1Words_(s) {
+  var generic = M13.DS1_GENERIC_WORDS || [], out = {};
+  m13Upper_(s).replace(/['\u2019`]/g, '').split(/[^A-Z0-9]+/).forEach(function (w) {
+    if (w.length >= 3 && generic.indexOf(w) < 0) out[w] = true;
+  });
+  return out;
+}
+
+function m13DS1NamesAgree_(posBrand, supBrand) {
+  var a = m13DS1Words_(posBrand), b = m13DS1Words_(supBrand), w;
+  for (w in a) if (b[w]) return true;
+  var ca = m13DS1Compact_(posBrand), cb = m13DS1Compact_(supBrand);
+  var shorter = ca.length <= cb.length ? ca : cb, longer = ca.length <= cb.length ? cb : ca;
+  return shorter.length >= 4 && longer.indexOf(shorter) === 0 && (M13.DS1_GENERIC_WORDS || []).indexOf(shorter) < 0;
+}
+
+// brandKey → { rule, posBrand, supBrand, count } for POS brands DS1 adds to the discontinued scope.
+function m13DS1ResolveScope_(ctx, posBundle, supplierBrandKeys) {
+  var scope = {}, posCount = {}, i;
+  supplierBrandKeys = supplierBrandKeys || {};
+  var rowsAll = (posBundle && posBundle.rows) || [];
+  for (i = 0; i < rowsAll.length; i++) { var k = rowsAll[i] && rowsAll[i].brandKey; if (k) posCount[k] = (posCount[k] || 0) + 1; }
+  Object.keys(ctx.truncKeys || {}).forEach(function (key) {
+    if (!supplierBrandKeys[key]) scope[key] = { rule: 'T', supBrand: ctx.truncKeys[key], count: 0 };
+  });
+  var minMatches = Number(M13.DS1_MIN_LINK_MATCHES || 2), minShare = Number(M13.DS1_MIN_LINK_SHARE || 0.5);
+  Object.keys(ctx.links || {}).forEach(function (key) {
+    if (supplierBrandKeys[key] || scope[key]) return;
+    var link = ctx.links[key];
+    if (m13DS1IsPlaceholder_(link.posBrand)) return;
+    var sups = Object.keys(link.supBrands).sort(function (a, b) { return link.supBrands[b] - link.supBrands[a]; });
+    var agreeing = sups.filter(function (s) { return m13DS1NamesAgree_(link.posBrand, s); });
+    if (agreeing.length) { scope[key] = { rule: 'W', posBrand: link.posBrand, supBrand: agreeing[0], count: link.count }; return; }
+    if (link.count >= minMatches && link.count >= minShare * (posCount[key] || 0)) {
+      scope[key] = { rule: 'M', posBrand: link.posBrand, supBrand: sups[0] || '', count: link.count };
+    }
+  });
+  return scope;
+}
+
+var M13_DS1_NOTE_MARK = 'BRAND LINK:';
+function m13DS1AddNote_(row, pos, link) {
+  var posBrand = m13Str_(pos.brand || pos.translatedBrand);
+  var why = link.rule === 'T'
+    ? 'POS BRAND "' + posBrand + '" IS THE 20-CHARACTER POS FORM OF "' + link.supBrand + '" IN THIS UPLOAD.'
+    : 'POS BRAND "' + posBrand + '" IS "' + link.supBrand + '" IN THIS UPLOAD (' + link.count + ' BARCODE MATCH' + (link.count === 1 ? '' : 'ES') + ').';
+  var ni = M13.HEADERS.indexOf('NOTES'); if (ni < 0) ni = 31;
+  row[ni] = m13Str_(row[ni]) + ' ' + M13_DS1_NOTE_MARK + ' ' + why;
+}
+
+function m13DS1CountLinkedRows_(rows) {
+  var ni = M13.HEADERS.indexOf('NOTES'); if (ni < 0) ni = 31;
+  var n = 0;
+  for (var i = 0; i < (rows || []).length; i++) {
+    var r = rows[i];
+    if (r && m13Upper_(r[1]).indexOf('DISCONTINUED') >= 0 && m13Upper_(r[ni]).indexOf(M13_DS1_NOTE_MARK) >= 0) n++;
+  }
+  return n;
+}
+
+function m13DS1DiscontinuedText_(counts) {
+  var linked = Number((counts && counts.discontinuedLinked) || 0);
+  return m13Fmt_(counts.discontinued) + (linked ? ' (incl. ' + m13Fmt_(linked) + ' by linked POS brand names — see NOTES)' : '');
+}
+
+// Filtered-brand build: the scoped TMP read holds only rows of the selected brand names (plus barcode / Sub ID
+// hits). Returns the brand scope widened with the DS1 POS brand keys, or null when nothing new is linked.
+function m13DS1ExtendFilteredScope_(supplierSource, posBundle, brandMap, brandScope) {
+  var ctx = m13DS1NewContext_(), headers = supplierSource.headers || {}, data = supplierSource.data || [];
+  var keys = {};
+  Object.keys((brandScope && brandScope.keys) || {}).forEach(function (k) { keys[k] = true; });
+  for (var r = 0; r < data.length; r++) {
+    var rawBrand = m13Str_(m13ColVal_(data[r], headers, ['SUP BRAND', 'BRAND']));
+    var translated = m13TranslateBrand_(rawBrand, brandMap);
+    if (rawBrand || translated) m13DS1NoteSupplierBrand_(ctx, rawBrand, translated);
+    var st = m13Upper_(m13ColVal_(data[r], headers, ['STATUS']));
+    if (!st || st.indexOf('NOT USED') >= 0 || st.indexOf('BEST BUY') < 0 || st.indexOf('UNMATCHABLE') >= 0 || st.indexOf('NEW') >= 0) continue;
+    var bc = m13Barcode_(m13Str_(m13ColVal_(data[r], headers, ['SUP BARCODE', 'SUP MASTER BARCODE', 'BARCODE', 'POS MASTER BARCODE'])));
+    var hit = bc.valid ? m13FindPosByBarcode_(posBundle.index, bc.variants) : null;
+    if (hit && hit.pos) m13DS1NoteMatch_(ctx, rawBrand, translated, hit.pos);
+  }
+  var scope = m13DS1ResolveScope_(ctx, posBundle, keys);
+  var added = Object.keys(scope).filter(function (k) { return !keys[k]; });
+  if (!added.length) return null;
+  var out = {};
+  Object.keys(brandScope).forEach(function (k) { out[k] = brandScope[k]; });
+  added.forEach(function (k) { keys[k] = true; });
+  out.keys = keys;
+  out.ds1Added = added.length;
+  return out;
 }
 
 

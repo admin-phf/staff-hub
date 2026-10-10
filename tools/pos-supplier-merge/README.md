@@ -1,9 +1,9 @@
-# POS Supplier Merge v1.1.0 (Staff Hub v21.8.0)
+# POS Supplier Merge v1.2.0 (Staff Hub v21.9.0)
 
-Updated 10 Oct 2026 11:30 AEDT.
+Updated 10 Oct 2026 19:10 AEDT.
 
 The POS Supplier Merge Google Sheet, run in the browser. It uses the **same script files** as the
-Google Sheet (engine v6.3.87), so the matching, ZZZZ / DISC / SPEC ORD Sub IDs, pricing, OUT_MERGED_DATA
+Google Sheet (engine v6.3.88), so the matching, discontinued products, ZZZZ / DISC / SPEC ORD Sub IDs, pricing, OUT_MERGED_DATA
 and the POS INSERT / UPDATE TXT files are the same. Nothing is uploaded: files stay in this browser.
 
 ## Inputs (left rail)
@@ -23,21 +23,29 @@ Google Sheet (File → Download → Microsoft Excel) can be dropped as one file:
 input. Columns are matched by heading, `POS_MASTER_BARCODE` fills POS MAIN ID, and INDEX is renumbered
 1, 2, 3… the same way the Sheet's paste tidy does. STATUS columns are cleared because the merge writes them.
 
-## Supplier Updates sheet (v1.1.0)
+## Supplier Updates sheet (v1.2.0 — editable)
 
-Click **Supplier Updates** in the rail: under its card is the IN_SUPPLIER_/_PRODUCT_UPDATES tab as the Google Sheet shows it.
+The IN_SUPPLIER_/_PRODUCT_UPDATES tab is always on the page, full width under the stages (the same width as the
+OUT_MERGED_DATA review). It works like a small Google Sheet:
 
 - **Totals bar** (Sheet row 1): TOTAL · ⭐ MATCHED · 🟢 NEW · 🚫 NOT USED · ⚠️ UNMATCHABLE, SUPPLIER NAMES, TOTAL POS SUPPLIERS,
-  UNIQUE BARCODES (column D — older copies of the Sheet label this cell UNIQUE BRANDS), UNIQUE BRANDS, TOTAL WS, TOTAL RRP, and
-  the stage-1 STATUS summary (e.g. `Matched: 488 | New: 121 | Not Used: 6 | Unmatchable: 8 | Blank: 0 | 0.2s`). Like the
-  Sheet's SUBTOTAL formulas, the totals count only the rows the search leaves visible.
-- **The 16 headings** INDEX … STATUS and every supplier row from all loaded files, 100 rows a page, with search.
-  STATUS fills in (and is coloured) after stage 1.
-- **Paste rows**: copy rows in Excel or Google Sheets, click the sheet and press Ctrl+V (⌘V on Mac), or use Paste rows.
-  With the heading row, columns are matched by heading in any order; without it they are read by position (16 columns =
-  A–P, 14 = B–O, 15 = B–P). INDEX is renumbered and STATUS is left for the merge. Pasted rows are kept as a "Pasted rows"
-  supplier entry next to any dropped files (this session only). Undo last paste, Clear pasted rows and Copy headings
-  (a 16-heading template for Excel / Sheets) are beside the search.
+  UNIQUE BARCODES (column D — older copies of the Sheet label this cell UNIQUE BRANDS), UNIQUE BRANDS, TOTAL WS, TOTAL RRP
+  and the stage-1 STATUS summary. Like the Sheet's SUBTOTAL formulas, the totals count only the rows the search shows.
+- **Edit**: click a cell and type (or double-click / Enter / F2 to change it). Enter, Tab and the arrow keys move;
+  Shift + click or drag selects a range; Delete clears it; Ctrl+C copies it. Changed cells turn amber.
+- **Paste**: click a cell and press Ctrl+V (⌘V) — the copied block fills from that cell, adding rows past the last one
+  (click B in the empty row under the last row to add rows). A block with the heading row is matched by heading.
+  Nothing selected: columns are read by position (16 = A–P, 14 = B–O, 15 = B–P) and checked against the data.
+- **Rows**: Add row; click INDEX numbers (Shift + click for several) and Delete rows; Undo (Ctrl+Z) steps back one change.
+  Typed or pasted rows are kept as an "Added rows" supplier entry (+ in INDEX); Clear added rows removes them.
+- INDEX is numbered automatically and STATUS is written by the merge, so A and P are read-only.
+- Every change updates the supplier input for this session and resets the stages, so the next run uses it.
+
+## Removing inputs
+
+Each loaded input in the rail has its own ✕: it removes that input straight away (a saved reference table is deleted
+from this browser). Clear session files removes the POS Database and every supplier row (including sheet edits);
+Clear saved reference removes every saved reference table. Drop-list rows that only filled removed inputs go too.
 
 ## Stages
 
