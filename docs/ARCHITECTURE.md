@@ -298,3 +298,28 @@ All implemented stages keep source business files local to the browser and gener
   "Brands in this merge: N" with row counts per SUP BRAND (column E) and added-here / from-files totals.
 - PHFLibrary v1.0.1: the supplier imports are labelled "POS Supplier Merge (Add button)" on the home page.
 
+## Staff Hub v21.11.0 — renamed tools, wireframe layout, workbook tabs (11 Oct 2026 10:55 AEDT)
+- Names: **Build POS Master Databases** ("Cleaning and Merging and Appending CH2 and Unique DB to POS"; was Build Master
+  Databases, v21.11.0) and **POS Supplier New Product Check and Clean Merge** ("Import, Update, Discontinue and Clean
+  Products and/or Supplier information against current POS Database"; was POS Supplier Merge, v1.4.0). Folders and web
+  addresses are unchanged. PHFLibrary v1.0.2 labels; `displayName()` shows the new name for records saved under the old.
+- `assets/css/compact-layout.css` v1.1.0: `.dash-row-top` = Drop All · selected input · readiness (+ Build / Run all
+  stacked in a `.dash-stack`). ≥ 1240 px of workspace: 1.6fr · 1.2fr · 1fr (1.6fr · 1fr until an input is picked);
+  900–1239 px: Drop All · readiness with the selected input under them; below: one column. Merge tool: `.dash-row-stages`
+  = 3 stages (3fr) + Generated output files (1fr). Build POS Master Databases: 4 equal stage cards; Combined Master's
+  callouts in `<details class="master-how">` ("How Combined Master works"). theme.css v20.0.2 covers `.dash-stack>.panel`.
+- POS Supplier New Product Check and Clean Merge v1.4.0:
+  - Workbook (`#workbook`): `WB_TABS` in the Sheet's order / colours; `wbShow(id)` shows the IN sheet (`#supPanel`), the
+    OUT review (`#reviewPanel`, Review columns or All columns via `#reviewGrid`) or a read-only sheet (`#wbSheetPanel`,
+    `#wbGrid`). Data: `state.results[sheet]` (OUT / INS / UPD; SRC_ with SRC STATUS after stage 2) or the loaded input
+    (`M.sheetRows`). Stage 2 opens OUT_MERGED_DATA. `js/sheet-grid.js` (PHFSheetGrid v1.0.0): virtual rows (gap rows above
+    / below, re-drawn on scroll), row numbers, column letters, banding, `accentFor` status colours, search.
+  - Supplier sheet: `SUP_PAGE` paging replaced by a drawn window (`supWindow`, `drawSupRows`, `supShowRow`, 40-row buffer,
+    measured row height); banding by class (`sup-b0` / `sup-b1`).
+  - Review NOTES clamp to 4 lines (`.rv-clamp`, click to open).
+  - Engine fidelity: sheets-formula / sheets-shim v1.0.1 — `TO_TEXT(ref)` returns the displayed text (`ctx.text`).
+    Verified against the user's 11 Oct Google Sheet export: IN STATUS, OUT_MERGED_DATA (73 columns), OUT_POS_INSERT and
+    OUT_POS_UPDATE identical.
+- Reconcile CH2 v2.9.4: `.dash-row-top` (Drop All · selected input · readiness); `#resultTable` row hover = translucent
+  yellow `background-image` over each cell's own colour.
+

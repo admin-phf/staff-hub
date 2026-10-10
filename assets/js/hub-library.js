@@ -1,4 +1,4 @@
-/* PHF Staff Hub — Library panel on the home page v1.0.0 (10 Oct 2026): lists the files the tools saved in this
+/* PHF Staff Hub — Library panel on the home page v1.0.1 (11 Oct 2026; v1.0.0 10 Oct 2026; v1.0.1 shows the renamed tools): lists the files the tools saved in this
    browser (assets/js/phf-library.js), with Download, ✕ (delete straight away) and Delete all. */
 (function () {
   'use strict';
@@ -14,7 +14,7 @@
       $('#libSummary').textContent = recs.length ? recs.length + ' file' + (recs.length === 1 ? '' : 's') + ' · ' + size(total) : 'Empty';
       $('#libClearAll').disabled = !recs.length;
       if (!recs.length) {
-        $('#libList').innerHTML = '<div class="phf-lib-empty">Nothing saved yet. Files appear here when Build Master Databases finishes a build, or when you load a reference file (Brand Abbreviation, Weight &amp; Dimensions, Ongoing Discounts, or Reconcile CH2’s reference files).</div>';
+        $('#libList').innerHTML = '<div class="phf-lib-empty">Nothing saved yet. Files appear here when Build POS Master Databases finishes a build, or when you load a reference file (Brand Abbreviation, Weight &amp; Dimensions, Ongoing Discounts, or Reconcile CH2’s reference files).</div>';
         return;
       }
       $('#libList').innerHTML = recs.map(function (r) {
@@ -24,7 +24,7 @@
           '<div class="phf-lib-what"><strong>' + esc(info.label) + '</strong><span>' + esc(r.name) + '</span></div>' +
           '<div class="phf-lib-when"><strong>' + esc(L.when(r)) + '</strong><span>' + esc(L.ago(r)) + (stale ? ' — over a day old' : '') + '</span></div>' +
           '<div class="phf-lib-size">' + size(r.size) + '</div>' +
-          '<div class="phf-lib-flow"><strong>Used by</strong><span>' + esc(info.used || '') + '</span><span>' + esc(r.source ? 'Saved by ' + r.source : info.made || '') + '</span></div>' +
+          '<div class="phf-lib-flow"><strong>Used by</strong><span>' + esc(info.used || '') + '</span><span>' + esc(r.source ? 'Saved by ' + (L.displayName ? L.displayName(r.source) : r.source) : info.made || '') + '</span></div>' +
           '<div class="phf-lib-btns">' + (url ? '<a class="phf-lib-btn download" href="' + url + '" download="' + esc(r.name) + '">Download</a>' : '') +
           '<button type="button" class="phf-lib-btn del" data-del="' + esc(r.kind) + '" title="Delete ' + esc(info.label) + ' from this browser" aria-label="Delete ' + esc(info.label) + '">✕</button></div></div>';
       }).join('');

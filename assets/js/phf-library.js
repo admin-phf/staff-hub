@@ -1,4 +1,6 @@
-/* PHF Staff Hub — Library v1.0.1 (10 Oct 2026)
+/* PHF Staff Hub — Library v1.0.2 (11 Oct 2026)
+ * v1.0.2: tool names Build POS Master Databases / POS Supplier New Product Check and Clean Merge; records saved under the
+ *         old names show the new ones (info().made / displayName()).
  * v1.0.1: the CH2 / Unique supplier imports are used by POS Supplier Merge only when its Add button is pressed.
  * Files saved in this browser and shared by every Staff Hub tool, so a file one tool makes (or a reference file
  * you load once) is there for the next tool without dragging it in again. Everything stays in this browser on this
@@ -19,15 +21,15 @@
 
   // kind → what it is, which tool makes it and which tools use it (shown on the home page Library panel).
   var KINDS = {
-    'lib:pos-db':          { label: 'POS Database', made: 'Build Master Databases', used: 'POS Supplier Merge', generated: true },
-    'lib:ch2-db':          { label: 'CH2 supplier import', made: 'Build Master Databases', used: 'POS Supplier Merge (Add button)', generated: true },
-    'lib:uhp-db':          { label: 'Unique supplier import', made: 'Build Master Databases', used: 'POS Supplier Merge (Add button)', generated: true },
-    'posMaster':           { label: 'Full merged master', made: 'Build Master Databases', used: 'Reconcile CH2 Order', generated: true },
-    'lib:master-selected': { label: 'Selected-columns master', made: 'Build Master Databases', used: 'Kept here to download', generated: true },
-    'lib:to-order':        { label: 'To-Order file', made: 'Build Master Databases', used: 'Kept here to download', generated: true },
-    'lib:ref-brand':       { label: 'Brand Abbreviation', made: 'Loaded in Build Master Databases', used: 'Build Master Databases' },
-    'lib:ref-box':         { label: 'Weight & Dimensions', made: 'Loaded in Build Master Databases', used: 'Build Master Databases' },
-    'lib:ref-discounts':   { label: 'Ongoing Discounts', made: 'Loaded in Build Master Databases or POS Supplier Merge', used: 'Build Master Databases · POS Supplier Merge' },
+    'lib:pos-db':          { label: 'POS Database', made: 'Build POS Master Databases', used: 'POS Supplier New Product Check and Clean Merge', generated: true },
+    'lib:ch2-db':          { label: 'CH2 supplier import', made: 'Build POS Master Databases', used: 'POS Supplier New Product Check and Clean Merge (Add button)', generated: true },
+    'lib:uhp-db':          { label: 'Unique supplier import', made: 'Build POS Master Databases', used: 'POS Supplier New Product Check and Clean Merge (Add button)', generated: true },
+    'posMaster':           { label: 'Full merged master', made: 'Build POS Master Databases', used: 'Reconcile CH2 Order', generated: true },
+    'lib:master-selected': { label: 'Selected-columns master', made: 'Build POS Master Databases', used: 'Kept here to download', generated: true },
+    'lib:to-order':        { label: 'To-Order file', made: 'Build POS Master Databases', used: 'Kept here to download', generated: true },
+    'lib:ref-brand':       { label: 'Brand Abbreviation', made: 'Loaded in Build POS Master Databases', used: 'Build POS Master Databases' },
+    'lib:ref-box':         { label: 'Weight & Dimensions', made: 'Loaded in Build POS Master Databases', used: 'Build POS Master Databases' },
+    'lib:ref-discounts':   { label: 'Ongoing Discounts', made: 'Loaded in Build POS Master Databases or POS Supplier New Product Check and Clean Merge', used: 'Build POS Master Databases · POS Supplier New Product Check and Clean Merge' },
     'supplierMerge':       { label: 'Supplier + discount rules', made: 'Loaded in Reconcile CH2 Order', used: 'Reconcile CH2 Order' }
   };
   var ORDER = Object.keys(KINDS);
@@ -127,6 +129,9 @@
     var d = Math.round(h / 24); return d + ' day' + (d === 1 ? '' : 's') + ' ago';
   }
   function info(kind) { return KINDS[kind] || { label: kind, made: '', used: '' }; }
+  // Records saved before the 11 Oct 2026 renames carry the old tool names as their source.
+  var RENAMED = { 'Build Master Databases': 'Build POS Master Databases', 'POS Supplier Merge': 'POS Supplier New Product Check and Clean Merge' };
+  function displayName(name) { return RENAMED[name] || name || ''; }
   function onChange(fn) { if (typeof fn === 'function') listeners.push(fn); }
   function estimate() {
     try { if (navigator.storage && navigator.storage.estimate) return navigator.storage.estimate(); } catch (e) {}
@@ -139,9 +144,9 @@
   function isDismissed(tool, rec) { try { return !!rec && localStorage.getItem(dismissKey(tool, rec.kind)) === (rec.savedAt || ''); } catch (e) { return false; } }
 
   g.PHFLibrary = {
-    VERSION: 'v1.0.1', KINDS: KINDS, ORDER: ORDER,
+    VERSION: 'v1.0.2', KINDS: KINDS, ORDER: ORDER,
     put: put, get: get, list: list, remove: remove, clearAll: clearAll,
-    toFile: toFile, isStale: isStale, when: when, ago: ago, info: info, onChange: onChange, estimate: estimate,
+    toFile: toFile, isStale: isStale, when: when, ago: ago, info: info, displayName: displayName, onChange: onChange, estimate: estimate,
     dismiss: dismiss, isDismissed: isDismissed
   };
 })(window);

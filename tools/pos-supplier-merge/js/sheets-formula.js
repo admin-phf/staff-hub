@@ -1,5 +1,7 @@
-/* PHF Staff Hub — POS Supplier Merge v1.0.0
+/* PHF Staff Hub — POS Supplier New Product Check and Clean Merge · sheets-formula.js v1.0.1
  * sheets-formula.js — small Google Sheets formula evaluator.
+ * v1.0.1 (11 Oct 2026): TO_TEXT(cell) returns the cell's displayed text (its number format applied), as Google Sheets
+ * does, so FINAL SHELF RRP's GP NGST line uses the 2-decimal last price exactly like the Sheet.
  * Evaluates only the formulas the merge engine writes into OUT_MERGED_DATA
  * data rows (FINAL SHELF RRP / rrp incgst). Anything it does not know returns ''.
  */
@@ -102,7 +104,7 @@ function evaluate(node, ctx) {
         case 'ROUND': { const n = toNum(ev(0)), d = A.length > 1 ? toNum(ev(1)) : 0; const f = Math.pow(10, d); return Math.round(n * f + (n >= 0 ? 1e-9 : -1e-9)) / f; }
         case 'MROUND': { const n = toNum(ev(0)), m = toNum(ev(1)); if (m === 0) return 0; return Math.round(n / m + 1e-9) * m; }
         case 'VALUE': { const s = toStr(ev(0)).trim(); if (s === '') throw new FErr('#VALUE!'); const n = Number(s); if (isNaN(n)) throw new FErr('#VALUE!'); return n; }
-        case 'TO_TEXT': return toStr(ev(0));
+        case 'TO_TEXT': return A[0] && A[0].k === 'ref' && ctx.text ? ctx.text(A[0].row, A[0].col) : toStr(ev(0));   // a cell as the Sheet shows it ($15.02, 38.68%)
         case 'REGEXREPLACE': return toStr(ev(0)).replace(new RegExp(toStr(ev(1)), 'g'), toStr(ev(2)));
         case 'REGEXMATCH': return new RegExp(toStr(ev(1))).test(toStr(ev(0)));
         case 'TEXT': return textFmt(ev(0), toStr(ev(1)));

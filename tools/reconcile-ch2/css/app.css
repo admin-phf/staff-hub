@@ -649,3 +649,6 @@ h1{margin:0 0 6px;font-size:28px}.sub{margin:0 0 24px;color:var(--muted);line-he
 .pos-predict-shared b{display:block;color:#a50e0e;font-size:11.5px}
 .pos-predict-shared span{display:block;margin-top:2px;line-height:1.4}
 .pos-predict-shared small{display:block;margin-top:3px;color:#5f4b4b;font-size:10.5px}
+/* v2.9.4 (11 Oct 2026) — row hover: the pale yellow highlight of POS Supplier New Product Check and Clean Merge, laid
+   over each cell's own colour so red / green / grey checks and price arrows still show. Section rows are left as they are. */
+body.phf-page-reconcile #resultTable tbody tr:not([class*="pos-section"]):hover>:is(td,th){background-image:linear-gradient(rgba(255,206,84,.22),rgba(255,206,84,.22))!important}

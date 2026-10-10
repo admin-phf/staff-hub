@@ -1,45 +1,55 @@
 /* =====================================================================
-   PHF Staff Hub — compact card layout v1.0.0 (10 Oct 2026)
-   Build Master Databases · POS Supplier Merge · Reconcile CH2 Order (loaded after theme.css).
+   PHF Staff Hub — compact card layout v1.1.0 (11 Oct 2026; v1.0.0 10 Oct 2026)
+   Build POS Master Databases · POS Supplier New Product Check and Clean Merge · Reconcile CH2 Order
+   (loaded after theme.css).
 
    Cards sit side by side in rows instead of one full-width panel under another. Nothing is hidden:
-   every panel, message, file row and stage keeps its content. The big Drop All zone, the supplier
-   sheet, the review table and the reconciliation table stay full width.
+   every panel, message, file row and stage keeps its content. The supplier sheet / workbook, the
+   review table and the reconciliation table stay full width.
 
-   - .dash-row: panels in one row, each its own height. A hidden panel (no input selected) takes no column.
-   - Stage cards: all in one row (Build Master Databases 4, POS Supplier Merge 3).
-   - File lists (Drop All results, generated output files): two or three columns when there is room.
+   - .dash-row-top: Drop All · the selected input · Input readiness (stacked over Build all / Run all
+     in a .dash-stack). The selected input takes a column only once one is picked.
+   - Stage cards in one row: Build POS Master Databases 4; the merge tool's 3 stages + its output files
+     (.dash-row-stages); Reconcile's stage + its output files (.dash-row-run).
+   - File lists (Drop All results, generated output files) use two columns when there is room.
    - Reconcile results: Invoice → POS order link | POSActive import keys, and Not on POS order |
      GST differences, side by side when both are shown.
-   Rows measure the workspace beside the input rail (container queries), so a narrow window or a
-   wide rail falls back to one column on its own.
+   Rows measure the workspace beside the input rail (container queries): from 1240 px of workspace the
+   top row has 3 columns, from 900 px 2 (the selected input then sits under them), below that 1.
    ===================================================================== */
 
 :is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace{container:phf-ws/inline-size}
 
 /* ---- rows of cards ---- */
-:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row{display:grid;gap:12px;margin:0 0 14px;align-items:start}
+:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row{display:grid;gap:12px;margin:0 0 14px;align-items:start;grid-template-columns:minmax(0,1fr)}
 :is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row>*{margin:0!important;min-width:0}
-:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row>.panel{container-type:inline-size}
+:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace :is(.dash-row,.dash-stack)>.panel{container-type:inline-size}
+:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-stack{display:flex;flex-direction:column;gap:12px;min-width:0}
+:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-stack>.panel{margin:0!important}
 :is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row>.stage-dashboard{display:grid}
 :is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row>.stage-dashboard>*{min-width:0}
+/* Top row */
 @container phf-ws (min-width:900px){
-  :is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row{grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}
-  /* The selected input card holds a drop zone and its file list, so it gets a little more room. */
-  body.phf-page-db .builder-workspace .dash-row-inputs:has(>.input-detail-panel .input-workspace-card){grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) minmax(0,1fr)}
-  body.phf-page-db .builder-workspace .dash-row-inputs:not(:has(>.input-detail-panel .input-workspace-card)){grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-  body.phf-page-reconcile .builder-workspace .dash-row-inputs:has(>.input-detail-panel.is-open){grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
-  body.phf-page-reconcile .builder-workspace .dash-row-inputs:not(:has(>.input-detail-panel.is-open)){grid-template-columns:minmax(0,1fr)}
+  :is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row-top{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
+  :is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row-top>.input-detail-panel{grid-row:2;grid-column:1/-1}
   body.phf-page-reconcile .builder-workspace .dash-row-run{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
+@container phf-ws (min-width:1240px){
+  body.phf-page-db .builder-workspace .dash-row-top:has(>.input-detail-panel .input-workspace-card),
+  body.phf-page-reconcile .builder-workspace .dash-row-top:has(>.input-detail-panel.is-open){grid-template-columns:minmax(0,1.6fr) minmax(0,1.2fr) minmax(0,1fr)}
+  :is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row-top>.input-detail-panel{grid-row:auto;grid-column:auto}
+  :is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row-top{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+  /* POS Supplier New Product Check and Clean Merge: the three stages and the output files in one row */
+  body.phf-page-merge .builder-workspace .dash-row-stages{grid-template-columns:minmax(0,3fr) minmax(0,1fr)}
 }
 /* Each card keeps its own height (like the stage cards), so a short card never shows an empty white block. */
 :is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row>.stage-dashboard{margin:0!important}
 
 /* Navy bands in narrower cards: the heading text wraps inside the band and the badge stays on the right. */
-:is(body.phf-page-db,body.phf-page-reconcile) :is(.builder-workspace,.dash-row)>.panel>.results-head,
+:is(body.phf-page-db,body.phf-page-reconcile) :is(.builder-workspace,.dash-row,.dash-stack)>.panel>.results-head,
 :is(body.phf-page-db,body.phf-page-reconcile) .stage-dashboard .stage-head,
 :is(body.phf-page-db,body.phf-page-reconcile) .input-workspace-head{flex-wrap:nowrap!important}
-:is(body.phf-page-db,body.phf-page-reconcile) :is(.builder-workspace,.dash-row)>.panel>.results-head>div:first-child,
+:is(body.phf-page-db,body.phf-page-reconcile) :is(.builder-workspace,.dash-row,.dash-stack)>.panel>.results-head>div:first-child,
 :is(body.phf-page-db,body.phf-page-reconcile) .input-workspace-head>div:first-child,
 :is(body.phf-page-db,body.phf-page-reconcile) .stage-dashboard .stage-title{flex:1 1 auto;min-width:0}
 :is(body.phf-page-db,body.phf-page-reconcile) :is(.results-head,.stage-head,.input-workspace-head)>:is(.result-badge,.small-badge){flex:0 0 auto;white-space:nowrap}
@@ -62,10 +72,18 @@
 :is(body.phf-page-db,body.phf-page-reconcile) .dash-row .file-row>span{min-width:0;overflow-wrap:anywhere}
 :is(body.phf-page-db,body.phf-page-reconcile) .dash-row .dashboard-run .actions .btn{flex:1 1 auto}
 
-/* ---- Build Master Databases: the four stage cards in one row (Combined Master a little wider) ---- */
+/* ---- Build POS Master Databases: the four stage cards in one row, the same width (Combined Master's long
+   explanation sits under its "How it works" toggle) ---- */
 @container phf-ws (min-width:1180px){
-  body.phf-page-db:not(.phf-page-merge) .builder-workspace .stage-dashboard{grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.45fr)!important;align-items:start}
+  body.phf-page-db:not(.phf-page-merge) .builder-workspace .stage-dashboard{grid-template-columns:repeat(4,minmax(0,1fr))!important;align-items:start}
 }
+body.phf-page-db .master-how{margin-top:9px;border:1px solid var(--phf-line);border-radius:8px;background:var(--phf-soft)}
+body.phf-page-db .master-how>summary{cursor:pointer;list-style:none;padding:8px 10px;font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--phf-navy)}
+body.phf-page-db .master-how>summary::-webkit-details-marker{display:none}
+body.phf-page-db .master-how>summary::before{content:'▸';display:inline-block;width:14px;color:var(--phf-muted)}
+body.phf-page-db .master-how[open]>summary::before{content:'▾'}
+body.phf-page-db .master-how .master-callout{margin:0!important;padding:0 8px 8px}
+body.phf-page-db .master-how .master-callout>div{background:#fff!important}
 @container phf-ws (min-width:900px) and (max-width:1179.98px){
   body.phf-page-db:not(.phf-page-merge) .builder-workspace .stage-dashboard{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
@@ -113,4 +131,10 @@ body.phf-page-reconcile .pos-check-pair .pos-gst-item>small{grid-area:e}
 @media(max-width:1100px){
   body.phf-page-reconcile .result-pair,body.phf-page-reconcile .pos-check-pair{grid-template-columns:minmax(0,1fr)}
   body.phf-page-reconcile .pos-check-pair>:first-child{border-right:0;border-bottom:1px solid #e6d3a6!important}
+}
+/* Drop All in a narrower column: a little less room for the input picker, and the greyed "Assigned" button is left out
+   (the green ASSIGNED badge already says it; the button comes back as soon as a different input is picked). */
+@container (max-width:720px){
+  :is(body.phf-page-db,body.phf-page-reconcile) .dash-row .bulk-assign select{max-width:175px}
+  :is(body.phf-page-db,body.phf-page-reconcile) .dash-row .bulk-row.ok .bulk-assign .btn:disabled{display:none}
 }

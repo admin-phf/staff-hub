@@ -10,6 +10,7 @@
  * widths …) are accepted and ignored: they only change how a Google Sheet looks.
  * Values, formulas, notes, number formats (for display values) and sheet
  * structure (rows / columns / filters) are kept.
+ * v1.0.1 (11 Oct 2026): formulas get each cell's displayed text for TO_TEXT (sheets-formula.js v1.0.1).
  */
 (function (root) {
   'use strict';
@@ -156,7 +157,7 @@
     if (typeof v === 'string' && v.charAt(0) === '=' && v.length > 1) {
       if ((depth || 0) > 6 || !Formula) return '';
       var self = this;
-      try { var out = Formula.evalFormula(v, { cell: function (rr, cc) { return self._evalCell(rr, cc, (depth || 0) + 1); } }); return out === '#ERR' ? '#ERROR!' : out; }
+      try { var out = Formula.evalFormula(v, { cell: function (rr, cc) { return self._evalCell(rr, cc, (depth || 0) + 1); }, text: function (rr, cc) { return displayOf(self._evalCell(rr, cc, (depth || 0) + 1), self._formatAt(rr, cc)); } }); return out === '#ERR' ? '#ERROR!' : out; }
       catch (e) { return ''; }
     }
     return isBlank(v) ? '' : v;

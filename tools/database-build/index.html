@@ -3,19 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Build Master Databases | Prahran Health Foods</title>
+<title>Build POS Master Databases | Prahran Health Foods</title>
 <link rel="stylesheet" href="../../assets/css/shell.css?v=21.6.0">
 <link rel="stylesheet" href="./css/app.css?v=21.6.0-20261009">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-<link rel="stylesheet" href="../../assets/css/theme.css?v=20.0.1">
-<link rel="stylesheet" href="../../assets/css/compact-layout.css?v=1.0.0">
+<link rel="stylesheet" href="../../assets/css/theme.css?v=20.0.2">
+<link rel="stylesheet" href="../../assets/css/compact-layout.css?v=1.1.0">
 </head>
 <body class="database-builder-page phf-page-db">
 <header class="phf-shell-header header-container">
   <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
-  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="Build Master Databases — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span><div class="phf-shell-copy title-row"><h1>Build Master Databases</h1><p class="phf-shell-version version-text">v21.10.1</p></div></a>
-  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Build Master Databases</span></nav><p class="phf-shell-updated build-details">Updated 10 Oct 2026 21:30 AEDT</p></div>
+  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="Build POS Master Databases — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span><div class="phf-shell-copy title-row"><h1>Build POS Master Databases</h1><p class="phf-shell-version version-text">v21.11.0</p></div></a>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Build POS Master Databases</span></nav><p class="phf-shell-updated build-details">Updated 11 Oct 2026 10:55 AEDT</p></div>
 </header>
 
 <main class="workflow-wrap full-width-wrap phf-full">
@@ -30,29 +30,30 @@
 
     <section class="builder-workspace">
       <section class="panel dashboard-intro">
-        <p>Load the source files once (POS exports can stay as .XLS), then run any database on its own or build the full chain. Everything runs locally in this browser; output files, columns, sorting and totals follow the Python scripts (Steps 1, 2, 2.5 and 3 V30.15) with the Melbourne date added automatically.</p>
+        <p><strong>Cleaning and Merging and Appending CH2 and Unique DB to POS.</strong> Load the source files once (POS exports can stay as .XLS), then run any database on its own or build the full chain. Everything runs locally in this browser; output files, columns, sorting and totals follow the Python scripts (Steps 1, 2, 2.5 and 3 V30.15) with the Melbourne date added automatically.</p>
       </section>
 
-      <section class="panel bulk-drop-panel" id="bulkDropPanel" aria-label="Drop all input files">
-        <div class="results-head"><div><h2>Drop All Input Files Here</h2><p>Drop every source file at once. Each file is identified from its headings and assigned to its input; anything unclear is listed for review. Nothing is built until you run a stage or Build All.</p></div><div class="result-badge" id="bulkCount">0 FILES</div></div>
-        <div class="dropzone bulk-dropzone" id="bulkDrop" tabindex="0" role="button" aria-label="Drop or choose all input files"><div><strong>Drop all input files here</strong><small>or click to choose several files · .XLS / .XLSX / .CSV</small></div></div>
-        <input class="hidden" type="file" id="bulkInput" multiple accept=".xls,.xlsx,.xlsm,.csv,.txt">
-        <div class="bulk-results" id="bulkResults"></div>
-      </section>
-
-      <!-- v21.10.1 compact layout: selected input · readiness · Build all side by side (assets/css/compact-layout.css) -->
-      <div class="dash-row dash-row-inputs">
+      <!-- v21.11.0 layout (assets/css/compact-layout.css): Drop All · selected input · readiness + Build all in one row -->
+      <div class="dash-row dash-row-top">
+        <section class="panel bulk-drop-panel" id="bulkDropPanel" aria-label="Drop all input files">
+          <div class="results-head"><div><h2>Drop All Input Files Here</h2><p>Drop every source file at once. Each file is identified from its headings and assigned to its input; anything unclear is listed for review. Nothing is built until you run a stage or Build All.</p></div><div class="result-badge" id="bulkCount">0 FILES</div></div>
+          <div class="dropzone bulk-dropzone" id="bulkDrop" tabindex="0" role="button" aria-label="Drop or choose all input files"><div><strong>Drop all input files here</strong><small>or click to choose several files · .XLS / .XLSX / .CSV</small></div></div>
+          <input class="hidden" type="file" id="bulkInput" multiple accept=".xls,.xlsx,.xlsm,.csv,.txt">
+          <div class="bulk-results" id="bulkResults"></div>
+        </section>
         <section class="panel input-detail-panel" id="inputDetailPanel">
           <div id="inputWorkspace"><div class="empty-output">Select an input on the left to inspect, upload or replace it.</div></div>
         </section>
-        <section class="panel dashboard-summary"><div class="results-head"><div><h2>Input readiness</h2><p>Each group updates immediately after a structurally valid file is loaded.</p></div><div class="result-badge" id="readyCount">0 READY</div></div><div id="inputSummary" class="input-summary"></div></section>
-        <section class="panel run-panel dashboard-run">
-          <div class="results-head"><div><h2>Build all</h2><p>Runs stages 1 → 4 in order</p></div></div>
-          <div class="actions"><button class="btn primary" id="buildAllBtn" disabled>Build All Databases</button><button class="btn" id="clearAllBtn">Clear Session</button></div>
-          <div class="status info" id="globalStatus">Add the required source files to enable Build All.</div>
-          <div class="auto-download" id="autoDownload" hidden></div>
-          <div class="progress hidden" id="globalProgress"><div id="globalProgressBar"></div></div>
-        </section>
+        <div class="dash-stack">
+          <section class="panel dashboard-summary"><div class="results-head"><div><h2>Input readiness</h2><p>Each group updates immediately after a structurally valid file is loaded.</p></div><div class="result-badge" id="readyCount">0 READY</div></div><div id="inputSummary" class="input-summary"></div></section>
+          <section class="panel run-panel dashboard-run">
+            <div class="results-head"><div><h2>Build all</h2><p>Runs stages 1 → 4 in order</p></div></div>
+            <div class="actions"><button class="btn primary" id="buildAllBtn" disabled>Build All Databases</button><button class="btn" id="clearAllBtn">Clear Session</button></div>
+            <div class="status info" id="globalStatus">Add the required source files to enable Build All.</div>
+            <div class="auto-download" id="autoDownload" hidden></div>
+            <div class="progress hidden" id="globalProgress"><div id="globalProgressBar"></div></div>
+          </section>
+        </div>
       </div>
 
       <section class="stage-dashboard" aria-label="Database build actions">
@@ -70,7 +71,7 @@
 <script src="./js/uhp-core.js?v=1.0.0-20261005-1457"></script>
 <script src="./js/xlsx-writer.js?v=1.1.0-20261010"></script>
 <script src="./js/master-core.js?v=2.4.0-20261010"></script>
-<script src="../../assets/js/phf-library.js?v=1.0.1"></script>
-<script src="./js/pipeline.js?v=21.10.1-20261010"></script>
+<script src="../../assets/js/phf-library.js?v=1.0.2"></script>
+<script src="./js/pipeline.js?v=21.11.0-20261011"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS Supplier Merge v1.0.0
+/* PHF Staff Hub — POS Supplier New Product Check and Clean Merge · merge-map v1.0.1 (11 Oct 2026: renamed tools in the input descriptions)
  * merge-map.js — input definitions, file recognition and column mapping.
  * Shared by the page (to check dropped files) and the engine (to build the
  * in-memory workbook). Sheet names, headings and text columns are the ones in
@@ -26,10 +26,10 @@
   // id, sheet, title, rail group, required / recommended, saved in this browser, several files
   var INPUTS = [
     { id: 'pos', sheet: 'TMP_MERGED_POS_DATA', title: 'POS Database', group: 'POS data', required: true, stored: false, multi: false,
-      desc: 'Build Master Databases → POS Database output (clean_merged_pos_data_pos_db_….xlsx), or the TMP_MERGED_POS_DATA tab of the Google Sheet.',
+      desc: 'Build POS Master Databases → POS Database output (clean_merged_pos_data_pos_db_….xlsx), or the TMP_MERGED_POS_DATA tab of the Google Sheet.',
       need: ['POS MASTER BRAND', 'POS PLU', 'POS SUB ID', 'POS DESCR'] },
     { id: 'sup', sheet: 'IN_SUPPLIER_/_PRODUCT_UPDATES', title: 'Supplier Updates', group: 'Supplier updates', required: true, stored: false, multi: true,
-      desc: 'Build Master Databases → Oborne / CH2 or Unique / UHP supplier import (clean_…_pos_db_….xlsx), or the IN_SUPPLIER tab. Several supplier files are combined into one list.',
+      desc: 'Build POS Master Databases → Oborne / CH2 or Unique / UHP supplier import (clean_…_pos_db_….xlsx), or the IN_SUPPLIER tab. Several supplier files are combined into one list.',
       need: ['SUP BARCODE', 'SUP BRAND', 'SUP PRODUCT', 'SUP WS EXGST'] },
     { id: 'brands', sheet: 'SRC_POS_BRAND_NAME_CHANGES', title: 'Brand Name Changes', group: 'Reference data', recommended: true, stored: true,
       desc: 'SRC_POS_BRAND_NAME_CHANGES — supplier brand → POS brand.', need: ['SUP BRAND', 'POS BRAND'] },
@@ -38,7 +38,7 @@
     { id: 'suppliers', sheet: 'SRC_POS_SUPPLIERS', title: 'POS Suppliers', group: 'Reference data', recommended: true, stored: true,
       desc: 'SRC_POS_SUPPLIERS — POS supplier account numbers and names.', need: ['POS ACCNO', 'POS ACNAME'] },
     { id: 'disc', sheet: 'SRC_POS_ONGOING_DISCOUNTS', title: 'Ongoing Discounts', group: 'Reference data', recommended: true, stored: true,
-      desc: 'SRC_POS_ONGOING_DISCOUNTS — the same discount file Build Master Databases uses.', need: ['POS DISCOUNT%'] },
+      desc: 'SRC_POS_ONGOING_DISCOUNTS — the same discount file Build POS Master Databases uses.', need: ['POS DISCOUNT%'] },
     { id: 'fr', sheet: 'SRC_POS_FIND_REPLACE', title: 'Find & Replace', group: 'Reference data', recommended: false, stored: true,
       desc: 'SRC_POS_FIND_REPLACE — supplier wording → POS wording for descriptions.', need: ['SUP FIND', 'POS REPLACE'] }
   ];

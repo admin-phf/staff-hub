@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS Supplier Merge v1.1.0 (10 Oct 2026)
+/* PHF Staff Hub — POS Supplier New Product Check and Clean Merge v1.4.0 (11 Oct 2026; was POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
  * three merge stages, downloads and the OUT_MERGED_DATA review table.
@@ -10,11 +10,15 @@
  * v1.3.1: Supplier Updates starts empty — a merge only covers the brands pasted or dropped. The CH2 / Unique supplier
  *         imports in the Library are added only with their "Add … from the Library" buttons. "Brands in this merge"
  *         line above the sheet. Compact card layout (rows of cards side by side).
+ * v1.4.0 (11 Oct 2026): renamed POS Supplier New Product Check and Clean Merge. Workbook with the Google Sheet's tabs
+ *         along the bottom (IN_SUPPLIER, OUT_MERGED_DATA review / all columns, OUT_POS_INSERT / UPDATE, SRC_ tabs,
+ *         TMP_MERGED_POS_DATA — read-only sheets in js/sheet-grid.js). The supplier sheet shows every row (no pages).
+ *         Engine formulas: TO_TEXT reads the displayed cell (sheets-formula / sheets-shim v1.0.1).
  */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.3.1';
+  var TOOL_VERSION = 'v1.4.0';
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -119,13 +123,13 @@
     function startFrame() {
       kind = 'in-page';
       frame = document.createElement('iframe');
-      frame.hidden = true; frame.title = 'POS Supplier Merge engine';
-      frame.src = './engine-frame.html?v=1.0.0';
+      frame.hidden = true; frame.title = 'POS Supplier New Product Check and Clean Merge engine';
+      frame.src = './engine-frame.html?v=1.0.1';
       window.addEventListener('message', frameListener);
       document.body.appendChild(frame);
     }
     try {
-      worker = new Worker('./js/engine-worker.js?v=1.0.0');
+      worker = new Worker('./js/engine-worker.js?v=1.0.1');
       kind = 'worker';
       worker.onmessage = function (ev) { onMsg(ev.data); };
       worker.onerror = function (ev) {
@@ -229,7 +233,7 @@
       var best = mapForInput(id, sheets);
       var entry = fileEntry(file, best.tab, best.mapped);
       addToInput(id, entry);
-      if (LIB && LIB_SHARED[id]) LIB.put(LIB_SHARED[id], file, { name: file.name, source: 'POS Supplier Merge' }).then(function (r) { entry.libKind = LIB_SHARED[id]; entry.libSavedAt = r.savedAt; entry.libWhen = LIB.when(r); if (inputDef(id).stored) refSave(id); renderAll(); if (state.activeInput === id) showInput(id); }).catch(function (e) { console.warn('Library save failed', e); });
+      if (LIB && LIB_SHARED[id]) LIB.put(LIB_SHARED[id], file, { name: file.name, source: 'POS Supplier New Product Check and Clean Merge' }).then(function (r) { entry.libKind = LIB_SHARED[id]; entry.libSavedAt = r.savedAt; entry.libWhen = LIB.when(r); if (inputDef(id).stored) refSave(id); renderAll(); if (state.activeInput === id) showInput(id); }).catch(function (e) { console.warn('Library save failed', e); });
       setGlobal(def.title + ': ' + file.name + ' loaded — ' + fmtN(best.mapped.report.rows) + ' rows.', 'success');
       renderAll(); showInput(id);
       return true;
@@ -384,7 +388,7 @@
     var names = gone.map(function (id) { return inputDef(id).title; });
     setGlobal(message || ((names.length ? names.join(', ') + ' removed. ' : 'Nothing to remove. ') + readinessText()), requiredReady() ? 'ready' : 'missing');
   }
-  function scrollToSupSheet() { var el = $('#supPanel'); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  function scrollToSupSheet() { wbShow('sup'); var el = $('#workbook'); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   function showInput(id, problem) {
     var def = inputDef(id); if (!def) return;
     state.activeInput = id;
@@ -568,14 +572,15 @@
   }
   function afterStage(id) {
     if (id === 'highlight') refreshSupSheet();
-    if (id === 'build') { renderReview(); return addWorkbookOutput(); }
+    if (id === 'build') { renderReview(); wbShow('out'); return addWorkbookOutput(); }
     if (id === 'export') {
       (state.results.files || []).forEach(function (f, i) {
         var bin = atob(f.base64), bytes = new Uint8Array(bin.length);
         for (var k = 0; k < bin.length; k++) bytes[k] = bin.charCodeAt(k);
         addOutput('export', 'txt-' + i, f.filename, new Blob([bytes], { type: 'text/plain;charset=utf-8' }), fmtN(f.rowCount) + ' rows · ' + (f.label || 'POS file') + ' · tab-separated TXT for POSActive');
       });
-      renderReviewKpis();
+      renderReviewKpis(); renderTabs();
+      if (wb.active === 'ins' || wb.active === 'upd') wbShow(wb.active, true);
       return addWorkbookOutput();
     }
     return Promise.resolve();
@@ -646,7 +651,7 @@
     if (drop >= 0) width = drop;
     head = head.slice(0, width);
     var X = window.XlsxLite, last = X.colLetter(width), n = Math.max(0, rows.length - 2);
-    var summary = sheetSummary(name, rows) + ' · POS Supplier Merge ' + TOOL_VERSION + ' (engine ' + (String((state.engineInfo || {}).merge || '').match(/v\d+\.\d+\.\d+/) || [''])[0] + ') · ' + melb();
+    var summary = sheetSummary(name, rows) + ' · POS Supplier New Product Check and Clean Merge ' + TOOL_VERSION + ' (engine ' + (String((state.engineInfo || {}).merge || '').match(/v\d+\.\d+\.\d+/) || [''])[0] + ') · ' + melb();
     return {
       name: name.replace(/[\\/?*\[\]:]/g, '_').replace(/_+/g, '_').slice(0, 31), columnCount: width, freeze: 'A3',
       autoFilter: 'A2:' + last + (n + 2), dimension: 'A1:' + last + (n + 2),
@@ -736,7 +741,7 @@
     if (/DISCONTINUED/.test(s)) return 'warn'; if (/REVIEW/.test(s)) return 'review'; if (/MATCHED/.test(s)) return 'match'; if (/NO CHANGE/.test(s)) return 'flat';
     return '';
   }
-  function hideReview() { var p = $('#reviewPanel'); if (p) p.hidden = true; }
+  function hideReview() { if ($('#wbTabs')) { renderTabs(); wbShow(wb.active, true); } }
   function renderReview() {
     var rows = state.results[SHEETS.OUT] || [];
     var head = rows[1] || [], idx = {};
@@ -749,9 +754,9 @@
     $('#reviewBrand').innerHTML = '<option value="">All brands</option>' + opts('POS BRAND');
     $('#reviewSearch').value = '';
     $('#reviewTable thead').innerHTML = '<tr>' + REVIEW_COLS.filter(function (c) { return idx[c.h] !== undefined; }).map(function (c) { return '<th class="' + (c.cls || '') + (c.audit ? ' rv-audit-col' : '') + '">' + esc(c.label || c.h) + '</th>'; }).join('') + '</tr>';
-    $('#reviewPanel').hidden = false;
     renderReviewKpis();
     applyReviewFilter();
+    renderTabs();
   }
   function renderReviewKpis() {
     var rows = state.results[SHEETS.OUT] || []; if (!rows.length) return;
@@ -764,14 +769,14 @@
   function applyReviewFilter() {
     var R = state.review, q = $('#reviewSearch').value.trim().toUpperCase(), st = $('#reviewStatus').value, pr = $('#reviewPrice').value, br = $('#reviewBrand').value;
     var si = R.idx['ROW STATUS'], pi = R.idx['PRICE STATUS'], bi = R.idx['POS BRAND'];
-    R.filtered = [];
+    R.filtered = []; R.fidx = [];
     for (var i = 0; i < R.rows.length; i++) {
       var r = R.rows[i];
       if (st && String(r[si]).trim() !== st) continue;
       if (pr && String(r[pi]).trim() !== pr) continue;
       if (br && String(r[bi]).trim() !== br) continue;
       if (q && R.hay[i].indexOf(q) < 0) continue;
-      R.filtered.push(r);
+      R.filtered.push(r); R.fidx.push(i + 3);
     }
     R.page = 0;
     renderReviewPage();
@@ -779,6 +784,7 @@
   function cellHtml(c, r, idx) {
     var v = r[idx[c.h]], s = String(v == null ? '' : v);
     if (c.chip) return s ? '<span class="rv-chip ' + chipClass(s) + '">' + esc(cleanTitle(s) || s) + '</span>' : '';
+    if (c.h === 'NOTES' && s) return '<div class="rv-clamp" title="Click to show all of the note">' + esc(s).replace(/\n/g, '<br>') + '</div>';
     if (c.audit) { var a = s.charAt(0); return '<span class="rv-audit ' + (a === '☑' ? 'ok' : a === '☒' ? 'bad' : 'unk') + '">' + esc(s) + '</span>'; }
     if (c.arrow) { var nv = String(r[idx[c.extra]] == null ? '' : r[idx[c.extra]]); if (!nv || nv === s) return esc(s); return esc(s || '—') + ' <span class="rv-arrow">→</span> <strong>' + esc(nv) + '</strong>'; }
     if (c.extra) { var ev = String(r[idx[c.extra]] == null ? '' : r[idx[c.extra]]); return esc(s) + (ev ? '<small class="rv-extra' + (c.extraLabel ? ' warn' : '') + '">' + (c.extraLabel ? esc(c.extraLabel) + ': ' : '') + esc(ev) + '</small>' : ''); }
@@ -786,6 +792,15 @@
   }
   function renderReviewPage() {
     var R = state.review, cols = REVIEW_COLS.filter(function (c) { return R.idx[c.h] !== undefined; });
+    var sheetView = wb.outView === 'sheet';
+    $('#reviewTableWrap').hidden = sheetView; $('#reviewPager').hidden = sheetView; $('#reviewGrid').hidden = !sheetView;
+    if (sheetView) {
+      var keep = R.head.map(function (h, i) { return h === '__EXPORT_VISIBLE__' ? -1 : i; }).filter(function (i) { return i >= 0; });
+      if (!wb.outGrid) wb.outGrid = window.PHFSheetGrid.create($('#reviewGrid'), { search: false });
+      wb.outGrid.set({ head: keep.map(function (i) { return R.head[i]; }), rows: keep.length === R.head.length ? R.filtered : R.filtered.map(function (r) { return keep.map(function (i) { return r[i]; }); }), rowNumbers: R.fidx, accent: function (h, v) { return accentFor(SHEETS.OUT, h, v); } });
+      var b0 = $('#reviewCount'); b0.textContent = fmtN(R.filtered.length) + ' OF ' + fmtN(R.rows.length) + ' ROWS'; b0.className = 'result-badge ok';
+      return;
+    }
     var pages = Math.max(1, Math.ceil(R.filtered.length / PAGE));
     R.page = Math.max(0, Math.min(R.page, pages - 1));
     var slice = R.filtered.slice(R.page * PAGE, (R.page + 1) * PAGE);
@@ -802,6 +817,91 @@
     $('#reviewReset').onclick = function () { $('#reviewSearch').value = ''; $('#reviewStatus').value = ''; $('#reviewPrice').value = ''; $('#reviewBrand').value = ''; applyReviewFilter(); };
     $('#reviewPrev').onclick = function () { state.review.page--; renderReviewPage(); };
     $('#reviewNext').onclick = function () { state.review.page++; renderReviewPage(); };
+    $('#reviewTable').addEventListener('click', function (e) { var c = e.target.closest('.rv-clamp'); if (c) c.classList.toggle('is-open'); });
+    document.querySelectorAll('[data-out-view]').forEach(function (b) {
+      b.onclick = function () {
+        wb.outView = b.dataset.outView;
+        document.querySelectorAll('[data-out-view]').forEach(function (x) { x.classList.toggle('is-on', x === b); });
+        if (state.review) renderReviewPage();
+      };
+    });
+  }
+
+  // ------------------------------------------------------ workbook tabs (v1.4.0)
+  /* The Google Sheet's tabs along the bottom of the workbook, in the Sheet's order and colours: IN_SUPPLIER (editable),
+     OUT_MERGED_DATA (review or every column), OUT_POS_INSERT / OUT_POS_UPDATE (stage 3), the SRC_ reference tabs (as
+     loaded, or with SRC STATUS once stage 2 has run) and TMP_MERGED_POS_DATA (the POS Database). One tab shows at a time. */
+  var WB_TABS = [
+    { id: 'sup', sheet: SHEETS.SUP, color: 'ed4141' },
+    { id: 'out', sheet: SHEETS.OUT, color: '81d25c', by: 'stage 2 (Build OUT_MERGED_DATA)' },
+    { id: 'ins', sheet: SHEETS.INS, color: 'ff9900', by: 'stage 3 (Generate Insert + Update & Export)' },
+    { id: 'upd', sheet: SHEETS.UPD, color: 'ff9900', by: 'stage 3 (Generate Insert + Update & Export)' },
+    { id: 'fr', sheet: 'SRC_POS_FIND_REPLACE', color: '6d9eeb', input: 'fr' },
+    { id: 'disc', sheet: 'SRC_POS_ONGOING_DISCOUNTS', color: '6d9eeb', input: 'disc' },
+    { id: 'brands', sheet: 'SRC_POS_BRAND_NAME_CHANGES', color: '6d9eeb', input: 'brands' },
+    { id: 'prefix', sheet: 'SRC_POS_PRODUCT_PREFIX', color: '6d9eeb', input: 'prefix' },
+    { id: 'suppliers', sheet: 'SRC_POS_SUPPLIERS', color: '6d9eeb', input: 'suppliers' },
+    { id: 'tmp', sheet: 'TMP_MERGED_POS_DATA', color: '', input: 'pos' }
+  ];
+  var wb = { active: 'sup', grid: null, outGrid: null, outView: 'review' };
+  function wbTab(id) { return WB_TABS.filter(function (t) { return t.id === id; })[0] || WB_TABS[0]; }
+  function wbCount(t) {
+    if (t.id === 'sup') return rowsOf('sup').length;
+    if (t.input) { var x = state.inputs[t.input]; return x && x.files ? x.files.reduce(function (a, f) { return a + f.data.length; }, 0) : 0; }
+    var r = state.results[t.sheet]; return r && r.length >= 2 ? r.length - 2 : -1;
+  }
+  function wbRows(t) {
+    if (t.input && !loaded(t.input)) return null;                            // not loaded: say so, even after a run
+    var res = state.results[t.sheet];
+    if (res && res.length >= 2) return res;                                   // as the merge left it (SRC STATUS filled in)
+    if (t.input && loaded(t.input)) return M.sheetRows(t.sheet, rowsOf(t.input));
+    return null;
+  }
+  function renderTabs() {
+    var host = $('#wbTabs'); if (!host) return;
+    host.innerHTML = '<span class="wb-tabs-lead" aria-hidden="true">☰</span>' + WB_TABS.map(function (t) {
+      var n = wbCount(t), empty = n < 0 || (n === 0 && t.id !== 'sup');
+      return '<button type="button" class="wb-tab' + (t.id === wb.active ? ' is-active' : '') + (empty ? ' is-empty' : '') + '" data-wb-tab="' + t.id + '" style="--tab:' + (t.color ? '#' + t.color : 'transparent') + '" title="' + esc(t.sheet + (n >= 0 ? ' · ' + fmtN(n) + ' rows' : ' · made by ' + t.by)) + '"><span>' + esc(t.sheet) + '</span>' + (n > 0 ? '<small>' + fmtN(n) + '</small>' : '') + '</button>';
+    }).join('');
+    host.querySelectorAll('[data-wb-tab]').forEach(function (b) { b.onclick = function () { wbShow(b.dataset.wbTab); }; });
+  }
+  function wbShow(id, quiet) {
+    var t = wbTab(id), prev = wb.active;
+    wb.active = t.id;
+    var outReady = !!(state.review && state.results[SHEETS.OUT]);
+    $('#supPanel').hidden = t.id !== 'sup';
+    $('#reviewPanel').hidden = !(t.id === 'out' && outReady);
+    var sheetPanel = $('#wbSheetPanel'); sheetPanel.hidden = t.id === 'sup' || (t.id === 'out' && outReady);
+    document.querySelectorAll('[data-wb-tab]').forEach(function (b) { b.classList.toggle('is-active', b.dataset.wbTab === t.id); });
+    var strip = $('#wbTabs'), on = strip && strip.querySelector('.wb-tab.is-active');
+    if (on) { var l = on.offsetLeft, r = l + on.offsetWidth; if (l < strip.scrollLeft) strip.scrollLeft = l - 30; else if (r > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = r - strip.clientWidth + 30; }
+    if (t.id === 'sup') refreshSupSheet();
+    else if (t.id === 'out' && outReady) { if (wb.outView === 'sheet' && wb.outGrid) wb.outGrid.refresh(); }
+    else {
+      var key = t.id + ':' + state.rev + ':' + (state.results[t.sheet] ? 'r' : 'i'), same = quiet && prev === t.id && wb.gridFor === key;
+      var rows = same ? null : wbRows(t), n = same ? wb.gridRows : (rows ? rows.length - 2 : -1);
+      var empty = $('#wbSheetEmpty'), grid = $('#wbGrid'), badge = $('#wbSheetCount');
+      $('#wbSheetTitle').textContent = t.sheet;
+      sheetPanel.style.setProperty('--tab', t.color ? '#' + t.color : 'transparent');
+      if (n < 0) {
+        empty.hidden = false; grid.hidden = true; wb.gridFor = '';
+        empty.innerHTML = t.input ? '<strong>' + esc(inputDef(t.input).title) + ' is not loaded.</strong> Drop the ' + esc(t.sheet) + ' file (or a download of the Google Sheet) in Drop All, or on its row in the Input files list.'
+          : '<strong>' + esc(t.sheet) + ' is made by ' + esc(t.by) + '.</strong> Run that stage, or Run All, to fill this tab.';
+        $('#wbSheetSub').textContent = t.input ? 'Input · ' + inputDef(t.input).title : 'Output sheet';
+        badge.textContent = '0 ROWS'; badge.className = 'result-badge';
+      } else {
+        empty.hidden = true; grid.hidden = false;
+        if (!wb.grid) wb.grid = window.PHFSheetGrid.create(grid, { search: true });
+        if (same) wb.grid.refresh();
+        else { wb.grid.set({ head: rows[1] || [], rows: rows.slice(2), accent: function (h, v) { return accentFor(t.sheet, h, v); } }); wb.gridFor = key; wb.gridRows = n; }
+        $('#wbSheetSub').textContent = t.input ? (state.results[t.sheet] ? 'Input as the merge left it (SRC STATUS filled in by stage 2) · read-only here' : 'Input · ' + inputDef(t.input).title + ' · read-only here') : 'Made by ' + t.by + ' · read-only';
+        badge.textContent = fmtN(n) + ' ROWS'; badge.className = 'result-badge ok';
+      }
+    }
+    if (!quiet && prev !== t.id) {
+      var wbEl = $('#workbook'), top = wbEl ? wbEl.getBoundingClientRect().top : 0;
+      if (top < 0) wbEl.scrollIntoView({ block: 'start' });
+    }
   }
 
   // ------------------------------------- Supplier Updates sheet (v1.2.0, editable)
@@ -814,8 +914,10 @@
   var SUP_HEADS = M.SCHEMAS[SHEETS.SUP].headers;
   var SUP_NUM = { 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1 };   // H–N: numbers when they look like numbers
   var SUP_TEXT = { 1: 1, 2: 1, 3: 1, 5: 1 };                       // B C D F stay text (codes keep leading zeros)
-  var SUP_PAGE = 100, ADDED = 'Added rows', SUP_UNDO_MAX = 40;
-  var supView = { q: '', page: 0, undo: [], note: '', noteType: 'info', sel: null, vis: [], editing: null };
+  // v1.4.0: every row is in the sheet (no pages). Only the rows near the scroll position are drawn, with gap rows above /
+  // below standing in for the rest, so a large list scrolls as quickly as a short one.
+  var SUP_BUF = 40, ADDED = 'Added rows', SUP_UNDO_MAX = 40;
+  var supView = { q: '', undo: [], note: '', noteType: 'info', sel: null, vis: [], editing: null, rowH: 27, win: { start: 0, end: 0 }, raf: 0 };
 
   function parseTsv(text) {
     var s = String(text || '').replace(/\r\n?/g, '\n'), rows = [], row = [], f = '', q = false, i = 0, n = s.length;
@@ -1101,7 +1203,7 @@
       '<button type="button" class="btn small" id="supCopyHeads" title="Copy the 16 headings, ready to paste into Excel or Google Sheets as a template">Copy headings</button></div>' +
       '<div class="status sup-note" id="supNote" hidden></div>' +
       '<div class="sup-table-wrap" id="supWrap"><table class="sup-table"><thead><tr>' + SUP_HEADS.map(function (h, i) { return '<th class="sup-c' + i + (i === 0 || i === 15 ? ' sup-ro' : '') + '"><span class="sup-col">' + window.XlsxLite.colLetter(i + 1) + '</span>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody id="supBody"></tbody></table></div>' +
-      '<div class="review-pager"><span class="sup-sel-info" id="supSelInfo"></span><button type="button" class="btn small" id="supPrev">‹ Previous</button><span id="supPage">Page 1</span><button type="button" class="btn small" id="supNext">Next ›</button></div></div>';
+      '<div class="review-pager sup-foot"><span class="sup-sel-info" id="supSelInfo"></span><span id="supPage"></span></div></div>';
   }
   function drawSup() {
     var host = $('#supSheet'); if (!host) return;
@@ -1117,36 +1219,74 @@
       '<div class="sup-bar-status' + (model.run ? ' is-run' : '') + '"><span>STATUS</span>' + esc(stat) + (q ? ' <em>· totals are for the ' + fmtN(vis.length) + ' rows matching the search</em>' : '') + '</div>';
     $('#supScope').innerHTML = supScopeHtml(model);
     drawLibSup();
-    var pages = Math.max(1, Math.ceil((vis.length + (q ? 0 : 1)) / SUP_PAGE));
-    supView.page = Math.max(0, Math.min(supView.page, pages - 1));
-    var start = supView.page * SUP_PAGE, end = Math.min(vis.length, start + SUP_PAGE), html = [];
-    for (var r = start; r < end; r++) {
-      var it = vis[r], ed = it.ref.row.__ed || {}, added = !!it.ref.e.added;
-      var cells = '';
-      for (var c = 0; c < 16; c++) {
-        var s = supShown(it, c);
-        var cls = 'sup-c' + c + (c === 0 || c === 15 ? ' sup-ro' : '') + (c === 15 ? ' sup-status ' + supStatusClass(s) : '') + (ed[c] ? ' is-edited' : '');
-        cells += '<td class="' + cls + '" data-r="' + r + '" data-c="' + c + '"' + ((c === 6 || c === 15) && s ? ' title="' + esc(s) + '"' : '') + '>' + (c === 0 && added ? '<span class="sup-added-tag" title="Added on this page">+</span>' : '') + esc(s) + '</td>';
-      }
-      html.push('<tr' + (added ? ' class="is-added"' : '') + '>' + cells + '</tr>');
-    }
-    // The empty row under the last row: type or paste into it to add rows (like the blank rows of a sheet).
-    if (end === vis.length && !q) {
-      var blank = '';
-      for (var c2 = 0; c2 < 16; c2++) blank += '<td class="sup-c' + c2 + (c2 === 0 || c2 === 15 ? ' sup-ro' : '') + '" data-r="' + vis.length + '" data-c="' + c2 + '">' + (c2 === 0 ? '<span class="sup-new-mark">' + (vis.length + 1) + '</span>' : '') + '</td>';
-      html.push('<tr class="sup-new-row">' + blank + '</tr>');
-    }
-    if (!vis.length && q) html.push('<tr><td colspan="16" class="sup-empty">No rows match the search.</td></tr>');
-    $('#supBody').innerHTML = html.join('');
+    drawSupRows();
     var added = addedEntry(false), an = added ? added.data.length : 0;
     var badge = $('#supCount'); badge.textContent = (q ? fmtN(vis.length) + ' OF ' : '') + fmtN(model.items.length) + ' ROWS' + (an ? ' · ' + fmtN(an) + ' ADDED' : ''); badge.className = 'result-badge' + (model.items.length ? ' ok' : '');
-    $('#supPage').textContent = 'Page ' + (supView.page + 1) + ' of ' + pages + ' · ' + SUP_PAGE + ' rows per page';
-    $('#supPrev').disabled = supView.page <= 0; $('#supNext').disabled = supView.page >= pages - 1;
+    $('#supPage').textContent = q ? fmtN(vis.length) + ' of ' + fmtN(model.items.length) + ' rows match the search' : 'All ' + fmtN(model.items.length) + ' row' + (model.items.length === 1 ? '' : 's') + ' · scroll the sheet to see every row';
     $('#supUndo').disabled = !supView.undo.length || state.busy;
     $('#supClearAdded').disabled = !an || state.busy;
     ['#supPasteBtn', '#supAddRow'].forEach(function (s) { $(s).disabled = state.busy; });
     supSay(supView.note, supView.noteType);
     paintSel();
+  }
+
+  // ---- rows: the window of rows around the scroll position (r = position in the search-filtered list; the empty row
+  // under the last row is r = vis.length). Banding comes from the row number, so it never flickers while scrolling.
+  function supTotalRows() { return supView.vis.length + (supView.q.trim() ? 0 : 1); }
+  function supHeadH() { var th = document.querySelector('#supWrap thead'); return th ? th.offsetHeight : 40; }
+  function supWindow() {
+    var wrap = $('#supWrap'), rh = supView.rowH || 27, total = supTotalRows();
+    var top = wrap ? Math.max(0, wrap.scrollTop - supHeadH()) : 0, h = wrap && wrap.clientHeight ? wrap.clientHeight : 640;
+    var first = Math.floor(top / rh), last = first + Math.ceil(h / rh);
+    return { first: first, last: last, start: Math.max(0, Math.min(first, total) - SUP_BUF), end: Math.min(total, last + SUP_BUF) };
+  }
+  function supRowHtml(r) {
+    var vis = supView.vis, it = vis[r], band = ' sup-b' + (r % 2);
+    if (!it) {
+      var blank = '';
+      for (var c2 = 0; c2 < 16; c2++) blank += '<td class="sup-c' + c2 + (c2 === 0 || c2 === 15 ? ' sup-ro' : '') + '" data-r="' + r + '" data-c="' + c2 + '">' + (c2 === 0 ? '<span class="sup-new-mark">' + (r + 1) + '</span>' : '') + '</td>';
+      return '<tr class="sup-new-row">' + blank + '</tr>';
+    }
+    var ed = it.ref.row.__ed || {}, added = !!it.ref.e.added, cells = '';
+    for (var c = 0; c < 16; c++) {
+      var s = supShown(it, c);
+      var cls = 'sup-c' + c + (c === 0 || c === 15 ? ' sup-ro' : '') + (c === 15 ? ' sup-status ' + supStatusClass(s) : '') + (ed[c] ? ' is-edited' : '');
+      cells += '<td class="' + cls + '" data-r="' + r + '" data-c="' + c + '"' + ((c === 6 || c === 15) && s ? ' title="' + esc(s) + '"' : '') + '>' + (c === 0 && added ? '<span class="sup-added-tag" title="Added on this page">+</span>' : '') + esc(s) + '</td>';
+    }
+    return '<tr class="' + (added ? 'is-added' : '') + band + '">' + cells + '</tr>';
+  }
+  function supGap(px) { return px > 0 ? '<tr class="sup-gap" aria-hidden="true"><td colspan="16" style="height:' + Math.round(px) + 'px"></td></tr>' : ''; }
+  function drawSupRows() {
+    var body = $('#supBody'); if (!body) return;
+    var vis = supView.vis, q = supView.q.trim(), total = supTotalRows(), rh = supView.rowH || 27;
+    var w = supWindow(), html = [supGap(w.start * rh)];
+    for (var r = w.start; r < w.end; r++) html.push(supRowHtml(r));
+    html.push(supGap((total - w.end) * rh));
+    if (!vis.length && q) html = ['<tr><td colspan="16" class="sup-empty">No rows match the search.</td></tr>'];
+    body.innerHTML = html.join('');
+    supView.win = { start: w.start, end: w.end };
+    // Keep the gap rows true to the real row height (it depends on the browser's font size).
+    var first = body.querySelector('tr.sup-b0, tr.sup-b1');
+    if (first) { var h = first.getBoundingClientRect().height; if (h > 10 && Math.abs(h - rh) > 0.5) { supView.rowH = h; if (!supView._remeasured) { supView._remeasured = true; drawSupRows(); return; } } }
+    supView._remeasured = false;
+    paintSel();
+  }
+  function supOnScroll() {
+    if (supView.raf) return;
+    supView.raf = requestAnimationFrame(function () {
+      supView.raf = 0;
+      if (supView.editing) return;                    // keep the cell being typed in where it is
+      var w = supWindow();
+      if (w.first < supView.win.start || Math.min(w.last, supTotalRows()) > supView.win.end) drawSupRows();
+    });
+  }
+  // Scroll the sheet so row r is in view (drawing it if it is outside the drawn window).
+  function supShowRow(r) {
+    var wrap = $('#supWrap'); if (!wrap) return;
+    var rh = supView.rowH || 27, head = supHeadH(), top = head + r * rh;
+    if (top - head < wrap.scrollTop) wrap.scrollTop = Math.max(0, top - head);
+    else if (top + rh > wrap.scrollTop + wrap.clientHeight) wrap.scrollTop = top + rh - wrap.clientHeight;
+    if (r < supView.win.start || r >= supView.win.end) drawSupRows();
   }
 
   // ---- selection (anchor r,c → r2,c2; r = position in the search-filtered list)
@@ -1172,8 +1312,8 @@
     r = Math.max(0, Math.min(r, max)); c = Math.max(0, Math.min(15, c));
     if (extend && supView.sel) { supView.sel.r2 = r; supView.sel.c2 = c; }
     else supView.sel = { r: r, c: c, r2: r, c2: c };
-    var page = Math.floor(r / SUP_PAGE);
-    if (page !== supView.page) { supView.page = page; drawSup(); } else paintSel();
+    supShowRow(r);
+    paintSel();
     var el = supCellEl(r, c); if (el) el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   }
 
@@ -1257,12 +1397,11 @@
   function wireSupSheet() {
     var host = $('#supSheet'); if (!host) return;
     var t; $('#supSearch').value = supView.q;
-    $('#supSearch').oninput = function () { clearTimeout(t); t = setTimeout(function () { supView.q = $('#supSearch').value; supView.page = 0; supView.sel = null; drawSup(); }, 200); };
-    $('#supPrev').onclick = function () { supView.page--; drawSup(); };
-    $('#supNext').onclick = function () { supView.page++; drawSup(); };
+    $('#supSearch').oninput = function () { clearTimeout(t); t = setTimeout(function () { supView.q = $('#supSearch').value; supView.sel = null; $('#supWrap').scrollTop = 0; drawSup(); }, 200); };
+    $('#supWrap').addEventListener('scroll', supOnScroll, { passive: true });
     $('#supUndo').onclick = supUndo;
     $('#supDelRows').onclick = deleteSelectedRows;
-    $('#supAddRow').onclick = function () { supView.q = ''; $('#supSearch').value = ''; supView.page = 0; drawSup(); supGoTo(supView.vis.length, 1); host.focus(); startEdit(''); };
+    $('#supAddRow').onclick = function () { supView.q = ''; $('#supSearch').value = ''; drawSup(); supGoTo(supView.vis.length, 1); host.focus(); startEdit(''); };
     $('#supClearAdded').onclick = function () {
       var e = addedEntry(false); if (!e) return;
       var n = e.data.length;
@@ -1372,10 +1511,11 @@
   }
 
   // ----------------------------------------------------------------- boot
-  function renderAll() { renderInputNav(); renderInputSummary(); updateRunButtons(); }
+  function renderAll() { renderInputNav(); renderInputSummary(); updateRunButtons(); renderTabs(); if (wb.active !== 'sup' && wb.active !== 'out') wbShow(wb.active, true); }
   function boot() {
     renderStages(); renderOutputs(); wireBulkDrop(); wireReview();
     $('#supPanel').innerHTML = supSheetHtml(); wireSupSheet();
+    renderTabs(); wbShow('sup', true);
     $('#runAllBtn').onclick = function () { runTo('export'); };
     $('#clearAllBtn').onclick = function () { if (state.busy) return; invalidateResults('Results cleared.'); startEngine().then(updateRunButtons); setGlobal('Results cleared. Input files are kept.', 'info'); };
     $('#railClearSession').onclick = function () {
