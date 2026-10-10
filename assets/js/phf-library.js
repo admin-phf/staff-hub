@@ -1,4 +1,5 @@
-/* PHF Staff Hub — Library v1.0.0 (10 Oct 2026)
+/* PHF Staff Hub — Library v1.0.1 (10 Oct 2026)
+ * v1.0.1: the CH2 / Unique supplier imports are used by POS Supplier Merge only when its Add button is pressed.
  * Files saved in this browser and shared by every Staff Hub tool, so a file one tool makes (or a reference file
  * you load once) is there for the next tool without dragging it in again. Everything stays in this browser on this
  * computer: nothing is uploaded, and another browser or PC has its own separate Library.
@@ -19,8 +20,8 @@
   // kind → what it is, which tool makes it and which tools use it (shown on the home page Library panel).
   var KINDS = {
     'lib:pos-db':          { label: 'POS Database', made: 'Build Master Databases', used: 'POS Supplier Merge', generated: true },
-    'lib:ch2-db':          { label: 'CH2 supplier import', made: 'Build Master Databases', used: 'POS Supplier Merge', generated: true },
-    'lib:uhp-db':          { label: 'Unique supplier import', made: 'Build Master Databases', used: 'POS Supplier Merge', generated: true },
+    'lib:ch2-db':          { label: 'CH2 supplier import', made: 'Build Master Databases', used: 'POS Supplier Merge (Add button)', generated: true },
+    'lib:uhp-db':          { label: 'Unique supplier import', made: 'Build Master Databases', used: 'POS Supplier Merge (Add button)', generated: true },
     'posMaster':           { label: 'Full merged master', made: 'Build Master Databases', used: 'Reconcile CH2 Order', generated: true },
     'lib:master-selected': { label: 'Selected-columns master', made: 'Build Master Databases', used: 'Kept here to download', generated: true },
     'lib:to-order':        { label: 'To-Order file', made: 'Build Master Databases', used: 'Kept here to download', generated: true },
@@ -138,7 +139,7 @@
   function isDismissed(tool, rec) { try { return !!rec && localStorage.getItem(dismissKey(tool, rec.kind)) === (rec.savedAt || ''); } catch (e) { return false; } }
 
   g.PHFLibrary = {
-    VERSION: 'v1.0.0', KINDS: KINDS, ORDER: ORDER,
+    VERSION: 'v1.0.1', KINDS: KINDS, ORDER: ORDER,
     put: put, get: get, list: list, remove: remove, clearAll: clearAll,
     toFile: toFile, isStale: isStale, when: when, ago: ago, info: info, onChange: onChange, estimate: estimate,
     dismiss: dismiss, isDismissed: isDismissed

@@ -1,6 +1,7 @@
 /* =====================================================================
-   PHF Staff Hub — unified theme v20.0.0 (06 Oct 2026; v19.0.0 05 Oct 2026)
+   PHF Staff Hub — unified theme v20.0.1 (10 Oct 2026; v20.0.0 06 Oct 2026; v19.0.0 05 Oct 2026)
    Palette lifted from Reconcile CH2 → POS layout.
+   v20.0.1: workspace panel rules also cover panels placed side by side in a .dash-row (compact-layout.css).
 
    Structure : navy bands with gold capitals (panel headings, table
                headers, selected tabs / layout buttons).
@@ -61,7 +62,7 @@ body.phf-page-reconcile .panel>.step,
 body.phf-page-reconcile .results-head,
 body.phf-page-admin .panel>h2:first-child,
 :is(body.phf-page-db,body.phf-page-reconcile) .builder-sidebar>.sidebar-title,
-:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace>.panel>.results-head,
+:is(body.phf-page-db,body.phf-page-reconcile) :is(.builder-workspace,.dash-row)>.panel>.results-head,
 :is(body.phf-page-db,body.phf-page-reconcile) .stage-dashboard .stage-head,
 :is(body.phf-page-db,body.phf-page-reconcile) .input-workspace-head,
 body.phf-page-db-legacy .panel>.step-title,
@@ -76,7 +77,7 @@ body.phf-page-specials .preview-head{
 }
 body.phf-page-reconcile .panel>.step h2,
 body.phf-page-reconcile .results-head h2,
-:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace>.panel>.results-head h2,
+:is(body.phf-page-db,body.phf-page-reconcile) :is(.builder-workspace,.dash-row)>.panel>.results-head h2,
 :is(body.phf-page-db,body.phf-page-reconcile) .stage-dashboard .stage-head h2,
 :is(body.phf-page-db,body.phf-page-reconcile) .input-workspace-head h2,
 body.phf-page-db-legacy .panel>.step-title h2,
@@ -89,7 +90,7 @@ body.phf-page-reconcile .panel>.step h2,
 body.phf-page-reconcile .results-head h2,
 body.phf-page-admin .panel>h2:first-child,
 :is(body.phf-page-db,body.phf-page-reconcile) .builder-sidebar>.sidebar-title,
-:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace>.panel>.results-head h2,
+:is(body.phf-page-db,body.phf-page-reconcile) :is(.builder-workspace,.dash-row)>.panel>.results-head h2,
 :is(body.phf-page-db,body.phf-page-reconcile) .stage-dashboard .stage-head h2,
 :is(body.phf-page-db,body.phf-page-reconcile) .input-workspace-head h2,
 body.phf-page-db-legacy .panel>.step-title h2,
@@ -102,7 +103,7 @@ body.phf-page-specials .ph-kicker{
 }
 /* Secondary text inside a band */
 body.phf-page-reconcile .results-head p,
-:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace>.panel>.results-head p,
+:is(body.phf-page-db,body.phf-page-reconcile) :is(.builder-workspace,.dash-row)>.panel>.results-head p,
 :is(body.phf-page-db,body.phf-page-reconcile) .input-workspace-head p,
 body.phf-page-db-legacy .panel>.step-title p,
 body.phf-page-db-legacy .results>.results-head p,
@@ -299,9 +300,9 @@ body.phf-page-db .full-width-wrap{padding-top:16px!important}
 :is(body.phf-page-db,body.phf-page-reconcile) .sidebar-footer{font-size:11px!important;color:var(--phf-muted)}
 :is(body.phf-page-db,body.phf-page-reconcile) .sidebar-footer strong{color:var(--phf-navy)}
 /* Workspace panels */
-:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace>.panel{--phf-pad:16px;padding:16px!important;margin:0 0 14px!important}
-:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace>.panel>.results-head{justify-content:space-between}
-:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace>.panel>.results-head>div{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+:is(body.phf-page-db,body.phf-page-reconcile) :is(.builder-workspace,.dash-row)>.panel{--phf-pad:16px;padding:16px!important;margin:0 0 14px!important}
+:is(body.phf-page-db,body.phf-page-reconcile) :is(.builder-workspace,.dash-row)>.panel>.results-head{justify-content:space-between}
+:is(body.phf-page-db,body.phf-page-reconcile) :is(.builder-workspace,.dash-row)>.panel>.results-head>div{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
 :is(body.phf-page-db,body.phf-page-reconcile) .dashboard-intro{display:flex!important;align-items:center;padding:12px 16px!important}
 :is(body.phf-page-db,body.phf-page-reconcile) .dashboard-intro p{margin:0;color:#4A5562;font-size:13px!important}
 :is(body.phf-page-db,body.phf-page-reconcile) .input-detail-panel{--phf-pad:16px}

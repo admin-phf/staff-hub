@@ -278,3 +278,23 @@ All implemented stages keep source business files local to the browser and gener
 - Home page: Library panel (`assets/js/hub-library.js`, `assets/css/library.css`) — list, Download, ✕, Delete all,
   storage used.
 
+## Staff Hub v21.10.1 — compact card layout + POS Supplier Merge v1.3.1 supplier scope (10 Oct 2026 21:30 AEDT)
+- `assets/css/compact-layout.css` (v1.0.0, linked after theme.css by Build Master Databases, POS Supplier Merge and
+  Reconcile CH2): cards side by side, nothing removed. `.builder-workspace` is a size container (`phf-ws`) so rows
+  react to the space beside the input rail. `.dash-row` = a row of panels (each its own height; a hidden panel takes
+  no column; one column under 900 px of workspace). Band headings keep their badge on the right and wrap inside.
+  - Build Master Databases v21.10.1 / POS Supplier Merge: `.dash-row-inputs` = selected input · Input readiness ·
+    Build all / Run all; stage cards in one row (Build Master Databases 3 × 1fr + 1.45fr for Combined Master from
+    1180 px of workspace, 2 × 2 from 900 px).
+  - Reconcile CH2 v2.9.3: `.dash-row-inputs` (selected input · readiness) and `.dash-row-run` (stage · Generated
+    output files). Results: `.result-pair` = Invoice → POS order link | POSActive import keys; `.pos-check-pair`
+    (app.js, only when both exist) = Not on POS order | GST differences. One column under 1100 px.
+  - Drop All results and generated output files: grid `repeat(auto-fill, minmax(520px, 1fr))` (two columns on a
+    full-width panel); first-line rules clipped by the list.
+- theme.css v20.0.1: the 7 `.builder-workspace>.panel` rules now read `:is(.builder-workspace,.dash-row)>.panel`.
+- POS Supplier Merge v1.3.1: `LIB_LOAD` = POS Database + Ongoing Discounts only. `LIB_SUP` (`lib:ch2-db`,
+  `lib:uhp-db`) are added only by the "+ Add … " buttons (`libSupAdd`, hosts `[data-lib-sup-host]` on the sheet and
+  the Supplier Updates card), because a whole catalogue widens stage 2 to every brand in it. `supScopeHtml()` =
+  "Brands in this merge: N" with row counts per SUP BRAND (column E) and added-here / from-files totals.
+- PHFLibrary v1.0.1: the supplier imports are labelled "POS Supplier Merge (Add button)" on the home page.
+

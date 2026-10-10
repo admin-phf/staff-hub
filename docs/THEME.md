@@ -6,6 +6,7 @@ Updated 06 Oct 2026 02:45 AEDT (theme v20.0.0). One look across every Staff Hub 
 - `assets/css/shell.css`: the shared page header (logo, centred title, breadcrumbs).
 - `assets/css/theme.css`: colour tokens, panel bands, buttons, status lines, file inputs and badges. It is **linked last** on every page.
 - `assets/css/hub.css`: Staff Hub home tiles only.
+- `assets/css/compact-layout.css` (v1.0.0, 10 Oct 2026): rows of cards side by side on Build Master Databases, POS Supplier Merge and Reconcile CH2 (`.dash-row`, stage cards in one row, file lists in columns, paired result notes). Linked straight after `theme.css`; nothing is hidden, it only places panels.
 
 Each page's `<body>` has a scope class so the theme never leaks between tools:
 

@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS Supplier Merge v1.3.0 (10 Oct 2026)
+/* PHF Staff Hub — POS Supplier Merge v1.3.1 (10 Oct 2026)
    Tool-only additions. Layout and colours come from css/app.css (same layout as
    Build Master Databases) and the shared assets/css/theme.css (linked last). */
 
@@ -164,3 +164,27 @@ body.phf-page-merge .input-nav-item.loaded.lib-stale{background:var(--phf-amber-
 body.phf-page-merge .input-nav-item.loaded.lib-stale .input-dot{background:#FCE9B8!important;color:var(--phf-amber-ink)!important}
 body.phf-page-merge .input-nav-item.loaded.lib-stale .input-state{background:#fff!important;color:var(--phf-amber-ink)!important;border:1px solid var(--phf-amber-line)}
 body.phf-page-merge .input-nav-item.loaded.lib-stale strong{color:var(--phf-amber-ink)!important}
+
+/* v1.3.1 — "Brands in this merge" line under the totals bar (the brands stage 2 matches, updates and discontinues) and
+   the Add … from the Library buttons for the CH2 / Unique supplier imports (never loaded on their own). */
+body.phf-page-merge .sup-scope{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding:9px 12px;background:#FFFBEA;border-bottom:1px solid #EFD98C}
+body.phf-page-merge .sup-scope-brands{display:flex;flex-wrap:wrap;gap:5px 6px;align-items:center;min-width:0;flex:1 1 520px;font-size:11.5px;color:#4A3B00}
+body.phf-page-merge .sup-scope-label{font-weight:800;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--phf-navy);margin-right:4px}
+body.phf-page-merge .sup-scope-rows{font-weight:700;color:#6B5A24;margin-right:6px}
+body.phf-page-merge .sup-scope-note{color:#6B5A24}
+body.phf-page-merge .sup-brand{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;background:#fff;border:1px solid #E6CD74;color:var(--phf-navy);font-size:11px;font-weight:700;white-space:nowrap}
+body.phf-page-merge .sup-brand b{font-weight:800;color:#8A6D00;font-variant-numeric:tabular-nums}
+body.phf-page-merge .sup-scope-more{display:inline-block}
+body.phf-page-merge .sup-scope-more summary{cursor:pointer;font-weight:800;color:var(--phf-blue-ink);font-size:11px;list-style:none;padding:2px 6px}
+body.phf-page-merge .sup-scope-more summary::-webkit-details-marker{display:none}
+body.phf-page-merge .sup-scope-more[open]{display:flex;flex-wrap:wrap;gap:5px 6px;flex-basis:100%}
+body.phf-page-merge .sup-scope-more[open]>div{display:flex;flex-wrap:wrap;gap:5px 6px}
+body.phf-page-merge .sup-scope-lib{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+body.phf-page-merge .sup-scope-lib[hidden]{display:none}
+body.phf-page-merge .sup-lib-label{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--phf-muted)}
+body.phf-page-merge .sup-lib-add{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;min-height:34px;padding:5px 10px;text-align:left;line-height:1.2;border-color:var(--phf-blue-line);color:var(--phf-blue-ink);background:#fff}
+body.phf-page-merge .sup-lib-add small{font-size:10px;font-weight:600;color:var(--phf-muted)}
+body.phf-page-merge .sup-lib-add:hover:not(:disabled){background:var(--phf-blue-bg)}
+body.phf-page-merge .sup-lib-add.is-stale small{color:var(--phf-amber-ink)}
+body.phf-page-merge .sup-lib-add.is-added{border-color:var(--phf-green-line);color:var(--phf-green-ink);background:var(--phf-green-bg);opacity:1!important;cursor:default}
+body.phf-page-merge .sup-card-lib{margin-top:10px}

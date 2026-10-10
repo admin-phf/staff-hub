@@ -23,11 +23,23 @@ Google Sheet (File → Download → Microsoft Excel) can be dropped as one file:
 input. Columns are matched by heading, `POS_MASTER_BARCODE` fills POS MAIN ID, and INDEX is renumbered
 1, 2, 3… the same way the Sheet's paste tidy does. STATUS columns are cleared because the merge writes them.
 
+## Brands in this merge (v1.3.1)
+
+A merge only covers the brands in **Supplier Updates**: stage 2 matches, updates and discontinues (ZZZZ) the POS
+products of those brands and returns them in full, and leaves every other POS brand out. Supplier Updates therefore
+**starts empty** — paste or drop the supplier list / catalogue of the brand or distributor you are updating. The line
+under the sheet's totals bar shows **Brands in this merge: N** with the rows per brand, so the scope can be checked
+before running.
+
+The CH2 and Unique supplier imports saved by Build Master Databases are **never loaded on their own**. To merge a
+whole catalogue, press **+ Add CH2 supplier import** or **+ Add Unique supplier import** (on the sheet, or on the
+Supplier Updates card). ✕ / Remove takes it out again.
+
 ## Staff Hub Library (v1.3.0)
 
 When the page opens, files saved in this browser's Staff Hub Library (see the home page) fill empty inputs:
-the **POS Database** and the **CH2 / Unique supplier imports** from the last Build Master Databases build, and the shared
-**Ongoing Discounts** file. Each shows "From the Library · built …"; a build over a day old turns the row amber
+the **POS Database** from the last Build Master Databases build and the shared **Ongoing Discounts** file
+(v1.3.0 also loaded the CH2 / Unique supplier imports; from v1.3.1 they are added with their buttons). Each shows "From the Library · built …"; a build over a day old turns the row amber
 (CHECK DATE). A file dropped on the page always wins. ✕ / Remove on a Library file stops it loading here again until
 a newer build is saved; Ongoing Discounts is one shared file, so removing it here deletes the saved copy. An Ongoing
 Discounts file dropped here is saved to the Library for Build Master Databases too.

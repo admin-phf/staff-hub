@@ -1,0 +1,116 @@
+/* =====================================================================
+   PHF Staff Hub — compact card layout v1.0.0 (10 Oct 2026)
+   Build Master Databases · POS Supplier Merge · Reconcile CH2 Order (loaded after theme.css).
+
+   Cards sit side by side in rows instead of one full-width panel under another. Nothing is hidden:
+   every panel, message, file row and stage keeps its content. The big Drop All zone, the supplier
+   sheet, the review table and the reconciliation table stay full width.
+
+   - .dash-row: panels in one row, each its own height. A hidden panel (no input selected) takes no column.
+   - Stage cards: all in one row (Build Master Databases 4, POS Supplier Merge 3).
+   - File lists (Drop All results, generated output files): two or three columns when there is room.
+   - Reconcile results: Invoice → POS order link | POSActive import keys, and Not on POS order |
+     GST differences, side by side when both are shown.
+   Rows measure the workspace beside the input rail (container queries), so a narrow window or a
+   wide rail falls back to one column on its own.
+   ===================================================================== */
+
+:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace{container:phf-ws/inline-size}
+
+/* ---- rows of cards ---- */
+:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row{display:grid;gap:12px;margin:0 0 14px;align-items:start}
+:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row>*{margin:0!important;min-width:0}
+:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row>.panel{container-type:inline-size}
+:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row>.stage-dashboard{display:grid}
+:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row>.stage-dashboard>*{min-width:0}
+@container phf-ws (min-width:900px){
+  :is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row{grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}
+  /* The selected input card holds a drop zone and its file list, so it gets a little more room. */
+  body.phf-page-db .builder-workspace .dash-row-inputs:has(>.input-detail-panel .input-workspace-card){grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) minmax(0,1fr)}
+  body.phf-page-db .builder-workspace .dash-row-inputs:not(:has(>.input-detail-panel .input-workspace-card)){grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  body.phf-page-reconcile .builder-workspace .dash-row-inputs:has(>.input-detail-panel.is-open){grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
+  body.phf-page-reconcile .builder-workspace .dash-row-inputs:not(:has(>.input-detail-panel.is-open)){grid-template-columns:minmax(0,1fr)}
+  body.phf-page-reconcile .builder-workspace .dash-row-run{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
+/* Each card keeps its own height (like the stage cards), so a short card never shows an empty white block. */
+:is(body.phf-page-db,body.phf-page-reconcile) .builder-workspace .dash-row>.stage-dashboard{margin:0!important}
+
+/* Navy bands in narrower cards: the heading text wraps inside the band and the badge stays on the right. */
+:is(body.phf-page-db,body.phf-page-reconcile) :is(.builder-workspace,.dash-row)>.panel>.results-head,
+:is(body.phf-page-db,body.phf-page-reconcile) .stage-dashboard .stage-head,
+:is(body.phf-page-db,body.phf-page-reconcile) .input-workspace-head{flex-wrap:nowrap!important}
+:is(body.phf-page-db,body.phf-page-reconcile) :is(.builder-workspace,.dash-row)>.panel>.results-head>div:first-child,
+:is(body.phf-page-db,body.phf-page-reconcile) .input-workspace-head>div:first-child,
+:is(body.phf-page-db,body.phf-page-reconcile) .stage-dashboard .stage-title{flex:1 1 auto;min-width:0}
+:is(body.phf-page-db,body.phf-page-reconcile) :is(.results-head,.stage-head,.input-workspace-head)>:is(.result-badge,.small-badge){flex:0 0 auto;white-space:nowrap}
+:is(body.phf-page-db,body.phf-page-reconcile) .dash-row .input-meta>div{min-width:0;overflow-wrap:anywhere}
+
+/* ---- inside a card that now has less width ---- */
+@container (max-width:640px){
+  :is(body.phf-page-db,body.phf-page-reconcile) .dash-row .input-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  :is(body.phf-page-db,body.phf-page-reconcile) .dash-row .input-meta{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  :is(body.phf-page-db,body.phf-page-reconcile) .dash-row .input-meta>div:last-child:nth-child(odd){grid-column:1/-1}
+  :is(body.phf-page-db,body.phf-page-reconcile) .dash-row .input-workspace-card .dropzone{min-height:96px!important}
+  :is(body.phf-page-db,body.phf-page-reconcile) .dash-row .auto-download{grid-template-columns:minmax(0,1fr)}
+  :is(body.phf-page-db,body.phf-page-reconcile) .dash-row .auto-download .download-link{justify-self:start}
+}
+@container (max-width:380px){
+  :is(body.phf-page-db,body.phf-page-reconcile) .dash-row .input-summary,
+  :is(body.phf-page-db,body.phf-page-reconcile) .dash-row .input-meta{grid-template-columns:minmax(0,1fr)!important}
+}
+:is(body.phf-page-db,body.phf-page-reconcile) .dash-row .file-row{gap:10px}
+:is(body.phf-page-db,body.phf-page-reconcile) .dash-row .file-row>span{min-width:0;overflow-wrap:anywhere}
+:is(body.phf-page-db,body.phf-page-reconcile) .dash-row .dashboard-run .actions .btn{flex:1 1 auto}
+
+/* ---- Build Master Databases: the four stage cards in one row (Combined Master a little wider) ---- */
+@container phf-ws (min-width:1180px){
+  body.phf-page-db:not(.phf-page-merge) .builder-workspace .stage-dashboard{grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,1.45fr)!important;align-items:start}
+}
+@container phf-ws (min-width:900px) and (max-width:1179.98px){
+  body.phf-page-db:not(.phf-page-merge) .builder-workspace .stage-dashboard{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@container phf-ws (max-width:899.98px){
+  body.phf-page-db .builder-workspace .stage-dashboard{grid-template-columns:minmax(0,1fr)!important}
+}
+/* A stage card is a container too: in a narrow card the file name sits above its Download button. */
+:is(body.phf-page-db,body.phf-page-reconcile) .stage-dashboard .stage-panel{container-type:inline-size}
+@container (max-width:420px){
+  body.phf-page-db .stage-output-inline .output-row{grid-template-columns:minmax(0,1fr)!important;gap:6px!important}
+  body.phf-page-db .stage-output-inline .output-row .output-actions{justify-self:start}
+  body.phf-page-db .stage-dashboard .master-callout{grid-template-columns:minmax(0,1fr)!important}
+  body.phf-page-db .stage-dashboard .master-callout>div:last-child:nth-child(odd){grid-column:auto}
+}
+body.phf-page-db .stage-output-inline .output-row code{overflow-wrap:anywhere}
+
+/* ---- file lists in columns: Drop All results and generated output files ----
+   Each row keeps its top rule; the rules on the first line are clipped by the list itself. */
+:is(body.phf-page-db,body.phf-page-reconcile) .bulk-results:not(:empty),
+:is(body.phf-page-db,body.phf-page-reconcile) .outputs-panel .output-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,520px),1fr));column-gap:28px;overflow:hidden}
+:is(body.phf-page-db,body.phf-page-reconcile) .bulk-results>.bulk-row,
+:is(body.phf-page-db,body.phf-page-reconcile) .outputs-panel .output-list>.output-row{border-top:1px solid var(--phf-line)!important;margin-top:-1px}
+:is(body.phf-page-db,body.phf-page-reconcile) .bulk-results>.bulk-row{padding-top:10px}
+:is(body.phf-page-db,body.phf-page-reconcile) .outputs-panel .output-list>:not(.output-row){grid-column:1/-1}
+:is(body.phf-page-db,body.phf-page-reconcile) .outputs-panel .output-row>div:first-child{min-width:0}
+
+/* ---- Reconcile CH2 results: two notes side by side ---- */
+body.phf-page-reconcile .result-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start;margin:12px 0 14px}
+body.phf-page-reconcile .result-pair>*{margin:0!important;min-width:0}
+body.phf-page-reconcile .result-pair:has(>.hidden){grid-template-columns:minmax(0,1fr)}
+body.phf-page-reconcile .result-pair:not(:has(>:not(.hidden))){display:none}
+body.phf-page-reconcile .pos-check-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border-bottom:1px solid #e6d3a6}
+body.phf-page-reconcile .pos-check-pair>*{border-bottom:0!important;min-width:0}
+body.phf-page-reconcile .pos-check-pair>:first-child{border-right:1px solid #e6d3a6}
+body.phf-page-reconcile .pos-check-pair .pos-orderfile-item{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"t r" "m m" "d d";row-gap:2px}
+body.phf-page-reconcile .pos-check-pair .pos-orderfile-item>b{grid-area:t}
+body.phf-page-reconcile .pos-check-pair .pos-orderfile-meta{grid-area:m}
+body.phf-page-reconcile .pos-check-pair .pos-orderfile-reason{grid-area:r;text-align:right}
+body.phf-page-reconcile .pos-check-pair .pos-orderfile-item>small{grid-area:d}
+body.phf-page-reconcile .pos-check-pair .pos-gst-item{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"t r" "m e";row-gap:2px}
+body.phf-page-reconcile .pos-check-pair .pos-gst-item>b{grid-area:t}
+body.phf-page-reconcile .pos-check-pair .pos-gst-meta{grid-area:m}
+body.phf-page-reconcile .pos-check-pair .pos-gst-rates{grid-area:r;text-align:right}
+body.phf-page-reconcile .pos-check-pair .pos-gst-item>small{grid-area:e}
+@media(max-width:1100px){
+  body.phf-page-reconcile .result-pair,body.phf-page-reconcile .pos-check-pair{grid-template-columns:minmax(0,1fr)}
+  body.phf-page-reconcile .pos-check-pair>:first-child{border-right:0;border-bottom:1px solid #e6d3a6!important}
+}

@@ -1,5 +1,7 @@
 (function(){'use strict';
-const VERSION='v21.10.0', CH2V='v1.0.0', UHPV='v1.0.1', MASTERV='v2.4.0', POSV='v5.0.1';
+const VERSION='v21.10.1', CH2V='v1.0.0', UHPV='v1.0.1', MASTERV='v2.4.0', POSV='v5.0.1';
+// v21.10.1 — page layout only (assets/css/compact-layout.css): selected input · readiness · Build all in one row, the four
+// stage cards in one row, file lists in two columns. No change to the builds.
 // v21.10.0 — Staff Hub Library (assets/js/phf-library.js): outputs other tools use, and the reference inputs you load
 // once, are saved in this browser. LIB_OUT = output key → Library kind; LIB_REF = input id → Library kind (reloaded on open).
 const LIB=window.PHFLibrary||null;

@@ -7,15 +7,21 @@
  *         always shown; every input in the rail has its own ✕ to remove it.
  * v1.3.0: Staff Hub Library — the POS Database and supplier files from Build Master Databases and the shared Ongoing
  *         Discounts file load on open (assets/js/phf-library.js); files dropped here for Ongoing Discounts are saved to it.
+ * v1.3.1: Supplier Updates starts empty — a merge only covers the brands pasted or dropped. The CH2 / Unique supplier
+ *         imports in the Library are added only with their "Add … from the Library" buttons. "Brands in this merge"
+ *         line above the sheet. Compact card layout (rows of cards side by side).
  */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.3.0';
+  var TOOL_VERSION = 'v1.3.1';
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
+  // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
+  // full CH2 / Unique catalogue would widen every merge to all its brands) — LIB_SUP lists them for the Add buttons.
   var LIB = window.PHFLibrary || null, LIB_TOOL = 'pos-supplier-merge';
-  var LIB_LOAD = [{ id: 'pos', kind: 'lib:pos-db' }, { id: 'sup', kind: 'lib:ch2-db' }, { id: 'sup', kind: 'lib:uhp-db' }, { id: 'disc', kind: 'lib:ref-discounts' }];
+  var LIB_LOAD = [{ id: 'pos', kind: 'lib:pos-db' }, { id: 'disc', kind: 'lib:ref-discounts' }];
+  var LIB_SUP = ['lib:ch2-db', 'lib:uhp-db'];
   var LIB_SHARED = { disc: 'lib:ref-discounts' };
   var M = window.PHFMergeMap;
   var $ = function (s) { return document.querySelector(s); };
@@ -407,8 +413,9 @@
     host.querySelectorAll('[data-remove]').forEach(function (b) { b.onclick = function () { removeFile(id, +b.dataset.remove); }; });
     document.querySelectorAll('[data-input]').forEach(function (b) { b.classList.toggle('active', b.dataset.input === id); });
     if (id === 'sup') {
-      host.querySelector('.input-workspace-card').insertAdjacentHTML('beforeend', '<div class="sup-card-link"><button type="button" class="btn small" id="supJump">Open the IN_SUPPLIER sheet ↓</button><span>Edit, paste and check every supplier row in the sheet under the stages.</span></div>');
+      host.querySelector('.input-workspace-card').insertAdjacentHTML('beforeend', '<div class="sup-card-link"><button type="button" class="btn small" id="supJump">Open the IN_SUPPLIER sheet ↓</button><span>Edit, paste and check every supplier row in the sheet under the stages.</span></div><div class="sup-scope-lib sup-card-lib" data-lib-sup-host hidden></div>');
       host.querySelector('#supJump').onclick = scrollToSupSheet;
+      drawLibSup();
     }
   }
   function readinessText() {
@@ -1015,11 +1022,76 @@
       names: uniq(1), suppliers: uniq(2), barcodes: uniq(3), brands: uniq(4), ws: sum(9), rrp: sum(10) };
   }
   function money(n) { return '$' + Number(n || 0).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  // v1.3.1 — the brands this merge covers (SUP BRAND, column E, of every supplier row). Stage 2 matches, updates and
+  // discontinues POS products of these brands only, so this is the check before running.
+  function supScopeHtml(model) {
+    var counts = {}, list = [], added = 0;
+    model.items.forEach(function (it) {
+      var b = String(it.ref.row[4] == null ? '' : it.ref.row[4]).trim().toUpperCase() || '(NO BRAND)';
+      if (!counts[b]) { counts[b] = 0; list.push(b); }
+      counts[b]++;
+      if (it.ref.e.added) added++;
+    });
+    if (!model.items.length) return '<span class="sup-scope-label">Brands in this merge: 0</span><span class="sup-scope-note">Paste or drop the supplier rows for the brands you are updating — the merge matches, updates and discontinues only those brands.</span>';
+    list.sort();
+    var chip = function (b) { return '<span class="sup-brand">' + esc(b) + ' <b>' + fmtN(counts[b]) + '</b></span>'; };
+    var SHOW = 10, files = model.items.length - added;
+    var rows = fmtN(model.items.length) + ' row' + (model.items.length === 1 ? '' : 's') + (added && files ? ' (' + fmtN(added) + ' added here · ' + fmtN(files) + ' from files)' : added ? ' added here' : ' from files');
+    return '<span class="sup-scope-label">Brands in this merge: ' + fmtN(list.length) + '</span><span class="sup-scope-rows">' + rows + '</span>' +
+      list.slice(0, SHOW).map(chip).join('') +
+      (list.length > SHOW ? '<details class="sup-scope-more"><summary>+' + fmtN(list.length - SHOW) + ' more</summary><div>' + list.slice(SHOW).map(chip).join('') + '</div></details>' : '');
+  }
+
+  // v1.3.1 — CH2 / Unique supplier imports saved by Build Master Databases are added only when asked (buttons on the
+  // sheet and on the Supplier Updates card): a whole catalogue widens the merge to every brand in it.
+  var libSupRecs = {};
+  function libSupRefresh() {
+    if (!LIB) return Promise.resolve();
+    return LIB.list().then(function (all) {
+      libSupRecs = {};
+      (all || []).forEach(function (r) { if (LIB_SUP.indexOf(r.kind) >= 0) libSupRecs[r.kind] = r; });
+      drawLibSup();
+    }).catch(function (e) { console.warn('Library list failed', e); });
+  }
+  function libSupAdded(kind) { var r = libSupRecs[kind]; return supEntries().some(function (f) { return f.libKind === kind && (!r || f.libSavedAt === r.savedAt); }); }
+  function libSupButtonsHtml() {
+    var ks = LIB ? LIB_SUP.filter(function (k) { return libSupRecs[k]; }) : [];
+    if (!ks.length) return '';
+    return '<span class="sup-lib-label">From the Library</span>' + ks.map(function (k) {
+      var r = libSupRecs[k], on = libSupAdded(k), stale = LIB.isStale(r), rows = String(r.meta || '').split(' · ')[0];
+      return '<button type="button" class="btn small sup-lib-add' + (on ? ' is-added' : '') + (stale ? ' is-stale' : '') + '" data-lib-add="' + k + '"' + (on ? ' disabled' : '') +
+        ' title="' + esc(r.name + (r.meta ? ' · ' + r.meta : '') + ' — adds every brand in this file to the merge') + '">' + (on ? '✓ ' : '+ Add ') + esc(LIB.info(k).label) + (on ? ' added' : '') +
+        '<small>' + esc((/rows/.test(rows) ? rows + ' · ' : '') + 'built ' + LIB.when(r) + ' (' + LIB.ago(r) + ')' + (stale ? ' — check it is the latest' : '')) + '</small></button>';
+    }).join('');
+  }
+  function drawLibSup() {
+    var html = libSupButtonsHtml();
+    document.querySelectorAll('[data-lib-sup-host]').forEach(function (h) { h.innerHTML = html; h.hidden = !html; });
+    document.querySelectorAll('[data-lib-add]').forEach(function (b) { b.onclick = function () { libSupAdd(b.dataset.libAdd); }; });
+  }
+  function libSupAdd(kind) {
+    if (!LIB || state.busy) return Promise.resolve(false);
+    var label = LIB.info(kind).label;
+    setGlobal('Adding the ' + label + ' from the Library…', 'running');
+    return LIB.get(kind).then(function (rec) {
+      if (!rec || !rec.blob) throw new Error('it is no longer in the Library.');
+      var file = LIB.toFile(rec);
+      return readWorkbook(file).then(function (sheets) {
+        var best = mapForInput('sup', sheets), entry = fileEntry(file, best.tab, best.mapped);
+        entry.libKind = kind; entry.libSavedAt = rec.savedAt; entry.libWhen = LIB.when(rec);
+        addToInput('sup', entry);
+        renderAll(); if (state.activeInput === 'sup') showInput('sup');
+        setGlobal(label + ' added from the Library — ' + fmtN(entry.data.length) + ' rows. ' + readinessText(), requiredReady() ? 'ready' : 'missing');
+        return true;
+      });
+    }).catch(function (e) { setGlobal('The ' + label + ' could not be added: ' + e.message, 'error'); return false; });
+  }
 
   function supSheetHtml() {
     return '<div class="sup-sheet" id="supSheet" tabindex="0" aria-label="IN_SUPPLIER_/_PRODUCT_UPDATES sheet">' +
       '<div class="sup-head"><div><h3>IN_SUPPLIER_/_PRODUCT_UPDATES</h3><p>The Supplier Updates tab as the Google Sheet shows it. Click a cell and type to change it · Ctrl+V (⌘V) pastes from the selected cell · click an INDEX number to select rows · Ctrl+Z undoes.</p></div><span class="result-badge" id="supCount">0 ROWS</span></div>' +
       '<div class="sup-bar" id="supBar"></div>' +
+      '<div class="sup-scope"><div class="sup-scope-brands" id="supScope"></div><div class="sup-scope-lib" data-lib-sup-host hidden></div></div>' +
       '<div class="sup-tools"><input type="search" id="supSearch" placeholder="Search barcode, brand, Sub ID, product or status…" aria-label="Search supplier rows">' +
       '<button type="button" class="btn small primary" id="supPasteBtn" title="Paste the clipboard at the selected cell (or add the rows at the end when no cell is selected)">Paste</button>' +
       '<button type="button" class="btn small" id="supAddRow" title="Add an empty row at the end and start typing in it">Add row</button>' +
@@ -1043,6 +1115,8 @@
       '<div class="sup-bar-group">' + bc('TOTAL', fmtN(t.total)) + bc('⭐ MATCHED', fmtN(t.matched), 'is-match') + bc('🟢 NEW', fmtN(t.newp), 'is-new') + bc('🚫 NOT USED', fmtN(t.notUsed), 'is-muted') + bc('⚠️ UNMATCHABLE', fmtN(t.unm), 'is-warn') + '</div>' +
       '<div class="sup-bar-group">' + bc('SUPPLIER NAMES', fmtN(t.names)) + bc('TOTAL POS SUPPLIERS', fmtN(t.suppliers)) + bc('UNIQUE BARCODES', fmtN(t.barcodes), '', 'Column D (SUP BARCODE). In the Google Sheet this cell may be labelled UNIQUE BRANDS from an older layout — it counts barcodes.') + bc('UNIQUE BRANDS', fmtN(t.brands)) + bc('TOTAL WS', money(t.ws)) + bc('TOTAL RRP', money(t.rrp)) + '</div>' +
       '<div class="sup-bar-status' + (model.run ? ' is-run' : '') + '"><span>STATUS</span>' + esc(stat) + (q ? ' <em>· totals are for the ' + fmtN(vis.length) + ' rows matching the search</em>' : '') + '</div>';
+    $('#supScope').innerHTML = supScopeHtml(model);
+    drawLibSup();
     var pages = Math.max(1, Math.ceil((vis.length + (q ? 0 : 1)) / SUP_PAGE));
     supView.page = Math.max(0, Math.min(supView.page, pages - 1));
     var start = supView.page * SUP_PAGE, end = Math.min(vis.length, start + SUP_PAGE), html = [];
@@ -1317,7 +1391,9 @@
       setGlobal((got && got.length ? 'From the Library: ' + got.join(' · ') + '. ' : '') + (saved ? saved + ' saved reference table' + (saved === 1 ? '' : 's') + ' loaded from this browser. ' : '') + readinessText(), requiredReady() ? 'ready' : 'missing');
       if (state.activeInput) showInput(state.activeInput);
     });
+    libSupRefresh();
     if (LIB) LIB.onChange(function (msg) {
+      if (msg.action === 'clear' || LIB_SUP.indexOf(msg.kind) >= 0) { libSupRefresh(); return; }
       var use = LIB_LOAD.filter(function (j) { return j.kind === msg.kind; })[0];
       if (msg.action === 'put' && use && !LIB_SHARED[use.id]) setGlobal('A newer ' + LIB.info(msg.kind).label + ' was saved to the Library (' + LIB.when(msg.record) + '). Reload this page to use it, or keep working with the files loaded now.', 'info');
     });
