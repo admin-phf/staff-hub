@@ -48,4 +48,12 @@ Main action buttons follow the inputs: **grey** until required files are present
 ## Input rail layout
 Build Master Databases and Reconcile CH2 share one layout: an **Input files** rail (`.builder-sidebar`, `.input-group`, `.input-nav-item` with `loaded` / `missing` / `required` / `active` / `drag-target` / `invalid`) beside a workspace (`.input-detail-panel`, `.dashboard-summary` + `.summary-chip.ok|.miss`, `.stage-dashboard`, `.outputs-panel`). Their colours are one set of rules in `theme.css`; a new tool with input files should reuse these class names and add its body class to those `:is(...)` selectors.
 
+## Excel outputs (Reconcile CH2 look)
+Reconcile CH2 Order and the Combined Master full file (`merged_alligned_pos_supplier_uhp_full_….xlsx`, Master v2.4.0) share one
+workbook look: navy #1E3A5F header with gold #E6CD74 capitals, Google Sans, rows banded #E9F0F5 / #F5F5F5 with thin #D9E2F3
+lines, no gridlines, and a navy / gold totals row. Price moves (new vs current, 3¢ tolerance): ↑ red #C5221F on #FCE8E6,
+↓ blue #1967D2 on #E8F0FE, — grey #9AA0A6 (the current price is grey). Checks: ☑ green #0F6B36 on #E6F4EA, ☒ red on
+#FCE8E6, ☐ grey; confidence HIGH green · MEDIUM amber #7A4F00 on #FFF7E0 · LOW red. Only display formats change — the
+values stay plain numbers, so every reader of the file still works.
+
 Update Specials customer artwork (`.slide`, PNG/ZIP/PDF/Mailchimp exports) is deliberately untouched: the theme only styles the editor around it.

@@ -1,4 +1,8 @@
-/* MasterCore v2.3.0 — Combined Master (browser port of MASTER Step 3 V30.15, no pandas / no database).
+/* MasterCore v2.4.0 — Combined Master (browser port of MASTER Step 3 V30.15, no pandas / no database).
+   v2.4.0 (10 Oct 2026): full file only — CHK_* link checks after MATCH_BASIS (☑ / ☒ per CH2 and UHP link for BC, SUB ID,
+   BRAND, W/S, TEXT and pack SIZE, a score and HIGH / MEDIUM / LOW confidence), a Match_Audit tab, and the Reconcile CH2
+   look (navy header, banded rows, red ↑ / blue ↓ price moves). Matching, pricing, columns before MATCH_BASIS, the selected
+   and order files are unchanged.
    Everything runs in the browser at the time the page is used.
 
    Same as Python V30.15:
@@ -22,7 +26,7 @@
    matchMode 'python' reproduces V30.15 exactly and is used only to verify the port. */
 (function (g) {
   'use strict';
-  const VERSION = '2.3.0';
+  const VERSION = '2.4.0';
 
   // ---------------------------------------------------------------- constants (Python V30.15)
   const COLUMN_MAPPINGS = {
@@ -106,6 +110,12 @@
   // Source / audit columns added after MATCH_BASIS in the full master only: the To-Order lines behind AV_QTY_UNITS and the
   // ongoing-discount rule that priced the row (OD_SOURCE_ROW = row in the discounts workbook).
   const AUDIT_COLUMNS = ['AV_SOURCE_ROWS', 'OD_SOURCE_ROW', 'OD_INDEX', 'OD_RULE', 'OD_DISCOUNT_PCT', 'OD_MARKUP_PCT', 'OD_MEMBER', 'OD_MATCH', 'OD_DESCR'];
+  // v2.4.0 link checks (full file only, straight after MATCH_BASIS). Names start CHK_ so they never look like the CH2 code /
+  // SUB ID columns other tools (Reconcile CH2) search for.
+  const CHECK_COLUMNS = ['CHK_CONFIDENCE',
+    'CHK_CH2_BC', 'CHK_CH2_SUBID', 'CHK_CH2_BRAND', 'CHK_CH2_WS', 'CHK_CH2_TEXT', 'CHK_CH2_SIZE', 'CHK_CH2_SCORE',
+    'CHK_UHP_BC', 'CHK_UHP_SUBID', 'CHK_UHP_BRAND', 'CHK_UHP_WS', 'CHK_UHP_TEXT', 'CHK_UHP_SIZE', 'CHK_UHP_SCORE',
+    'CHK_FLAGS'];
 
   // Excel formatting sets (Python V30.8 – V30.10)
   const COUNT_COLUMNS = new Set(['MASTER_BARCODE', 'MATCH_STATUS', 'POS_INDEX', 'CH2_INDEX', 'UHP_INDEX', 'AV_INDEX', 'AV_SUPPLIER_NUMBER']);
@@ -948,6 +958,72 @@
     return txt + ')';
   }
 
+  // ---------------------------------------------------------------- link checks (v2.4.0)
+  /* Every POS → CH2 / UHP link shows which evidence agrees, like the POS Supplier Merge sheet's BC · SUB ID · BRAND · WSP ·
+     TEXT columns: ☑ agrees, ☒ differs, ☐ cannot be checked. BC / SUB ID / BRAND / W/S use the same tests as the matching;
+     TEXT = description similarity (brand words removed) ≥ 50%, the bar the brand + description matching uses; SIZE = pack
+     sizes in the two descriptions agree (☐ when either has none). Score = checks agreeing out of 6.
+     HIGH = 4+ agree including the barcode or SUB ID · LOW = 2 or fewer, or the pack sizes conflict · MEDIUM = between. */
+  const TEXT_OK = 0.5;
+  const CONF_RANK = { LOW: 0, MEDIUM: 1, HIGH: 2 };
+  function checkDropWords(brands, aliases) {
+    const drop = new Set();
+    for (const b of brands) for (const f of brandForms(b, aliases)) {
+      for (const w of f.split(/[^A-Z0-9]+/)) if (w) drop.add(w);
+      drop.add(compact(f)); const i = initials(f); if (i) drop.add(i);
+    }
+    return drop;
+  }
+  function sizeCheck(a, b) {
+    if (!a.sizes.length || !b.sizes.length) return null;
+    const by = x => { const m = new Map(); for (const [v, u] of x.sizes) { if (!m.has(u)) m.set(u, new Set()); m.get(u).add(v); } return m; };
+    const A = by(a), B = by(b);
+    let shared = 0;
+    // Same unit: any size within 2% agrees (POS descriptions round, e.g. 3.6KG for 3.63kg).
+    const near = (v, w) => v === w || Math.abs(v - w) <= 0.02 * Math.max(Math.abs(v), Math.abs(w));
+    for (const [u, vs] of A) if (B.has(u)) { shared++; if (![...vs].some(v => [...B.get(u)].some(w => near(Number(v), Number(w))))) return false; }
+    if (shared) return true;
+    const ka = new Set(a.sizes.map(x => PACK_CLASS[x[1]]).filter(Boolean)), kb = new Set(b.sizes.map(x => PACK_CLASS[x[1]]).filter(Boolean));
+    if (ka.size && kb.size && ![...ka].some(k => kb.has(k))) return false;
+    return null;
+  }
+  const sizeLabel = p => (p.sizes || []).map(([v, u]) => v + u).join('/');
+  function linkChecks(src, row, aliases) {
+    const s = scoreCandidate(src, row, aliases);
+    const drop = checkDropWords([...(src.brands || []), ...(row.__brands || [])], aliases);
+    const a = parseDescription(src.desc || '', drop), b = parseDescription(row.__desc || '', drop);
+    const text = a.words.length && b.words.length ? Math.max(0, Math.min(1, descriptionSimilarity(a, b).score || 0)) : 0;
+    const c = {
+      bc: s.basis.includes('BARCODE'), sub: s.basis.includes('SUB ID'), brand: s.basis.includes('BRAND'), ws: s.basis.includes('W/S'),
+      text, txt: text >= TEXT_OK, size: sizeCheck(a, b), wsr: wsRelative(src.ws, row.__ws), sizes: [sizeLabel(a), sizeLabel(b)],
+      hasBc: !!(src.bc && row.__bc), hasSub: !!(src.subId && row.__code)
+    };
+    c.n = [c.bc, c.sub, c.brand, c.ws, c.txt, c.size === true].filter(Boolean).length;
+    c.level = (c.n <= 2 || c.size === false) ? 'LOW' : (c.n >= 4 && (c.bc || c.sub)) ? 'HIGH' : 'MEDIUM';
+    return c;
+  }
+  function checkFlags(sup, c, tier) {
+    const f = [];
+    if (tier === 'desc') f.push(`${sup} found by brand + description (no shared barcode / SUB ID)`);
+    else if (c.bc && c.n <= 2) f.push(`${sup} barcode only`);
+    if (c.hasBc && !c.bc) f.push(`${sup} barcode differs`);
+    if (!c.brand) f.push(`${sup} brand differs`);
+    if (!c.ws && c.wsr !== null) f.push(`${sup} W/S differs ${Math.round(c.wsr * 100)}%`);
+    if (c.size === false) f.push(`${sup} pack size differs (POS ${c.sizes[0] || '?'} / ${sup} ${c.sizes[1] || '?'})`);
+    if (!c.txt) f.push(`${sup} description ${Math.round(c.text * 100)}%`);
+    return f;
+  }
+  function applyChecks(m, sup, c) {
+    const tick = v => v === true ? '☑' : v === false ? '☒' : '☐';
+    m[`CHK_${sup}_BC`] = c.hasBc ? tick(c.bc) : (c.bc ? '☑' : '☐');
+    m[`CHK_${sup}_SUBID`] = c.hasSub ? tick(c.sub) : (c.sub ? '☑' : '☐');
+    m[`CHK_${sup}_BRAND`] = tick(c.brand);
+    m[`CHK_${sup}_WS`] = c.wsr === null && !c.ws ? '☐' : tick(c.ws);
+    m[`CHK_${sup}_TEXT`] = Math.round(c.text * 100) / 100;
+    m[`CHK_${sup}_SIZE`] = tick(c.size);
+    m[`CHK_${sup}_SCORE`] = `${c.n}/6 ${c.level}`;
+  }
+
   // ---------------------------------------------------------------- merge (Step 3 STEP 2 – STEP 7)
   /* input = {
        pos:{headers, rows}, ch2:{headers, rows}, uhp:{headers, rows}|null,
@@ -998,7 +1074,7 @@
     let outHeaders = ['MASTER_BRAND', 'MASTER_BARCODE', 'MASTER_POS_PLU', 'MATCH_STATUS', 'POS_INDEX', 'CH2_INDEX', 'UHP_INDEX', 'AV_INDEX',
       ...pos.headers, ...ch2.headers, ...(uhp ? uhp.headers : []), ...SOH_COLUMNS, ...PRICING_HEADERS, ...AV_COLUMNS, ...OF_COLUMNS];
     outHeaders = uniq(outHeaders.map(h => String(h)));
-    outHeaders.push(MATCH_BASIS, ...AUDIT_COLUMNS);
+    outHeaders.push(MATCH_BASIS, ...CHECK_COLUMNS, ...AUDIT_COLUMNS);
 
     const stats = {
       barcode_ch2: 0, brand_subid_ch2: 0, code_ch2: 0, subid_ws_ch2: 0, barcode_uhp: 0, brand_subid_uhp: 0, code_uhp: 0, subid_ws_uhp: 0,
@@ -1008,6 +1084,7 @@
       one_to_one_ch2: 0, one_to_one_uhp: 0, av_only: 0
     };
     const usedCh2 = new Set(), usedUhp = new Set(), usedUhpBarcodes = new Set();
+    const auditLinks = [];
     const pythonMode = input.matchMode === 'python';
     const all = [];
     const strip = r => { const o = {}; for (const k in r) if (k.slice(0, 2) !== '__') o[k] = r[k]; return o; };
@@ -1167,6 +1244,18 @@
       m.MASTER_POS_PLU = pyStr(row[pk.plu] ?? '').trim();
       m.AV_INDEX = '';
       m[MATCH_BASIS] = basis.join(' · ');
+      // v2.4.0 link checks
+      const flags = [], levels = [];
+      for (const [sup, lk] of [['CH2', cl], ['UHP', ul]]) {
+        if (!lk || !lk.row) continue;
+        const c = linkChecks(src, lk.row, aliases);
+        applyChecks(m, sup, c);
+        flags.push(...checkFlags(sup, c, lk.tier));
+        levels.push(c.level);
+        auditLinks.push({ m, sup, c, tier: lk.tier || (pythonMode ? 'python' : 'id'), pos: row, row: lk.row });
+      }
+      m.CHK_CONFIDENCE = levels.length ? levels.reduce((a, b) => CONF_RANK[b] < CONF_RANK[a] ? b : a) : 'NO LINK';
+      m.CHK_FLAGS = flags.join(' · ');
       if (supRow && safeInt(m.SOH_TOTAL, 0) > 0) stats.soh_match++;
       const pricing = calculatePricing(m, pk, sk, uk, disc);
       Object.assign(m, pricing);
@@ -1221,6 +1310,7 @@
       m.MASTER_POS_PLU = '';
       m.AV_INDEX = ''; m.AV_BRAND = ''; m.AV_BARCODE = '';
       m[MATCH_BASIS] = link ? link.basis : (pythonMode ? '' : 'Not in POS — no POS row matched by barcode, SUB ID or brand + description');
+      m.CHK_CONFIDENCE = 'NOT IN POS';
       if (safeInt(m.SOH_TOTAL, 0) > 0) stats.soh_match++;
       const pricing = calculatePricing(m, pk, sk, uk, disc);
       Object.assign(m, pricing);
@@ -1242,6 +1332,7 @@
       m.MASTER_POS_PLU = '';
       m.AV_INDEX = ''; m.AV_BRAND = ''; m.AV_BARCODE = '';
       m[MATCH_BASIS] = pythonMode ? '' : 'Not in POS or CH2' + (r.__bc ? '' : ' · no barcode on the Unique row');
+      m.CHK_CONFIDENCE = 'NOT IN POS';
       const pricing = calculatePricing(m, pk, sk, uk, disc);
       Object.assign(m, pricing);
       tallyDiscount(pricing.DISCOUNT_TYPE);
@@ -1261,6 +1352,7 @@
       for (const col of OF_COLUMNS) if (col !== 'OF_SHORTFALL') m[col] = '';
       if (qty > 0) m.OF_SHORTFALL = qty;
       m[MATCH_BASIS] = `To-Order PLU ${plu} is not in the POS stock file — kept so the order total stays complete`;
+      m.CHK_CONFIDENCE = 'NOT IN POS';
       const pricing = calculatePricing(m, pk, sk, uk, disc);
       Object.assign(m, pricing);
       tallyDiscount(pricing.DISCOUNT_TYPE);
@@ -1271,6 +1363,7 @@
     const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
     all.sort((x, y) => cmp(x.MASTER_BRAND || '', y.MASTER_BRAND || '') || cmp(x.MASTER_BARCODE || '', y.MASTER_BARCODE || ''));
 
+    const audit = buildAudit(all, auditLinks, stats, pk, sk, uk, !!uhp);
     const validation = validateOrderFulfillment(all, av.lookup);
     const orderRecords = all.filter(r => r.AV_INDEX !== '' && r.AV_INDEX !== null && r.AV_INDEX !== undefined && r.AV_INDEX !== 0);
     const orderInternal = CUSTOM_COLUMNS.filter(c => outHeaders.includes(c));
@@ -1279,7 +1372,70 @@
       order: { internal: orderInternal, display: ['ORDERED', ...orderInternal.map(c => CUSTOM_COLUMN_RENAMES[c] || c)], records: orderRecords },
       stats, soh: soh.stats, sohOverlaid, discounts: { headerRow: disc.headerRow, rules: disc.rules, keys: disc.keys },
       availability: { rows: av.rows, uniquePlus: av.lookup.size, keys: av.keys }, validation, keys: { pk, sk, uk }, ms: Date.now() - t0,
-      sources: { discounts: input.discountRows || null, availability: input.availabilityRows || null }
+      sources: { discounts: input.discountRows || null, availability: input.availabilityRows || null }, audit
+    };
+  }
+
+  // ---------------------------------------------------------------- match audit (v2.4.0, Match_Audit tab of the full file)
+  function buildAudit(all, links, stats, pk, sk, uk, hasUhp) {
+    const rowOf = new Map(); all.forEach((r, i) => rowOf.set(r, i + 2));
+    const sups = hasUhp ? ['CH2', 'UHP'] : ['CH2'];
+    const blank = () => ({ linked: 0, HIGH: 0, MEDIUM: 0, LOW: 0, bc: 0, sub: 0, brand: 0, ws: 0, txt: 0, sizeOk: 0, sizeBad: 0, bcOnly: 0, desc: 0, bcDiff: 0, wsFar: 0 });
+    const t = { CH2: blank(), UHP: blank() };
+    for (const l of links) {
+      const x = t[l.sup], c = l.c;
+      x.linked++; x[c.level]++;
+      if (c.bc) x.bc++; if (c.sub) x.sub++; if (c.brand) x.brand++; if (c.ws) x.ws++; if (c.txt) x.txt++;
+      if (c.size === true) x.sizeOk++; if (c.size === false) x.sizeBad++;
+      if (l.tier === 'desc') x.desc++; else if (c.bc && c.n <= 2) x.bcOnly++;
+      if (c.hasBc && !c.bc) x.bcDiff++;
+      if (!c.ws && c.wsr !== null) x.wsFar++;
+    }
+    const posBc = new Map();
+    for (const r of all) { if (r.POS_INDEX === '' || r.POS_INDEX === undefined) continue; const b = r.MASTER_BARCODE; if (b) posBc.set(b, (posBc.get(b) || 0) + 1); }
+    const dupBc = [...posBc.values()].filter(v => v > 1).length;
+    const count = st => all.filter(r => r.MATCH_STATUS === st || String(r.MATCH_STATUS).startsWith(st)).length;
+    const pct = (a, b) => b ? Math.round(a / b * 1000) / 10 + '%' : '';
+    const row = (label, f, note) => [label, ...sups.map(s => f(t[s])), note];
+    const summary = [
+      row('POS rows linked', x => x.linked, 'POS products with a CH2 / Unique row linked to them'),
+      row('HIGH confidence', x => x.HIGH, '4+ of 6 checks agree, including the barcode or SUB ID'),
+      row('MEDIUM confidence', x => x.MEDIUM, '3 checks agree, or 4+ without the barcode / SUB ID — worth a glance'),
+      row('LOW confidence', x => x.LOW, '2 or fewer checks agree, or the pack sizes conflict — check these first'),
+      row('BC ☑ barcode agrees', x => `${x.bc.toLocaleString('en-AU')} (${pct(x.bc, x.linked)})`, 'Cleaned to the POS 13-digit form'),
+      row('SUB ID ☑ agrees', x => `${x.sub.toLocaleString('en-AU')} (${pct(x.sub, x.linked)})`, 'POS SUB ID = supplier item / stock code'),
+      row('BRAND ☑ agrees', x => `${x.brand.toLocaleString('en-AU')} (${pct(x.brand, x.linked)})`, 'Brand names, abbreviations, initials or the brand word in the description'),
+      row('W/S ☑ within 40% / $0.50', x => `${x.ws.toLocaleString('en-AU')} (${pct(x.ws, x.linked)})`, 'Supplier W/S against POS W/S or last price'),
+      row('TEXT ☑ description ≥ 50%', x => `${x.txt.toLocaleString('en-AU')} (${pct(x.txt, x.linked)})`, 'Description similarity with brand words removed'),
+      row('SIZE ☑ pack size agrees', x => x.sizeOk, '☐ when either description has no pack size'),
+      row('SIZE ☒ pack size differs', x => x.sizeBad, 'Same barcode / code but a different pack — likely the wrong product or a changed barcode'),
+      row('Barcode differs', x => x.bcDiff, 'Both rows have a barcode but they differ (linked on SUB ID / description)'),
+      row('Barcode-only links', x => x.bcOnly, 'Linked on the barcode with little else agreeing'),
+      row('Brand + description links', x => x.desc, 'No shared barcode or SUB ID — products bought elsewhere'),
+      row('W/S differs more than 40%', x => x.wsFar, 'Linked, but the price is far from POS — check pack size / units'),
+      row('POS rows left unlinked (one-to-one)', x => stats['one_to_one_' + (x === t.CH2 ? 'ch2' : 'uhp')] || 0, 'A supplier row wanted by two POS rows goes to the stronger one; the other keeps a MATCH_BASIS note'),
+      row('Candidates rejected', x => stats['rejected_' + (x === t.CH2 ? 'ch2' : 'uhp')] || 0, 'Shared barcode / SUB ID but not enough agreeing evidence to link')
+    ];
+    const totals = [
+      ['POS Only (no CH2 or Unique link)', count('POS Only')],
+      ['CH2 Only (not in POS)', count('CH2 Only')],
+      ['UHP Only (not in POS or CH2)', count('UHP Only')],
+      ['POS barcodes used by more than one POS row', dupBc]
+    ];
+    const order = { LOW: 0, MEDIUM: 1, HIGH: 2 };
+    const list = links.filter(l => l.c.level !== 'HIGH').sort((a, b) => order[a.c.level] - order[b.c.level] || String(a.m.MASTER_BRAND).localeCompare(String(b.m.MASTER_BRAND)) || rowOf.get(a.m) - rowOf.get(b.m)).map(l => {
+      const k = l.sup === 'CH2' ? sk : uk, c = l.c, tick = v => v === true ? '☑' : v === false ? '☒' : '☐';
+      const supWs = l.sup === 'CH2' ? (l.row[sk.wsp || 'CH2_WHOLESALE_EX_GST'] ?? '') : (l.row[uk.wsp || 'UHP_WS_EX_GST'] ?? '');
+      return [c.level, l.sup, `${c.n}/6`, tick(c.bc), tick(c.sub), tick(c.brand), tick(c.ws), Math.round(c.text * 100) / 100, tick(c.size),
+        checkFlags(l.sup, c, l.tier).join(' · '), rowOf.get(l.m),
+        pyStr(l.pos[pk.plu] ?? ''), l.m.MASTER_BARCODE || '', pyStr(l.pos[pk.sub_id] ?? ''), pyStr(l.pos[pk.brand] ?? ''), pyStr(l.pos[pk.description] ?? ''), safeFloat(l.pos[pk.wsp] ?? ''),
+        pyStr(l.row[k.code] ?? ''), l.row.__bc || '', pyStr(l.row[k.brand] ?? ''), pyStr(l.row.__desc || ''), safeFloat(supWs)];
+    });
+    return {
+      sups, summary, totals, list, counts: { CH2: t.CH2, UHP: t.UHP },
+      listHeaders: ['CONFIDENCE', 'SUPPLIER', 'SCORE', 'BC', 'SUB ID CHECK', 'BRAND CHECK', 'W/S CHECK', 'TEXT', 'SIZE', 'WHY',
+        'FULL_DATA ROW', 'POS PLU', 'POS BARCODE', 'POS SUB ID', 'POS BRAND', 'POS DESCRIPTION', 'POS W/S',
+        'SUPPLIER ITEM', 'SUPPLIER BARCODE', 'SUPPLIER BRAND', 'SUPPLIER DESCRIPTION', 'SUPPLIER W/S']
     };
   }
 
@@ -1316,6 +1472,7 @@
   function columnFormat(internal, isOrder) {
     if (internal === 'OD_DISCOUNT_PCT' || internal === 'OD_MARKUP_PCT') return '0.00%';
     if (internal === 'OD_SOURCE_ROW') return '0';
+    if (/^CHK_(CH2|UHP)_TEXT$/.test(internal)) return '0%';
     if (CURRENCY_COLS.includes(internal)) return CURRENCY_FMT;
     if (PERCENTAGE_COLS.includes(internal)) return '0.00%';
     if (RATES_AS_NUMBERS.includes(internal)) return '0.00';
@@ -1326,25 +1483,146 @@
   }
   function columnWidth(h) {
     if (['POS_DESCR', 'POS_POS_DESC', 'CH2_LONG_DESCRIPTION_ENHANCED', 'CH2_LONG_DESCRIPTION', 'UHP_DESCRIPTION', MATCH_BASIS, 'OD_RULE', 'OD_DESCR'].includes(h)) return 36;
+    if (h === 'CHK_FLAGS') return 48;
+    if (h === 'CHK_CONFIDENCE') return 14;
+    if (/^CHK_(CH2|UHP)_SCORE$/.test(h)) return 13;
+    if (/^CHK_/.test(h)) return 8;
     return Math.min(30, Math.max(10, String(h).length + 2));
+  }
+  /* v2.4.0 — the full file uses the Reconcile CH2 look: navy header with gold capitals, E9F0F5 / F5F5F5 bands,
+     price moves ↑ red on pink / ↓ blue on pale blue / — grey (current price in grey), ☑ green / ☒ red checks and a navy
+     totals row. Values are unchanged (only cell styles and display formats differ), so every reader of the file still works. */
+  const RC = {
+    font: 'Google Sans', size: 9, navy: '1E3A5F', gold: 'E6CD74', ink: '1F2937', bands: ['E9F0F5', 'F5F5F5'], tol: 0.03,
+    border: { left: { style: 'thin', color: 'D9E2F3' }, right: { style: 'thin', color: 'D9E2F3' }, top: { style: 'thin', color: 'D9E2F3' }, bottom: { style: 'thin', color: 'D9E2F3' } },
+    variants: {
+      up: { fill: 'FCE8E6', color: 'C5221F', bold: true }, down: { fill: 'E8F0FE', color: '1967D2', bold: true }, same: { color: '9AA0A6' },
+      muted: { color: '9AA0A6' }, good: { fill: 'E6F4EA', color: '0F6B36', bold: true, center: true }, bad: { fill: 'FCE8E6', color: 'C5221F', bold: true, center: true },
+      mid: { fill: 'FFF7E0', color: '7A4F00', bold: true, center: true }, na: { color: '9AA0A6', center: true }, none: { fill: 'EEF1F3', color: '5F6368', center: true },
+      goodText: { color: '0F6B36', center: true }, badText: { color: 'C5221F', center: true }, link: { color: '1967D2', center: true }, center: { center: true }
+    }
+  };
+  const PRICE_GROUPS = [
+    { cur: 'CURRENT_WSP', neu: 'NEW_WSP', cells: ['NEW_WSP', 'WSP_CHANGE_PCT', 'WSP_CHANGE_$'] },
+    { cur: 'CURRENT_LAST_PRICE', neu: 'NEW_LAST_PRICE', cells: ['NEW_LAST_PRICE', 'CHANGE_PCT_LAST_PRICE', 'WSP_CHANGE_$_LAST_PRICE'] },
+    { cur: 'CURRENT_RRP', neu: 'NEW_RRP', cells: ['NEW_RRP'] }
+  ];
+  const priceDir = (cur, neu) => typeof cur !== 'number' || typeof neu !== 'number' ? '' : neu - cur > RC.tol ? 'up' : neu - cur < -RC.tol ? 'down' : 'same';
+  function arrowFormat(h, dir) {
+    const a = dir === 'up' ? '↑' : dir === 'down' ? '↓' : '—';
+    const f = PERCENTAGE_COLS.includes(h) ? `"${a} "0.00%` : `"${a} $"#,##0.00`;
+    return `${f};${f}`; // second section: falls show without a minus sign — the arrow gives the direction
+  }
+  const tickVariant = v => v === '☑' ? 'good' : v === '☒' ? 'bad' : v === '☐' ? 'na' : '';
+  const levelVariant = v => { const s = String(v || ''); return /HIGH$/.test(s) ? 'good' : /MEDIUM$/.test(s) ? 'mid' : /LOW$/.test(s) ? 'bad' : s ? 'none' : ''; };
+  function themeKit(st) {
+    const font = (color, bold) => ({ name: RC.font, size: RC.size, color, bold: !!bold });
+    const cache = {};
+    return {
+      header: st.style({ font: font(RC.gold, true), fill: RC.navy, align: { wrap: true, v: 'center', h: 'center' } }),
+      title: st.style({ font: { name: RC.font, size: 12, color: RC.gold, bold: true }, fill: RC.navy, align: { v: 'center', h: 'left', indent: 1 } }),
+      note: st.style({ font: { name: RC.font, size: RC.size, color: '53616D', italic: true }, align: { v: 'center', h: 'left', indent: 1 } }),
+      totalsLabel: st.style({ fill: RC.navy, font: { name: RC.font, size: 10, color: RC.gold, bold: true }, align: { h: 'left', v: 'center', indent: 1 } }),
+      totalsBlank: st.style({ fill: RC.navy }),
+      totals: fmt => cache['t|' + fmt] !== undefined ? cache['t|' + fmt] : (cache['t|' + fmt] = st.style({ fill: RC.navy, numFmt: fmt, font: font(RC.gold, true), align: { h: 'right', v: 'center' } })),
+      /* band 0 / 1, numFmt, variant, extra {fill, color, wrap, h} */
+      cell(band, numFmt, variant, extra) {
+        const key = `${band}|${numFmt || ''}|${variant || ''}|${extra ? JSON.stringify(extra) : ''}`;
+        if (cache[key] !== undefined) return cache[key];
+        const spec = { fill: (extra && extra.fill) || RC.bands[band], font: font((extra && extra.color) || RC.ink, extra && extra.bold), numFmt: numFmt || undefined, border: RC.border, align: { v: 'center' } };
+        if (extra && extra.h) spec.align.h = extra.h;
+        if (extra && extra.wrap) spec.align.wrap = true;
+        const v = variant ? RC.variants[variant] : null;
+        if (v) {
+          if (v.fill) spec.fill = v.fill;
+          spec.font = font(v.color || spec.font.color, v.bold);
+          if (v.center) spec.align.h = 'center';
+        }
+        return (cache[key] = st.style(spec));
+      }
+    };
+  }
+  /* Match_Audit (counts) and Links_To_Check (every LOW / MEDIUM link) tabs of the full file, from buildAudit(). */
+  function auditSheets(audit, kit, X) {
+    if (!audit) return [];
+    const sups = audit.sups, out = [];
+    const sumHeader = ['CHECK', ...sups, 'WHAT IT MEANS'], w = sumHeader.length;
+    const level = { 'HIGH confidence': 'good', 'MEDIUM confidence': 'mid', 'LOW confidence': 'bad', 'SIZE ☒ pack size differs': 'bad' };
+    const rows = [];
+    const pad = (cells, style) => { const c = cells.slice(); while (c.length < w) c.push(''); return { cells: c, styles: c.map((_, i) => typeof style === 'function' ? style(i) : style) }; };
+    rows.push({ ...pad(['MATCH AUDIT — how each POS → CH2 / Unique link was checked'], kit.title), height: 26 });
+    rows.push({ cells: ['☑ agrees · ☒ differs · ☐ cannot be checked (one side is blank). SCORE = checks agreeing out of 6: BC (barcode), SUB ID, BRAND, W/S, TEXT (description ≥ 50%) and SIZE (pack size).'], styles: [kit.note] });
+    rows.push({ cells: ['HIGH = 4+ agree including the barcode or SUB ID · MEDIUM = 3, or 4+ without the barcode / SUB ID · LOW = 2 or fewer, or the pack sizes conflict. Matching is unchanged — these checks show the evidence behind each link.'], styles: [kit.note] });
+    rows.push({ cells: ['Full_Data has the same checks per row (CHK_ columns after MATCH_BASIS). Links_To_Check lists every LOW and MEDIUM link, LOW first.'], styles: [kit.note] });
+    rows.push({ cells: [], styles: [] });
+    rows.push({ ...pad(sumHeader, kit.header), height: 24 });
+    audit.summary.forEach((r, k) => {
+      const band = k % 2, lv = level[r[0]] || '';
+      rows.push({ cells: r.slice(), styles: r.map((v, i) => i === 0 ? kit.cell(band, null, '', { bold: true }) : i === r.length - 1 ? kit.cell(band, null, '', { color: '53616D' }) : kit.cell(band, typeof v === 'number' ? '#,##0' : null, lv && v ? lv : '', { h: 'right' })) });
+    });
+    rows.push({ cells: [], styles: [] });
+    rows.push({ ...pad(['OTHER COUNTS', 'ROWS'], i => i < 2 ? kit.header : 0), height: 24 });
+    audit.totals.forEach((r, k) => rows.push({ cells: r, styles: [kit.cell(k % 2, null, '', { bold: true }), kit.cell(k % 2, '#,##0', '', { h: 'right' })] }));
+    const sumCols = Math.max(w, 2);
+    out.push({
+      name: 'Match_Audit', columnCount: sumCols, gridLines: false, dimension: `A1:${X.colLetter(sumCols)}${rows.length}`,
+      widths: [44, ...sups.map(() => 18), 96].slice(0, sumCols),
+      rows: function* () { for (const r of rows) { const c = r.cells.slice(), s = Array.isArray(r.styles) ? r.styles.slice() : r.styles; while (c.length < sumCols) { c.push(''); if (Array.isArray(s)) s.push(0); } yield { cells: c, styles: s, height: r.height }; } }
+    });
+    const H = audit.listHeaders, n = audit.list.length, idx = h => H.indexOf(h);
+    const iConf = idx('CONFIDENCE'), iRow = idx('FULL_DATA ROW'), iText = idx('TEXT'), iWhy = idx('WHY'), iPosWs = idx('POS W/S'), iSupWs = idx('SUPPLIER W/S');
+    const ticks = new Set(['BC', 'SUB ID CHECK', 'BRAND CHECK', 'W/S CHECK', 'SIZE'].map(idx));
+    const fmtOf = i => i === iText ? '0%' : (i === iPosWs || i === iSupWs) ? CURRENCY_FMT : /BARCODE|PLU|SUB ID$|ITEM$/.test(H[i]) ? '@' : null;
+    const centre = new Set([idx('SUPPLIER'), idx('SCORE')]);
+    const widths = { CONFIDENCE: 13, SUPPLIER: 10, SCORE: 8, BC: 6, 'SUB ID CHECK': 8, 'BRAND CHECK': 8, 'W/S CHECK': 8, TEXT: 7, SIZE: 6, WHY: 62, 'FULL_DATA ROW': 10,
+      'POS PLU': 10, 'POS BARCODE': 16, 'POS SUB ID': 12, 'POS BRAND': 20, 'POS DESCRIPTION': 42, 'POS W/S': 11, 'SUPPLIER ITEM': 12, 'SUPPLIER BARCODE': 16,
+      'SUPPLIER BRAND': 20, 'SUPPLIER DESCRIPTION': 42, 'SUPPLIER W/S': 11 };
+    const last = X.colLetter(H.length);
+    out.push({
+      name: 'Links_To_Check', columnCount: H.length, gridLines: false, freeze: 'D2', autoFilter: n ? `A1:${last}${n + 1}` : null,
+      dimension: `A1:${last}${Math.max(2, n + 1)}`, widths: H.map(h => widths[h] || 12),
+      rows: function* () {
+        yield { cells: H, styles: kit.header, height: 30 };
+        if (!n) { yield { cells: ['No LOW or MEDIUM links — every link has 4+ agreeing checks including the barcode or SUB ID.'], styles: [kit.note] }; return; }
+        for (let r = 0; r < n; r++) {
+          const src = audit.list[r], band = r % 2, cells = src.slice(), styles = new Array(H.length);
+          for (let i = 0; i < H.length; i++) {
+            const f = fmtOf(i);
+            let variant = '';
+            if (i === iConf) variant = levelVariant(cells[i]);
+            else if (ticks.has(i)) variant = tickVariant(cells[i]);
+            else if (i === iText && typeof cells[i] === 'number') variant = cells[i] >= TEXT_OK ? 'goodText' : 'badText';
+            else if (i === iSupWs) variant = priceDir(cells[iPosWs], cells[i]);
+            else if (i === iPosWs && typeof cells[i] === 'number') variant = 'muted';
+            else if (i === iRow && cells[i]) { cells[i] = { formula: `HYPERLINK("#'Full_Data'!A${cells[i]}",${cells[i]})`, result: cells[i] }; variant = 'link'; }
+            else if (centre.has(i)) variant = 'center';
+            const fmt = (variant === 'up' || variant === 'down' || variant === 'same') ? arrowFormat('POS W/S', variant) : f;
+            styles[i] = kit.cell(band, fmt, variant, i === iWhy && cells[i] ? { color: '7A4F00' } : null);
+          }
+          yield { cells, styles };
+        }
+      }
+    });
+    return out;
   }
   /* kind: 'full' | 'selected' | 'order'. Returns a Blob. */
   async function writeMasterWorkbook(kind, result, opts) {
     const X = g.XlsxLite;
     if (!X) throw new Error('xlsx-writer.js is not loaded.');
-    const isOrder = kind === 'order';
+    const isOrder = kind === 'order', themed = kind === 'full';
     const internal = kind === 'full' ? result.outHeaders : kind === 'selected' ? result.selectedHeaders : ['ORDERED', ...result.order.internal];
     const display = isOrder ? result.order.display : internal;
     const records = isOrder ? result.order.records : result.records;
     const sheetName = kind === 'full' ? 'Full_Data' : kind === 'selected' ? 'Selected_Data' : 'To_Order';
     const st = new X.StyleSheet();
+    const kit = themed ? themeKit(st) : null;
     const cols = internal.length, n = records.length;
     const highlight = new Set();
     if (isOrder) { internal.forEach((h, i) => { if (OF_COLUMNS.includes(h) || h === 'AV_QTY_UNITS') highlight.add(i); }); }
     else internal.forEach((h, i) => { if (HIGHLIGHT_COLUMNS.includes(h)) highlight.add(i); });
     const red = new Set(isOrder ? [] : internal.map((h, i) => RED_COLS.includes(h) ? i : -1).filter(i => i >= 0));
     const fmts = internal.map(h => h === 'ORDERED' ? null : columnFormat(h, isOrder));
-    const headerStyle = st.style({ font: { bold: true, color: 'FFFFFF' }, fill: '5B9BD5', align: { wrap: true, v: 'top', h: 'center' } });
+    const headerStyle = themed ? kit.header : st.style({ font: { bold: true, color: 'FFFFFF' }, fill: '5B9BD5', align: { wrap: true, v: 'top', h: 'center' } });
     const bandFills = ['DDEBF7', 'FFFFFF'];
     const styleFor = {};
     const cellStyle = (band, i, isRed) => {
@@ -1355,12 +1633,15 @@
       if (isOrder && i === 0) spec.align = { h: 'center', v: 'center' };
       return (styleFor[key] = st.style(spec));
     };
-    const bandStyles = [0, 1].map(b => internal.map((h, i) => cellStyle(b, i, false)));
+    // Themed (full) cells: AV / OF order columns keep a highlight, in the theme's amber.
+    const themedCell = (band, i, variant) => kit.cell(band, variant === 'up' || variant === 'down' || variant === 'same' ? arrowFormat(internal[i], variant) : fmts[i],
+      variant, !variant && highlight.has(i) ? { fill: 'FFF7E0', color: '7A4F00' } : null);
+    const bandStyles = [0, 1].map(b => internal.map((h, i) => themed ? themedCell(b, i, '') : cellStyle(b, i, false)));
     const border = { top: { style: 'medium', color: '000000' } };
-    const totalsBlank = st.style({ fill: 'D9EAD3', border });
-    const totalsLabel = st.style({ fill: 'D9EAD3', border, font: { bold: true, size: 12 }, align: { h: 'left', v: 'center', indent: 1 } });
+    const totalsBlank = themed ? kit.totalsBlank : st.style({ fill: 'D9EAD3', border });
+    const totalsLabel = themed ? kit.totalsLabel : st.style({ fill: 'D9EAD3', border, font: { bold: true, size: 12 }, align: { h: 'left', v: 'center', indent: 1 } });
     const totalsFmt = {};
-    const totalsStyle = fmt => totalsFmt[fmt] !== undefined ? totalsFmt[fmt] : (totalsFmt[fmt] = st.style({ fill: 'D9EAD3', border, numFmt: fmt, font: { bold: true, size: 11, color: '000000' }, align: { h: 'right', v: 'center' } }));
+    const totalsStyle = fmt => themed ? kit.totals(fmt) : totalsFmt[fmt] !== undefined ? totalsFmt[fmt] : (totalsFmt[fmt] = st.style({ fill: 'D9EAD3', border, numFmt: fmt, font: { bold: true, size: 11, color: '000000' }, align: { h: 'right', v: 'center' } }));
     const L = c => X.colLetter(c);
     const last = L(cols), dataEnd = n + 1;
     const totals = internal.map((h, i) => {
@@ -1372,11 +1653,17 @@
       if (AVG_COLUMNS.has(h)) return [{ formula: `SUBTOTAL(101,${ref})` }, totalsStyle(PERCENTAGE_COLS.includes(h) ? '0.00%' : '0.00')];
       return [null, totalsBlank];
     });
+    // Themed per-row colours: price groups (current → new, ↑ ↓ —), ☑ / ☒ / ☐ checks, TEXT %, SCORE and CONFIDENCE levels.
+    const at = h => internal.indexOf(h);
+    const groups = themed ? PRICE_GROUPS.map(gp => ({ cur: at(gp.cur), neu: at(gp.neu), cells: gp.cells.map(at).filter(i => i >= 0) })).filter(gp => gp.cur >= 0 && gp.neu >= 0) : [];
+    const tickCols = themed ? internal.map((h, i) => /^CHK_(CH2|UHP)_(BC|SUBID|BRAND|WS|SIZE)$/.test(h) ? i : -1).filter(i => i >= 0) : [];
+    const textCols = themed ? internal.map((h, i) => /^CHK_(CH2|UHP)_TEXT$/.test(h) ? i : -1).filter(i => i >= 0) : [];
+    const levelCols = themed ? internal.map((h, i) => h === 'CHK_CONFIDENCE' || /^CHK_(CH2|UHP)_SCORE$/.test(h) ? i : -1).filter(i => i >= 0) : [];
     let freeze = 'H2';
     if (!isOrder) { const ai = internal.indexOf('AV_INDEX'); freeze = ai >= 0 ? `${L(ai + 2)}2` : 'H2'; }
     else { const pi = display.indexOf('PLU / SKU'); freeze = pi >= 0 ? `${L(pi + 2)}2` : 'E2'; }
     const sheet = {
-      name: sheetName, columnCount: cols, freeze, autoFilter: `A1:${last}${n + 1}`, dimension: `A1:${last}${n + 2}`,
+      name: sheetName, columnCount: cols, freeze, autoFilter: `A1:${last}${n + 1}`, dimension: `A1:${last}${n + 2}`, gridLines: themed ? false : undefined,
       widths: internal.map(h => h === 'ORDERED' ? 11 : columnWidth(h)),
       conditional: isOrder && n ? [{ ref: `A2:${last}${n + 1}`, formula: 'AND($A2<>"☐",$A2<>"")', dxf: st.dxf({ font: { color: '808080' }, fill: 'D3D3D3' }) }] : [],
       rows: function* () {
@@ -1385,38 +1672,48 @@
           const rec = records[r], band = r % 2 === 0 ? 0 : 1, cells = new Array(cols);
           let styles = bandStyles[band];
           let copied = false;
+          const set = (i, s) => { if (!copied) { styles = styles.slice(); copied = true; } styles[i] = s; };
           for (let i = 0; i < cols; i++) {
             const h = internal[i];
             let v = h === 'ORDERED' ? '☐' : rec[h];
             if (v === undefined || v === null) v = '';
             if (fmts[i] === '0') v = numericIfPlainInteger(v);
             cells[i] = v;
-            if (red.has(i) && typeof v === 'number' && v > 0) {
-              if (!copied) { styles = styles.slice(); copied = true; }
-              styles[i] = cellStyle(band, i, true);
-            }
+            if (!themed && red.has(i) && typeof v === 'number' && v > 0) set(i, cellStyle(band, i, true));
           }
-          yield { cells, styles };
+          if (themed) {
+            for (const gp of groups) {
+              const dir = priceDir(cells[gp.cur], cells[gp.neu]);
+              if (typeof cells[gp.cur] === 'number') set(gp.cur, themedCell(band, gp.cur, 'muted'));
+              if (dir) for (const i of gp.cells) if (typeof cells[i] === 'number') set(i, themedCell(band, i, dir));
+            }
+            for (const i of tickCols) { const vt = tickVariant(cells[i]); if (vt) set(i, themedCell(band, i, vt)); }
+            for (const i of textCols) if (typeof cells[i] === 'number') set(i, themedCell(band, i, cells[i] >= TEXT_OK ? 'goodText' : 'badText'));
+            for (const i of levelCols) { const vl = levelVariant(cells[i]); if (vl) set(i, themedCell(band, i, vl)); }
+          }
+          yield themed ? { cells, styles, height: 18 } : { cells, styles };
         }
         yield { cells: totals.map(t => t[0]), styles: totals.map(t => t[1]), height: 25 };
       }
     };
     const sheets = [sheet];
+    if (themed) sheets.push(...auditSheets(result.audit, kit, X));
     // Full file only: the Ongoing Discounts and To-Order files exactly as loaded, so the specials and order lines behind the
     // OD_* / AV_* columns stay visible in the master (sheet 1 is unchanged).
     if (kind === 'full' && result.sources) {
-      const srcHeader = st.style({ font: { bold: true }, fill: 'D9E1F2' });
+      const srcHeader = themed ? kit.header : st.style({ font: { bold: true }, fill: 'D9E1F2' });
+      const srcBands = themed ? [kit.cell(0, null, '', null), kit.cell(1, null, '', null)] : [0, 0];
       const addSource = (name, rows, headerIndex) => {
         if (!rows || !rows.length) return;
         const width = Math.max(1, ...rows.map(r => (r || []).length));
         sheets.push({
-          name, columnCount: width, freeze: `A${headerIndex + 2}`, dimension: `A1:${X.colLetter(width)}${rows.length}`,
+          name, columnCount: width, freeze: `A${headerIndex + 2}`, dimension: `A1:${X.colLetter(width)}${rows.length}`, gridLines: themed ? false : undefined,
           widths: new Array(width).fill(16),
           rows: function* () {
             for (let r = 0; r < rows.length; r++) {
               const row = rows[r] || [], cells = new Array(width);
               for (let c = 0; c < width; c++) { const v = row[c]; cells[c] = v === null || v === undefined ? '' : v; }
-              yield { cells, styles: r === headerIndex ? srcHeader : 0 };
+              yield { cells, styles: r === headerIndex ? srcHeader : r < headerIndex ? 0 : srcBands[(r - headerIndex - 1) % 2] };
             }
           }
         });
@@ -1435,7 +1732,7 @@
 
   g.MasterCore = {
     VERSION, COLUMN_MAPPINGS, SELECTED: SELECTED_OUTPUT_COLUMNS, SELECTED_OUTPUT_COLUMNS, SOH: SOH_COLUMNS, SOH_COLUMNS, ACTIVE_RAW_SOH_COLUMNS,
-    PRICING_HEADERS, AV_COLUMNS, OF_COLUMNS, CUSTOM_COLUMNS, MATCH_BASIS, AUDIT_COLUMNS,
+    PRICING_HEADERS, AV_COLUMNS, OF_COLUMNS, CUSTOM_COLUMNS, MATCH_BASIS, AUDIT_COLUMNS, CHECK_COLUMNS,
     findColumns, findCols: findColumns, cleanBarcode, cleanCode, cleanBrand, cleanLookup: cleanLookupIdentifier, cleanLookupIdentifier,
     brandsMatch: brandsMatchFuzzy, brandsMatchFuzzy, safeFloat, safeInt, parsePercentFraction, cleanPosColumnValue,
     detectSohLayout, readRawSohLookup, overlayRawSoh, detectDiscountHeaderRow, loadDiscounts, parseCsvText, buildAvailability,

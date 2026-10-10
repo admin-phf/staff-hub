@@ -1,12 +1,13 @@
-/* PHF Staff Hub — POS Supplier Merge v1.0.0 (10 Oct 2026)
+/* PHF Staff Hub — POS Supplier Merge v1.1.0 (10 Oct 2026)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.87 files), the
  * three merge stages, downloads and the OUT_MERGED_DATA review table.
+ * v1.1.0: Supplier Updates sheet on the page (totals bar, 16 headings, paste rows).
  */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.0.0';
+  var TOOL_VERSION = 'v1.1.0';
   var M = window.PHFMergeMap;
   var $ = function (s) { return document.querySelector(s); };
   var SHEETS = {
@@ -362,6 +363,7 @@
     d.ondrop = function (e) { e.preventDefault(); d.classList.remove('drag'); take(e.dataTransfer && e.dataTransfer.files); };
     host.querySelectorAll('[data-remove]').forEach(function (b) { b.onclick = function () { removeFile(id, +b.dataset.remove); }; });
     document.querySelectorAll('[data-input]').forEach(function (b) { b.classList.toggle('active', b.dataset.input === id); });
+    if (id === 'sup') { host.insertAdjacentHTML('beforeend', supSheetHtml()); wireSupSheet(); }
   }
   function readinessText() {
     var miss = M.INPUTS.filter(function (d) { return d.required && !loaded(d.id); }).map(function (d) { return d.title; });
@@ -424,7 +426,7 @@
     state.outputs.forEach(function (o) { if (o.url) URL.revokeObjectURL(o.url); });
     state.outputs.clear();
     STAGES.forEach(function (s) { state.stage[s.id] = { status: 'waiting', msg: msg || '' }; });
-    renderOutputs(); hideReview();
+    renderOutputs(); hideReview(); refreshSupSheet();
   }
 
   function buildSheetsPayload() {
@@ -509,9 +511,10 @@
       if (current) stageSet(current, 'error', 'Error: ' + e.message);
       setGlobal((current ? 'Stage stopped: ' : 'Could not start: ') + e.message, 'error');
       gpct(0);
-    }).then(function () { state.busy = false; updateRunButtons(); });
+    }).then(function () { state.busy = false; updateRunButtons(); refreshSupSheet(); });
   }
   function afterStage(id) {
+    if (id === 'highlight') refreshSupSheet();
     if (id === 'build') { renderReview(); return addWorkbookOutput(); }
     if (id === 'export') {
       (state.results.files || []).forEach(function (f, i) {
@@ -748,6 +751,198 @@
     $('#reviewNext').onclick = function () { state.review.page++; renderReviewPage(); };
   }
 
+  // ------------------------------------------- Supplier Updates sheet (v1.1.0)
+  /* The IN_SUPPLIER_/_PRODUCT_UPDATES tab shown on the page under the Supplier Updates card: the Sheet's row-1 totals bar
+     (worked out here, over the rows the search leaves visible — the Sheet's SUBTOTAL formulas do the same with a filter),
+     the 16 headings and every supplier row from all loaded files. Rows copied from Excel or Google Sheets can be pasted
+     straight in (Ctrl+V / ⌘V); they are added as a "Pasted rows" supplier entry next to any dropped files. */
+  var SUP_HEADS = M.SCHEMAS[SHEETS.SUP].headers;
+  var SUP_NUM = { 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1, 13: 1 };   // H–N: numbers when they look like numbers
+  var SUP_TEXT = { 1: 1, 2: 1, 3: 1, 5: 1 };                       // B C D F stay text (codes keep leading zeros)
+  var SUP_PAGE = 100, PASTED = 'Pasted rows';
+  var supView = { q: '', page: 0, undo: [], note: '', noteType: 'info' };
+
+  function parseTsv(text) {
+    var s = String(text || '').replace(/\r\n?/g, '\n'), rows = [], row = [], f = '', q = false, i = 0, n = s.length;
+    while (i < n) {
+      var ch = s.charAt(i);
+      if (q) {
+        if (ch === '"') {
+          if (s.charAt(i + 1) === '"') { f += '"'; i += 2; continue; }
+          var nx = s.charAt(i + 1);
+          if (nx === '\t' || nx === '\n' || nx === '') { q = false; i++; continue; }
+          f = '"' + f + '"'; q = false; i++; continue;        // "Organic" Oats — the quotes were part of the text
+        }
+        f += ch; i++; continue;
+      }
+      if (ch === '"' && f === '') { q = true; i++; continue; }
+      if (ch === '\t') { row.push(f); f = ''; i++; continue; }
+      if (ch === '\n') { row.push(f); rows.push(row); row = []; f = ''; i++; continue; }
+      f += ch; i++;
+    }
+    if (q) f = '"' + f;
+    if (f !== '' || row.length) { row.push(f); rows.push(row); }
+    return rows.filter(function (r) { return r.some(function (c) { return String(c).trim() !== ''; }); });
+  }
+  function coerceSupRow(o) {
+    for (var c = 0; c < 16; c++) {
+      var v = o[c];
+      if (v === undefined || v === null) { o[c] = ''; continue; }
+      if (typeof v !== 'string') { if (SUP_TEXT[c]) o[c] = String(v); continue; }
+      v = v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '').trim(); o[c] = v;
+      if (SUP_NUM[c] && /^-?\$?\s?(\d{1,3}(,\d{3})+|\d+)?(\.\d+)?$/.test(v) && /\d/.test(v)) { var num = Number(v.replace(/[$,\s]/g, '')); if (isFinite(num)) o[c] = num; }
+    }
+    o[0] = ''; o[15] = '';                                       // INDEX is renumbered, STATUS is written by the merge
+    o.length = 16;
+    return o;
+  }
+  // Pasted block → 16-column rows. Headings (any order, row 1–8) are used when found; otherwise the columns are read by
+  // position: 16 columns = A–P, 14 or 15 = from B (POS SUPPLIER NAME), anything else from A when column 1 looks like INDEX.
+  function mapPasted(rows) {
+    var hr = M.findHeaderRow(rows, SUP_HEADS), out = { data: [], how: '', warn: [] };
+    if (hr.row >= 0 && hr.score >= 3) {
+      var mp = M.mapTable(rows, SHEETS.SUP);
+      out.data = mp.data.map(function (r) { return coerceSupRow(r.slice()); });
+      out.how = 'by heading (row ' + mp.report.headerRow + ')';
+      var miss = inputDef('sup').need.filter(function (h) { return mp.report.missing.indexOf(h) >= 0; });
+      if (miss.length) out.warn.push('no ' + miss.join(', ') + ' column — the merge needs ' + (miss.length === 1 ? 'it' : 'them'));
+    } else {
+      var width = Math.max.apply(null, rows.map(function (r) { return r.length; }));
+      var idxLike = rows.filter(function (r) { return /^\d{1,6}$/.test(String(r[0]).trim()); }).length >= rows.length * 0.8;
+      var start = width >= 16 ? 0 : (width === 14 || width === 15) ? 1 : (idxLike ? 0 : 1);
+      out.data = rows.map(function (r) {
+        var o = new Array(16).fill('');
+        for (var c = 0; c + start < 16 && c < r.length; c++) o[c + start] = r[c];
+        return coerceSupRow(o);
+      }).filter(function (o) { return o.slice(1, 15).some(function (v) { return String(v).trim() !== ''; }); });
+      out.how = 'by position — ' + width + ' column' + (width === 1 ? '' : 's') + ' read as ' + window.XlsxLite.colLetter(start + 1) + '–' + window.XlsxLite.colLetter(Math.min(16, start + width));
+      if (width < 14 || width > 16) out.warn.push('no headings found and ' + width + ' columns pasted — check the columns line up');
+    }
+    if (out.data.some(function (o) { return /e\+/i.test(String(o[3])); })) out.warn.push('some barcodes look like 9.3E+12 — format the barcode column as Number (0 decimals) or Text before copying');
+    if (out.data.some(function (o) { return o[3] === '' && o[6] === ''; })) out.warn.push('some rows have no SUP BARCODE or SUP PRODUCT');
+    return out;
+  }
+  function pastedEntry() {
+    var x = state.inputs.sup; if (!x) return null;
+    for (var i = 0; i < x.files.length; i++) if (x.files[i].pasted) return { entry: x.files[i], idx: i };
+    return null;
+  }
+  function setPasted(data, note, type) {
+    var p = pastedEntry();
+    supView.note = note || ''; supView.noteType = type || 'info'; supView.page = 0;
+    if (!data.length) { supView.undo = []; if (p) removeFile('sup', p.idx); else { renderAll(); showInput('sup'); } return; }
+    addToInput('sup', { name: PASTED, size: 0, tab: '', pasted: true, data: data, loadedAt: melb(),
+      report: { headerRow: 0, found: SUP_HEADS.length, total: SUP_HEADS.length, missing: [], rows: data.length } });
+    renderAll(); showInput('sup');
+  }
+  function pasteToSupplier(text) {
+    if (state.busy) { supSay('A stage is running — paste again when it finishes.', 'missing'); return; }
+    var rows = parseTsv(text);
+    if (!rows.length) { supSay('Nothing to paste — copy the rows in Excel or Google Sheets first.', 'missing'); return; }
+    var m;
+    try { m = mapPasted(rows); } catch (e) { supSay('Could not read the pasted rows: ' + e.message, 'error'); return; }
+    if (!m.data.length) { supSay('The pasted block has no supplier rows (only headings or blank rows).', 'missing'); return; }
+    var p = pastedEntry(), prev = p ? p.entry.data : [];
+    supView.undo.push(prev.length);
+    setPasted(prev.concat(m.data), fmtN(m.data.length) + ' row' + (m.data.length === 1 ? '' : 's') + ' pasted ' + m.how + '.' + (m.warn.length ? ' Check: ' + m.warn.join(' · ') + '.' : ''), m.warn.length ? 'missing' : 'success');
+    setGlobal('Supplier Updates: ' + fmtN(m.data.length) + ' pasted row' + (m.data.length === 1 ? '' : 's') + ' added — ' + fmtN(rowsOf('sup').length) + ' supplier rows in total. ' + readinessText(), m.warn.length ? 'missing' : 'success');
+  }
+  function supSay(msg, type) { supView.note = msg; supView.noteType = type || 'info'; var el = $('#supNote'); if (el) { el.className = 'status sup-note ' + supView.noteType; el.textContent = msg; el.hidden = !msg; } }
+  // Rows as the Sheet shows them: the merge results after stage 1 (with STATUS), otherwise the loaded files in order.
+  function supSource() {
+    var res = state.results[SHEETS.SUP], x = state.inputs.sup, from = [];
+    (x && x.files || []).forEach(function (f) { for (var i = 0; i < f.data.length; i++) from.push(f.pasted ? 1 : 0); });
+    if (res && res.length > 2) return { rows: res.slice(2), summary: String((res[0] || [])[15] || '').trim(), pasted: res.length - 2 === from.length ? from : [], run: true };
+    return { rows: rowsOf('sup').map(function (r, i) { var o = r.slice(0, 16); o[0] = String(i + 1); return o; }), summary: '', pasted: from, run: false };
+  }
+  function supStatusClass(v) {
+    var s = String(v || '').toUpperCase();
+    return !s ? '' : /UNMATCHABLE/.test(s) ? 'st-unm' : /NOT USED/.test(s) ? 'st-notused' : /MATCHED/.test(s) ? 'st-match' : /NEW/.test(s) ? 'st-new' : '';
+  }
+  function supTotals(rows) {
+    var st = function (r) { return String(r[15] == null ? '' : r[15]).toUpperCase(); };
+    var cnt = function (re) { var n = 0; rows.forEach(function (r) { if (re.test(st(r))) n++; }); return n; };
+    var uniq = function (c) { var s = {}, n = 0; rows.forEach(function (r) { var v = String(r[c] == null ? '' : r[c]).trim(); if (v && !s[v]) { s[v] = 1; n++; } }); return n; };
+    var sum = function (c) { return rows.reduce(function (a, r) { var v = typeof r[c] === 'number' ? r[c] : Number(String(r[c] == null ? '' : r[c]).replace(/[$,\s]/g, '')); return a + (isFinite(v) && v > 0 ? v : 0); }, 0); };
+    return { total: rows.filter(function (r) { return String(r[0] == null ? '' : r[0]).trim() !== ''; }).length,
+      matched: cnt(/BEST BUY.*MATCHED|^MATCHED$/), newp: cnt(/BEST BUY.*NEW|^NEW/), notUsed: cnt(/NOT USED/), unm: cnt(/UNMATCHABLE/),
+      names: uniq(1), suppliers: uniq(2), barcodes: uniq(3), brands: uniq(4), ws: sum(9), rrp: sum(10) };
+  }
+  function money(n) { return '$' + Number(n || 0).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function supCell(v, c) {
+    var s = v == null ? '' : (typeof v === 'number' && (c === 9 || c === 10 || c === 13 || c === 8) ? v.toFixed(2) : String(v));
+    return s;
+  }
+  function supSheetHtml() {
+    return '<div class="sup-sheet" id="supSheet" tabindex="0" aria-label="IN_SUPPLIER_/_PRODUCT_UPDATES sheet — click here and press Ctrl+V to paste rows">' +
+      '<div class="sup-head"><div><h3>IN_SUPPLIER_/_PRODUCT_UPDATES</h3><p>The Supplier Updates tab as the Google Sheet shows it. Copy rows in Excel or Google Sheets, click this sheet and press Ctrl+V (⌘V on Mac) — with or without the heading row.</p></div><span class="result-badge" id="supCount">0 ROWS</span></div>' +
+      '<div class="sup-bar" id="supBar"></div>' +
+      '<div class="sup-tools"><input type="search" id="supSearch" placeholder="Search barcode, brand, Sub ID, product or status…" aria-label="Search supplier rows">' +
+      '<button type="button" class="btn small primary" id="supPasteBtn" title="Read the clipboard and add the rows (or click the sheet and press Ctrl+V)">Paste rows</button>' +
+      '<button type="button" class="btn small" id="supUndo" title="Remove the rows added by the last paste">Undo last paste</button>' +
+      '<button type="button" class="btn small" id="supClearPasted" title="Remove every pasted row (dropped files stay)">Clear pasted rows</button>' +
+      '<button type="button" class="btn small" id="supCopyHeads" title="Copy the 16 headings, ready to paste into Excel or Google Sheets as a template">Copy headings</button></div>' +
+      '<div class="status sup-note" id="supNote" hidden></div>' +
+      '<div class="sup-table-wrap"><table class="sup-table"><thead><tr>' + SUP_HEADS.map(function (h, i) { return '<th class="sup-c' + i + '"><span class="sup-col">' + window.XlsxLite.colLetter(i + 1) + '</span>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody id="supBody"></tbody></table></div>' +
+      '<div class="review-pager"><button type="button" class="btn small" id="supPrev">‹ Previous</button><span id="supPage">Page 1</span><button type="button" class="btn small" id="supNext">Next ›</button></div></div>';
+  }
+  function drawSup() {
+    var host = $('#supSheet'); if (!host) return;
+    var src = supSource(), q = supView.q.trim().toUpperCase(), vis = [], from = [];
+    src.rows.forEach(function (r, i) { if (!q || r.join(' ').toUpperCase().indexOf(q) >= 0) { vis.push(r); from.push(src.pasted[i] || 0); } });
+    var t = supTotals(vis);
+    var stat = src.run ? (src.summary || 'Stage 1 finished — no summary returned') : (src.rows.length ? 'STATUS is set when stage 1 runs (Highlight New Products + Best Buy)' : 'No supplier rows yet — drop supplier files above or paste rows here');
+    var bc = function (label, val, cls, tip) { return '<div class="sup-bar-cell' + (cls ? ' ' + cls : '') + '"' + (tip ? ' title="' + esc(tip) + '"' : '') + '><span>' + label + '</span><strong>' + val + '</strong></div>'; };
+    $('#supBar').innerHTML =
+      '<div class="sup-bar-group">' + bc('TOTAL', fmtN(t.total)) + bc('⭐ MATCHED', fmtN(t.matched), 'is-match') + bc('🟢 NEW', fmtN(t.newp), 'is-new') + bc('🚫 NOT USED', fmtN(t.notUsed), 'is-muted') + bc('⚠️ UNMATCHABLE', fmtN(t.unm), 'is-warn') + '</div>' +
+      '<div class="sup-bar-group">' + bc('SUPPLIER NAMES', fmtN(t.names)) + bc('TOTAL POS SUPPLIERS', fmtN(t.suppliers)) + bc('UNIQUE BARCODES', fmtN(t.barcodes), '', 'Column D (SUP BARCODE). In the Google Sheet this cell may be labelled UNIQUE BRANDS from an older layout — it counts barcodes.') + bc('UNIQUE BRANDS', fmtN(t.brands)) + bc('TOTAL WS', money(t.ws)) + bc('TOTAL RRP', money(t.rrp)) + '</div>' +
+      '<div class="sup-bar-status' + (src.run ? ' is-run' : '') + '"><span>STATUS</span>' + esc(stat) + (q ? ' <em>· totals are for the ' + fmtN(vis.length) + ' rows matching the search</em>' : '') + '</div>';
+    var pages = Math.max(1, Math.ceil(vis.length / SUP_PAGE));
+    supView.page = Math.max(0, Math.min(supView.page, pages - 1));
+    var start = supView.page * SUP_PAGE, slice = vis.slice(start, start + SUP_PAGE);
+    $('#supBody').innerHTML = slice.length ? slice.map(function (r, k) {
+      var pasted = from[start + k];
+      return '<tr' + (pasted ? ' class="is-pasted"' : '') + '>' + SUP_HEADS.map(function (h, c) {
+        var s = supCell(r[c], c), cls = 'sup-c' + c + (c === 15 ? ' sup-status ' + supStatusClass(s) : '');
+        return '<td class="' + cls + '"' + (c === 6 || c === 15 ? ' title="' + esc(s) + '"' : '') + '>' + (c === 0 && pasted ? '<span class="sup-pasted-tag" title="Pasted row">P</span>' : '') + esc(s) + '</td>';
+      }).join('') + '</tr>';
+    }).join('') : '<tr><td colspan="16" class="sup-empty">' + (src.rows.length ? 'No rows match the search.' : '<strong>Paste rows here</strong> — click this sheet and press Ctrl+V (⌘V on Mac). Copy rows A–P, B–O or with the heading row; INDEX is renumbered and STATUS is set by the merge.') + '</td></tr>';
+    var pc = pastedEntry(), pn = pc ? pc.entry.data.length : 0;
+    var badge = $('#supCount'); badge.textContent = (q ? fmtN(vis.length) + ' OF ' : '') + fmtN(src.rows.length) + ' ROWS' + (pn ? ' · ' + fmtN(pn) + ' PASTED' : ''); badge.className = 'result-badge' + (src.rows.length ? ' ok' : '');
+    $('#supPage').textContent = 'Page ' + (supView.page + 1) + ' of ' + pages + ' · ' + SUP_PAGE + ' rows per page';
+    $('#supPrev').disabled = supView.page <= 0; $('#supNext').disabled = supView.page >= pages - 1;
+    $('#supUndo').disabled = !pn || !supView.undo.length || state.busy;
+    $('#supClearPasted').disabled = !pn || state.busy;
+    $('#supPasteBtn').disabled = state.busy;
+    supSay(supView.note, supView.noteType);
+  }
+  function wireSupSheet() {
+    var host = $('#supSheet'); if (!host) return;
+    var t; $('#supSearch').value = supView.q;
+    $('#supSearch').oninput = function () { clearTimeout(t); t = setTimeout(function () { supView.q = $('#supSearch').value; supView.page = 0; drawSup(); }, 200); };
+    $('#supPrev').onclick = function () { supView.page--; drawSup(); };
+    $('#supNext').onclick = function () { supView.page++; drawSup(); };
+    $('#supUndo').onclick = function () { var p = pastedEntry(); if (!p || !supView.undo.length) return; var keep = supView.undo.pop(); setPasted(p.entry.data.slice(0, keep), 'Last paste removed — ' + fmtN(p.entry.data.length - keep) + ' row' + (p.entry.data.length - keep === 1 ? '' : 's') + '.', 'info'); };
+    $('#supClearPasted').onclick = function () { var p = pastedEntry(); if (!p) return; if (!window.confirm('Remove all ' + fmtN(p.entry.data.length) + ' pasted rows? Dropped supplier files stay.')) return; supView.undo = []; setPasted([], 'Pasted rows cleared.', 'info'); };
+    $('#supCopyHeads').onclick = function () {
+      var txt = SUP_HEADS.join('\t');
+      var done = function () { supSay('The 16 headings are on the clipboard — paste them into row 1 of a sheet, add the rows, then copy everything and paste it here.', 'success'); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, function () { supSay('The browser blocked the clipboard. Headings: ' + SUP_HEADS.join(' · '), 'missing'); });
+      else supSay('Headings: ' + SUP_HEADS.join(' · '), 'info');
+    };
+    $('#supPasteBtn').onclick = function () {
+      if (!navigator.clipboard || !navigator.clipboard.readText) { host.focus(); supSay('This browser does not let pages read the clipboard from a button — click the sheet and press Ctrl+V (⌘V on Mac).', 'missing'); return; }
+      navigator.clipboard.readText().then(pasteToSupplier, function () { host.focus(); supSay('The browser blocked reading the clipboard — click the sheet and press Ctrl+V (⌘V on Mac).', 'missing'); });
+    };
+    host.addEventListener('paste', function (e) {
+      var tg = e.target; if (tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA')) return;
+      var txt = e.clipboardData && e.clipboardData.getData('text/plain'); if (!txt) return;
+      e.preventDefault(); e.stopPropagation(); pasteToSupplier(txt);
+    });
+    drawSup();
+  }
+  function refreshSupSheet() { if ($('#supSheet')) drawSup(); }
+
   // ----------------------------------------------------------------- boot
   function renderAll() { renderInputNav(); renderInputSummary(); updateRunButtons(); }
   function boot() {
@@ -757,6 +952,7 @@
     $('#railClearSession').onclick = function () {
       if (state.busy) return;
       ['pos', 'sup'].forEach(function (id) { delete state.inputs[id]; });
+      supView.undo = []; supView.note = '';
       state.rev++; state.bulk = []; renderBulk(); invalidateResults('Session files cleared.'); renderAll();
       setGlobal('POS database and supplier files removed. Saved reference data is kept.', 'info');
       if (state.activeInput) showInput(state.activeInput);

@@ -1,4 +1,5 @@
-/* XlsxLite v1.0.0 — small streaming .xlsx writer for large styled sheets.
+/* XlsxLite v1.1.0 — small streaming .xlsx writer for large styled sheets.
+   v1.1.0 (10 Oct 2026): optional font name (font:{name}), sheet.gridLines:false and a cached number result for formulas ({formula, result}).
    Runs entirely in the browser: rows are turned into worksheet XML in batches and compressed with the
    browser's built-in CompressionStream, so 38k-row x 150-column masters are written in seconds without
    holding millions of cell objects in memory. Output opens in Excel, LibreOffice, Google Sheets,
@@ -159,7 +160,7 @@
       if (f.italic) x += '<i/>';
       x += `<sz val="${f.size || 11}"/>`;
       x += `<color rgb="FF${f.color || '000000'}"/>`;
-      x += '<name val="Calibri"/><family val="2"/></font>';
+      x += f.name ? `<name val="${esc(f.name)}"/></font>` : '<name val="Calibri"/><family val="2"/></font>';
       this.fonts.push(x);
       this.fontKeys.set(key, this.fonts.length - 1);
       return this.fonts.length - 1;
@@ -189,7 +190,7 @@
       this.numFmtKeys.set(code, id);
       return id;
     }
-    // spec: {font:{bold,size,color}, fill:'RRGGBB', numFmt:'0.00', align:{h,v,wrap,indent,shrink}, border:{top:{style,color}}}
+    // spec: {font:{bold,size,color,name}, fill:'RRGGBB', numFmt:'0.00', align:{h,v,wrap,indent,shrink}, border:{top:{style,color}}}
     style(spec) {
       spec = spec || {};
       const fontId = this.font(spec.font), fillId = this.fill(spec.fill), borderId = this.border(spec.border), numFmtId = this.numFmt(spec.numFmt);
@@ -254,7 +255,7 @@
       return `<c r="${ref}"${sAttr}><v>${num}</v></c>`;
     }
     if (t === 'boolean') return `<c r="${ref}"${sAttr} t="b"><v>${value ? 1 : 0}</v></c>`;
-    if (t === 'object' && value.formula) return `<c r="${ref}"${sAttr}><f>${esc(value.formula)}</f></c>`;
+    if (t === 'object' && value.formula) return `<c r="${ref}"${sAttr}><f>${esc(value.formula)}</f>${typeof value.result === 'number' && Number.isFinite(value.result) ? `<v>${value.result}</v>` : ''}</c>`;
     if (value instanceof Date) return `<c r="${ref}"${sAttr} t="inlineStr"><is><t>${esc(value.toISOString())}</t></is></c>`;
     let text = String(value);
     if (text.length > 32767) text = text.slice(0, 32767); // Excel's cell text limit
@@ -264,7 +265,7 @@
 
   // ---------- Workbook ----------
   /* sheet = {
-       name, columnCount, widths:[...], freeze:'I2', autoFilter:'A1:Z100', defaultRowHeight,
+       name, columnCount, widths:[...], freeze:'I2', autoFilter:'A1:Z100', defaultRowHeight, gridLines:false,
        rows: function* () { yield {cells:[value...], styles:[styleId...]|styleId, height} },
        conditional: [{ref:'A2:X2', formula:'...', dxf:id}]
      } */
@@ -314,7 +315,7 @@
         let head = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n' +
           `<worksheet xmlns="${MAIN_NS}" xmlns:r="${REL_NS}">`;
         if (sh.dimension) head += `<dimension ref="${sh.dimension}"/>`;
-        head += '<sheetViews><sheetView workbookViewId="0"' + (si === 0 ? ' tabSelected="1"' : '') + '>';
+        head += '<sheetViews><sheetView' + (sh.gridLines === false ? ' showGridLines="0"' : '') + ' workbookViewId="0"' + (si === 0 ? ' tabSelected="1"' : '') + '>';
         if (sh.freeze) {
           const p = parseRef(sh.freeze), xs = p.col - 1, ys = p.row - 1;
           if (xs > 0 || ys > 0) {
