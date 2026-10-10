@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS Supplier Merge v1.1.0 (10 Oct 2026)
+/* PHF Staff Hub — POS Supplier Merge v1.2.0 (10 Oct 2026)
    Tool-only additions. Layout and colours come from css/app.css (same layout as
    Build Master Databases) and the shared assets/css/theme.css (linked last). */
 
@@ -125,8 +125,34 @@ body.phf-page-merge .sup-table tbody tr td.sup-status.st-match{background:#E8F0F
 body.phf-page-merge .sup-table tbody tr td.sup-status.st-new{background:#E6F4EA;color:#137333;font-weight:700}
 body.phf-page-merge .sup-table tbody tr td.sup-status.st-unm{background:#FFF3CD;color:#856404;font-weight:700}
 body.phf-page-merge .sup-table tbody tr td.sup-status.st-notused{color:#9AA0A6}
-body.phf-page-merge .sup-table tr.is-pasted td.sup-c0{box-shadow:inset 3px 0 0 var(--phf-gold)}
-body.phf-page-merge .sup-pasted-tag{display:inline-block;margin-right:5px;padding:0 4px;border-radius:4px;background:var(--phf-navy);color:var(--phf-gold);font-size:9px;font-weight:800;font-style:normal;line-height:14px;vertical-align:1px}
+body.phf-page-merge .sup-table tr.is-added td.sup-c0{box-shadow:inset 3px 0 0 var(--phf-gold)}
+body.phf-page-merge .sup-added-tag{display:inline-block;margin-right:5px;padding:0 4px;border-radius:4px;background:var(--phf-navy);color:var(--phf-gold);font-size:9px;font-weight:800;font-style:normal;line-height:14px;vertical-align:1px}
 body.phf-page-merge .sup-table td.sup-empty{white-space:normal;text-align:center;padding:30px 20px;color:var(--phf-muted);background:#fff!important;border:2px dashed var(--phf-line-strong);font-size:12.5px}
 body.phf-page-merge .sup-table td.sup-empty strong{color:var(--phf-navy)}
 body.phf-page-merge .sup-sheet .review-pager{padding:0 12px 12px}
+
+/* v1.2.0 — the sheet sits full width under the stages (same width as the OUT_MERGED_DATA review) and is editable:
+   blue selection like Google Sheets, amber = changed on this page, gold bar / + = row added here, grey = read-only. */
+body.phf-page-merge .sup-panel{margin:16px 0 0}
+body.phf-page-merge .sup-panel .sup-sheet{margin:0;border-radius:var(--phf-radius);box-shadow:0 1px 2px rgba(16,24,40,.06)}
+body.phf-page-merge .sup-panel .sup-head{border-radius:calc(var(--phf-radius) - 1px) calc(var(--phf-radius) - 1px) 0 0}
+body.phf-page-merge .sup-table tbody{user-select:none}
+body.phf-page-merge .sup-table td{position:relative;cursor:cell}
+body.phf-page-merge .sup-table tbody tr td.sup-ro{background:#EEF1F3;color:#7B8794;cursor:default}
+body.phf-page-merge .sup-table th.sup-ro{color:#7B8794}
+body.phf-page-merge .sup-table tbody tr td.is-edited{background:#FFF7E0;color:#7A4F00;font-weight:600}
+body.phf-page-merge .sup-table tbody tr td.is-sel{background:#D2E3FC;color:#174EA6}
+body.phf-page-merge .sup-table tbody tr td.is-anchor{box-shadow:inset 0 0 0 2px #1A73E8;background:#E8F0FE}
+body.phf-page-merge .sup-table tbody tr td.is-editing{padding:0;overflow:visible;z-index:3}
+body.phf-page-merge .sup-edit{position:absolute;inset:0;width:100%;min-width:140px;height:100%;box-sizing:border-box;border:2px solid #1A73E8;border-radius:0;padding:4px 7px;font:inherit;font-style:normal;color:#1C2833;background:#fff;outline:none;box-shadow:0 2px 6px rgba(26,115,232,.25)}
+body.phf-page-merge .sup-table tr.sup-new-row td{background:#fff!important;border-top:1px dashed var(--phf-line-strong);height:26px}
+body.phf-page-merge .sup-table tr.sup-new-row td.is-sel{background:#D2E3FC!important}
+body.phf-page-merge .sup-new-mark{color:#B0BAC4;font-size:10.5px}
+body.phf-page-merge .sup-sheet .review-pager{justify-content:flex-end}
+body.phf-page-merge .sup-sel-info{margin-right:auto;font-weight:700;color:#174EA6;font-variant-numeric:tabular-nums}
+body.phf-page-merge .sup-card-link{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--phf-muted)}
+/* ✕ beside each loaded input in the rail — removes it straight away */
+body.phf-page-merge .input-nav-wrap{position:relative}
+body.phf-page-merge .input-nav-wrap.has-del .input-nav-item{padding-right:32px!important}
+body.phf-page-merge .input-nav-del{position:absolute;top:50%;right:8px;transform:translateY(-50%);width:18px;height:18px;padding:0;border-radius:50%;border:1px solid var(--phf-line-strong);background:#fff;color:var(--phf-red);font-size:10px;font-weight:900;line-height:16px;text-align:center;cursor:pointer;z-index:3;opacity:.85}
+body.phf-page-merge .input-nav-del:hover,body.phf-page-merge .input-nav-del:focus-visible{background:var(--phf-red-bg);border-color:var(--phf-red-line);opacity:1;outline:none}
