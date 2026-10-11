@@ -1,31 +1,31 @@
-/* PHF Staff Hub — Supplier Contacts v1.0.0 (12 Oct 2026)
+/* PHF Staff Hub — Supplier Contacts v1.1.0 (12 Oct 2026)
+ * v1.1.0: no Index, 100% GST or Min Order columns (a file that has them loads without them); everything is text — numbers
+ *         are read exactly as stored (no $ or thousands commas from a cell's number format) and the .xlsx columns are Text.
  * One list of supplier and utility contacts: search every field, add / edit / delete, download (.xlsx / .csv).
  * The list lives in this browser's Staff Hub Library (assets/js/phf-library.js, kind "lib:contacts") — never in GitHub.
  * Drop the contacts file once on each computer; every change is saved in the browser straight away; Download shares it.
  *
- * File layout (read and written): header row with Supplier, Code / Product Group, Index, Account # / Notes,
- * Phone Numbers, Fax Number, Email, Accts Email, 100% GST, Min Order, Section (Supplier / Utility). The header can sit in
+ * File layout (read and written): header row with Supplier, Code / Product Group, Account # / Notes, Phone Numbers,
+ * Fax Number, Email, Accts Email, Section (Supplier / Utility). The header can sit in
  * any of the first 15 rows and the columns can be in any order; *ContactName (Monday Orders) is read as Supplier.
  * A file without a Section column takes the rows after "Totally Workwear Moorabbin" as the utilities.
- * Other columns in a loaded file are kept (shown after Min Order) so nothing is lost.
+ * Other columns in a loaded file are kept (shown after Accts Email) so nothing is lost — except Index, 100% GST and Min Order.
  */
 (function () {
   'use strict';
 
-  var VERSION = 'v1.0.0', KIND = 'lib:contacts', TOOL = 'Supplier Contacts', SAVE_NAME = 'Supplier_Contacts.xlsx';
+  var VERSION = 'v1.1.0', KIND = 'lib:contacts', TOOL = 'Supplier Contacts', SAVE_NAME = 'Supplier_Contacts.xlsx';
   var L = window.PHFLibrary || null;
   var FIELDS = [
     { key: 'Supplier', alias: ['supplier', 'contactname', 'contact', 'name', 'suppliername'], w: 215, xw: 34 },
-    { key: 'Code / Product Group', alias: ['codeproductgroup', 'code', 'productgroup'], w: 110, xw: 16 },
-    { key: 'Index', alias: ['index'], w: 62, xw: 8, centre: true },
-    { key: 'Account # / Notes', alias: ['accountnotes', 'accountno', 'account', 'notes'], w: 210, xw: 34, multi: true },
-    { key: 'Phone Numbers', alias: ['phonenumbers', 'phonenumber', 'phones', 'phone'], w: 205, xw: 30, multi: true },
-    { key: 'Fax Number', alias: ['faxnumber', 'fax'], w: 105, xw: 15 },
-    { key: 'Email', alias: ['email', 'emails', 'emailaddress'], w: 230, xw: 36, multi: true, mail: true },
-    { key: 'Accts Email', alias: ['acctsemail', 'accountsemail', 'accountemail', 'accountsemails'], w: 210, xw: 32, multi: true, mail: true },
-    { key: '100% GST', alias: ['100gst', 'gst'], w: 62, xw: 9, centre: true },
-    { key: 'Min Order', alias: ['minorder', 'minimumorder'], w: 80, xw: 12, centre: true }
+    { key: 'Code / Product Group', alias: ['codeproductgroup', 'code', 'productgroup'], w: 120, xw: 16 },
+    { key: 'Account # / Notes', alias: ['accountnotes', 'accountno', 'account', 'notes'], w: 250, xw: 38, multi: true },
+    { key: 'Phone Numbers', alias: ['phonenumbers', 'phonenumber', 'phones', 'phone'], w: 235, xw: 32, multi: true },
+    { key: 'Fax Number', alias: ['faxnumber', 'fax'], w: 115, xw: 15 },
+    { key: 'Email', alias: ['email', 'emails', 'emailaddress'], w: 255, xw: 38, multi: true, mail: true },
+    { key: 'Accts Email', alias: ['acctsemail', 'accountsemail', 'accountemail', 'accountsemails'], w: 230, xw: 34, multi: true, mail: true }
   ];
+  var DROPPED = ['index', '100gst', 'gst', 'minorder', 'minimumorder']; // columns no longer kept (v1.1.0)
   var SECTION = { key: 'Section', alias: ['section', 'type', 'group'] };
   var LAST_SUPPLIER = 'totallyworkwearmoorabbin';
   var BANDS = { sup: ['E9F0F5', 'F5F5F5'], util: ['FDEADA', 'FCD5B4'] };
@@ -198,16 +198,43 @@
     var X = window.XLSX;
     if (!X) return Promise.reject(new Error('The spreadsheet reader did not load — check the internet connection and refresh the page.'));
     var csv = /\.(csv|txt)$/i.test(file.name || '') || /csv/.test(file.type || '');
-    var read = csv ? file.text().then(function (t) { return X.read(t.replace(/^﻿/, ''), { type: 'string', raw: true }); })
-      : file.arrayBuffer().then(function (b) { return X.read(b, { type: 'array' }); });
+    var read = csv ? file.text().then(function (t) { return X.read(t.replace(/^\ufeff/, ''), { type: 'string', raw: true }); })
+      : file.arrayBuffer().then(function (b) { return X.read(b, { type: 'array', cellNF: true }); });
     return read.then(function (wb) {
       for (var s = 0; s < wb.SheetNames.length; s++) {
-        var m = X.utils.sheet_to_json(wb.Sheets[wb.SheetNames[s]], { header: 1, defval: '', raw: false, blankrows: false });
-        var t = fromMatrix(m);
+        var t = fromMatrix(textMatrix(wb.Sheets[wb.SheetNames[s]]));
         if (t) return t;
       }
       throw new Error('No Supplier (or ContactName) heading was found in ' + (file.name || 'the file') + '.');
     });
+  }
+  // Every cell as text, as stored: a number is its plain digits (53773, not $53,773.00 from the cell's number format);
+  // only a cell formatted as a date keeps the date shown in Excel.
+  function textMatrix(ws) {
+    var X = window.XLSX, out = [];
+    if (!ws || !ws['!ref']) return out;
+    var rg = X.utils.decode_range(ws['!ref']);
+    for (var R = rg.s.r; R <= rg.e.r; R++) {
+      var row = [], any = false;
+      for (var C = rg.s.c; C <= rg.e.c; C++) {
+        var v = cellText(ws[X.utils.encode_cell({ r: R, c: C })]);
+        if (v !== '') any = true;
+        row.push(v);
+      }
+      if (any) out.push(row);
+    }
+    return out;
+  }
+  function cellText(c) {
+    if (!c || c.v == null) return '';
+    if (c.t === 'n') {
+      var X = window.XLSX;
+      if (c.z && X.SSF && X.SSF.is_date && X.SSF.is_date(c.z) && c.w) return c.w;
+      return Number.isInteger(c.v) && Math.abs(c.v) < 1e21 ? c.v.toFixed(0) : String(c.v);
+    }
+    if (c.t === 'b') return c.v ? 'TRUE' : 'FALSE';
+    if (c.t === 'd' || c.t === 'e') return c.w || '';
+    return String(c.v);
   }
   function fromMatrix(m) {
     var hr = -1;
@@ -216,10 +243,11 @@
     }
     if (hr < 0) return null;
     var head = m[hr].map(function (v) { return clean(v).replace(/\s*\n\s*/g, ' ').replace(/\s{2,}/g, ' ').replace(/^\*/, ''); });
-    var map = {}, used = {}, sec = -1, extras = [];
+    var map = {}, used = {}, sec = -1, extras = [], dropped = [];
     head.forEach(function (h, c) {
       var n = norm(h); if (!n) return;
       if (sec < 0 && SECTION.alias.indexOf(n) >= 0) { sec = c; return; }
+      if (DROPPED.indexOf(n) >= 0) { dropped.push(h); return; }
       for (var i = 0; i < FIELDS.length; i++) {
         if (!used[FIELDS[i].key] && FIELDS[i].alias.indexOf(n) >= 0) { map[c] = FIELDS[i].key; used[FIELDS[i].key] = true; return; }
       }
@@ -236,7 +264,7 @@
       rows.push({ f: f, util: util });
       if (sec < 0 && norm(f.Supplier) === LAST_SUPPLIER) afterLast = true;
     }
-    return { extras: extras, rows: rows };
+    return { extras: extras, rows: rows, dropped: dropped };
   }
   function loadTable(t, label, keepUndo) {
     var apply = function () {
@@ -255,7 +283,7 @@
     readFile(file).then(function (t) {
       if (!t.rows.length) throw new Error('No contacts were found under the headings in ' + file.name + '.');
       var u = t.rows.filter(function (x) { return x.util; }).length;
-      loadTable(t, 'Loaded ' + file.name + ' — ' + plural(t.rows.length, 'contact') + ' (' + u + ' utilit' + (u === 1 ? 'y' : 'ies') + ')' + (state.rows.length ? ', replacing the list that was here' : ''), true);
+      loadTable(t, 'Loaded ' + file.name + ' — ' + plural(t.rows.length, 'contact') + ' (' + u + ' utilit' + (u === 1 ? 'y' : 'ies') + ')' + (state.rows.length ? ', replacing the list that was here' : '') + (t.dropped.length ? ' · left out: ' + t.dropped.join(', ') : ''), true);
     }).catch(function (e) { console.error(e); msg('Not loaded — ' + (e && e.message ? e.message : e), 'error'); });
   }
 
@@ -270,9 +298,9 @@
     var wb = new E.Workbook(); wb.creator = 'PHF Staff Hub — ' + TOOL + ' ' + VERSION;
     var ws = wb.addWorksheet('Supplier Contacts', { views: [{ state: 'frozen', xSplit: 1, ySplit: 1 }] });
     var heads = outHeads(), rows = displayRows();
-    ws.columns = heads.map(function (h) { return { header: h, key: h, width: h === SECTION.key ? 10 : field(h).xw }; });
+    ws.columns = heads.map(function (h) { return { header: h, key: h, width: h === SECTION.key ? 10 : field(h).xw, style: { numFmt: '@' } }; });
     rows.forEach(function (r) {
-      ws.addRow(heads.map(function (h) { var v = outValue(h, r); return (h === 'Index' || h === 'Min Order') && /^\d{1,9}$/.test(v) ? Number(v) : v; }));
+      ws.addRow(heads.map(function (h) { return outValue(h, r); })); // text only
     });
     var head = ws.getRow(1); head.height = 30;
     head.eachCell(function (c) {
@@ -287,6 +315,7 @@
         c.font = { name: 'Arial', size: 10, bold: col === 1, color: { argb: 'FF1F2937' } };
         c.alignment = { vertical: 'top', wrapText: true, horizontal: (field(h).centre || h === SECTION.key) ? 'center' : 'left' };
         c.border = { bottom: { style: 'thin', color: { argb: 'FFD6DEE6' } } };
+        c.numFmt = '@';
       });
     }
     var last = colLetter(heads.length), end = rows.length + 1, sec = colLetter(ci[SECTION.key]);
@@ -303,7 +332,7 @@
   function csvText() {
     var q = function (v) { v = String(v == null ? '' : v); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
     var heads = outHeads();
-    return '﻿' + [heads.map(q).join(',')].concat(displayRows().map(function (r) { return heads.map(function (h) { return q(outValue(h, r)); }).join(','); })).join('\r\n') + '\r\n';
+    return '\ufeff' + [heads.map(q).join(',')].concat(displayRows().map(function (r) { return heads.map(function (h) { return q(outValue(h, r)); }).join(','); })).join('\r\n') + '\r\n';
   }
   function download(blob, name) {
     var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
@@ -325,14 +354,13 @@
 
   // ---------- add / edit dialog ----------
   function rowById(id) { for (var i = 0; i < state.rows.length; i++) if (state.rows[i].id === id) return state.rows[i]; return null; }
-  function nextIndex() { var m = 0; state.rows.forEach(function (r) { var n = parseInt(r.f.Index, 10); if (/^\d+$/.test(r.f.Index || '') && n > m) m = n; }); return m ? String(m + 1) : ''; }
   function openDialog(id) {
     var r = id ? rowById(id) : null, d = $('#scDialog');
     state.editing = r ? r.id : null;
     $('#scDlgTitle').textContent = r ? 'Edit contact' : 'Add contact';
     $('#scDlgDel').hidden = !r;
     $('#scDlgErr').textContent = '';
-    var f = r ? r.f : { Index: nextIndex() };
+    var f = r ? r.f : {};
     var one = '<label class="sc-f sc-f-wide"><span>Supplier <b aria-hidden="true">*</b></span><input name="Supplier" required autocomplete="off" value="' + esc(f.Supplier || '') + '"></label>' +
       '<label class="sc-f"><span>Section</span><select name="__section"><option value="Supplier">Supplier</option><option value="Utility"' + (r && r.util ? ' selected' : '') + '>Utility</option></select></label>';
     var many = '';
@@ -449,6 +477,8 @@
         loadTable(t, '', false); savedPill();
         var c = counts();
         msg((note ? note + ' ' : '') + plural(c.all, 'contact') + ' from this browser’s Library (saved ' + L.when(rec) + ').', 'info');
+        // a list saved before v1.1.0 still has Index / 100% GST / Min Order: save it again without them
+        if (t.dropped.length) { state.rev++; state.dirty = true; scheduleSave(); msg(plural(c.all, 'contact') + ' from this browser’s Library — ' + t.dropped.join(', ') + ' removed (no longer kept).', 'info'); }
       });
     }).catch(function (e) { console.error(e); savedPill(); render(); msg('Could not open the saved list (' + (e && e.message ? e.message : e) + '). Load the contacts file again.', 'error'); });
   }

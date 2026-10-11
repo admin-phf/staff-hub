@@ -1,9 +1,13 @@
-# Supplier Contacts v1.0.0 (Staff Hub v21.13.0)
+# Supplier Contacts v1.1.0 (Staff Hub v21.13.1)
 
-Updated 12 Oct 2026 04:40 AEDT.
+Updated 12 Oct 2026 07:45 AEDT.
 
-One list of supplier and utility contacts — reps, phone numbers, emails, account numbers, notes and minimum orders —
-with search, add, edit, delete and download.
+One list of supplier and utility contacts — reps, phone numbers, emails, account numbers and notes — with search, add,
+edit, delete and download.
+
+v1.1.0: the Index, 100% GST and Min Order columns are gone (a list or file that still has them opens without them, and
+the saved list is saved again without them). Everything is text: numbers are read exactly as stored — 53773, not
+$53,773.00 or 53,773 — and every column of the .xlsx download is formatted as Text, so Excel does not change them either.
 
 ## Where the list is kept
 
@@ -32,14 +36,14 @@ The hub's Library panel shows the saved list. Library **Delete all** leaves it i
 
 Sheet `Supplier Contacts`, heading row 1:
 
-| Supplier | Code / Product Group | Index | Account # / Notes | Phone Numbers | Fax Number | Email | Accts Email | 100% GST | Min Order | Section |
-|---|---|---|---|---|---|---|---|---|---|---|
+| Supplier | Code / Product Group | Account # / Notes | Phone Numbers | Fax Number | Email | Accts Email | Section |
+|---|---|---|---|---|---|---|---|
 
-Multi-line cells keep their line breaks. Section is `Supplier` or `Utility`. The download's row colours are conditional
+All columns are Text. Multi-line cells keep their line breaks. Section is `Supplier` or `Utility`. The download's row colours are conditional
 formats on Section, so they stay right after sorting or filtering in Excel.
 
 Other files load too: the heading row can be in the first 15 rows, columns can be in any order, `*ContactName` is read as
-Supplier, and columns the tool does not know are kept as extra fields. A file with no Section column (the Monday Orders
+Supplier, and columns the tool does not know are kept as extra fields (Index, 100% GST and Min Order are left out). A file with no Section column (the Monday Orders
 list, the V8 Supplier Contacts sheet) takes the rows after **Totally Workwear Moorabbin** as the utilities.
 
 ## How the first list was made (12 Oct 2026)
@@ -55,7 +59,10 @@ sheet, one row per contact:
   Co / Discount Health) became one each.
 - Where both lists had details, both are kept without repeating a line, V8 (the current sheet) first. 29 contacts have
   extra lines from the older list (for example older reps' numbers) — tidy them with Edit.
-- Index comes from V8; Code / Product Group, Fax Number, 100% GST and Min Order from Monday Orders. World Trade's
-  "DO NOT THROW AWAY DISPLAY BOXES" (typed in V8's Index column) is in its notes.
+- Code / Product Group and Fax Number come from Monday Orders. V8's Index was used only to place the V8-only rows; the
+  list has no Index, 100% GST or Min Order column (v1.1.0). World Trade's "DO NOT THROW AWAY DISPLAY BOXES" (typed in
+  V8's Index column) is in its notes.
+- Account numbers shown as money or with thousands commas are plain digits: Spirit Telecom 53773 (was $53,773.00),
+  E Way Customer ID 16982842 (was 16,982,842).
 
 805 contacts: 660 suppliers and 145 utilities.

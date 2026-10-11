@@ -398,3 +398,11 @@ All implemented stages keep source business files local to the browser and gener
   `assets/js/phf-lock.js` v1.1.0: the prompt is "Still under development" with a password box (light overlay, amber
   icon, Back to Staff Hub as the main button); `guard()` draws Lock / Password only after the tool opens and Lock clears
   them while the prompt shows; `markTiles()` turns a locked tool's tile badge into `.badge.dev` "In development".
+
+## Staff Hub v21.13.1 — Supplier Contacts v1.1.0 (12 Oct 2026 07:45 AEDT)
+- Columns: Supplier, Code / Product Group, Account # / Notes, Phone Numbers, Fax Number, Email, Accts Email (+ Section in
+  the file). `DROPPED` headings (Index, 100% GST / GST, Min Order) are skipped by `fromMatrix` and reported in
+  `t.dropped`; a Library copy that still has them is saved again on open.
+- Text only: `textMatrix(ws)` / `cellText(c)` read each cell as stored (numbers as plain digits, `toFixed(0)` for integers;
+  booleans TRUE / FALSE; a date-formatted number keeps its shown date via `XLSX.SSF.is_date`), read with `cellNF: true`;
+  CSV stays text (`raw: true`). The .xlsx download writes strings only, with `numFmt '@'` on every cell and column.
