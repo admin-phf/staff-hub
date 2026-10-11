@@ -11,6 +11,8 @@
  * Values, formulas, notes, number formats (for display values) and sheet
  * structure (rows / columns / filters) are kept.
  * v1.0.1 (11 Oct 2026): formulas get each cell's displayed text for TO_TEXT (sheets-formula.js v1.0.1).
+ * v1.0.2 (11 Oct 2026): a Sheet / Range has no onEdit event fields (range, source, value…) — reading one gives
+ *         undefined, so the script's onEdit helpers tell a sheet from an event as they do in Google Sheets.
  */
 (function (root) {
   'use strict';
@@ -33,6 +35,9 @@
     return proxy;
   }
   var NOOP = makeNoop();
+  // v1.0.2: names of onEdit event fields. A Sheet / Range has no such property in Apps Script, so reading one gives
+  // undefined (not a no-op) — the script tells an event from a sheet with `x.range` (applyOutMergedSupplierPendingStyleFromEdit_).
+  var NOT_PROPS = { range: 1, source: 1, value: 1, oldValue: 1, user: 1, authMode: 1, triggerUid: 1, changeType: 1 };
   var CHAIN_RE = /^(set|clear|apply|insert|hide|show|remove|add|auto|merge|break|protect|activate|sort|trim|copy|uncheck|check|unmerge|expand|collapse|moveTo|randomize|shift|group|ungroup|deleteCells)/;
 
   // Methods the object does not define: setters and other actions chain back to
@@ -44,7 +49,7 @@
           var v = t[k];
           return typeof v === 'function' ? function () { var r = v.apply(t, arguments); return r === t ? p : r; } : v;
         }
-        if (typeof k === 'symbol') return undefined;
+        if (typeof k === 'symbol' || NOT_PROPS[k]) return undefined;
         if (CHAIN_RE.test(k)) return function () { return p; };
         return NOOP;
       }

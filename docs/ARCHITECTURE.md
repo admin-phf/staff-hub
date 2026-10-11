@@ -323,3 +323,44 @@ All implemented stages keep source business files local to the browser and gener
 - Reconcile CH2 v2.9.4: `.dash-row-top` (Drop All · selected input · readiness); `#resultTable` row hover = translucent
   yellow `background-image` over each cell's own colour.
 
+
+## Staff Hub v21.12.0 — editable merge sheets, Google Sheet look, password lock, merge v6.3.89 (11 Oct 2026 15:50 AEDT)
+- POS Supplier New Product Check and Clean Merge v1.5.0:
+  - `js/sheet-grid.js` PHFSheetGrid v1.1.0: thead = column letters (`tr.wbg-letters`) · row-1 totals (`tr.wbg-tot`, from
+    `opts.totals(visibleRows)`) · row-2 headings (`tr.wbg-headrow th[data-hc]` + `.wbg-filt` column-value filter); body cells
+    `td[data-r][data-c]` (r = position in the visible list, c = displayed column; `data-c="-1"` row numbers; the blank row
+    under the last row adds rows). `cols` = source columns shown (OUT drops `__EXPORT_VISIBLE__`). Editing reports
+    `{type:'cells', cells:[{i, c, v}]}` / `{type:'deleteRows', rows}` to `edit.onChange`; the page applies it and calls
+    `set({…, keepView:true})`. `busy()`, `note()`, Undo through `edit.onUndo` / `edit.canUndo`.
+  - `js/sheet-look.js` PHFSheetLook v1.0.0: per sheet — SCHEMA totals (SUBTOTAL ones over the visible rows, SUM / COUNTIF /
+    UNIQUE over all rows), OUT_MERGED_DATA conditional formats (ensureOutMergedConditionalFormatting_ rules as
+    `style(row, c) → {bg, fg, b}`), centreDataCols, read-only output columns, SRC_POS_ONGOING_DISCOUNTS H/I display.
+    Used by the grid and by the review workbook (row 1 = totals, cells = the same colours).
+  - Edits: SRC_ tabs → `srcEdit` (rows of `state.inputs[id].files`, `refSave`, `state.rev++`, `invalidateResults`,
+    `srcUndo[id]` snapshots). OUT_MERGED_DATA / OUT_POS_* → `engineSheetEdit` → engine `{cmd:'edit', op:'cells', blocks}`
+    (`deleteRows` / `appendRows`) → updated display rows; `state.edits` = marks, engine undo depth, `outAfter3`, `pos`.
+    `#outActions` (Refresh supplier changes = step `refresh` / Run stage 3 again), `#wbActions` (Export TXT again = step
+    `export`; Run All Stages on SRC_). Stage 3 adds `refresh` first while `state.pendingSup > 0`.
+  - `js/engine-host.js` v1.1.0: `edit` sets the cells in the in-memory Sheet (text in '@' / SCHEMA textCols) and calls the
+    script's `onEdit({range, source})` per block; touched rows (or the whole sheet after row deletes / adds) are snapshotted
+    with the `_M13_SUPPLIER_QUEUE` sheet and document properties for `undo`. `run` clears the undo history; `build`
+    clears the supplier-change queue first. Results carry `pending` (queued G rows).
+  - `js/sheets-shim.js` v1.0.2: `range`, `source`, `value`, `oldValue`, `user`, `authMode`, `triggerUid`, `changeType` read
+    as undefined on Sheet / Range objects (they were no-op proxies), so `applyOutMergedSupplierPendingStyleFromEdit_(sh)`
+    no longer mistakes a sheet for an onEdit event. No change to merge results (11 Oct run identical).
+  - Default OUT view = Sheet (all columns, editable); Review columns unchanged.
+- Merge engine 1.3 Merge v6.3.89 (`M13.VERSION 'v6.3.89-brand-length-size-type-v1'`; 1.0 / 1.1 / 1.2 unchanged):
+  - BE1: `m13BE1BrandsEquivalent_` (20-character cut, or same word count ≥ 2 with only the last word cut to ≥ 3 letters),
+    `m13BE1TranslateSupplierBrand_` (an unlisted SUP BRAND → the one longer listed brand it is short for; names from the
+    brand map rows + `m13BE1RegisterNames_` of the Ongoing Discounts POS MASTER BRANDs), used in `m13MakeSupplierObj_` and
+    the filtered-build scope. `m13BuildOneOutRow_` keeps the POS brand when equivalent (no OLD BRAND);
+    `m13BestDiscountForSupplier_` brand buckets also accept the equivalent matched POS brand; BRAND audit / score / P6
+    relink use the same test. POS brand translation (`m13TranslateBrand_`) is unchanged.
+  - SZ1: `m13SZ1PosSizeForBareCount_` in `m13ReconcileProductDescription_` (bare Q count, same count with a form in O →
+    O's size / form; O added to the acronym evidence), `m13SZ1RestorePurgedPosWords_` (marketing-purge words in Q and O go
+    back after the same word as in O, ≤ 35 characters). `m13MarketingPhrases_` / `m13MarketingPhraseRegex_` split out of
+    `m13StripMarketingPhrases_` (same list and regex).
+- `assets/js/phf-lock.js` v1.0.0 + `assets/js/phf-lock-config.js`: `PHFLock.guard(tool, {label, ctl})` resolves when the
+  tool is open (no entry, remembered in localStorage `phf-lock:<tool>` = hash, or the right password — WebCrypto PBKDF2
+  SHA-256, 150,000 rounds, 16-byte salt). Set password downloads a new config to commit. The hub marks locked tiles
+  (`a.tile[href*="/tools/<tool>/"]` → `.badge.lock`). Styles are injected by the script. Merge tool: `start()` waits for it.

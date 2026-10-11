@@ -14,11 +14,17 @@
  *         along the bottom (IN_SUPPLIER, OUT_MERGED_DATA review / all columns, OUT_POS_INSERT / UPDATE, SRC_ tabs,
  *         TMP_MERGED_POS_DATA — read-only sheets in js/sheet-grid.js). The supplier sheet shows every row (no pages).
  *         Engine formulas: TO_TEXT reads the displayed cell (sheets-formula / sheets-shim v1.0.1).
+ * v1.5.0 (11 Oct 2026): every workbook tab except TMP_MERGED_POS_DATA is editable (js/sheet-grid.js v1.1.0):
+ *         the SRC_ tabs change the saved reference tables (run the stages again to use them); OUT_MERGED_DATA edits run
+ *         the Sheet's own onEdit in the engine (fake barcode for NEW, UPDATED SUPPLIER queued for Refresh supplier
+ *         changes, FINAL SHELF RRP worked out again) and stage 3 can run again; OUT_POS_INSERT / UPDATE edits go into
+ *         the TXT files with Export TXT again. The tabs look like the Google Sheet (js/sheet-look.js: row-1 totals band,
+ *         conditional colours, centred columns). Optional password lock (assets/js/phf-lock.js). Merge v6.3.89.
  */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.4.0';
+  var TOOL_VERSION = 'v1.5.0';
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -53,7 +59,11 @@
     bulk: [],
     busy: false,
     review: { rows: [], head: [], idx: {}, filtered: [], page: 0 },
-    storage: 'indexeddb'
+    storage: 'indexeddb',
+    // v1.5.0 sheet edits: engine sheets (OUT / OUT_POS_*) — cells changed here (marks), undo depth kept by the engine,
+    // OUT edited after stage 3, OUT_POS_* edited after the last export, UPDATED SUPPLIER changes waiting for Refresh.
+    edits: { marks: {}, undo: {}, outAfter3: false, pos: {}, busy: false },
+    pendingSup: 0
   };
 
   // ---------------------------------------------------------------- utils
@@ -124,12 +134,12 @@
       kind = 'in-page';
       frame = document.createElement('iframe');
       frame.hidden = true; frame.title = 'POS Supplier New Product Check and Clean Merge engine';
-      frame.src = './engine-frame.html?v=1.0.1';
+      frame.src = './engine-frame.html?v=1.1.0';
       window.addEventListener('message', frameListener);
       document.body.appendChild(frame);
     }
     try {
-      worker = new Worker('./js/engine-worker.js?v=1.0.1');
+      worker = new Worker('./js/engine-worker.js?v=1.1.0');
       kind = 'worker';
       worker.onmessage = function (ev) { onMsg(ev.data); };
       worker.onerror = function (ev) {
@@ -477,9 +487,16 @@
       else stageSet(s.id, 'waiting', state.engineInfo ? readinessText() : 'Waiting for the merge engine to start…');
     });
     $('#runAllBtn').disabled = !ready || state.busy;
+    // v1.5.0: the sheets cannot be edited while a stage runs.
+    var gb = state.busy || state.edits.busy;
+    if (wb.outGrid) wb.outGrid.busy(gb);
+    if (wb.grid) wb.grid.busy(gb);
+    renderOutActions();
   }
   function invalidateResults(msg) {
     state.results = {};
+    state.edits = { marks: {}, undo: {}, outAfter3: false, pos: {}, busy: false };
+    state.pendingSup = 0;
     state.outputs.forEach(function (o) { if (o.url) URL.revokeObjectURL(o.url); });
     state.outputs.clear();
     STAGES.forEach(function (s) { state.stage[s.id] = { status: 'waiting', msg: msg || '' }; });
@@ -510,8 +527,13 @@
   function runStep(step) {
     return state.engine.send({ cmd: 'run', step: step }).then(function (res) {
       if (alertFailed(res)) { var e = new Error(alertsText(res)); e.detail = res; throw e; }
-      Object.keys(res.sheets || {}).forEach(function (n) { state.results[n] = res.sheets[n]; });
+      Object.keys(res.sheets || {}).forEach(function (n) { state.results[n] = res.sheets[n]; delete state.edits.marks[n]; });
       if (step === 'export') state.results.files = res.files || [];
+      state.pendingSup = res.pending || 0;
+      state.edits.undo = {};                                        // the engine starts a new undo history after a run
+      if (step === 'build') state.edits.outAfter3 = false;
+      if (step === 'generate') { state.edits.outAfter3 = false; state.edits.pos = {}; }
+      if (step === 'export') state.edits.pos = {};
       state.results['alerts_' + step] = res.alerts || [];
       state.results['ms_' + step] = res.ms;
       return res;
@@ -530,7 +552,9 @@
       return 'Complete — ' + (line || fmtN(Math.max(0, (state.results[SHEETS.OUT] || []).length - 2)) + ' rows') + '.';
     }
     var g = (state.results.alerts_generate || [])[0], files = state.results.files || [];
-    return 'Complete — ' + (g ? String(g.msg || '').split('\n')[0] : '') + ' · ' + files.length + ' TXT file' + (files.length === 1 ? '' : 's') + ' ready.';
+    var left = stillPending();
+    return 'Complete — ' + (g ? String(g.msg || '').split('\n')[0] : '') + ' · ' + files.length + ' TXT file' + (files.length === 1 ? '' : 's') + ' ready.' +
+      (left ? ' ' + fmtN(left) + ' OUT row' + (left === 1 ? ' is' : 's are') + ' still SUP OVERRIDE PENDING (supplier in G not found).' : '');
   }
   function runTo(target) {
     if (state.busy) return Promise.resolve();
@@ -551,7 +575,9 @@
           stageSet(s.id, 'running', 'Running…');
           setGlobal('Stage ' + s.n + ' of 3 — ' + s.title + '…', 'running');
           var steps = Promise.resolve();
-          s.steps.forEach(function (step) { steps = steps.then(function () { return runStep(step); }); });
+          // v1.5.0: UPDATED SUPPLIER changes still waiting are refreshed first, so stage 3 uses them.
+          var list = s.id === 'export' && state.pendingSup > 0 ? ['refresh'].concat(s.steps) : s.steps;
+          list.forEach(function (step) { steps = steps.then(function () { return runStep(step); }); });
           return steps.then(function () {
             stageSet(s.id, 'done', stageSummary(s.id));
             gpct(Math.round(((i + 1) / (tIdx + 1)) * 100));
@@ -579,6 +605,7 @@
         for (var k = 0; k < bin.length; k++) bytes[k] = bin.charCodeAt(k);
         addOutput('export', 'txt-' + i, f.filename, new Blob([bytes], { type: 'text/plain;charset=utf-8' }), fmtN(f.rowCount) + ' rows · ' + (f.label || 'POS file') + ' · tab-separated TXT for POSActive');
       });
+      if (state.results[SHEETS.OUT]) renderReview(true);   // stage 3 may have refreshed supplier changes first
       renderReviewKpis(); renderTabs();
       if (wb.active === 'ins' || wb.active === 'upd') wbShow(wb.active, true);
       return addWorkbookOutput();
@@ -601,6 +628,13 @@
   function renderOutputs() {
     var order = ['txt-0', 'txt-1', 'xlsx-review'];
     var arr = Array.from(state.outputs.values()).sort(function (a, b) { return order.indexOf(a.key) - order.indexOf(b.key); });
+    // v1.5.0: the TXT files say so when the sheets were edited after they were made.
+    var posEd = Object.keys(state.edits.pos).filter(function (n) { return state.edits.pos[n]; });
+    arr.forEach(function (o) {
+      if (!/^txt-/.test(o.key)) return;
+      o.warn = state.edits.outAfter3 ? 'Made before your OUT_MERGED_DATA edits — run stage 3 again to include them.'
+        : posEd.length ? 'Made before your ' + posEd.join(' / ') + ' edits — use Export TXT again on that tab.' : '';
+    });
     var c = $('#outputCount'); c.textContent = arr.length + ' OUTPUT' + (arr.length === 1 ? '' : 'S'); c.className = 'result-badge' + (arr.length ? ' ok' : '');
     $('#allOutputs').innerHTML = arr.length ? outputRows(arr) : '<div class="empty-output">Run a stage to create its download files.</div>';
     STAGES.forEach(function (s) { var el = document.querySelector('[data-stage-output="' + s.id + '"]'); if (el) el.innerHTML = outputRows(arr.filter(function (o) { return o.stage === s.id; })).replace('<div class="empty-output">No output files yet.</div>', ''); });
@@ -612,16 +646,11 @@
     UP: ['FCE8E6', 'D93025'], DOWN: ['E8F0FE', '1A73E8'], WARN: ['FEF3E2', 'E37400'], NEW: ['E6F4EA', '0F9D58'], REVIEW: ['F3E8FD', '9334E6'], MATCH: [null, '1565C0'], FLAT: [null, '9E9E9E']
   };
   var TEXT_HEAD = /(MAIN ID|\bPLU\b|SUB ID|BARCODE|^INDEX$|^POS INDEX$|ACCNO|SUPPLIER NUMBER|^BC$)/i;
-  function accentFor(sheet, head, v) {
+  // v1.5.0: the review workbook takes the Google Sheet's colours and row-1 totals from js/sheet-look.js.
+  function supAccent(head, v) {
+    if (head !== 'STATUS') return null;
     var s = String(v || '').toUpperCase(); if (!s) return null;
-    if (sheet === SHEETS.OUT) {
-      if (head === 'ROW STATUS') return /NEW/.test(s) ? COL.NEW : /DISCONTINUED/.test(s) ? COL.WARN : /REVIEW/.test(s) ? COL.REVIEW : /MATCHED/.test(s) ? COL.MATCH : null;
-      if (head === 'PRICE STATUS') return /PENDING/.test(s) ? COL.WARN : /ACCEPTED/.test(s) ? COL.NEW : /REJECTED/.test(s) ? COL.UP : /INCREASE/.test(s) ? COL.UP : /DECREASE/.test(s) ? COL.DOWN : /NEW/.test(s) ? COL.NEW : /DISCONTINUED/.test(s) ? COL.WARN : /REVIEW/.test(s) ? COL.REVIEW : /NO CHANGE/.test(s) ? COL.FLAT : null;
-      if (head === 'OLD BRAND' || head === 'BARCODE UPDATE' || head === 'RRP / MARKUP OVERRIDE') return COL.WARN;
-      if (['BC', 'SUB ID', 'BRAND', 'WSP'].indexOf(head) >= 0) return s.charAt(0) === '☑' ? COL.NEW : s.charAt(0) === '☒' ? COL.UP : COL.FLAT;
-    }
-    if (head === 'STATUS' || head === 'SRC STATUS' || head === 'POS MATCH') return /NEW/.test(s) ? COL.NEW : /MATCH|APPLIED|USED BY|OK/.test(s) && !/NOT/.test(s) ? COL.MATCH : /NOT USED|UNUSED/.test(s) ? COL.FLAT : COL.WARN;
-    return null;
+    return /UNMATCHABLE/.test(s) ? ['FFF3CD', '856404'] : /NOT USED/.test(s) ? [null, '9AA0A6'] : /MATCHED/.test(s) ? ['E8F0FE', '1565C0'] : /NEW/.test(s) ? ['E6F4EA', '137333'] : null;
   }
   function typed(v, head) {
     var s = String(v == null ? '' : v);
@@ -650,23 +679,31 @@
     var width = head.length;
     if (drop >= 0) width = drop;
     head = head.slice(0, width);
-    var X = window.XlsxLite, last = X.colLetter(width), n = Math.max(0, rows.length - 2);
+    var X = window.XlsxLite, last = X.colLetter(width), n = Math.max(0, rows.length - 2), data = rows.slice(2);
+    var look = window.PHFSheetLook ? window.PHFSheetLook.forSheet(name, head) : null, tot = look ? look.totals(data, data) : {};
     var summary = sheetSummary(name, rows) + ' · POS Supplier New Product Check and Clean Merge ' + TOOL_VERSION + ' (engine ' + (String((state.engineInfo || {}).merge || '').match(/v\d+\.\d+\.\d+/) || [''])[0] + ') · ' + melb();
     return {
       name: name.replace(/[\\/?*\[\]:]/g, '_').replace(/_+/g, '_').slice(0, 31), columnCount: width, freeze: 'A3',
       autoFilter: 'A2:' + last + (n + 2), dimension: 'A1:' + last + (n + 2),
       widths: head.map(widthFor), defaultRowHeight: 15,
       rows: function* () {
-        var t = new Array(width).fill(''); t[0] = summary;
-        yield { cells: t, styles: styles.title, height: 22 };
+        // Row 1 = the Sheet's totals band (as the merge left the rows); the tool line goes in the last empty cell.
+        var t = new Array(width).fill(''), k;
+        for (k = 0; k < width; k++) t[k] = tot[k] || '';
+        if (name === SHEETS.SUP) t[15] = String((rows[0] || [])[15] || '');
+        for (k = width - 1; k >= 0 && t[k]; k--);
+        if (k >= 0) t[k] = summary;
+        yield { cells: t, styles: styles.title, height: 30 };
         yield { cells: head, styles: styles.head, height: 30 };
         for (var r = 2; r < rows.length; r++) {
           var band = r % 2 === 0 ? 'ODD' : 'EVEN', src = rows[r], cells = new Array(width), sts = new Array(width);
           for (var c = 0; c < width; c++) {
-            var tv = typed(src[c], head[c]);
+            var shown = look && look.display ? look.display(src[c], c) : src[c];
+            var tv = typed(shown, head[c]);
             cells[c] = tv.v;
-            var acc = accentFor(name, head[c], src[c]);
-            sts[c] = styles.cell(band, tv.f || (TEXT_HEAD.test(head[c]) ? '@' : ''), acc);
+            var a = look && look.style && String(shown == null ? '' : shown) !== '' ? look.style(src, c) : null;
+            var acc = a ? [a.bg ? a.bg.toUpperCase() : null, a.fg ? a.fg.toUpperCase() : null, !!a.b] : (name === SHEETS.SUP ? supAccent(head[c], src[c]) : null);
+            sts[c] = styles.cell(band, tv.f || (TEXT_HEAD.test(head[c]) ? '@' : ''), acc, !!(look && look.centre[c]), /\n/.test(String(shown || '')));
           }
           yield { cells: cells, styles: sts };
         }
@@ -678,12 +715,14 @@
     if (!X) return Promise.reject(new Error('Workbook writer not loaded'));
     var st = new X.StyleSheet(), cache = {};
     var styles = {
-      title: st.style({ font: { bold: true, color: COL.TITLE_FG, size: 10 }, fill: COL.TITLE_BG, align: { v: 'center' } }),
+      title: st.style({ font: { bold: true, color: COL.TITLE_FG, size: 9 }, fill: COL.TITLE_BG, align: { h: 'center', v: 'center', wrap: true } }),
       head: st.style({ font: { bold: true, color: COL.HDR_FG, size: 9 }, fill: COL.HDR_BG, align: { h: 'center', v: 'center', wrap: true } }),
-      cell: function (band, fmt, acc) {
-        var key = band + '|' + fmt + '|' + (acc ? acc.join(',') : '');
+      cell: function (band, fmt, acc, centre, wrap) {
+        var key = band + '|' + fmt + '|' + (acc ? acc.join(',') : '') + '|' + (centre ? 'c' : '') + (wrap ? 'w' : '');
         if (cache[key] !== undefined) return cache[key];
-        var spec = { fill: (acc && acc[0]) || COL[band], font: { size: 9, color: (acc && acc[1]) || COL.INK, bold: !!(acc && acc[0]) }, align: { v: 'center' } };
+        var spec = { fill: (acc && acc[0]) || COL[band], font: { size: 9, color: (acc && acc[1]) || COL.INK, bold: !!(acc && (acc.length > 2 ? acc[2] : acc[0])) }, align: { v: 'center' } };
+        if (centre) spec.align.h = 'center';
+        if (wrap) spec.align.wrap = true;
         if (fmt) spec.numFmt = fmt;
         return (cache[key] = st.style(spec));
       }
@@ -742,20 +781,23 @@
     return '';
   }
   function hideReview() { if ($('#wbTabs')) { renderTabs(); wbShow(wb.active, true); } }
-  function renderReview() {
+  // keep = redraw with the rows the engine has now (after an edit / refresh) and leave the search and filters as they are.
+  function renderReview(keep) {
     var rows = state.results[SHEETS.OUT] || [];
     var head = rows[1] || [], idx = {};
     head.forEach(function (h, i) { if (idx[h] === undefined) idx[h] = i; });
     var data = rows.slice(2);
+    var prev = keep ? { q: $('#reviewSearch').value, st: $('#reviewStatus').value, pr: $('#reviewPrice').value, br: $('#reviewBrand').value, page: state.review.page } : null;
     state.review = { rows: data, head: head, idx: idx, filtered: data, page: 0, hay: data.map(function (r) { return r.join(' ').toUpperCase(); }) };
     var opts = function (h) { var set = {}; data.forEach(function (r) { var v = String(r[idx[h]] || '').trim(); if (v) set[v] = (set[v] || 0) + 1; }); return Object.keys(set).sort().map(function (v) { return '<option value="' + esc(v) + '">' + esc(cleanTitle(v) || v) + ' (' + fmtN(set[v]) + ')</option>'; }).join(''); };
     $('#reviewStatus').innerHTML = '<option value="">All row statuses</option>' + opts('ROW STATUS');
     $('#reviewPrice').innerHTML = '<option value="">All price statuses</option>' + opts('PRICE STATUS');
     $('#reviewBrand').innerHTML = '<option value="">All brands</option>' + opts('POS BRAND');
-    $('#reviewSearch').value = '';
+    $('#reviewSearch').value = prev ? prev.q : '';
+    if (prev) { ['#reviewStatus', '#reviewPrice', '#reviewBrand'].forEach(function (sel, k) { var v = [prev.st, prev.pr, prev.br][k], el = $(sel); el.value = v; if (el.value !== v) el.value = ''; }); }
     $('#reviewTable thead').innerHTML = '<tr>' + REVIEW_COLS.filter(function (c) { return idx[c.h] !== undefined; }).map(function (c) { return '<th class="' + (c.cls || '') + (c.audit ? ' rv-audit-col' : '') + '">' + esc(c.label || c.h) + '</th>'; }).join('') + '</tr>';
     renderReviewKpis();
-    applyReviewFilter();
+    applyReviewFilter(!!prev, prev && prev.page);
     renderTabs();
   }
   function renderReviewKpis() {
@@ -765,8 +807,9 @@
     if (ins) chips.push(['Insert rows', Math.max(0, ins.length - 2), 'new']);
     if (upd) chips.push(['Update rows', Math.max(0, upd.length - 2), 'match']);
     $('#reviewKpis').innerHTML = chips.map(function (c) { return '<div class="review-kpi ' + c[2] + '"><strong>' + fmtN(c[1]) + '</strong><span>' + esc(c[0]) + '</span></div>'; }).join('');
+    renderOutActions();
   }
-  function applyReviewFilter() {
+  function applyReviewFilter(keep, page) {
     var R = state.review, q = $('#reviewSearch').value.trim().toUpperCase(), st = $('#reviewStatus').value, pr = $('#reviewPrice').value, br = $('#reviewBrand').value;
     var si = R.idx['ROW STATUS'], pi = R.idx['PRICE STATUS'], bi = R.idx['POS BRAND'];
     R.filtered = []; R.fidx = [];
@@ -778,8 +821,8 @@
       if (q && R.hay[i].indexOf(q) < 0) continue;
       R.filtered.push(r); R.fidx.push(i + 3);
     }
-    R.page = 0;
-    renderReviewPage();
+    R.page = keep ? (page || 0) : 0;
+    renderReviewPage(keep);
   }
   function cellHtml(c, r, idx) {
     var v = r[idx[c.h]], s = String(v == null ? '' : v);
@@ -790,30 +833,62 @@
     if (c.extra) { var ev = String(r[idx[c.extra]] == null ? '' : r[idx[c.extra]]); return esc(s) + (ev ? '<small class="rv-extra' + (c.extraLabel ? ' warn' : '') + '">' + (c.extraLabel ? esc(c.extraLabel) + ': ' : '') + esc(ev) + '</small>' : ''); }
     return esc(s).replace(/\n/g, '<br>');
   }
-  function renderReviewPage() {
+  // v1.5.0: the All columns (Sheet) view is the Google Sheet tab — editable, with its totals band and colours.
+  function renderReviewPage(keep) {
     var R = state.review, cols = REVIEW_COLS.filter(function (c) { return R.idx[c.h] !== undefined; });
     var sheetView = wb.outView === 'sheet';
     $('#reviewTableWrap').hidden = sheetView; $('#reviewPager').hidden = sheetView; $('#reviewGrid').hidden = !sheetView;
-    if (sheetView) {
-      var keep = R.head.map(function (h, i) { return h === '__EXPORT_VISIBLE__' ? -1 : i; }).filter(function (i) { return i >= 0; });
-      if (!wb.outGrid) wb.outGrid = window.PHFSheetGrid.create($('#reviewGrid'), { search: false });
-      wb.outGrid.set({ head: keep.map(function (i) { return R.head[i]; }), rows: keep.length === R.head.length ? R.filtered : R.filtered.map(function (r) { return keep.map(function (i) { return r[i]; }); }), rowNumbers: R.fidx, accent: function (h, v) { return accentFor(SHEETS.OUT, h, v); } });
-      var b0 = $('#reviewCount'); b0.textContent = fmtN(R.filtered.length) + ' OF ' + fmtN(R.rows.length) + ' ROWS'; b0.className = 'result-badge ok';
-      return;
-    }
+    document.querySelectorAll('[data-out-view]').forEach(function (x) { x.classList.toggle('is-on', x.dataset.outView === wb.outView); });
+    var badge = $('#reviewCount'); badge.textContent = fmtN(R.filtered.length) + ' OF ' + fmtN(R.rows.length) + ' ROWS'; badge.className = 'result-badge ok';
+    if (sheetView) { drawOutGrid(keep); return; }
     var pages = Math.max(1, Math.ceil(R.filtered.length / PAGE));
     R.page = Math.max(0, Math.min(R.page, pages - 1));
     var slice = R.filtered.slice(R.page * PAGE, (R.page + 1) * PAGE);
     $('#reviewTable tbody').innerHTML = slice.length ? slice.map(function (r) {
       return '<tr>' + cols.map(function (c) { var s = String(r[R.idx[c.h]] || ''); return '<td class="' + (c.cls || '') + (c.audit ? ' rv-audit-col' : '') + (c.cls && c.cls.indexOf('warnable') >= 0 && s ? ' warn-cell' : '') + '">' + cellHtml(c, r, R.idx) + '</td>'; }).join('') + '</tr>';
     }).join('') : '<tr><td colspan="' + cols.length + '" class="rv-empty">No rows match the current search / filters.</td></tr>';
-    var badge = $('#reviewCount'); badge.textContent = fmtN(R.filtered.length) + ' OF ' + fmtN(R.rows.length) + ' ROWS'; badge.className = 'result-badge ok';
     $('#reviewPage').textContent = 'Page ' + (R.page + 1) + ' of ' + pages + ' · ' + PAGE + ' rows per page';
     $('#reviewPrev').disabled = R.page <= 0; $('#reviewNext').disabled = R.page >= pages - 1;
   }
+  function drawOutGrid(keep) {
+    var R = state.review;
+    var cols = R.head.map(function (h, i) { return h === '__EXPORT_VISIBLE__' ? -1 : i; }).filter(function (i) { return i >= 0; });
+    if (!wb.outGrid) wb.outGrid = window.PHFSheetGrid.create($('#reviewGrid'), { search: false });
+    var look = window.PHFSheetLook.forSheet(SHEETS.OUT, R.head);
+    var marks = state.edits.marks[SHEETS.OUT] || {}, mk = {};
+    R.fidx.forEach(function (sheetRow, i) { if (marks[sheetRow]) mk[i] = marks[sheetRow]; });
+    wb.outGrid.set({
+      head: R.head, rows: R.filtered, cols: cols, rowNumbers: R.fidx, look: look, marks: mk, keepView: !!keep,
+      totals: function (vis) { return look.totals(R.rows, vis); },
+      edit: {
+        readOnly: look.readOnly, rows: false, canUndo: (state.edits.undo[SHEETS.OUT] || 0) > 0,
+        onChange: function (ch) { engineSheetEdit(SHEETS.OUT, ch, function (i) { return R.fidx[i]; }); },
+        onUndo: function () { engineSheetUndo(SHEETS.OUT); }
+      }
+    });
+    wb.outGrid.busy(state.busy || state.edits.busy);
+  }
+  // Buttons above OUT_MERGED_DATA: Refresh supplier changes (UPDATED SUPPLIER edits waiting) and Run stage 3 again.
+  function renderOutActions() {
+    var host = $('#outActions'); if (!host) return;
+    var built = !!state.results[SHEETS.OUT], n = state.pendingSup || 0, busy = state.busy || state.edits.busy;
+    if (!built) { host.innerHTML = ''; host.hidden = true; return; }
+    host.hidden = false;
+    var after3 = state.edits.outAfter3, done3 = (state.stage.export || {}).status === 'done';
+    host.innerHTML =
+      (n ? '<button type="button" class="btn small primary" data-act="refresh"' + (busy ? ' disabled' : '') + ' title="Check the UPDATED SUPPLIER (G) changes against the supplier upload — the Sheet menu REFRESH SUPPLIER CHANGES">Refresh supplier changes (' + fmtN(n) + ')</button>' : '') +
+      '<button type="button" class="btn small' + (after3 || !done3 ? ' primary' : '') + '" data-act="stage3"' + (busy ? ' disabled' : '') + ' title="Generate OUT_POS_INSERT / OUT_POS_UPDATE from this OUT_MERGED_DATA and export the TXT files (supplier changes are refreshed first)">' + (done3 ? 'Run stage 3 again' : 'Run stage 3') + '</button>' +
+      '<span class="out-actions-note">' + esc(n ? fmtN(n) + ' UPDATED SUPPLIER change' + (n === 1 ? '' : 's') + ' waiting — refresh to check ' + (n === 1 ? 'it' : 'them') + ' (stage 3 refreshes first).' : after3 ? 'OUT_MERGED_DATA was edited after stage 3 — run stage 3 again to put the edits in the POS files.' : 'Click a cell to edit it, as in the Google Sheet. FINAL SHELF RRP follows RRP / MARKUP OVERRIDE.') + '</span>';
+    host.querySelectorAll('[data-act]').forEach(function (b) {
+      b.onclick = function () {
+        if (b.dataset.act === 'refresh') runExtra(['refresh'], 'Refresh supplier changes');
+        if (b.dataset.act === 'stage3') runTo('export');
+      };
+    });
+  }
   function wireReview() {
-    var t; $('#reviewSearch').oninput = function () { clearTimeout(t); t = setTimeout(applyReviewFilter, 200); };
-    ['#reviewStatus', '#reviewPrice', '#reviewBrand'].forEach(function (s) { $(s).onchange = applyReviewFilter; });
+    var t; $('#reviewSearch').oninput = function () { clearTimeout(t); t = setTimeout(function () { applyReviewFilter(); }, 200); };
+    ['#reviewStatus', '#reviewPrice', '#reviewBrand'].forEach(function (s) { $(s).onchange = function () { applyReviewFilter(); }; });
     $('#reviewReset').onclick = function () { $('#reviewSearch').value = ''; $('#reviewStatus').value = ''; $('#reviewPrice').value = ''; $('#reviewBrand').value = ''; applyReviewFilter(); };
     $('#reviewPrev').onclick = function () { state.review.page--; renderReviewPage(); };
     $('#reviewNext').onclick = function () { state.review.page++; renderReviewPage(); };
@@ -821,7 +896,6 @@
     document.querySelectorAll('[data-out-view]').forEach(function (b) {
       b.onclick = function () {
         wb.outView = b.dataset.outView;
-        document.querySelectorAll('[data-out-view]').forEach(function (x) { x.classList.toggle('is-on', x === b); });
         if (state.review) renderReviewPage();
       };
     });
@@ -830,20 +904,21 @@
   // ------------------------------------------------------ workbook tabs (v1.4.0)
   /* The Google Sheet's tabs along the bottom of the workbook, in the Sheet's order and colours: IN_SUPPLIER (editable),
      OUT_MERGED_DATA (review or every column), OUT_POS_INSERT / OUT_POS_UPDATE (stage 3), the SRC_ reference tabs (as
-     loaded, or with SRC STATUS once stage 2 has run) and TMP_MERGED_POS_DATA (the POS Database). One tab shows at a time. */
+     loaded, or with SRC STATUS once stage 2 has run) and TMP_MERGED_POS_DATA (the POS Database). One tab shows at a time.
+     v1.5.0: every tab but TMP_MERGED_POS_DATA is editable, and each looks like the Sheet (js/sheet-look.js). */
   var WB_TABS = [
     { id: 'sup', sheet: SHEETS.SUP, color: 'ed4141' },
     { id: 'out', sheet: SHEETS.OUT, color: '81d25c', by: 'stage 2 (Build OUT_MERGED_DATA)' },
-    { id: 'ins', sheet: SHEETS.INS, color: 'ff9900', by: 'stage 3 (Generate Insert + Update & Export)' },
-    { id: 'upd', sheet: SHEETS.UPD, color: 'ff9900', by: 'stage 3 (Generate Insert + Update & Export)' },
+    { id: 'ins', sheet: SHEETS.INS, color: 'ff9900', by: 'stage 3 (Generate Insert + Update & Export)', engine: true },
+    { id: 'upd', sheet: SHEETS.UPD, color: 'ff9900', by: 'stage 3 (Generate Insert + Update & Export)', engine: true },
     { id: 'fr', sheet: 'SRC_POS_FIND_REPLACE', color: '6d9eeb', input: 'fr' },
     { id: 'disc', sheet: 'SRC_POS_ONGOING_DISCOUNTS', color: '6d9eeb', input: 'disc' },
     { id: 'brands', sheet: 'SRC_POS_BRAND_NAME_CHANGES', color: '6d9eeb', input: 'brands' },
     { id: 'prefix', sheet: 'SRC_POS_PRODUCT_PREFIX', color: '6d9eeb', input: 'prefix' },
     { id: 'suppliers', sheet: 'SRC_POS_SUPPLIERS', color: '6d9eeb', input: 'suppliers' },
-    { id: 'tmp', sheet: 'TMP_MERGED_POS_DATA', color: '', input: 'pos' }
+    { id: 'tmp', sheet: 'TMP_MERGED_POS_DATA', color: '', input: 'pos', readOnly: true }
   ];
-  var wb = { active: 'sup', grid: null, outGrid: null, outView: 'review' };
+  var wb = { active: 'sup', grid: null, outGrid: null, outView: 'sheet' };
   function wbTab(id) { return WB_TABS.filter(function (t) { return t.id === id; })[0] || WB_TABS[0]; }
   function wbCount(t) {
     if (t.id === 'sup') return rowsOf('sup').length;
@@ -853,7 +928,7 @@
   function wbRows(t) {
     if (t.input && !loaded(t.input)) return null;                            // not loaded: say so, even after a run
     var res = state.results[t.sheet];
-    if (res && res.length >= 2) return res;                                   // as the merge left it (SRC STATUS filled in)
+    if (res && res.length >= 2 && (!t.input || res.length - 2 === rowsOf(t.input).length)) return res;   // as the merge left it (SRC STATUS filled in)
     if (t.input && loaded(t.input)) return M.sheetRows(t.sheet, rowsOf(t.input));
     return null;
   }
@@ -861,7 +936,7 @@
     var host = $('#wbTabs'); if (!host) return;
     host.innerHTML = '<span class="wb-tabs-lead" aria-hidden="true">☰</span>' + WB_TABS.map(function (t) {
       var n = wbCount(t), empty = n < 0 || (n === 0 && t.id !== 'sup');
-      return '<button type="button" class="wb-tab' + (t.id === wb.active ? ' is-active' : '') + (empty ? ' is-empty' : '') + '" data-wb-tab="' + t.id + '" style="--tab:' + (t.color ? '#' + t.color : 'transparent') + '" title="' + esc(t.sheet + (n >= 0 ? ' · ' + fmtN(n) + ' rows' : ' · made by ' + t.by)) + '"><span>' + esc(t.sheet) + '</span>' + (n > 0 ? '<small>' + fmtN(n) + '</small>' : '') + '</button>';
+      return '<button type="button" class="wb-tab' + (t.id === wb.active ? ' is-active' : '') + (empty ? ' is-empty' : '') + '" data-wb-tab="' + t.id + '" style="--tab:' + (t.color ? '#' + t.color : 'transparent') + '" title="' + esc(t.sheet + (n >= 0 ? ' · ' + fmtN(n) + ' rows' : ' · made by ' + t.by) + (t.readOnly ? ' · read-only' : ' · editable')) + '"><span>' + esc(t.sheet) + '</span>' + (n > 0 ? '<small>' + fmtN(n) + '</small>' : '') + '</button>';
     }).join('');
     host.querySelectorAll('[data-wb-tab]').forEach(function (b) { b.onclick = function () { wbShow(b.dataset.wbTab); }; });
   }
@@ -877,31 +952,276 @@
     if (on) { var l = on.offsetLeft, r = l + on.offsetWidth; if (l < strip.scrollLeft) strip.scrollLeft = l - 30; else if (r > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = r - strip.clientWidth + 30; }
     if (t.id === 'sup') refreshSupSheet();
     else if (t.id === 'out' && outReady) { if (wb.outView === 'sheet' && wb.outGrid) wb.outGrid.refresh(); }
-    else {
-      var key = t.id + ':' + state.rev + ':' + (state.results[t.sheet] ? 'r' : 'i'), same = quiet && prev === t.id && wb.gridFor === key;
-      var rows = same ? null : wbRows(t), n = same ? wb.gridRows : (rows ? rows.length - 2 : -1);
-      var empty = $('#wbSheetEmpty'), grid = $('#wbGrid'), badge = $('#wbSheetCount');
-      $('#wbSheetTitle').textContent = t.sheet;
-      sheetPanel.style.setProperty('--tab', t.color ? '#' + t.color : 'transparent');
-      if (n < 0) {
-        empty.hidden = false; grid.hidden = true; wb.gridFor = '';
-        empty.innerHTML = t.input ? '<strong>' + esc(inputDef(t.input).title) + ' is not loaded.</strong> Drop the ' + esc(t.sheet) + ' file (or a download of the Google Sheet) in Drop All, or on its row in the Input files list.'
-          : '<strong>' + esc(t.sheet) + ' is made by ' + esc(t.by) + '.</strong> Run that stage, or Run All, to fill this tab.';
-        $('#wbSheetSub').textContent = t.input ? 'Input · ' + inputDef(t.input).title : 'Output sheet';
-        badge.textContent = '0 ROWS'; badge.className = 'result-badge';
-      } else {
-        empty.hidden = true; grid.hidden = false;
-        if (!wb.grid) wb.grid = window.PHFSheetGrid.create(grid, { search: true });
-        if (same) wb.grid.refresh();
-        else { wb.grid.set({ head: rows[1] || [], rows: rows.slice(2), accent: function (h, v) { return accentFor(t.sheet, h, v); } }); wb.gridFor = key; wb.gridRows = n; }
-        $('#wbSheetSub').textContent = t.input ? (state.results[t.sheet] ? 'Input as the merge left it (SRC STATUS filled in by stage 2) · read-only here' : 'Input · ' + inputDef(t.input).title + ' · read-only here') : 'Made by ' + t.by + ' · read-only';
-        badge.textContent = fmtN(n) + ' ROWS'; badge.className = 'result-badge ok';
-      }
-    }
+    else drawSheetTab(t, quiet && prev === t.id);
     if (!quiet && prev !== t.id) {
       var wbEl = $('#workbook'), top = wbEl ? wbEl.getBoundingClientRect().top : 0;
       if (top < 0) wbEl.scrollIntoView({ block: 'start' });
     }
+  }
+  // One sheet tab (not IN_SUPPLIER / OUT_MERGED_DATA review): the Sheet's look, editable unless it is TMP_MERGED_POS_DATA.
+  function drawSheetTab(t, keep) {
+    var sheetPanel = $('#wbSheetPanel'), rows = wbRows(t);
+    var empty = $('#wbSheetEmpty'), grid = $('#wbGrid'), badge = $('#wbSheetCount'), actions = $('#wbActions');
+    $('#wbSheetTitle').textContent = t.sheet;
+    sheetPanel.style.setProperty('--tab', t.color ? '#' + t.color : 'transparent');
+    var canStart = t.input && !t.readOnly;                                   // an SRC tab can be started by typing / pasting
+    if (!rows && !canStart) {
+      empty.hidden = false; grid.hidden = true; wb.gridFor = '';
+      empty.innerHTML = t.input ? '<strong>' + esc(inputDef(t.input).title) + ' is not loaded.</strong> Drop the ' + esc(t.sheet) + ' file (or a download of the Google Sheet) in Drop All, or on its row in the Input files list.'
+        : '<strong>' + esc(t.sheet) + ' is made by ' + esc(t.by) + '.</strong> Run that stage, or Run All, to fill this tab.';
+      $('#wbSheetSub').textContent = t.input ? 'Input · ' + inputDef(t.input).title : 'Output sheet';
+      badge.textContent = '0 ROWS'; badge.className = 'result-badge';
+      actions.innerHTML = '';
+      return;
+    }
+    if (!rows) rows = M.sheetRows(t.sheet, []);
+    empty.hidden = !!(rows.length > 2) || !canStart;
+    if (!empty.hidden) empty.innerHTML = '<strong>' + esc(inputDef(t.input).title) + ' is not loaded.</strong> Drop the ' + esc(t.sheet) + ' file in Drop All, or click a cell below and type or paste (Ctrl+V) rows to start the table — it is saved in this browser.';
+    grid.hidden = false;
+    if (!wb.grid) wb.grid = window.PHFSheetGrid.create(grid, { search: true });
+    var head = rows[1] || [], data = rows.slice(2), look = window.PHFSheetLook.forSheet(t.sheet, head);
+    var edit = null, marks = null;
+    if (t.input && !t.readOnly) {
+      edit = { readOnly: look.readOnly, rows: true, canUndo: (srcUndo[t.input] || []).length > 0, onChange: function (ch) { srcEdit(t, ch); }, onUndo: function () { srcUndoLast(t); } };
+      marks = {}; srcItems(t.input).forEach(function (it, i) { if (it.row.__ed) marks[i] = it.row.__ed; });
+    } else if (t.engine) {
+      edit = { readOnly: look.readOnly, rows: true, canUndo: (state.edits.undo[t.sheet] || 0) > 0, onChange: function (ch) { engineSheetEdit(t.sheet, ch, function (i) { return i + 3; }, data.length); }, onUndo: function () { engineSheetUndo(t.sheet); } };
+      var m = state.edits.marks[t.sheet] || {}; marks = {}; Object.keys(m).forEach(function (r) { marks[Number(r) - 3] = m[r]; });
+    }
+    var key = t.id + ':' + state.rev + ':' + (state.results[t.sheet] ? 'r' : 'i');
+    wb.grid.set({ head: head, rows: data, look: look, marks: marks, edit: edit, keepView: !!(keep && wb.gridFor === key) || !!keep,
+      totals: function (vis) { return look.totals(data, vis); } });
+    wb.grid.busy(state.busy || state.edits.busy);
+    wb.gridFor = key; wb.gridRows = data.length;
+    var sub = t.readOnly ? 'The POS Database · read-only (it comes from Build POS Master Databases)'
+      : t.engine ? 'Made by ' + t.by + ' · editable — Export TXT again puts your edits in the POS file'
+      : (state.results[t.sheet] ? 'As the merge left it (SRC STATUS filled in by stage 2) · ' : 'Input · ' + inputDef(t.input).title + ' · ') + 'editable — saved in this browser; run the stages again to use changes';
+    $('#wbSheetSub').textContent = sub;
+    badge.textContent = fmtN(data.length) + ' ROWS'; badge.className = 'result-badge' + (data.length ? ' ok' : '');
+    renderWbActions(t);
+  }
+  function renderWbActions(t) {
+    var host = $('#wbActions'); if (!host) return;
+    var busy = state.busy || state.edits.busy, html = '';
+    if (t.engine && state.results[t.sheet]) {
+      var edited = !!state.edits.pos[t.sheet];
+      html = '<button type="button" class="btn small' + (edited ? ' primary' : '') + '" data-act="reexport"' + (busy || !state.results.files ? ' disabled' : '') + ' title="Make the two POS TXT files again from OUT_POS_INSERT / OUT_POS_UPDATE as they are now (stage 3 export only — the sheets are not generated again)">Export TXT again</button>' +
+        '<span class="out-actions-note">' + esc(edited ? t.sheet + ' was edited — Export TXT again to put the edits in the POS file. (Running stage 3 again makes this sheet again from OUT_MERGED_DATA.)' : 'Edits here go into the POS file with Export TXT again.') + '</span>';
+    } else if (t.input && !t.readOnly && loaded(t.input)) {
+      html = '<button type="button" class="btn small" data-act="rerun"' + (busy || !requiredReady() ? ' disabled' : '') + ' title="Run stages 1 → 3 with this table as it is now">Run All Stages</button><span class="out-actions-note">Changes here are saved in this browser straight away. Run the stages again to use them.</span>';
+    }
+    host.innerHTML = html;
+    host.querySelectorAll('[data-act]').forEach(function (b) {
+      b.onclick = function () {
+        if (b.dataset.act === 'reexport') runExtra(['export'], 'Export TXT again');
+        if (b.dataset.act === 'rerun') runTo('export');
+      };
+    });
+  }
+
+  // ------------------------------------------- engine sheet edits (v1.5.0: OUT_MERGED_DATA, OUT_POS_INSERT / UPDATE)
+  /* The edit goes into the engine's copy of the Sheet and the script's onEdit runs on it, as typing in the Google Sheet
+     does. The changed rows come back as the Sheet shows them. One edit (a cell, a paste, a row) = one undo step. */
+  function gridFor(sheet) { return sheet === SHEETS.OUT ? wb.outGrid : wb.grid; }
+  function colName(sheet, c) { var r = state.results[sheet]; return (r && r[1] && r[1][c]) || ''; }
+  function engineSheetEdit(sheet, ch, sheetRowOf, nRows) {
+    var g = gridFor(sheet);
+    if (state.busy || state.edits.busy) { if (g) g.note('A stage is running — edit again when it finishes.', 'warn'); return; }
+    var msg = null, newVals = [];
+    if (ch.type === 'deleteRows') {
+      msg = { cmd: 'edit', sheet: sheet, op: 'deleteRows', rows: ch.rows.map(sheetRowOf) };
+    } else {
+      var byRow = {}, rows = [];
+      ch.cells.forEach(function (cell) {
+        if (nRows !== undefined && cell.i >= nRows) { var k = cell.i - nRows; (newVals[k] = newVals[k] || [])[cell.c] = cell.v; return; }
+        var r = sheetRowOf(cell.i); if (!r) return;
+        if (!byRow[r]) { byRow[r] = {}; rows.push(r); }
+        byRow[r][cell.c] = cell.v;
+      });
+      rows.sort(function (a, b) { return a - b; });
+      var blocks = [];
+      rows.forEach(function (r) {
+        var cs = Object.keys(byRow[r]).map(Number), c1 = Math.min.apply(null, cs), c2 = Math.max.apply(null, cs);
+        var vals = []; for (var c = c1; c <= c2; c++) vals.push(byRow[r][c] === undefined ? null : byRow[r][c]);
+        var last = blocks[blocks.length - 1];
+        if (last && last.r1 + last.values.length === r && last.c1 === c1 + 1 && last.values[0].length === vals.length) { last.values.push(vals); return; }
+        blocks.push({ r1: r, c1: c1 + 1, values: [vals] });
+      });
+      newVals = newVals.filter(Boolean).map(function (row) { var o = []; for (var c = 0; c < row.length; c++) o.push(row[c] === undefined ? '' : row[c]); return o; });
+      if (blocks.length) msg = { cmd: 'edit', sheet: sheet, op: 'cells', blocks: blocks };
+      else if (newVals.length) msg = { cmd: 'edit', sheet: sheet, op: 'appendRows', values: newVals };
+      if (blocks.length && newVals.length) { if (g) g.note('Edit the existing rows and the new rows separately.', 'warn'); return; }
+    }
+    if (!msg) return;
+    var cells = ch.cells || [], one = cells.length === 1 ? cells[0] : null;
+    var what = ch.type === 'deleteRows' ? fmtN(ch.rows.length) + ' row' + (ch.rows.length === 1 ? '' : 's') + ' deleted'
+      : msg.op === 'appendRows' ? fmtN(newVals.length) + ' row' + (newVals.length === 1 ? '' : 's') + ' added'
+      : one ? 'Changed ' + ch.where + ' (' + colName(sheet, one.c) + ')' : (ch.paste ? 'Pasted at ' + ch.where + ': ' : '') + fmtN(cells.length) + ' cells changed' + (ch.skipped ? ' (' + fmtN(ch.skipped) + ' read-only cells left as they were)' : '');
+    engineSend(sheet, msg, cells, sheetRowOf, what);
+  }
+  function engineSheetUndo(sheet) {
+    if (state.busy || state.edits.busy) return;
+    engineSend(sheet, { cmd: 'undo', sheet: sheet }, null, null, 'Undone');
+  }
+  function engineSend(sheet, msg, cells, sheetRowOf, what) {
+    var g = gridFor(sheet);
+    state.edits.busy = true; if (g) { g.busy(true); g.note('Updating ' + sheet + '…', 'running'); }
+    renderOutActions();
+    return state.engine.send(msg).then(function (res) {
+      var rows = state.results[sheet];
+      if (res.display) state.results[sheet] = res.display;
+      else Object.keys(res.rows || {}).forEach(function (r) {
+        var at = Number(r) - 1, v = res.rows[r];
+        if (!rows[at]) { rows[at] = v.slice(); return; }
+        rows[at].length = 0; Array.prototype.push.apply(rows[at], v);       // same array: the review rows follow
+      });
+      var marks = state.edits.marks[sheet] || (state.edits.marks[sheet] = {});
+      if (msg.cmd === 'undo' || res.display) { if (msg.cmd === 'undo') Object.keys(res.rows || {}).forEach(function (r) { delete marks[r]; }); if (res.display) state.edits.marks[sheet] = {}; }
+      else (cells || []).forEach(function (c) { var r = sheetRowOf(c.i); if (r) (marks[r] = marks[r] || {})[c.c] = 1; });
+      state.edits.undo[sheet] = res.undo || 0;
+      state.pendingSup = res.pending || 0;
+      if (sheet === SHEETS.OUT) { if ((state.stage.export || {}).status === 'done') state.edits.outAfter3 = true; }
+      else state.edits.pos[sheet] = true;
+      afterSheetEdit(sheet);
+      var gg = gridFor(sheet), extra = '';
+      if (sheet === SHEETS.OUT) extra = state.pendingSup ? ' · ' + fmtN(state.pendingSup) + ' UPDATED SUPPLIER change' + (state.pendingSup === 1 ? '' : 's') + ' waiting — Refresh supplier changes (stage 3 refreshes first).' : state.edits.outAfter3 ? ' · Run stage 3 again to put it in the POS files.' : '';
+      else extra = ' · Export TXT again to put it in the POS file.';
+      if (gg) gg.note(what + '.' + extra, 'success');
+      setGlobal(sheet + ': ' + what + '.' + extra, 'success');
+    }).catch(function (e) {
+      var gg = gridFor(sheet); if (gg) gg.note('Not changed: ' + e.message, 'error');
+      setGlobal(sheet + ': ' + e.message, 'error');
+    }).then(function () {
+      state.edits.busy = false;
+      var gg = gridFor(sheet); if (gg) gg.busy(state.busy);
+      renderOutActions(); if (wb.active !== 'out' && wb.active !== 'sup') renderWbActions(wbTab(wb.active));
+    });
+  }
+  function afterSheetEdit(sheet) {
+    if (sheet === SHEETS.OUT) {
+      renderReview(true);
+      var ex = state.stage.export || {};
+      if (ex.status === 'done' && state.edits.outAfter3) stageMsg('export', 'OUT_MERGED_DATA was edited after this stage — run stage 3 again for insert / update files with the edits.', 'ready');
+    } else {
+      renderReviewKpis(); renderTabs(); wbShow(wb.active, true);
+      if ((state.stage.export || {}).status === 'done') stageMsg('export', sheet + ' was edited — use Export TXT again (on the tab) to put the edits in the POS file.', 'ready');
+    }
+    renderOutputs();
+    scheduleWorkbook();
+  }
+  // OUT rows whose PRICE STATUS still says SUP OVERRIDE PENDING after a refresh (the supplier in G was not recognised).
+  function stillPending() {
+    var o = state.results[SHEETS.OUT] || [], ci = (o[1] || []).indexOf('PRICE STATUS'), n = 0;
+    for (var i = 2; i < o.length; i++) if (/SUP OVERRIDE PENDING/i.test(String(o[i][ci] || ''))) n++;
+    return n;
+  }
+  var wbTimer = 0;
+  // The review workbook is made again after an edit; a very large merge (5,000+ rows) waits for the next stage instead
+  // (writing it takes a few seconds) and its download says it is from before the edits.
+  function scheduleWorkbook() {
+    clearTimeout(wbTimer);
+    var out = state.results[SHEETS.OUT], wbo = state.outputs.get('xlsx-review');
+    if (out && out.length > 5002) { if (wbo) { wbo.warn = 'Made before your sheet edits — it is made again when stage 3 runs.'; renderOutputs(); } return; }
+    wbTimer = setTimeout(function () { if (state.results[SHEETS.OUT] && !state.busy) addWorkbookOutput(); }, 900);
+  }
+  // Refresh supplier changes / Export TXT again: engine steps outside the three stages.
+  function runExtra(steps, label) {
+    if (state.busy || state.edits.busy) return Promise.resolve();
+    state.busy = true; updateRunButtons(); renderOutActions();
+    setGlobal(label + '…', 'running');
+    var t0 = Date.now(), chain = Promise.resolve();
+    steps.forEach(function (st) { chain = chain.then(function () { return runStep(st); }); });
+    return chain.then(function () {
+      if (steps.indexOf('refresh') >= 0) {
+        renderReview(true);
+        var a = (state.results.alerts_refresh || [])[0], left = stillPending();
+        setGlobal(label + ' — ' + (a ? cleanTitle(a.title) + (a.msg ? ': ' + String(a.msg).split('\n')[0] : '') : 'done') + ' (' + ((Date.now() - t0) / 1000).toFixed(1) + 's).' +
+          (left ? ' ' + fmtN(left) + ' row' + (left === 1 ? ' is' : 's are') + ' still SUP OVERRIDE PENDING — the supplier typed in UPDATED SUPPLIER (G) was not found; type it as NAME (account number), e.g. BIOCEUTICALS (20).' : ''), left ? 'missing' : 'success');
+      }
+      if (steps.indexOf('export') >= 0) {
+        (state.results.files || []).forEach(function (f, i) {
+          var bin = atob(f.base64), bytes = new Uint8Array(bin.length);
+          for (var k = 0; k < bin.length; k++) bytes[k] = bin.charCodeAt(k);
+          addOutput('export', 'txt-' + i, f.filename, new Blob([bytes], { type: 'text/plain;charset=utf-8' }), fmtN(f.rowCount) + ' rows · ' + (f.label || 'POS file') + ' · tab-separated TXT for POSActive');
+        });
+        stageSet('export', 'done', 'Exported again ' + melb() + ' — ' + (state.results.files || []).length + ' TXT files with the OUT_POS_INSERT / UPDATE edits.');
+        setGlobal('Export TXT again — ' + (state.results.files || []).length + ' TXT files ready below (' + ((Date.now() - t0) / 1000).toFixed(1) + 's).', 'success');
+      }
+      return addWorkbookOutput();
+    }).catch(function (e) { console.error(e); setGlobal(label + ' stopped: ' + e.message, 'error'); })
+      .then(function () { state.busy = false; updateRunButtons(); renderOutActions(); renderOutputs(); renderTabs(); if (wb.active !== 'sup' && wb.active !== 'out') wbShow(wb.active, true); });
+  }
+
+  // ------------------------------------------------- SRC_ tab edits (v1.5.0, saved reference tables)
+  /* An SRC_ tab is the reference table loaded for it (one or more files). A change edits those rows (rows typed below the
+     last row go into the last file, or a "Typed here" table when nothing is loaded), saves the table in this browser
+     straight away and resets the stages — the next run uses it. Undo goes back one change at a time. */
+  var srcUndo = {};
+  function srcItems(id) { var out = [], x = state.inputs[id]; ((x && x.files) || []).forEach(function (e) { e.data.forEach(function (row) { out.push({ e: e, row: row }); }); }); return out; }
+  function srcSnapshot(id) { var x = state.inputs[id]; return x ? x.files.map(function (e) { return { e: e, data: e.data.map(function (r) { var a = r.slice(); if (r.__ed) a.__ed = Object.assign({}, r.__ed); return a; }) }; }) : null; }
+  function srcRestore(id, snap) {
+    if (!snap || !snap.length) { delete state.inputs[id]; return; }
+    snap.forEach(function (s) { s.e.data = s.data; });
+    state.inputs[id] = state.inputs[id] || { files: [], savedAt: melb() };
+    state.inputs[id].files = snap.map(function (s) { return s.e; });
+  }
+  // What a typed value becomes in a reference table: SRC_POS_ONGOING_DISCOUNTS POS DISCOUNT% 7.5 / 7.5% / 0.075 → 0.075
+  // (1.0 Setup setupNormaliseSrcDiscountPercentEdit_), POS MARKUP% a number, everything else trimmed text.
+  function srcValue(sheet, c, v) {
+    var s = String(v == null ? '' : v).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '').trim();
+    if (sheet === 'SRC_POS_ONGOING_DISCOUNTS' && (c === 7 || c === 8) && s !== '') {
+      var n = Number(s.replace(/[%,\s]/g, ''));
+      if (isFinite(n)) { if (c === 7) { if (n > 1) n = n / 100; if (n < 0) n = 0; } else if (/%/.test(s) || n > 1) n = n / 100; return n; }
+    }
+    return s;
+  }
+  function srcEdit(t, ch) {
+    var id = t.input, def = inputDef(id), g = wb.grid;
+    if (state.busy) { if (g) g.note('A stage is running — edit again when it finishes.', 'warn'); return; }
+    var snap = srcSnapshot(id), items = srcItems(id), width = M.SCHEMAS[t.sheet].headers.length, msg = '';
+    if (ch.type === 'deleteRows') {
+      ch.rows.forEach(function (i) { var it = items[i]; if (!it) return; var k = it.e.data.indexOf(it.row); if (k >= 0) it.e.data.splice(k, 1); });
+      msg = fmtN(ch.rows.length) + ' row' + (ch.rows.length === 1 ? '' : 's') + ' deleted';
+    } else {
+      var x = state.inputs[id], target = null, added = 0, changed = 0;
+      var newRow = function () {
+        if (!x) x = state.inputs[id] = { files: [], savedAt: melb() };
+        target = target || x.files[x.files.length - 1];
+        if (!target) { target = { name: 'Typed here', size: 0, tab: '', added: true, data: [], loadedAt: melb(), report: { headerRow: 2, found: width, total: width, missing: [], rows: 0 } }; x.files.push(target); }
+        var r = new Array(width); for (var c = 0; c < width; c++) r[c] = ''; target.data.push(r); added++;
+        return { e: target, row: r };
+      };
+      ch.cells.forEach(function (cell) {
+        while (cell.i >= items.length) items.push(newRow());
+        var it = items[cell.i], v = srcValue(t.sheet, cell.c, cell.v);
+        if (String(it.row[cell.c] == null ? '' : it.row[cell.c]) === String(v)) return;
+        it.row[cell.c] = v; (it.row.__ed = it.row.__ed || {})[cell.c] = 1; it.e.edited = true; changed++;
+      });
+      if (!changed && !added) return;
+      msg = ch.cells.length === 1 ? 'Changed ' + ch.where + ' (' + M.SCHEMAS[t.sheet].headers[ch.cells[0].c] + ')' : (ch.paste ? 'Pasted at ' + ch.where + ': ' : '') + fmtN(changed) + ' cell' + (changed === 1 ? '' : 's') + ' changed';
+      if (added) msg += ', ' + fmtN(added) + ' row' + (added === 1 ? '' : 's') + ' added';
+    }
+    var x2 = state.inputs[id];
+    if (x2) { x2.files = x2.files.filter(function (e) { return e.data.length; }); x2.savedAt = melb(); if (!x2.files.length) delete state.inputs[id]; }
+    (srcUndo[id] = srcUndo[id] || []).push(snap); if (srcUndo[id].length > 40) srcUndo[id].shift();
+    srcCommit(t, msg + '. Saved in this browser — run the stages again to use it.', 'success');
+  }
+  function srcUndoLast(t) {
+    var id = t.input, list = srcUndo[id] || [];
+    if (state.busy || !list.length) return;
+    srcRestore(id, list.pop());
+    srcCommit(t, 'Undone. Saved in this browser.', 'info');
+  }
+  function srcCommit(t, note, type) {
+    var id = t.input, def = inputDef(id);
+    if (state.inputs[id]) refSave(id); else refDelete(id);
+    state.rev++;
+    invalidateResults(def.title + ' changed — run the stages again to use it.');
+    renderAll();
+    if (state.activeInput === id) showInput(id);
+    wbShow(t.id, true);
+    if (wb.grid) wb.grid.note(note, type);
+    setGlobal(def.title + ': ' + note + ' ' + readinessText(), requiredReady() ? 'ready' : 'missing');
   }
 
   // ------------------------------------- Supplier Updates sheet (v1.2.0, editable)
@@ -1539,5 +1859,11 @@
     });
     startEngine().then(function () { updateRunButtons(); }).catch(function (e) { setGlobal('The merge engine could not start: ' + e.message, 'error'); });
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+  // v1.5.0: when this tool has a password (assets/js/phf-lock-config.js), nothing starts until it is typed.
+  function start() {
+    var L = window.PHFLock;
+    if (!L) { boot(); return; }
+    L.guard(LIB_TOOL, { label: 'POS Supplier New Product Check and Clean Merge', ctl: $('#phfLockCtl') }).then(boot);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

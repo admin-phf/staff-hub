@@ -241,6 +241,18 @@
 //      NO REORDER protection, matching, pricing and the discontinued row layout are unchanged.
 //    - Linked rows say why in NOTES; the build message shows how many were added this way.
 //    - Filtered-brand build reads the linked POS brands' TMP rows too.
+//  v6.3.89 shortened brand names (BE1) + POS size/type for bare supplier counts (SZ1):
+//    - BE1: a brand shortened to fit the 20-character POS brand field, or with its last word cut
+//      (BLACKMORES PROF = BLACKMORES PROFESSIONAL), is the same brand. SUP BRAND takes the one listed
+//      brand it is short for (SRC_POS_BRAND_NAME_CHANGES / SRC_POS_ONGOING_DISCOUNTS names), so its
+//      discount, member flag and prefix apply; OLD BRAND / "BRAND CHANGED" and the BRAND ☒ are no
+//      longer shown for the same brand (the POS name is kept). A real rename (BLACKMORES → BLACKMORES
+//      PROFESSIONAL) still is. POS brand translation is unchanged.
+//    - SZ1: when SUP PRODUCT gives only a bare count ("(60)") and the matched ORIGINAL POS DESCR has the
+//      same count with its form (60T / 60C / 60VC), AL / SIZE and AM / TYPE use the POS size and form,
+//      and POS DESCR gets the form letter (BIOC CLIN METHYL 60 → 60T). A word the marketing purge took
+//      out of SUP PRODUCT is put back when ORIGINAL POS DESCR has it too (BIOC CLIN METHYL BIOACTIVE 60T).
+//    - No matching, pricing formula, discontinued scope, Sub ID or export logic changed.
 // =============================================================================
 
 var M13 = {
@@ -250,7 +262,7 @@ var M13 = {
 //    - Strong supplier/POS size conflicts are promoted to IDENTITY REVIEW.
 //    - Final POS DESCR cleanup removes duplicate type counts and repeated
 //      prefix/descriptor tokens without aggressive clipping.
-  VERSION: 'v6.3.88-discontinued-brand-scope-v1',
+  VERSION: 'v6.3.89-brand-length-size-type-v1',
   // v6.3.86: [text found in the Sub ID, short label written before the POS PLU]. Blank Sub ID → PLU.
   SUBID_PLU_LABELS: [
     ['SPECIAL ORDER', 'SPEC ORD'], ['SPICAL ORDER', 'SPEC ORD'], ['SPRICAL ORDER', 'SPEC ORD'], ['SPEC ORD', 'SPEC ORD'],
@@ -545,6 +557,112 @@ function m13TranslateBrand_(brand, map) {
   return posKingTranslateBrand_(brand, map);
 }
 
+// v6.3.89 BE1: SUP BRAND translation. A supplier brand that is not listed takes the one listed brand it is a
+// shortened form of (BLACKMORES PROF → BLACKMORES PROFESSIONAL). POS brands keep m13TranslateBrand_ as before.
+function m13BE1TranslateSupplierBrand_(brand, map) {
+  var out = m13TranslateBrand_(brand, map);
+  if (map && out && !m13BE1IsListed_(brand, map)) {
+    var full = m13BE1FullBrandName_(out, map);
+    if (full) return full;
+  }
+  return out;
+}
+
+// =============================================================================
+//  v6.3.89 BE1 — SHORTENED BRAND NAMES ARE THE SAME BRAND
+// =============================================================================
+// POS brands are cut to the 20-character POS brand field (BIOCEUTICALS CLINICA) and are sometimes
+// shortened by hand (BLACKMORES PROF). Either form is the same brand as the full name, so it must not
+// read as a brand change, and the full name's discount / member flag / prefix apply.
+//   20  the shorter name is the longer one cut at 20 characters;
+//   W   same number of words (2+), every word the same except the last, which the shorter name cuts
+//       (3+ letters kept): BLACKMORES PROF = BLACKMORES PROFESSIONAL, BIOCEUTICALS CLIN = … CLINICAL.
+// A different word count is a different brand (BLACKMORES ≠ BLACKMORES PROFESSIONAL).
+function m13BE1Words_(s) {
+  return m13Upper_(s).replace(/^Z{3,}\s*/, '').replace(/[^A-Z0-9]+/g, ' ').trim().split(' ').filter(function(w) { return !!w; });
+}
+
+function m13BE1BrandsEquivalent_(a, b) {
+  return m13BE1WordsEquivalent_(m13BE1Words_(a), m13BE1Words_(b), a, b);
+}
+
+function m13BE1WordsEquivalent_(wa, wb, rawA, rawB) {
+  if (!wa.length || !wb.length) return false;
+  var sa = wa.join(' '), sb = wb.join(' ');
+  if (sa === sb || sa.replace(/ /g, '') === sb.replace(/ /g, '')) return true;
+  var aShort = sa.length <= sb.length;
+  var ws = aShort ? wa : wb, wl = aShort ? wb : wa;
+  var s = aShort ? sa : sb, l = aShort ? sb : sa, rawL = aShort ? rawB : rawA;
+  var width = M13.DS1_POS_BRAND_WIDTH || 20;
+  if (l.length > width && s.length >= width - 1) {
+    if (s === l.slice(0, width).trim()) return true;
+    if (s === m13BE1Words_(m13Upper_(rawL).replace(/^Z{3,}\s*/, '').slice(0, width)).join(' ')) return true;
+  }
+  var n = ws.length;
+  if (n < 2 || n !== wl.length) return false;
+  for (var i = 0; i < n - 1; i++) if (ws[i] !== wl[i]) return false;
+  var cut = ws[n - 1], full = wl[n - 1];
+  return cut.length >= 3 && cut.length < full.length && full.indexOf(cut) === 0;
+}
+
+// Listed = SRC_POS_BRAND_NAME_CHANGES has it (any form posKingTranslateBrand_ looks up), or it is a
+// brand named in SRC_POS_ONGOING_DISCOUNTS. A listed brand is never re-mapped by BE1.
+function m13BE1IsListed_(brand, map) {
+  var raw = posKingSafe_(brand);
+  if (!raw || !map) return true;
+  var keys = [posKingUpper_(raw), posKingNormBrand_(raw), posKingUpper_(raw).slice(0, 20), posKingNormBrand_(raw).slice(0, 20)];
+  for (var i = 0; i < keys.length; i++) if (keys[i] && map[keys[i]]) return true;
+  return !!(map.__be1 && map.__be1.listed[m13NormBrand_(raw)]);
+}
+
+function m13BE1State_(map) {
+  if (!map.__be1) map.__be1 = { names: null, extra: [], listed: {}, cache: {} };
+  var be = map.__be1;
+  if (!be.names) {
+    be.names = [];
+    (map.__rows || []).forEach(function(r) {
+      if (!r || !r.posBrand) return;
+      if (r.supBrand) be.names.push({ name: r.supBrand, to: r.posBrand, words: m13BE1Words_(r.supBrand) });
+      be.names.push({ name: r.posBrand, to: r.posBrand, words: m13BE1Words_(r.posBrand) });
+    });
+  }
+  return be;
+}
+
+// Extra full brand names (SRC_POS_ONGOING_DISCOUNTS POS MASTER BRAND) a shortened brand can take.
+function m13BE1RegisterNames_(map, names) {
+  if (!map) return;
+  var be = m13BE1State_(map);
+  (names || []).forEach(function(n) {
+    n = m13Str_(n);
+    if (!n) return;
+    var k = m13NormBrand_(n);
+    if (!k || be.listed[k]) return;
+    be.listed[k] = true;
+    be.extra.push({ name: n, to: n, words: m13BE1Words_(n) });
+  });
+  be.cache = {};
+}
+
+// The one listed brand `brand` is a shortened form of, or '' (none, or more than one).
+function m13BE1FullBrandName_(brand, map) {
+  var key = m13Upper_(brand);
+  if (!key || !map) return '';
+  var be = m13BE1State_(map);
+  if (Object.prototype.hasOwnProperty.call(be.cache, key)) return be.cache[key];
+  var words = m13BE1Words_(key), list = be.names.concat(be.extra), hit = '', hitKey = '';
+  for (var i = 0; i < list.length; i++) {
+    var c = list[i];
+    if (!c.to || m13Upper_(c.name).length <= key.length) continue;   // only a longer listed name is the full form
+    if (!m13BE1WordsEquivalent_(words, c.words, key, c.name)) continue;
+    var toKey = m13NormBrand_(c.to);
+    if (hit && toKey !== hitKey) { hit = ''; break; }                   // short for two brands: leave it alone
+    hit = c.to; hitKey = toKey;
+  }
+  be.cache[key] = hit;
+  return hit;
+}
+
 function m13Barcode_(raw) {
   return posKingBarcodeObject_(raw);
 }
@@ -676,7 +794,8 @@ function m13ScoreSupplierVsPos_(sup, pos) {
   // BRAND match (20 points)
   var supBrandNorm = m13NormBrand_(sup.translatedBrand || sup.rawBrand || '');
   var posBrandNorm = m13NormBrand_(pos.translatedBrand || pos.brand || '');
-  if (supBrandNorm && posBrandNorm && supBrandNorm === posBrandNorm) score += 20;
+  if (supBrandNorm && posBrandNorm && (supBrandNorm === posBrandNorm ||
+      m13BE1BrandsEquivalent_(sup.translatedBrand || sup.rawBrand, pos.translatedBrand || pos.brand))) score += 20; // v6.3.89 BE1
   
   // SUB-ID match (45 points - highest weight)
   var supSubIdNorm = m13SubIdCompareKey_(sup.subId || '');
@@ -1409,7 +1528,7 @@ function m13FB2ResolveVisibleSupplierBrandScope_(shSup, brandMap) {
       if (!rawBrand) continue;
       visibleRows++;
 
-      var translated = m13TranslateBrand_(rawBrand, brandMap);
+      var translated = m13BE1TranslateSupplierBrand_(rawBrand, brandMap);
       var rawKey = m13NormBrand_(rawBrand);
       var translatedKey = m13NormBrand_(translated || rawBrand);
       if (rawKey) keys[rawKey] = true;
@@ -1819,7 +1938,7 @@ function m13ResolveVisibleSupplierBrandScope_(shSup, brandMap) {
     if (!rawBrand) continue;
     visibleRows++;
 
-    var translated = m13TranslateBrand_(rawBrand, brandMap);
+    var translated = m13BE1TranslateSupplierBrand_(rawBrand, brandMap);
     var rawKey = m13NormBrand_(rawBrand);
     var translatedKey = m13NormBrand_(translated || rawBrand);
     if (rawKey) keys[rawKey] = true;
@@ -1846,7 +1965,7 @@ function m13BrandInScope_(rawBrand, brandMap, brandScope) {
   if (!brandScope || !brandScope.keys) return false;
   var rawKey = m13NormBrand_(rawBrand);
   if (rawKey && brandScope.keys[rawKey]) return true;
-  var translated = m13TranslateBrand_(rawBrand, brandMap);
+  var translated = m13BE1TranslateSupplierBrand_(rawBrand, brandMap);
   var translatedKey = m13NormBrand_(translated || rawBrand);
   return !!(translatedKey && brandScope.keys[translatedKey]);
 }
@@ -2382,7 +2501,7 @@ function m13DS1ExtendFilteredScope_(supplierSource, posBundle, brandMap, brandSc
   Object.keys((brandScope && brandScope.keys) || {}).forEach(function (k) { keys[k] = true; });
   for (var r = 0; r < data.length; r++) {
     var rawBrand = m13Str_(m13ColVal_(data[r], headers, ['SUP BRAND', 'BRAND']));
-    var translated = m13TranslateBrand_(rawBrand, brandMap);
+    var translated = m13BE1TranslateSupplierBrand_(rawBrand, brandMap);
     if (rawBrand || translated) m13DS1NoteSupplierBrand_(ctx, rawBrand, translated);
     var st = m13Upper_(m13ColVal_(data[r], headers, ['STATUS']));
     if (!st || st.indexOf('NOT USED') >= 0 || st.indexOf('BEST BUY') < 0 || st.indexOf('UNMATCHABLE') >= 0 || st.indexOf('NEW') >= 0) continue;
@@ -3098,7 +3217,8 @@ function m13ReconcileDiscontinuedNewBarcodeUpdates_(rows) {
     var oldBrandForRelink = m13CleanDiscontinuedBrand_(disc[C_POSBRAND] || disc[C_OUT_BRAND] || '');
     var updatedBrandForRelink = m13Str_(newMatch[C_OUT_BRAND] || newMatch[C_POSBRAND] || newMatch[C_SUPBRAND] || oldBrandForRelink);
     var relinkOldBrandValue = '';
-    if (oldBrandForRelink && updatedBrandForRelink && m13NormBrand_(oldBrandForRelink) !== m13NormBrand_(updatedBrandForRelink)) {
+    if (oldBrandForRelink && updatedBrandForRelink && m13NormBrand_(oldBrandForRelink) !== m13NormBrand_(updatedBrandForRelink) &&
+        !m13BE1BrandsEquivalent_(oldBrandForRelink, updatedBrandForRelink)) { // v6.3.89 BE1: shortened = same brand
       relinkOldBrandValue = oldBrandForRelink;
     }
 
@@ -3277,7 +3397,8 @@ function m13MakeSupplierObj_(row, headers, brandMap, supplierMap, activeSupplier
 
   // Brand translation is intentionally first. Every later comparison uses the
   // canonical POS brand where SRC_POS_BRAND_NAME_CHANGES provides one.
-  var translatedBrand = m13TranslateBrand_(rawBrand, brandMap);
+  // v6.3.89 BE1: a shortened SUP BRAND (BLACKMORES PROF) takes the full listed brand it is short for.
+  var translatedBrand = m13BE1TranslateSupplierBrand_(rawBrand, brandMap);
 
   var wsp = m13Num_(m13ColVal_(row, headers, ['SUP WS EXGST', 'SUP WSP', 'WSP EXGST', 'WSP']));
   var discountPrice = m13Num_(m13ColVal_(row, headers, ['SUP DISCOUNT PRICE', 'DISCOUNT PRICE', 'DISC PRICE']));
@@ -3401,7 +3522,27 @@ function m13StripMarketingPhrases_(s) {
   // Surgical marketing/noise purge. These phrases are removed BEFORE
   // SRC_POS_FIND_REPLACE runs so user rules operate on product content only.
   // Boundaries are alphanumeric-safe, so a short phrase cannot damage a longer word.
-  var phrases = [
+  var phrases = m13MarketingPhrases_();
+
+  for (var i = 0; i < phrases.length; i++) {
+    out = out.replace(m13MarketingPhraseRegex_(phrases[i]), '$1 ');
+  }
+
+  // Remove bracketed pure marketing fragments without touching true size/type text.
+  var bracketNoise = [
+    /\(\s*CONTAINS[^)]*\)/gi,
+    /\(\s*COMPLETE PROTEIN WITH BCAA[^)]*\)/gi,
+    /\(\s*FAST RELEASE HIGH PROTEIN[^)]*\)/gi,
+    /\(\s*EVERYDAY\s*\)/gi
+  ];
+  for (var j = 0; j < bracketNoise.length; j++) out = out.replace(bracketNoise[j], ' ');
+
+  return out.replace(/\s+/g, ' ').trim();
+}
+
+// v6.3.89: the purge list on its own so SZ1 can put a purged word back when O has it too.
+function m13MarketingPhrases_() {
+  return [
     'EXTEMPORANEOUS COMPOUNDING',
     'BIO-ACTIVE',
     'BIOACTIVE',
@@ -3417,24 +3558,56 @@ function m13StripMarketingPhrases_(s) {
     'EVERYDAY',
     'COMING SOON'
   ];
+}
 
-  for (var i = 0; i < phrases.length; i++) {
-    var phrase = phrases[i];
-    var body = m13EscReg_(phrase).replace(/\s+/g, '\\s+').replace(/\\\-/g, '[-\\s]*');
-    var re = new RegExp('(^|[^A-Z0-9])' + body + '(?=$|[^A-Z0-9])', 'gi');
-    out = out.replace(re, '$1 ');
-  }
+function m13MarketingPhraseRegex_(phrase) {
+  var body = m13EscReg_(phrase).replace(/\s+/g, '\\s+').replace(/\\\-/g, '[-\\s]*');
+  return new RegExp('(^|[^A-Z0-9])' + body + '(?=$|[^A-Z0-9])', 'gi');
+}
 
-  // Remove bracketed pure marketing fragments without touching true size/type text.
-  var bracketNoise = [
-    /\(\s*CONTAINS[^)]*\)/gi,
-    /\(\s*COMPLETE PROTEIN WITH BCAA[^)]*\)/gi,
-    /\(\s*FAST RELEASE HIGH PROTEIN[^)]*\)/gi,
-    /\(\s*EVERYDAY\s*\)/gi
-  ];
-  for (var j = 0; j < bracketNoise.length; j++) out = out.replace(bracketNoise[j], ' ');
+// =============================================================================
+//  v6.3.89 SZ1 — POS SIZE / FORM FOR A BARE SUPPLIER COUNT
+// =============================================================================
+// SUP PRODUCT often gives only the count ("BIOCEUTICALS CLINICAL METHYL BIOACTIVE (60)"), while the
+// matched ORIGINAL POS DESCR has the count with its form ("BIOC CLIN METHYL BIOACTIVE 60T"). When the
+// counts are the same, AL / SIZE = 60T and AM / TYPE = TABLETS, and POS DESCR gets the form letter.
+// A supplier type that disagrees with O's form (CAPSULES vs 60T) or a different count leaves Q as is.
+function m13SZ1PosSizeForBareCount_(supplierText, supplierEx, originalPosDescr, posEx) {
+  if (!originalPosDescr || !posEx || !posEx.size || !supplierEx || !supplierEx.size) return null;
+  var qSize = m13NormalizeExtractedSize_(supplierEx.size).replace(/\s+/g, '');
+  if (!/^\d{1,4}$/.test(qSize) || !m13SupplierSizeIsWeakBareCount_(supplierText, qSize)) return null;
+  var oSize = m13NormalizeExtractedSize_(posEx.size).replace(/\s+/g, '');
+  var o = m13SizeParts_(oSize);
+  if (!o.n || o.n !== Number(qSize) || !/^(VC|SG|C|T|LOZ|SACHET)$/.test(o.unit)) return null;
+  var oType = m13Upper_(posEx.type) || m13StrictTypeFromSizeSuffix_(oSize);
+  if (!oType || oType !== (m13StrictTypeFromSizeSuffix_(oSize) || oType)) return null;
+  var qType = m13Upper_(supplierEx.type);
+  if (qType && qType !== oType) return null;
+  return { size: oSize, type: qType || oType, fromPos: true };
+}
 
-  return out.replace(/\s+/g, ' ').trim();
+// A purged marketing word (BIOACTIVE) that SUP PRODUCT and ORIGINAL POS DESCR both have goes back into
+// POS DESCR after the same word it follows in O, while POS DESCR stays within 35 characters.
+function m13SZ1RestorePurgedPosWords_(descr, supplierRaw, originalPosDescr) {
+  var out = m13Str_(descr).toUpperCase();
+  var q = m13Upper_(supplierRaw), o = m13Upper_(originalPosDescr);
+  if (!out || !q || !o) return out;
+  var max = M13.POS_DESCR_MAX || 35;
+  m13MarketingPhrases_().forEach(function(phrase) {
+    var rq = m13MarketingPhraseRegex_(phrase), ro = m13MarketingPhraseRegex_(phrase);
+    if (!rq.test(q)) return;
+    var mo = ro.exec(o);
+    if (!mo || m13MarketingPhraseRegex_(phrase).test(out)) return;
+    var before = o.slice(0, mo.index + mo[1].length).replace(/[^A-Z0-9]+$/, '').split(/[^A-Z0-9]+/).pop();
+    if (!before) return;
+    var word = mo[0].slice(mo[1].length).trim();
+    var at = new RegExp('(^|[^A-Z0-9])(' + m13EscReg_(before) + ')(?=$|[^A-Z0-9])').exec(out);
+    if (!at) return;
+    var cut = at.index + at[1].length + at[2].length;
+    var next = (out.slice(0, cut) + ' ' + word + ' ' + out.slice(cut)).replace(/\s+/g, ' ').trim();
+    if (next.length <= max) out = next;
+  });
+  return out;
 }
 
 function m13MarkPrefixRowUsed_(prefixMap, brandOrPrefix) {
@@ -3863,6 +4036,8 @@ function m13ReconcileProductDescription_(supplierDescr, supplierRaw, originalPos
   //   O / original POS description is REFERENCE ONLY: it may guide presentation/style
   //   and may be compared for review warnings, but it must never add or override a
   //   size, type/form, ingredient, flavour, variant, punctuation or other product fact.
+  //   v6.3.89 SZ1 exceptions: a bare Q count ("(60)") takes O's form for the same count (60T), and a
+  //   word the marketing purge took out of Q is put back when O has it too (both shown in Q already).
   var supplierEvidence = m13Str_(supplierRaw || supplierDescr || '');
   var hasSupplierTruth = !!supplierEvidence;
   supplierRaw = m13Str_(supplierRaw || '');
@@ -3911,6 +4086,10 @@ function m13ReconcileProductDescription_(supplierDescr, supplierRaw, originalPos
         type: posExtraction.type || ''
       }, brandHint, [originalPosDescr, base]);
 
+  // v6.3.89 SZ1: Q gives only a bare count and O has the same count with its form → use O's size / form.
+  var sz1 = m13SZ1PosSizeForBareCount_(supplierEvidence || base, supplierExtraction, originalPosDescr, posExtraction);
+  if (sz1) finalExtraction = sz1;
+
   // Keep the brand prefix anchored at the start. This changes presentation only.
   if (sup && prefixMap) {
     base = m13ApplyPrefix_(base, m13PrefixForBrand_(sup, prefixMap), prefixMap, {
@@ -3923,6 +4102,7 @@ function m13ReconcileProductDescription_(supplierDescr, supplierRaw, originalPos
   var truthSources = hasSupplierTruth
     ? [supplierEvidence || base, base]
     : [originalPosDescr, base];
+  if (sz1) truthSources = truthSources.concat([originalPosDescr]);   // v6.3.89 SZ1: O's form (60VC) is the evidence
 
   var finalBrandPrefix = (sup && prefixMap) ? m13PrefixForBrand_(sup, prefixMap) : '';
   base = m13AppendTypeAcronymToPosDescr_(base, finalExtraction, truthSources);
@@ -3935,6 +4115,7 @@ function m13ReconcileProductDescription_(supplierDescr, supplierRaw, originalPos
   base = m13ApplyFinalColumnPFindReplace_(base, findReplaceRules, supplierRaw, originalPosDescr, finalBrandPrefix);
   base = m13FinalFormatDescr_(base);
   base = m13PolishColumnPDescription_(base, originalPosDescr, supplierRaw, finalBrandPrefix, prefixMap, sup);
+  base = m13SZ1RestorePurgedPosWords_(base, supplierRaw, originalPosDescr);   // v6.3.89 SZ1
 
   return {
     descr: base,
@@ -4391,6 +4572,9 @@ function m13LoadDiscountRules_(ss, brandMap) {
   var headers = m13HeaderMap_(sh, M13.HEADER_ROW);
   var data = sh.getRange(M13.DATA_ROW, 1, sh.getLastRow() - M13.DATA_ROW + 1, sh.getLastColumn()).getDisplayValues();
 
+  // v6.3.89 BE1: the discount brands are full POS brand names a shortened SUP BRAND can take.
+  if (brandMap) m13BE1RegisterNames_(brandMap, data.map(function(row) { return m13ColVal_(row, headers, ['POS MASTER BRAND']); }));
+
   for (var i = 0; i < data.length; i++) {
     var row = data[i];
     var brandRaw = m13Str_(m13ColVal_(row, headers, ['POS MASTER BRAND', 'POS BRAND PREFIX', 'POS BRAND', 'BRAND']));
@@ -4500,6 +4684,14 @@ function m13BestDiscountForSupplier_(sup, rules, pos) {
     var supPlu = m13NormId_(sup.subId || '');
     var posPlu = pos && pos.plu ? m13NormId_(pos.plu) : '';
     var posSubId = pos && pos.subId ? m13NormId_(pos.subId) : '';
+    // v6.3.89 BE1: the matched POS brand also counts when it is the same brand shortened.
+    var posBrandKey = '';
+    if (pos) {
+      var posBrandName = pos.translatedBrand || pos.brand || '';
+      var pbk = m13NormBrand_(posBrandName);
+      if (pbk && pbk !== supBrand && m13BE1BrandsEquivalent_(posBrandName, sup.translatedBrand || sup.rawBrand)) posBrandKey = pbk;
+    }
+    function brandHit_(r) { return !!r.brandKey && (r.brandKey === supBrand || (!!posBrandKey && r.brandKey === posBrandKey)); }
 
     function pack_(r) {
       if (r) r.__used = true;
@@ -4559,14 +4751,14 @@ function m13BestDiscountForSupplier_(sup, rules, pos) {
 
     // 3) Brand + Supplier
     var brandSupplierRule = bestFromList_(rules.byBrandSupplier, function(r) {
-      return r.brandKey && r.brandKey === supBrand &&
+      return brandHit_(r) &&
              r.supplierNum && m13NormId_(r.supplierNum) === supSupplier;
     });
     if (brandSupplierRule) return pack_(brandSupplierRule);
 
     // 4) Brand only
     var brandRule = bestFromList_(rules.byBrand, function(r) {
-      return r.brandKey && r.brandKey === supBrand;
+      return brandHit_(r);
     });
     if (brandRule) return pack_(brandRule);
 
@@ -7335,7 +7527,11 @@ function m13BuildOneOutRow_(idx, kind, sup, pos, status, statusNote, supplierMap
   var supBrand = sup.rawBrand || sup.translatedBrand || '';
   var outBrand = sup.translatedBrand || sup.rawBrand || posBrand;
   var oldBrand = '';
-  if (hasPos && m13NormBrand_(posBrand) && m13NormBrand_(outBrand) && m13NormBrand_(posBrand) !== m13NormBrand_(outBrand)) oldBrand = posBrand;
+  if (hasPos && m13NormBrand_(posBrand) && m13NormBrand_(outBrand) && m13NormBrand_(posBrand) !== m13NormBrand_(outBrand)) {
+    // v6.3.89 BE1: the same brand shortened (20-character POS field / cut last word) keeps the POS name, no brand change.
+    if (m13BE1BrandsEquivalent_(posBrand, outBrand)) outBrand = posBrand;
+    else oldBrand = posBrand;
+  }
   // v6.3.86: supplier upload marks this POS product discontinued → same ZZZZ brand rule as discontinued rows.
   var supDiscontinued = hasPos && m13SupplierMarksDiscontinued_(sup);
   if (supDiscontinued) {
@@ -7415,7 +7611,8 @@ function m13BuildOneOutRow_(idx, kind, sup, pos, status, statusNote, supplierMap
     // BRAND match
     var supBrandNorm = m13NormBrand_(sup.translatedBrand || sup.rawBrand || '');
     var posBrandNorm = m13NormBrand_(pos.translatedBrand || pos.brand || '');
-    matchDetails.brandMatched = (supBrandNorm && posBrandNorm && supBrandNorm === posBrandNorm);
+    matchDetails.brandMatched = (supBrandNorm && posBrandNorm && (supBrandNorm === posBrandNorm ||
+      m13BE1BrandsEquivalent_(sup.translatedBrand || sup.rawBrand, pos.translatedBrand || pos.brand))); // v6.3.89 BE1
     
     // RAW WSP match (within 5% tolerance)
     var wspTolerance = 0.05;

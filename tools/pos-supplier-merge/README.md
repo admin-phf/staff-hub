@@ -1,10 +1,10 @@
-# POS Supplier New Product Check and Clean Merge v1.4.0 (Staff Hub v21.11.0)
+# POS Supplier New Product Check and Clean Merge v1.5.0 (Staff Hub v21.12.0)
 
-Updated 11 Oct 2026 10:55 AEDT. (Named POS Supplier Merge up to v1.3.1; the folder and web address are unchanged.)
+Updated 11 Oct 2026 15:50 AEDT. (Named POS Supplier Merge up to v1.3.1; the folder and web address are unchanged.)
 
 Import, Update, Discontinue and Clean Products and/or Supplier information against current POS Database.
 The POS DB & SUPPLIER MERGE Google Sheet, run in the browser. It uses the **same script files** as the
-Google Sheet (engine v6.3.88), so the matching, discontinued products, ZZZZ / DISC / SPEC ORD Sub IDs, pricing, OUT_MERGED_DATA
+Google Sheet (engine v6.3.89), so the matching, discontinued products, ZZZZ / DISC / SPEC ORD Sub IDs, pricing, OUT_MERGED_DATA
 and the POS INSERT / UPDATE TXT files are the same. Nothing is uploaded: files stay in this browser.
 
 ## Inputs (left rail)
@@ -24,6 +24,42 @@ Google Sheet (File → Download → Microsoft Excel) can be dropped as one file:
 input. Columns are matched by heading, `POS_MASTER_BARCODE` fills POS MAIN ID, and INDEX is renumbered
 1, 2, 3… the same way the Sheet's paste tidy does. STATUS columns are cleared because the merge writes them.
 
+## Editing the sheets (v1.5.0)
+
+Every workbook tab except TMP_MERGED_POS_DATA can be edited like the Google Sheet: click a cell and type (or Enter / F2 /
+double-click to change it), Ctrl+V (⌘V) pastes from the selected cell, Delete clears, Ctrl+C copies, click row numbers to
+select rows, **Add row** / **Delete rows** / **Undo** (Ctrl+Z). A small orange corner marks a cell changed on this page.
+Columns the merge works out itself (INDEX, SRC STATUS / POS MATCH, FINAL SHELF RRP, rrp incgst) stay read-only.
+
+| Tab | What an edit does | Then |
+|---|---|---|
+| SRC_POS_FIND_REPLACE · ONGOING_DISCOUNTS · BRAND_NAME_CHANGES · PRODUCT_PREFIX · SUPPLIERS | Changes the reference table, **saved in this browser straight away** (rows typed under the last row are added; an empty tab can be started by typing or pasting). POS DISCOUNT% takes 7.5, 7.5% or 0.075 as 7.50%, like the Sheet. | The stages reset — **Run All Stages** (button on the tab) uses the change. The Library copy of Ongoing Discounts (shared with Build POS Master Databases) is not changed. |
+| OUT_MERGED_DATA | Goes into the engine's copy of the Sheet and runs the script's own **onEdit**: ROW STATUS → NEW writes the fake barcode (K / AP) when there is no real one, UPDATED SUPPLIER (G) shows SUP OVERRIDE PENDING and is queued, RRP / MARKUP OVERRIDE (AN) makes FINAL SHELF RRP / rrp incgst work out again, row-1 totals follow. | **Refresh supplier changes** (= REFRESH SUPPLIER CHANGES) checks G edits against the supplier upload; **Run stage 3 again** makes OUT_POS_INSERT / UPDATE and the TXT files from the edited sheet (it refreshes waiting supplier changes first). |
+| OUT_POS_INSERT · OUT_POS_UPDATE | Changes the rows, adds or deletes rows. | **Export TXT again** writes the two TXT files from these sheets as they are (stage 3 again would make them again from OUT_MERGED_DATA). |
+| IN_SUPPLIER_/_PRODUCT_UPDATES | As before (below). | Run the stages again. |
+
+Edits on OUT_MERGED_DATA / OUT_POS_* are for this session; running stage 2 again builds OUT_MERGED_DATA afresh. The TXT
+downloads say when they were made before your edits.
+
+## The Google Sheet look (v1.5.0)
+
+The tabs look like the POS DB & SUPPLIER MERGE Sheet (js/sheet-look.js, taken from 1.0 Setup): column letters, the navy
+**row-1 totals band** with gold text (the SCHEMA totals formulas — CURRENT WSP, NEW WSP, CURRENT / NEW LAST PRICE, CURRENT /
+NEW RRP, OVERRIDES, FINAL SHELF RRP, BRAND CHANGES … — SUBTOTAL totals count the rows a filter shows, SUM / COUNTIF totals
+count every row, as in the Sheet), the light blue-grey row-2 headings with a **filter button** on each (show only one
+value), the frozen-row line, F5F5F5 / E9F0F5 bands and the OUT_MERGED_DATA conditional colours: price increases red on pink,
+decreases blue, no change grey, the higher RRP green, ☑ green / ☒ red / ☐ grey checks, FINAL SHELF RRP on two lines (red
+up / blue down / grey same), NEW markup under 35% GP orange, OLD BRAND / BARCODE UPDATE / RRP OVERRIDE amber, supplier
+overrides orange. Columns the Sheet centres are centred. The review workbook (.xlsx) uses the same colours and totals.
+
+## Password lock (v1.5.0)
+
+**Set password** (top right) makes `phf-lock-config.js`; put it in `assets/js/` and commit — from then on the tool asks
+for the password once per browser (Lock asks again), and its Staff Hub tile shows LOCKED. The file holds a salted
+PBKDF2-SHA-256 hash, never the password. Password / Remove the password makes a new file the same way. This is a
+static GitHub Pages site, so the lock keeps staff out but is not real security (someone who can read the page code can get
+round it); for that, put the site behind a sign-in such as Cloudflare Access.
+
 ## Workbook tabs (v1.4.0)
 
 Under the stages the page shows the workbook the way the Google Sheet does, with its tabs along the bottom (they stay at
@@ -32,12 +68,12 @@ the bottom of the window while the workbook is on screen), in the Sheet's order 
 | Tab | Colour | What it shows |
 |---|---|---|
 | IN_SUPPLIER_/_PRODUCT_UPDATES | red | The editable supplier sheet (below). Every row, no pages. |
-| OUT_MERGED_DATA | green | After stage 2: the review (KPIs, search, status / price / brand filters) with **Review columns** or **All columns (Sheet)** — every column with the Sheet's row numbers and column letters. Long NOTES show 4 lines; click a note to open the rest. |
+| OUT_MERGED_DATA | green | After stage 2: KPIs, search, status / price / brand filters, and **Sheet (all columns, editable)** (v1.5.0 default) or **Review columns**. Long NOTES show 4 lines in the review columns; click a note to open the rest. |
 | OUT_POS_INSERT · OUT_POS_UPDATE | orange | After stage 3: the rows written to the two TXT files. |
 | SRC_POS_FIND_REPLACE · SRC_POS_ONGOING_DISCOUNTS · SRC_POS_BRAND_NAME_CHANGES · SRC_POS_PRODUCT_PREFIX · SRC_POS_SUPPLIERS | blue | The reference tables as loaded, or with SRC STATUS filled in once stage 2 has run. |
 | TMP_MERGED_POS_DATA | — | The POS Database. |
 
-All but IN_SUPPLIER are read-only here (text can be selected and copied) and have their own search box. Only the rows near
+v1.5.0: every tab but TMP_MERGED_POS_DATA is editable (above). Each has its own search box. Only the rows near
 the scroll position are drawn (js/sheet-grid.js), so a 34,000-row POS Database scrolls as quickly as a short list.
 Stage 2 opens OUT_MERGED_DATA, as the Sheet's menu does.
 
@@ -109,11 +145,13 @@ restarts the engine, so every run starts from a clean workbook.
 index.html ── js/app.js (rail, drag and drop, stages, outputs, review)
    │            js/merge-map.js (input definitions, recognition, column mapping)
    │            js/xlsx-writer.js (review workbook)
-   │            js/sheet-grid.js (read-only workbook tabs: every row, drawn around the scroll position)
+   │            js/sheet-grid.js (workbook tabs: every row, drawn around the scroll position; editable — v1.1.0)
+   │            js/sheet-look.js (the Google Sheet's totals band, colours and centred columns — v1.0.0)
+   │            ../../assets/js/phf-lock.js + phf-lock-config.js (optional password lock — v1.0.0)
    └─ Web Worker js/engine-worker.js
         ├─ js/sheets-formula.js + js/sheets-shim.js (in-memory stand-in for Google Sheets)
         ├─ engine/1.0-setup.js … engine/1.3-merge.js (the Apps Script files, unchanged)
-        └─ js/engine-host.js (messages between the page and the engine)
+        └─ js/engine-host.js (messages between the page and the engine; v1.1.0 sheet edits → the script's onEdit, undo)
 ```
 
 When the page is opened straight from a file (no web server) browsers block Web Workers, so the same
@@ -125,6 +163,19 @@ SRC tabs) the page gives the same supplier STATUS, OUT_MERGED_DATA (347 rows, ev
 OUT_POS_UPDATE (327). sheets-formula / sheets-shim v1.0.1: `TO_TEXT(cell)` reads the cell as displayed (e.g. `$15.02`),
 as Google Sheets does, so FINAL SHELF RRP's GP NGST line matches to the cent.
 
+**Merge v6.3.89 (1.3 Merge only — the other three files are unchanged).** Two additions, on the same 11 Oct run:
+- **Shortened brand names (BE1).** A SUP BRAND cut to the 20-character POS brand field, or with its last word cut
+  (BLACKMORES PROF = BLACKMORES PROFESSIONAL), takes the one listed full brand (SRC_POS_BRAND_NAME_CHANGES / Ongoing
+  Discounts brands). The 25 Blackmores Professional rows keep their brand, get its 22.5% discount (last price $7.30, not
+  $9.42) and the BM PROF prefix, and no longer show OLD BRAND / BRAND CHANGED / BRAND ☒. A matched POS
+  brand that is the same brand shortened keeps its POS name. A real rename (BLACKMORES → BLACKMORES PROFESSIONAL) still
+  shows. POS brand translation is unchanged.
+- **POS size and form for a bare count (SZ1).** SUP PRODUCT "BIOCEUTICALS CLINICAL METHYL BIOACTIVE (60)" + ORIGINAL POS
+  DESCR "BIOC CLIN METHYL BIOACTIVE 60T" → SIZE 60T, TYPE TABLETS, POS DESCR "BIOC CLIN METHYL BIOACTIVE 60T" (was
+  "BIOC CLIN METHYL 60", SIZE 60, TYPE blank). Only when the counts are the same and the supplier gives no other form;
+  a word the marketing purge removed (BIOACTIVE, EVERYDAY…) comes back only when the POS description has it too.
+  135 Bioceuticals rows on that run; nothing else in OUT_MERGED_DATA, OUT_POS_INSERT or OUT_POS_UPDATE changed.
+
 ## Updating the engine
 
 When the Google Sheet script changes, copy the four files from Apps Script into `engine/` with these names
@@ -132,7 +183,8 @@ When the Google Sheet script changes, copy the four files from Apps Script into 
 `1.3-merge.js`. Then bump the `?v=` numbers in `js/engine-worker.js` and `engine-frame.html` so browsers fetch
 the new files. If the SCHEMA headings of an input tab change, update the matching entry in `js/merge-map.js`.
 
-## Not in this version (Phase 2)
+## Not in this version
 
-Editing in the review table (UPDATED SUPPLIER overrides with Refresh Supplier Changes, RRP / markup
-overrides) and the Filtered Brands build. Use the review workbook or the Google Sheet for those for now.
+The Filtered Brands build (BUILD OUT_MERGED_DATA — FILTERED BRANDS) and GENERATE FROM FILTERED DATA. A merge here covers
+the brands in Supplier Updates, which does the same job. (Sheet editing with Refresh Supplier Changes and RRP / markup
+overrides arrived in v1.5.0.)

@@ -6,7 +6,7 @@
 <title>POS Supplier New Product Check and Clean Merge | Prahran Health Foods</title>
 <link rel="stylesheet" href="../../assets/css/shell.css?v=21.6.0">
 <link rel="stylesheet" href="./css/app.css?v=1.0.0-20261010">
-<link rel="stylesheet" href="./css/merge.css?v=1.4.0-20261011">
+<link rel="stylesheet" href="./css/merge.css?v=1.5.0-20261011">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="../../assets/css/theme.css?v=20.0.2">
 <link rel="stylesheet" href="../../assets/css/compact-layout.css?v=1.1.0">
@@ -14,8 +14,8 @@
 <body class="database-builder-page phf-page-db phf-page-merge">
 <header class="phf-shell-header header-container">
   <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
-  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="POS Supplier New Product Check and Clean Merge — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg></span><div class="phf-shell-copy title-row"><h1 class="phf-title-long">POS Supplier New Product Check and Clean Merge</h1><p class="phf-shell-version version-text">v1.4.0</p></div></a>
-  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">POS Supplier New Product Check and Clean Merge</span></nav><p class="phf-shell-updated build-details">Updated 11 Oct 2026 10:55 AEDT</p></div>
+  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="POS Supplier New Product Check and Clean Merge — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg></span><div class="phf-shell-copy title-row"><h1 class="phf-title-long">POS Supplier New Product Check and Clean Merge</h1><p class="phf-shell-version version-text">v1.5.0</p></div></a>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">POS Supplier New Product Check and Clean Merge</span></nav><p class="phf-shell-updated build-details">Updated 11 Oct 2026 15:50 AEDT</p><div class="phf-lock-ctl" id="phfLockCtl" aria-live="polite"></div></div>
 </header>
 
 <main class="workflow-wrap full-width-wrap phf-full">
@@ -28,12 +28,12 @@
         <button type="button" class="btn small rail-clear-all" id="railClearSession" title="Remove the POS database and every supplier row, including rows added in the sheet (saved reference data stays)">Clear session files</button>
         <button type="button" class="btn small" id="railClearReference" title="Remove every reference table saved in this browser">Clear saved reference</button>
       </div>
-      <div class="sidebar-footer"><strong>Saved vs session</strong><span>Reference data stays saved in this browser. The POS Database and Ongoing Discounts load from the Staff Hub Library when you open this page. Supplier Updates starts empty: paste or drop only the brands you are merging (the CH2 / Unique imports from the Library are added only with their Add buttons). Sheet edits are kept for this session only. ✕ removes one input straight away.</span></div>
+      <div class="sidebar-footer"><strong>Saved vs session</strong><span>Reference data stays saved in this browser. The POS Database and Ongoing Discounts load from the Staff Hub Library when you open this page. Supplier Updates starts empty: paste or drop only the brands you are merging (the CH2 / Unique imports from the Library are added only with their Add buttons). Edits on the SRC_ tabs are saved in this browser; edits on IN_SUPPLIER, OUT_MERGED_DATA and OUT_POS_* are kept for this session only. ✕ removes one input straight away.</span></div>
     </aside>
 
     <section class="builder-workspace">
       <section class="panel dashboard-intro">
-        <p><strong>Import, Update, Discontinue and Clean Products and/or Supplier information against current POS Database.</strong> Runs the POS DB &amp; SUPPLIER MERGE Google Sheet script (<strong id="engineVersion">v6.3.88</strong>) in this browser: Highlight New Products + Best Buy, Build OUT_MERGED_DATA, then Generate Insert + Update and Export POS Files. It takes the POS Database from Build POS Master Databases and merges only the brands in Supplier Updates. Everything runs locally; nothing is uploaded.</p>
+        <p><strong>Import, Update, Discontinue and Clean Products and/or Supplier information against current POS Database.</strong> Runs the POS DB &amp; SUPPLIER MERGE Google Sheet script (<strong id="engineVersion">v6.3.89</strong>) in this browser: Highlight New Products + Best Buy, Build OUT_MERGED_DATA, then Generate Insert + Update and Export POS Files. It takes the POS Database from Build POS Master Databases and merges only the brands in Supplier Updates. Everything runs locally; nothing is uploaded.</p>
         <div class="engine-state" id="engineState"><span class="phf-pill">Engine starting…</span></div>
       </section>
 
@@ -78,15 +78,16 @@
       <section class="sup-panel" id="supPanel" aria-label="IN_SUPPLIER_/_PRODUCT_UPDATES sheet"></section>
 
       <section class="panel review-panel" id="reviewPanel" hidden>
-        <div class="results-head"><div><h2>OUT_MERGED_DATA</h2><p id="reviewSub">Search and filter the merged rows. Review columns, or every column as the Google Sheet shows them.</p></div><div class="result-badge" id="reviewCount">0 ROWS</div></div>
+        <div class="results-head"><div><h2>OUT_MERGED_DATA</h2><p id="reviewSub">Every column as the Google Sheet shows it — click a cell to edit, as in the Sheet. Or the review columns.</p></div><div class="result-badge" id="reviewCount">0 ROWS</div></div>
         <div class="review-kpis" id="reviewKpis"></div>
+        <div class="out-actions" id="outActions" hidden></div>
         <div class="review-filters">
           <input type="search" id="reviewSearch" placeholder="Search brand, barcode, PLU, Sub ID, description or notes…" aria-label="Search review rows">
           <select id="reviewStatus" aria-label="Row status"><option value="">All row statuses</option></select>
           <select id="reviewPrice" aria-label="Price status"><option value="">All price statuses</option></select>
           <select id="reviewBrand" aria-label="Brand"><option value="">All brands</option></select>
           <button type="button" class="btn small" id="reviewReset">Reset</button>
-          <div class="wb-view" role="group" aria-label="Columns"><button type="button" class="btn small is-on" data-out-view="review">Review columns</button><button type="button" class="btn small" data-out-view="sheet" id="outSheetBtn">All columns (Sheet)</button></div>
+          <div class="wb-view" role="group" aria-label="Columns"><button type="button" class="btn small is-on" data-out-view="sheet" id="outSheetBtn">Sheet (all columns, editable)</button><button type="button" class="btn small" data-out-view="review">Review columns</button></div>
         </div>
         <div class="review-table-wrap" id="reviewTableWrap"><table class="review-table" id="reviewTable"><thead></thead><tbody></tbody></table></div>
         <div class="review-pager" id="reviewPager"><button type="button" class="btn small" id="reviewPrev">‹ Previous</button><span id="reviewPage">Page 1</span><button type="button" class="btn small" id="reviewNext">Next ›</button></div>
@@ -95,6 +96,7 @@
 
       <section class="panel wb-sheet-panel" id="wbSheetPanel" hidden>
         <div class="results-head"><div><h2 id="wbSheetTitle">Sheet</h2><p id="wbSheetSub"></p></div><div class="result-badge" id="wbSheetCount">0 ROWS</div></div>
+        <div class="out-actions" id="wbActions"></div>
         <div class="wb-empty" id="wbSheetEmpty" hidden></div>
         <div class="wb-grid" id="wbGrid"></div>
       </section>
@@ -104,8 +106,11 @@
 </main>
 <script src="./js/merge-map.js?v=1.0.1"></script>
 <script src="./js/xlsx-writer.js?v=1.0.0"></script>
-<script src="./js/sheet-grid.js?v=1.0.0"></script>
+<script src="./js/sheet-look.js?v=1.0.0"></script>
+<script src="./js/sheet-grid.js?v=1.1.0"></script>
 <script src="../../assets/js/phf-library.js?v=1.0.2"></script>
-<script src="./js/app.js?v=1.4.0"></script>
+<script src="../../assets/js/phf-lock-config.js?v=20261011"></script>
+<script src="../../assets/js/phf-lock.js?v=1.0.0"></script>
+<script src="./js/app.js?v=1.5.0"></script>
 </body>
 </html>

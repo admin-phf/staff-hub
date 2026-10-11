@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS Supplier New Product Check and Clean Merge v1.4.0 (11 Oct 2026)
+/* PHF Staff Hub — POS Supplier New Product Check and Clean Merge v1.5.0 (11 Oct 2026; v1.4.0 earlier the same day)
    Tool-only additions. Layout and colours come from css/app.css (same layout as
    Build Master Databases) and the shared assets/css/theme.css (linked last). */
 
@@ -215,24 +215,82 @@ body.phf-page-merge .wb-view .btn{border-radius:0;margin:0}
 body.phf-page-merge .wb-view .btn:first-child{border-radius:8px 0 0 8px}
 body.phf-page-merge .wb-view .btn:last-child{border-radius:0 8px 8px 0;border-left:0}
 body.phf-page-merge .wb-view .btn.is-on{background:var(--phf-navy);border-color:var(--phf-navy);color:#fff}
-/* Read-only sheets (js/sheet-grid.js): row numbers, column letters over the Sheet headings, banded rows, every row. */
-body.phf-page-merge .wbg-tools{display:flex;gap:10px;align-items:center;margin:0 0 10px}
+/* v1.5.0 — workbook sheets (js/sheet-grid.js v1.1.0) look like the POS DB & SUPPLIER MERGE Google Sheet: grey column
+   letters, the navy row-1 totals band with gold text, row-2 headings in light blue-grey with a filter button each, the
+   frozen-row line, F5F5F5 / E9F0F5 banded rows, Google Sans 8pt-style text, left-aligned values (centred where the Sheet
+   centres them) and the Sheet's conditional colours (js/sheet-look.js, set on each cell). Editable sheets select like
+   Google Sheets (blue), and a small orange corner marks a cell changed on this page. */
+body.phf-page-merge .wbg{--wbg-font:"Google Sans","Product Sans",var(--phf-font);--wbg-line:#E1E3E6;--wbg-letters:#F8F9FA}
+body.phf-page-merge .wbg-tools{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin:0 0 10px}
 body.phf-page-merge .wbg-search{flex:1 1 320px;min-height:36px;border:1px solid var(--phf-line-strong);border-radius:8px;padding:6px 10px;font-size:13px}
 body.phf-page-merge .wbg-search:focus{outline:2px solid var(--phf-blue-line);border-color:var(--phf-blue)}
 body.phf-page-merge .wbg-count{font-size:12px;font-weight:700;color:var(--phf-muted);white-space:nowrap}
-body.phf-page-merge .wbg-wrap{overflow:auto;max-height:64vh;border:1px solid var(--phf-line);border-radius:8px;background:#fff;outline:none}
-body.phf-page-merge .wbg-table{border-collapse:separate;border-spacing:0;table-layout:fixed;font-size:11.5px}
-body.phf-page-merge .wbg-table th{position:sticky;top:0;z-index:2;background:#E9F0F5;color:#2C3E50;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;text-align:center;vertical-align:bottom;padding:5px 6px 6px;line-height:1.2;white-space:normal;overflow:hidden;overflow-wrap:anywhere;border-bottom:2px solid var(--phf-navy);border-right:1px solid #D6DEE6}
-body.phf-page-merge .wbg-col{display:block;font-size:9px;font-weight:700;color:#7B8794;letter-spacing:.08em;margin-bottom:2px}
-body.phf-page-merge .wbg-table td{height:25px;padding:3px 8px;border-bottom:1px solid #E3E8ED;border-right:1px solid #EDF1F4;color:#1C2833;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.35}
-body.phf-page-merge .wbg-table tbody tr.wbg-b0 td{background:#F5F5F5}
-body.phf-page-merge .wbg-table tbody tr.wbg-b1 td{background:#E9F0F5}
-body.phf-page-merge .wbg-table tbody tr:hover td{background:#FFF9E6}
-body.phf-page-merge .wbg-table td.wbg-num{text-align:right;font-variant-numeric:tabular-nums}
-body.phf-page-merge .wbg-table .wbg-rn{position:sticky;left:0;z-index:1;background:#F1F3F4!important;color:#7B8794;text-align:center;font-size:10px;font-weight:700;border-right:1px solid #D6DEE6;padding:3px 4px}
-body.phf-page-merge .wbg-table th.wbg-rn{z-index:3}
-body.phf-page-merge .wbg-table tr.wbg-gap td{padding:0!important;border:0!important;background:transparent!important}
-body.phf-page-merge .wbg-table td.wbg-empty{text-align:center;padding:26px;color:var(--phf-muted);background:#fff!important;white-space:normal}
+body.phf-page-merge .wbg-filters{display:inline-flex;flex-wrap:wrap;gap:6px}
+body.phf-page-merge .wbg-filters[hidden]{display:none}
+body.phf-page-merge .wbg-fchip{border:1px solid #AECBFA;background:#E8F0FE;color:#0B57D0;border-radius:999px;padding:3px 9px;font:700 11px/1.2 var(--phf-font);cursor:pointer}
+body.phf-page-merge .wbg-edit-tools{display:inline-flex;flex-wrap:wrap;gap:6px;align-items:center;margin-left:auto}
+body.phf-page-merge .wbg-edit-tools[hidden]{display:none}
+body.phf-page-merge .wbg-edit-tools [hidden]{display:none}
+body.phf-page-merge .wbg-sel{font:700 12px/1 var(--phf-font);color:#174EA6;font-variant-numeric:tabular-nums;margin-right:4px}
+body.phf-page-merge .wbg-note{margin:0 0 10px!important}
+body.phf-page-merge .wbg-note[hidden]{display:none!important}
+body.phf-page-merge .wbg-wrap{position:relative;overflow:auto;max-height:66vh;border:1px solid #C4C7C5;border-radius:8px;background:#fff;outline:none}
+body.phf-page-merge .wbg-wrap:focus-visible{box-shadow:0 0 0 3px var(--phf-blue-line)}
+body.phf-page-merge .wbg-table{border-collapse:separate;border-spacing:0;table-layout:fixed;font:400 11px/1.3 var(--wbg-font);color:#1C2833}
+body.phf-page-merge .wbg-table thead{position:sticky;top:0;z-index:4}
+body.phf-page-merge .wbg-table thead th{box-sizing:border-box;border-right:1px solid var(--wbg-line);border-bottom:1px solid var(--wbg-line);overflow:hidden}
+body.phf-page-merge .wbg-table tr.wbg-letters th{background:var(--wbg-letters);color:#5F6368;font:500 10.5px/1 var(--wbg-font);text-align:center;height:20px;padding:0 4px;letter-spacing:.02em;border-bottom-color:#C4C7C5}
+body.phf-page-merge .wbg-table tr.wbg-tot th{background:#1E3A5F;color:#FFD966;font:700 10px/1.25 var(--wbg-font);text-align:center;vertical-align:middle;height:46px;padding:4px 5px;white-space:normal;overflow-wrap:anywhere;border-right-color:#2B4A70;border-bottom-color:#2B4A70}
+body.phf-page-merge .wbg-table tr.wbg-tot th div{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+body.phf-page-merge .wbg-table tr.wbg-headrow th{position:relative;background:#E9F0F5;color:#2C3E50;font:700 10px/1.2 var(--wbg-font);text-align:center;vertical-align:middle;height:36px;padding:3px 20px 3px 6px;white-space:normal;overflow-wrap:anywhere;border-bottom:3px solid #C4C7C5}
+body.phf-page-merge .wbg-table tr.wbg-headrow th.wbg-ro-head{color:#2C3E50}
+body.phf-page-merge .wbg-filt{position:absolute;right:3px;top:50%;transform:translateY(-50%);width:16px;height:16px;padding:0;border:0;border-radius:3px;background:transparent;color:#5F6368;cursor:pointer;display:flex;align-items:center;justify-content:center}
+body.phf-page-merge .wbg-filt svg{width:13px;height:13px}
+body.phf-page-merge .wbg-filt:hover{background:#D3E3FD;color:#0B57D0}
+body.phf-page-merge .wbg-filt.is-on{background:#0B57D0;color:#fff}
+body.phf-page-merge .wbg-table td{box-sizing:border-box;height:25px;padding:2px 6px;border-bottom:1px solid var(--wbg-line);border-right:1px solid var(--wbg-line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;position:relative;cursor:cell}
+body.phf-page-merge .wbg-two .wbg-table td{height:31px}
+body.phf-page-merge .wbg-table td.wbg-2l{white-space:pre;line-height:1.2;text-overflow:clip;font-size:10.5px}
+body.phf-page-merge .wbg-table td.wbg-c{text-align:center}
+body.phf-page-merge .wbg-table tbody tr.wbg-b0 td{background-color:#F5F5F5}
+body.phf-page-merge .wbg-table tbody tr.wbg-b1 td{background-color:#E9F0F5}
+body.phf-page-merge .wbg-grey .wbg-table tbody td{color:#9AA0A6}
+body.phf-page-merge .wbg-table tbody tr:hover td:not(.wbg-rn){background-image:linear-gradient(rgba(255,206,84,.2),rgba(255,206,84,.2))}
+body.phf-page-merge .wbg-table .wbg-rn{position:sticky;left:0;z-index:2;background:var(--wbg-letters)!important;color:#5F6368;text-align:center;font:500 10px/1 var(--wbg-font);border-right:1px solid #C4C7C5;padding:2px 3px;cursor:default}
+body.phf-page-merge .wbg-table thead .wbg-rn{z-index:5}
+body.phf-page-merge .wbg-table tr.wbg-tot th.wbg-rn,body.phf-page-merge .wbg-table tr.wbg-headrow th.wbg-rn{color:#5F6368;font-weight:500;padding:0}
+body.phf-page-merge .wbg-table tr.wbg-headrow th.wbg-rn{border-bottom:3px solid #C4C7C5}
+body.phf-page-merge .wbg-editable .wbg-table tbody td.wbg-rn{cursor:pointer}
+body.phf-page-merge .wbg-editable .wbg-table tbody td.wbg-rn:hover{background:#D3E3FD!important;color:#0B57D0}
+body.phf-page-merge .wbg-table tr.wbg-gap td,body.phf-page-merge .wbg-table tr.wbg-gap:hover td{padding:0!important;border:0!important;background:transparent!important;cursor:default}
+body.phf-page-merge .wbg-table td.wbg-empty{text-align:center;padding:26px;color:var(--phf-muted);background:#fff!important;white-space:normal;cursor:default}
+body.phf-page-merge .wbg-table tbody{user-select:none}
+body.phf-page-merge .wbg-table tbody td.is-sel{background-color:#D3E3FD!important;background-image:none!important}
+body.phf-page-merge .wbg-table tbody td.is-anchor{box-shadow:inset 0 0 0 2px #1A73E8;background-color:#E8F0FE!important}
+body.phf-page-merge .wbg-table tbody td.is-edited::after{content:"";position:absolute;top:0;right:0;border-style:solid;border-width:0 7px 7px 0;border-color:transparent #F29900 transparent transparent}
+body.phf-page-merge .wbg-table tbody td.is-editing{padding:0;overflow:visible;z-index:6}
+body.phf-page-merge .wbg-input{position:absolute;left:0;top:0;width:100%;min-width:160px;height:100%;min-height:100%;box-sizing:border-box;border:2px solid #1A73E8;border-radius:0;padding:3px 6px;font:inherit;color:#1C2833;background:#fff;outline:none;box-shadow:0 2px 6px rgba(26,115,232,.3);resize:none}
+body.phf-page-merge textarea.wbg-input{height:auto;min-height:48px}
+body.phf-page-merge .wbg-table tr.wbg-new td{background:#fff!important;border-top:1px dashed #C4C7C5;color:#B0BAC4}
+body.phf-page-merge .wbg-table tr.wbg-new td.wbg-newmark{font-weight:700;color:#9AA0A6}
+body.phf-page-merge .wbg.is-busy .wbg-wrap{opacity:.75;cursor:progress}
+/* Column filter (the filter button on a heading) */
+body.phf-page-merge .wbg-pop{position:absolute;z-index:20;width:280px;max-height:340px;display:flex;flex-direction:column;background:#fff;border:1px solid #C4C7C5;border-radius:8px;box-shadow:0 8px 24px rgba(16,24,40,.18);padding:8px;font:400 12px/1.3 var(--phf-font)}
+body.phf-page-merge .wbg-pop[hidden]{display:none}
+body.phf-page-merge .wbg-ptitle{font-weight:800;font-size:11px;letter-spacing:.04em;color:#1E3A5F;margin:0 0 6px;text-transform:uppercase}
+body.phf-page-merge .wbg-psearch{min-height:30px;border:1px solid var(--phf-line-strong);border-radius:6px;padding:4px 8px;font-size:12px;margin-bottom:6px}
+body.phf-page-merge .wbg-plist{overflow:auto;flex:1 1 auto;display:flex;flex-direction:column;gap:1px}
+body.phf-page-merge .wbg-pv{display:flex;justify-content:space-between;gap:10px;border:0;background:transparent;text-align:left;padding:5px 6px;border-radius:5px;cursor:pointer;font:inherit;color:#1C2833}
+body.phf-page-merge .wbg-pv span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.phf-page-merge .wbg-pv b{color:#5F6368;font-weight:700;font-variant-numeric:tabular-nums}
+body.phf-page-merge .wbg-pv:hover{background:#E8F0FE}
+body.phf-page-merge .wbg-pv.is-on{background:#D3E3FD;font-weight:700}
+body.phf-page-merge .wbg-pnone{padding:8px;color:var(--phf-muted)}
+body.phf-page-merge .wbg-pfoot{display:flex;justify-content:flex-end;gap:6px;margin-top:6px}
+/* Buttons above a sheet: Refresh supplier changes, Run stage 3 again, Export TXT again */
+body.phf-page-merge .out-actions{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin:0 0 10px}
+body.phf-page-merge .out-actions:empty,body.phf-page-merge .out-actions[hidden]{display:none}
+body.phf-page-merge .out-actions-note{font-size:12px;font-weight:600;color:var(--phf-muted)}
 /* v1.4.0 — the longer tool name sits on two balanced lines in the header */
 .phf-shell-copy h1.phf-title-long{font-size:18px!important;line-height:1.15!important;letter-spacing:.06em;white-space:normal;max-width:330px}
 body.phf-page-merge .review-panel [hidden]{display:none!important}

@@ -57,4 +57,14 @@ lines, no gridlines, and a navy / gold totals row. Price moves (new vs current, 
 #FCE8E6, ☐ grey; confidence HIGH green · MEDIUM amber #7A4F00 on #FFF7E0 · LOW red. Only display formats change — the
 values stay plain numbers, so every reader of the file still works.
 
+## Merge workbook sheets (Google Sheet look, v21.12.0)
+The POS Supplier New Product Check and Clean Merge tabs copy the POS DB & SUPPLIER MERGE Google Sheet rather than the
+theme: grey column letters (#F8F9FA), a navy #1E3A5F row-1 totals band with gold #FFD966 text, #E9F0F5 / #2C3E50 row-2
+headings with a filter button each and a 3 px #C4C7C5 frozen-row line, rows #F5F5F5 / #E9F0F5, #E1E3E6 gridlines,
+Google Sans 11 px, values left-aligned (centred where the Sheet centres them) and the Sheet's conditional colours from
+`js/sheet-look.js` (up #D93025 on #FCE8E6, down #1A73E8 on #E8F0FE, OK #0F9D58 on #E6F4EA, warn #E37400 on #FEF3E2,
+review #9334E6 on #F3E8FD, flat #9E9E9E). Selection is Google blue (#1A73E8 border, #D3E3FD fill); an orange corner marks an
+edited cell. The password lock (`assets/js/phf-lock.js`) brings its own styles: navy card icon, white header buttons, a
+navy / gold LOCKED badge on hub tiles.
+
 Update Specials customer artwork (`.slide`, PNG/ZIP/PDF/Mailchimp exports) is deliberately untouched: the theme only styles the editor around it.
