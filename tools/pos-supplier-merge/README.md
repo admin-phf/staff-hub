@@ -1,7 +1,11 @@
-# POS New Product Check Clean v1.6.0 (Staff Hub v21.14.0)
+# POS New Product Check Clean v1.6.1 (Staff Hub v21.14.1)
 
-Updated 12 Oct 2026 10:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 12 Oct 2026 09:40 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.6.1: what POS keeps is what OUT_MERGED_DATA shows — with a column unticked, matched products show POS's current values
+there (RRP, price levels 1–9, ret price, FINAL SHELF RRP, …), on the page and in the review workbook, in the Sheet's
+"no change" grey; those cells cannot be edited. The POS UPDATE file was already right and is unchanged — see below.
 
 v1.6.0: the session is kept in this browser; filters decide what each stage processes; **Update in POS** ticks keep POS's
 own values (e.g. RRP and price levels) for matched products, and discontinuing can be turned off — see below.
@@ -68,8 +72,18 @@ Each supplier column that feeds the POS UPDATE file has an **Update in POS** tic
   min order qty, RRP and price levels keep the merge's value only where POS has none (POS cannot take them blank).
 - **Discontinue POS products of these brands that are not in the supplier rows** (ticked by default): untick it and the
   discontinued (ZZZZ) rows are left out of the POS UPDATE file. They still show in OUT_MERGED_DATA.
-- OUT_MERGED_DATA greys the matching columns for matched products and marks their headings KEPT; OUT_POS_UPDATE marks
-  the kept columns. Stage 3 says how many products kept POS values and how many were left out.
+- OUT_MERGED_DATA shows POS's current values in the kept columns of matched products (v1.6.1), so what you see is what
+  POS gets: on the page, in its row-1 totals and in the review workbook. Tick the heading again and the merge's values
+  come back (the merge's own sheet is not changed). What each untick shows:
+  - SUP RRP INC GST: NEW RRP, rrp incgst, pr 1–9 pc and ret price = POS's; FINAL SHELF RRP worked out from POS's RRP with
+    the Sheet's formula. WSP TO RRP MARKUP % / +6.5% and RRP / MARKUP OVERRIDE stay as the merge worked them out (they
+    are the supplier's figures and are not used for matched products).
+  - SUP WS EXGST: NEW WSP EXGST / NEW LAST PRICE and wsp excgst / last price = POS's, WSP CHANGE and CHANGE LAST PRICE 0.
+  - SUP BRAND: POS BRAND and brand = POS's, OLD BRAND empty. SUP PRODUCT: POS DESCR, descr and pos desc = POS's. The other
+    ticks: their final-block column (sub id, units, min order qty, gst tax pc, supplier) = POS's.
+- Kept cells of matched products are in the Sheet's "no change" grey text (#9E9E9E) on the row colours, and cannot be
+  edited (clicking one says why); their headings say KEPT. The unticked supplier columns are in the same grey.
+  OUT_POS_UPDATE marks the kept columns. Stage 3 says how many products kept POS values and how many were left out.
 - The ticks are this tool's own (the Google Sheet does not have them); the script files are unchanged — engine-host
   v1.2.0 applies them around `m13BuildPosOutputRowsFromOut_`.
 

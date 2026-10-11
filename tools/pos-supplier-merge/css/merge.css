@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.6.0 (12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean v1.6.1 (12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
    Tool-only additions. Layout and colours come from css/app.css (same layout as
    Build Master Databases) and the shared assets/css/theme.css (linked last). */
 
@@ -300,12 +300,13 @@ body.phf-page-merge .review-table .rv-clamp.is-open{display:block;-webkit-line-c
 /* Header: the longer name wraps under the title; the breadcrumb wraps before it can reach the title. */
 body.phf-page-merge .phf-shell-meta{max-width:330px}
 
-/* v1.6.0 — Update in POS ticks on the supplier headings: an unticked column is greyed (POS keeps its value). */
+/* v1.6.0 — Update in POS ticks on the supplier headings: an unticked column is greyed (POS keeps its value).
+   v1.6.1: greyed = the Sheet's "no change" grey text (#9E9E9E) on the row's own band (was a grey hatch). */
 body.phf-page-merge .sup-keep{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:4px;font-size:9px;font-weight:700;letter-spacing:.02em;text-transform:none;color:#2E7D32;cursor:pointer;white-space:nowrap}
 body.phf-page-merge .sup-keep input{width:13px;height:13px;margin:0;accent-color:#2E7D32;cursor:pointer}
 body.phf-page-merge .sup-table.keep-c2 th.sup-c2,body.phf-page-merge .sup-table.keep-c4 th.sup-c4,body.phf-page-merge .sup-table.keep-c5 th.sup-c5,body.phf-page-merge .sup-table.keep-c6 th.sup-c6,body.phf-page-merge .sup-table.keep-c7 th.sup-c7,body.phf-page-merge .sup-table.keep-c8 th.sup-c8,body.phf-page-merge .sup-table.keep-c9 th.sup-c9,body.phf-page-merge .sup-table.keep-c10 th.sup-c10,body.phf-page-merge .sup-table.keep-c11 th.sup-c11{background:#FFF4E0;color:#7A4F00}
 body.phf-page-merge .sup-table.keep-c2 th.sup-c2 .sup-keep,body.phf-page-merge .sup-table.keep-c4 th.sup-c4 .sup-keep,body.phf-page-merge .sup-table.keep-c5 th.sup-c5 .sup-keep,body.phf-page-merge .sup-table.keep-c6 th.sup-c6 .sup-keep,body.phf-page-merge .sup-table.keep-c7 th.sup-c7 .sup-keep,body.phf-page-merge .sup-table.keep-c8 th.sup-c8 .sup-keep,body.phf-page-merge .sup-table.keep-c9 th.sup-c9 .sup-keep,body.phf-page-merge .sup-table.keep-c10 th.sup-c10 .sup-keep,body.phf-page-merge .sup-table.keep-c11 th.sup-c11 .sup-keep{color:#B06000}
-body.phf-page-merge .sup-table.keep-c2 td.sup-c2,body.phf-page-merge .sup-table.keep-c4 td.sup-c4,body.phf-page-merge .sup-table.keep-c5 td.sup-c5,body.phf-page-merge .sup-table.keep-c6 td.sup-c6,body.phf-page-merge .sup-table.keep-c7 td.sup-c7,body.phf-page-merge .sup-table.keep-c8 td.sup-c8,body.phf-page-merge .sup-table.keep-c9 td.sup-c9,body.phf-page-merge .sup-table.keep-c10 td.sup-c10,body.phf-page-merge .sup-table.keep-c11 td.sup-c11{background-image:repeating-linear-gradient(135deg,rgba(128,134,139,.13) 0 6px,rgba(128,134,139,.04) 6px 12px);color:#80868B}
+body.phf-page-merge .sup-table.keep-c2 td.sup-c2,body.phf-page-merge .sup-table.keep-c4 td.sup-c4,body.phf-page-merge .sup-table.keep-c5 td.sup-c5,body.phf-page-merge .sup-table.keep-c6 td.sup-c6,body.phf-page-merge .sup-table.keep-c7 td.sup-c7,body.phf-page-merge .sup-table.keep-c8 td.sup-c8,body.phf-page-merge .sup-table.keep-c9 td.sup-c9,body.phf-page-merge .sup-table.keep-c10 td.sup-c10,body.phf-page-merge .sup-table.keep-c11 td.sup-c11{color:#9E9E9E}
 body.phf-page-merge .sup-filt{display:inline-grid;place-items:center;width:18px;height:16px;margin-left:5px;padding:0;border:1px solid transparent;border-radius:4px;background:transparent;color:#7B8794;cursor:pointer;vertical-align:middle}
 body.phf-page-merge .sup-filt svg{width:11px;height:11px}
 body.phf-page-merge .sup-filt:hover{border-color:#A8C7FA;background:#E8F0FE;color:#0B57D0}

@@ -428,3 +428,18 @@ All implemented stages keep source business files local to the browser and gener
   `posTabView()`. `renderScopes()` writes the `.stage-scope` notes. `keptFlags` / `keptLook` grey KEPT columns.
 - sheet-grid v1.2.0: multi-value column filters (`st.filters[c]` = array) through `PHFSheetGrid.picker()` (fixed popover,
   tick values, OK applies), `visible()`, `filtered()`, `clearFilters()`, `opts.onView`, `set({flags})`.
+
+## Staff Hub v21.14.1 — POS New Product Check Clean v1.6.1: kept columns show POS's values, theme grey (12 Oct 2026 09:40 AEDT)
+- js/app.js: `keptRows(rows)` — a view of OUT_MERGED_DATA for the ticks unticked: MATCHED rows (`isMatched`, as
+  `m13OutStatusKey_`) found in the POS Database by POS PLU (`posMap()`, from `rowsOf('pos')` with the TMP_MERGED_POS_DATA
+  headings, cached per `state.rev`) get POS's value in the `KEEP_SHOW` columns (POS blank keeps the merge's value where
+  engine-host's `NEED_VALUE` does; money columns `KEEP_MONEY` as $0.00), `KEEP_ZERO` changes as 0.00% / $0.00,
+  `KEEP_BLANK` OLD BRAND, and FINAL SHELF RRP from `shelfText()` (the Sheet's `m13ShelfRrpFormula_`: BE / S / W / AB).
+  Used by `renderReview` (Sheet view, review table, search, totals), `renderReviewKpis` and the review workbook
+  (`buildReviewWorkbook`). `state.results[OUT]` and the engine's sheet keep the merge's values; `optsChanged()` draws
+  the review again and schedules the workbook.
+- `keptLook` returns the Sheet's flat style `{ fg: '9E9E9E' }` (band kept) for kept columns of MATCHED rows, in the grid
+  and the workbook; `keptLock()` → sheet-grid `edit.cellLock`.
+- sheet-grid v1.2.1: `edit.cellLock(row, col)` → message: typing / Enter shows it, Delete and paste skip the cell.
+- css/merge.css: unticked supplier columns `color:#9E9E9E` on the row bands (was a hatch).
+- The POS UPDATE file (engine-host v1.2.0) is unchanged.

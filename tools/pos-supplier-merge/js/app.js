@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.5.1 (12 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.6.1 (12 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -30,6 +30,11 @@
  *         the supplier sheet headings: an unticked column keeps POS's current value for matched products (RRP + price
  *         levels exactly as they are, no new labels), and matched products that end up the same as POS are left out;
  *         "Discontinue missing products" can be turned off. All done around the unchanged script (engine-host v1.2.0).
+ * v1.6.1 (12 Oct 2026): what POS keeps is what OUT_MERGED_DATA shows — for matched products the kept columns show POS's
+ *         current values (NEW RRP, rrp incgst, price levels 1–9, ret price, FINAL SHELF RRP worked out from POS's RRP;
+ *         wholesale with no change; Sub ID, brand, description, units, box lot, GST, supplier), on the page, in its totals
+ *         and in the review workbook; those cells cannot be edited (sheet-grid v1.2.1 cellLock). Kept cells take the Sheet's
+ *         "no change" grey text (#9E9E9E) on the row bands, on the supplier sheet too. The POS UPDATE file is unchanged.
  * v1.5.1 (12 Oct 2026): renamed POS New Product Check Clean. With a password set, it opens behind a "Still under
  *         development" prompt and the Lock / Password buttons appear only once it is open (phf-lock.js v1.1.0).
  *         Ongoing Discounts dropped here (on its row or in Drop All) is saved to the Library as that table alone, so the
@@ -37,7 +42,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.6.0';
+  var TOOL_VERSION = 'v1.6.1';
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -101,6 +106,88 @@
   function keptGroups(ids) { return KEEP_GROUPS.filter(function (g) { return ids ? ids.indexOf(g.id) >= 0 : state.opts.keep[g.id]; }); }
   function keptNames(list, ids) { var m = {}; keptGroups(ids).forEach(function (g) { g[list].forEach(function (h) { m[h] = 1; }); }); return m; }
   function keptText() { return keptGroups().map(function (g) { return g.what; }).join(', '); }
+  // v1.6.1 — what POS keeps is what OUT_MERGED_DATA shows. For matched products the columns of an unticked heading show
+  // POS's current value from the POS Database (as engine-host v1.2.0 puts it in the POS UPDATE file), and the columns
+  // worked out from them follow: the WSP / last price change shows 0 and FINAL SHELF RRP is worked out from POS's RRP as
+  // the Sheet's formula does. Only the view changes (page, totals, review workbook) — the engine's sheet keeps the merge's
+  // values, so ticking the heading again shows them. [OUT_MERGED_DATA heading, POS Database heading, POS blank → the
+  // merge's value stays (POS cannot take blank there)]
+  var KEEP_SHOW = {
+    supplier: [['supplier', 'POS SUPPLIER']],
+    brand: [['POS BRAND', 'POS BRAND'], ['brand', 'POS BRAND']],
+    sub: [['sub id', 'POS SUB ID']],
+    product: [['POS DESCR', 'POS DESCR'], ['descr', 'POS DESCR'], ['pos desc', 'POS POS DESC']],
+    units: [['units', 'POS UNITS', 1]],
+    minorder: [['min order qty', 'POS MIN ORDER QTY', 1]],
+    ws: [['NEW WSP EXGST', 'POS WSP EXCGST'], ['wsp excgst', 'POS WSP EXCGST'], ['NEW LAST PRICE', 'POS LAST PRICE'], ['last price', 'POS LAST PRICE']],
+    rrp: [['NEW RRP', 'POS RRP INCGST', 1], ['rrp incgst', 'POS RRP INCGST', 1]].concat(PR.map(function (h) { return [h, 'POS ' + h.toUpperCase(), 1]; }), [['ret price', 'POS RET PRICE', 1]]),
+    gst: [['gst tax pc', 'POS GST TAX PC']]
+  };
+  var KEEP_ZERO = { ws: ['WSP CHANGE %', 'WSP CHANGE $', 'CHANGE LAST PRICE %', 'CHANGE LAST PRICE $'] }, KEEP_BLANK = { brand: ['OLD BRAND'] };
+  // ROW STATUS → matched, as the merge reads it (m13OutStatusKey_: NEW wins over MATCHED).
+  function isMatched(v) { var s = String(v == null ? '' : v).toUpperCase(); return s.indexOf('NEW') < 0 && s.indexOf('MATCHED') >= 0; }
+  var posMapCache = null;
+  function posMap() {
+    if (posMapCache && posMapCache.rev === state.rev) return posMapCache;
+    var col = {};
+    ((M.SCHEMAS[SHEETS.TMP] || {}).headers || []).forEach(function (h, i) { h = String(h == null ? '' : h).trim().toUpperCase(); if (h && col[h] === undefined) col[h] = i; });
+    var plu = col['POS PLU'], map = {};
+    if (plu !== undefined) rowsOf('pos').forEach(function (r) { var k = String(r[plu] == null ? '' : r[plu]).trim(); if (k && !map[k]) map[k] = r; });
+    return (posMapCache = { rev: state.rev, map: map, col: col });
+  }
+  // Money columns show POS's number as the merge shows its own ($45.85); price levels, ret price and the rest as POS has
+  // them (90, 85.5, 10).
+  var KEEP_MONEY = { 'NEW WSP EXGST': 1, 'wsp excgst': 1, 'NEW LAST PRICE': 1, 'last price': 1, 'NEW RRP': 1, 'rrp incgst': 1 };
+  function moneyText(v) {
+    var s = String(v == null ? '' : v).trim(), n = Number(s.replace(/[$,\s]/g, ''));
+    if (s === '' || !isFinite(n)) return s;
+    return (n < 0 ? '-$' : '$') + Math.abs(n).toFixed(2);
+  }
+  function zeroLike(old) { var o = String(old == null ? '' : old).trim(); return o === '' ? '' : /%$/.test(o) ? '0.00%' : /\$/.test(o) ? '$0.00' : '0'; }
+  // FINAL SHELF RRP as the Sheet's formula shows it (1.3 Merge m13ShelfRrpFormula_, from BE rrp incgst, S NEW WSP EXGST,
+  // W NEW LAST PRICE and AB HAS GST).
+  function shelfText(rrpCell, wspCell, lastCell, hasGst) {
+    var num = window.PHFSheetLook.num;
+    if (String(rrpCell == null ? '' : rrpCell).trim() === '') return '';
+    var rrp = num(rrpCell), wsp = num(wspCell), last = num(lastCell), ex = rrp / (hasGst ? 1.1 : 1);
+    if (!(wsp > 0)) return '$' + rrp.toFixed(2);
+    return (ex / wsp * 100).toFixed(2) + '% | $' + rrp.toFixed(2) + '\n' + (last > 0 ? 'GP NGST ' + ((ex - last) / ex * 100).toFixed(2) + '% | $' + (ex - last).toFixed(2) : '');
+  }
+  // OUT_MERGED_DATA rows as POS will have them (a copy; rows with nothing kept are the engine's own arrays).
+  function keptRows(rows) {
+    var groups = keptGroups(); if (!rows || rows.length < 3 || !groups.length) return rows;
+    var head = rows[1] || [], H = {};
+    head.forEach(function (h, i) { if (H[h] === undefined) H[h] = i; });
+    var st = H['ROW STATUS'], plu = H['POS PLU']; if (st === undefined || plu === undefined) return rows;
+    var pos = posMap(), sets = [], zero = [], blank = [], shelf = false, gstKept = false;
+    groups.forEach(function (g) {
+      (KEEP_SHOW[g.id] || []).forEach(function (k) { if (H[k[0]] !== undefined && pos.col[k[1]] !== undefined) sets.push({ c: H[k[0]], p: pos.col[k[1]], need: !!k[2], money: !!KEEP_MONEY[k[0]] }); });
+      (KEEP_ZERO[g.id] || []).forEach(function (h) { if (H[h] !== undefined) zero.push(H[h]); });
+      (KEEP_BLANK[g.id] || []).forEach(function (h) { if (H[h] !== undefined) blank.push(H[h]); });
+      if (g.id === 'ws' || g.id === 'rrp' || g.id === 'gst') shelf = true;
+      if (g.id === 'gst') gstKept = true;
+    });
+    var AO = H['FINAL SHELF RRP'], BE = H['rrp incgst'], S_ = H['NEW WSP EXGST'], W_ = H['NEW LAST PRICE'], AB = H['HAS GST'], GT = H['gst tax pc'];
+    var out = rows.slice(0, 2);
+    for (var i = 2; i < rows.length; i++) {
+      var r = rows[i], p = r && isMatched(r[st]) ? pos.map[String(r[plu] == null ? '' : r[plu]).trim()] : null;
+      if (!p) { out.push(r); continue; }
+      var o = r.slice();
+      sets.forEach(function (k) {
+        var v = p[k.p] == null ? '' : p[k.p];
+        if (String(v).trim() === '' && k.need) return;
+        o[k.c] = k.money ? moneyText(v) : String(v);
+      });
+      zero.forEach(function (c) { o[c] = zeroLike(r[c]); });
+      blank.forEach(function (c) { o[c] = ''; });
+      if (shelf && AO !== undefined && BE !== undefined) {
+        var gst = gstKept && GT !== undefined ? window.PHFSheetLook.num(o[GT]) > 0 : String(AB !== undefined ? o[AB] : '').trim().toUpperCase() === 'YES';
+        o[AO] = shelfText(o[BE], S_ !== undefined ? o[S_] : '', W_ !== undefined ? o[W_] : '', gst);
+      }
+      out.push(o);
+    }
+    return out;
+  }
 
   // ---------------------------------------------------------------- utils
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -795,7 +882,9 @@
     if (drop >= 0) width = drop;
     head = head.slice(0, width);
     var X = window.XlsxLite, last = X.colLetter(width), n = Math.max(0, rows.length - 2), data = rows.slice(2);
-    var look = window.PHFSheetLook ? window.PHFSheetLook.forSheet(name, head) : null, tot = look ? look.totals(data, data) : {};
+    var look = window.PHFSheetLook ? window.PHFSheetLook.forSheet(name, head) : null;
+    if (look && name === SHEETS.OUT) look = keptLook(look, head, 'out', head.indexOf('ROW STATUS'));   // v1.6.1: kept grey
+    var tot = look ? look.totals(data, data) : {};
     var summary = sheetSummary(name, rows) + ' · POS New Product Check Clean ' + TOOL_VERSION + ' (engine ' + (String((state.engineInfo || {}).merge || '').match(/v\d+\.\d+\.\d+/) || [''])[0] + ') · ' + melb();
     return {
       name: name.replace(/[\\/?*\[\]:]/g, '_').replace(/_+/g, '_').slice(0, 31), columnCount: width, freeze: 'A3',
@@ -843,7 +932,7 @@
       }
     };
     var names = [SHEETS.OUT, SHEETS.INS, SHEETS.UPD, SHEETS.SUP, 'SRC_POS_BRAND_NAME_CHANGES', 'SRC_POS_PRODUCT_PREFIX', 'SRC_POS_SUPPLIERS', 'SRC_POS_ONGOING_DISCOUNTS', 'SRC_POS_FIND_REPLACE'];
-    var sheets = names.filter(function (n) { return state.results[n] && state.results[n].length >= 2; }).map(function (n) { return buildXlsxSheet(st, styles, n, state.results[n]); });
+    var sheets = names.filter(function (n) { return state.results[n] && state.results[n].length >= 2; }).map(function (n) { return buildXlsxSheet(st, styles, n, n === SHEETS.OUT ? keptRows(state.results[n]) : state.results[n]); });
     return X.writeWorkbook(sheets, st, {});
   }
   function brandSummary() {
@@ -898,7 +987,7 @@
   function hideReview() { if ($('#wbTabs')) { renderTabs(); wbShow(wb.active, true); } }
   // keep = redraw with the rows the engine has now (after an edit / refresh) and leave the search and filters as they are.
   function renderReview(keep) {
-    var rows = state.results[SHEETS.OUT] || [];
+    var rows = keptRows(state.results[SHEETS.OUT] || []);          // v1.6.1: kept columns show POS's values
     var head = rows[1] || [], idx = {};
     head.forEach(function (h, i) { if (idx[h] === undefined) idx[h] = i; });
     var data = rows.slice(2);
@@ -916,7 +1005,7 @@
     renderTabs();
   }
   function renderReviewKpis() {
-    var rows = state.results[SHEETS.OUT] || []; if (!rows.length) return;
+    var rows = keptRows(state.results[SHEETS.OUT] || []); if (!rows.length) return;
     var k = reviewCounts(rows), ins = state.results[SHEETS.INS], upd = state.results[SHEETS.UPD];
     var chips = [['Rows', rows.length - 2, ''], ['Matched', k.matched, 'match'], ['New', k.newp, 'new'], ['Review', k.review, 'review'], ['Discontinued', k.disc, 'warn'], ['Price up', k.up, 'up'], ['Price down', k.down, 'down'], ['Barcode updates', k.barcode, 'warn'], ['Brand changes', k.brand, 'warn']];
     if (ins) chips.push(['Insert rows', Math.max(0, ins.length - 2), 'new']);
@@ -977,7 +1066,7 @@
       head: R.head, rows: R.filtered, cols: cols, rowNumbers: R.fidx, look: look, marks: mk, keepView: !!keep, flags: keptFlags(R.head, 'out'),
       totals: function (vis) { return look.totals(R.rows, vis); },
       edit: {
-        readOnly: look.readOnly, rows: false, canUndo: (state.edits.undo[SHEETS.OUT] || 0) > 0,
+        readOnly: look.readOnly, cellLock: keptLock(R.head, 'out', R.idx['ROW STATUS']), rows: false, canUndo: (state.edits.undo[SHEETS.OUT] || 0) > 0,
         onChange: function (ch) { engineSheetEdit(SHEETS.OUT, ch, function (i) { return R.fidx[i]; }); },
         onUndo: function () { engineSheetUndo(SHEETS.OUT); }
       }
@@ -990,15 +1079,27 @@
     head.forEach(function (h, i) { if (names[h]) { f = f || {}; f[i] = 'KEPT — POS keeps its current value for matched products (Update in POS is off for this column)'; } });
     return f;
   }
+  // v1.6.1: kept cells take the Sheet's "no change" grey text (#9E9E9E, on the row's own band), as CHANGE LAST PRICE does.
   function keptLook(look, head, list, statusCol) {
     var names = keptNames(list), cols = {}, any = false;
     head.forEach(function (h, i) { if (names[h]) { cols[i] = 1; any = true; } });
     if (!any || !look) return look;
     var base = look.style;
     return Object.assign({}, look, { style: function (row, c) {
-      if (cols[c] && (statusCol === undefined || /MATCHED/i.test(String(row[statusCol] || '')))) return { bg: 'ECEFF1', fg: '80868B' };
+      if (cols[c] && (statusCol === undefined || isMatched(row[statusCol]))) return { fg: '9E9E9E' };
       return base ? base(row, c) : null;
     } });
+  }
+  // v1.6.1: a kept cell of a matched product cannot be edited (it shows POS's value, and POS keeps it).
+  function keptLock(head, list, statusCol) {
+    var names = keptNames(list), cols = {}, any = false;
+    head.forEach(function (h, i) { if (names[h]) { cols[i] = 1; any = true; } });
+    if (!any || statusCol === undefined) return null;
+    return function (row, c) {
+      if (!cols[c] || !isMatched(row[statusCol])) return '';
+      var g = keptGroups().filter(function (x) { return x[list].indexOf(head[c]) >= 0; })[0];
+      return 'KEPT — POS keeps its current ' + (g ? g.what : 'value') + ' for matched products, so ' + head[c] + ' shows POS\'s value and is not edited here. Tick Update in POS on the supplier sheet heading to change it.';
+    };
   }
   // Buttons above OUT_MERGED_DATA: Refresh supplier changes (UPDATED SUPPLIER edits waiting) and Run stage 3 again.
   function renderOutActions() {
@@ -1632,7 +1733,8 @@
   function optsChanged() {
     if ((state.stage.export || {}).status === 'done') { state.edits.optsAfter3 = true; stageMsg('export', 'Update in POS / Discontinue options changed — run stage 3 again to use them.', 'ready'); }
     drawSup(); renderScopes(); renderOutputs(); renderOutActions();
-    if (state.review && state.results[SHEETS.OUT] && wb.outView === 'sheet') drawOutGrid(true);
+    // v1.6.1: OUT_MERGED_DATA shows POS's values in the kept columns, so it is drawn again (and the review workbook made again).
+    if (state.review && state.results[SHEETS.OUT]) { renderReview(true); scheduleWorkbook(); }
     saveSessionSoon();
   }
   function setSupBrands(list) {

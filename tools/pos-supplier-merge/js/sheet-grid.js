@@ -1,4 +1,6 @@
-/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.2.0 (12 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.2.1 (12 Oct 2026)
+ * v1.2.1: edit.cellLock(row, col) → message — that cell is not edited (typing, Delete or paste skip it) and the message
+ * is shown instead (OUT_MERGED_DATA: the KEPT columns of matched products).
  * v1.2.0: column filters work like the Google Sheet's — tick the values to show (several at once), OK applies; the same
  * picker is PHFSheetGrid.picker() for other sheets. g.visible() = the source rows shown, g.filtered() = a search or
  * filter hides rows, opts.onView() is called when they change; set({ flags: { col: 'KEPT' } }) marks headings.
@@ -13,7 +15,8 @@
  *   var g = PHFSheetGrid.create(host, { search: true });
  *   g.set({ head, rows, cols (source columns to show, default all), rowNumbers, firstRow, look (PHFSheetLook),
  *           totals: function (visibleRows) → { col: text }, keepView: true (keep scroll / search / filters / selection),
- *           edit: null | { readOnly: { col: 1 }, rows: true (add / delete rows), onChange(change), onUndo(), canUndo } });
+ *           edit: null | { readOnly: { col: 1 }, cellLock: null | function (row, col) → '' | message, rows: true (add / delete rows),
+ *                          onChange(change), onUndo(), canUndo } });
  *   change = { type: 'cells', cells: [{ i: sourceRow (≥ rows.length = new row), c: sourceCol, v: 'text' }], where: 'C5' }
  *          | { type: 'deleteRows', rows: [sourceRow, …] }
  *   g.busy(bool), g.note(text, type), g.refresh(), g.count(), g.visible(), g.filtered(), g.clearFilters()
@@ -217,6 +220,7 @@
 
     // ------------------------------------------------------------------ editing
     function editable(k) { return !!(st.edit && !st.busy && st.cols[k] !== undefined && !(st.edit.readOnly || {})[st.cols[k]]); }
+    function lockOf(e, k) { return e && st.edit && st.edit.cellLock && st.cols[k] !== undefined ? st.edit.cellLock(e.r, st.cols[k]) || '' : ''; }
     function emit(change) { if (st.edit && st.edit.onChange) st.edit.onChange(change); }
     function srcIndex(r) { var e = st.vis[r]; return e ? e.n : st.rows.length + (r - st.vis.length); }
     function startEdit(initial) {
@@ -224,6 +228,7 @@
       var r = s.r2, k = s.c2;
       if (st.busy) return;
       if (!editable(k)) { say(st.head[st.cols[k]] + ' is worked out by the merge, so it is read-only here.', 'info'); return; }
+      var lk = lockOf(st.vis[r], k); if (lk) { say(lk, 'info'); return; }
       var td = cellEl(r, k); if (!td) return;
       var e = st.vis[r], cur = e ? String(e.r[st.cols[k]] == null ? '' : e.r[st.cols[k]]) : '';
       var inp = document.createElement(/\n/.test(cur) ? 'textarea' : 'input');
@@ -265,7 +270,7 @@
       var cells = [];
       for (var r = b.r1; r <= b.r2; r++) {
         var e = st.vis[r]; if (!e) continue;
-        for (var k = (b.rows ? 0 : b.c1); k <= (b.rows ? st.cols.length - 1 : b.c2); k++) if (editable(k) && String(e.r[st.cols[k]] == null ? '' : e.r[st.cols[k]]) !== '') cells.push({ i: e.n, c: st.cols[k], v: '' });
+        for (var k = (b.rows ? 0 : b.c1); k <= (b.rows ? st.cols.length - 1 : b.c2); k++) if (editable(k) && !lockOf(e, k) && String(e.r[st.cols[k]] == null ? '' : e.r[st.cols[k]]) !== '') cells.push({ i: e.n, c: st.cols[k], v: '' });
       }
       if (cells.length) emit({ type: 'cells', cells: cells, where: 'cleared' });
     }
@@ -284,7 +289,7 @@
         if (!e) newRows++;
         for (var j = 0; j < rows[i].length; j++) {
           var k = k0 + j; if (k >= st.cols.length) { if (String(rows[i][j]).trim() !== '') skipped++; continue; }
-          if (!editable(k)) { if (String(rows[i][j]).trim() !== '') skipped++; continue; }
+          if (!editable(k) || lockOf(e, k)) { if (String(rows[i][j]).trim() !== '') skipped++; continue; }
           cells.push({ i: e ? e.n : st.rows.length + (r - st.vis.length), c: st.cols[k], v: rows[i][j] });
         }
       }
@@ -480,5 +485,5 @@
     document.addEventListener('mousedown', away, true);
     ps.focus();
   }
-  G.PHFSheetGrid = { create: create, parseTsv: parseTsv, picker: picker, closePicker: closePicker, VERSION: 'v1.2.0' };
+  G.PHFSheetGrid = { create: create, parseTsv: parseTsv, picker: picker, closePicker: closePicker, VERSION: 'v1.2.1' };
 })(window);
