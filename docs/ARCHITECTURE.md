@@ -406,3 +406,25 @@ All implemented stages keep source business files local to the browser and gener
 - Text only: `textMatrix(ws)` / `cellText(c)` read each cell as stored (numbers as plain digits, `toFixed(0)` for integers;
   booleans TRUE / FALSE; a date-formatted number keeps its shown date via `XLSX.SSF.is_date`), read with `cellNF: true`;
   CSV stays text (`raw: true`). The .xlsx download writes strings only, with `numFmt '@'` on every cell and column.
+
+## Staff Hub v21.14.0 — POS New Product Check Clean v1.6.0: session kept, filters at every step, Update in POS ticks (12 Oct 2026 10:30 AEDT)
+- Session (js/app.js): records `__session_inputs` (Supplier Updates, SUP BRAND filter, POS signature), `__session_pos` (the
+  POS Database, written only when it changes) and `__session_state` (stage states, `state.results` incl. TXT base64, edit
+  marks, options, `resultScope` / `loadedScope`, input signature `inputsSig()` and the engine dump) in the tool's own
+  IndexedDB store. `saveSessionSoon(inputsToo)` (1.2 s debounce, never while a stage / edit runs) after runs, edits, option
+  and input changes; `boot` → refLoadAll → `restoreInputs` → libLoad → `restoreState` (engine `load` with the restored
+  inputs, then `restore`; only when `inputsSig()` matches) → `newerPosNote`. `sessRestoring` blocks saves until then.
+- engine-host v1.2.0: `dump` (every sheet but TMP_MERGED_POS_DATA: own fields except ss / _proxy / filter, plus document
+  properties) / `restore`; run options — `generate` + `visible` (overrides `m13BuildVisibleRowSetFromHelper_` and runs
+  `generateInsertUpdateSheetsFromFilteredData`), `generate` + `keep` / `discontinue:false` (wraps `m13BuildUpdateOutputRow_`
+  to tag the row status and `m13BuildPosOutputRowsFromOut_` to put TMP values into the kept columns of MATCHED rows, drop
+  rows the same as POS on `SAME_COLS`, drop DISCONTINUED rows, renumber POS INDEX; result `info` {kept, same, disc,
+  notFound}); `export` + `only` (other rows emptied during the export, then put back). The Apps Script files are unchanged.
+- Supplier sheet: `KEEP_GROUPS` (column → OUT_POS_UPDATE / OUT_MERGED_DATA columns), `state.opts {keep, discontinue}`,
+  ticks in the headings (`data-keep`, table class `keep-c<col>`), `#supOpts`, SUP BRAND filter (`supView.brands`, upper
+  case keys) feeding `supRowsInScope()` / `buildSheetsPayload()` / `ensureLoaded()` (`loadedScope`); `supModel()` maps the
+  results to the in-scope rows (`resultScope`), others `is-out`.
+- Stage 3: `generateOptions()` (`outView()` = review filters + Sheet-view grid filters), Export TXT again uses
+  `posTabView()`. `renderScopes()` writes the `.stage-scope` notes. `keptFlags` / `keptLook` grey KEPT columns.
+- sheet-grid v1.2.0: multi-value column filters (`st.filters[c]` = array) through `PHFSheetGrid.picker()` (fixed popover,
+  tick values, OK applies), `visible()`, `filtered()`, `clearFilters()`, `opts.onView`, `set({flags})`.

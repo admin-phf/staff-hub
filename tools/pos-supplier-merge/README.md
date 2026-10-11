@@ -1,7 +1,10 @@
-# POS New Product Check Clean v1.5.1 (Staff Hub v21.13.0)
+# POS New Product Check Clean v1.6.0 (Staff Hub v21.14.0)
 
-Updated 12 Oct 2026 04:40 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 12 Oct 2026 10:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.6.0: the session is kept in this browser; filters decide what each stage processes; **Update in POS** ticks keep POS's
+own values (e.g. RRP and price levels) for matched products, and discontinuing can be turned off — see below.
 
 v1.5.1: renamed; with a password set the page opens behind a **Still under development** prompt (below) and the hub tile
 says In development. Ongoing Discounts is one shared file with Build POS Master Databases and Reconcile CH2 Order.
@@ -11,12 +14,71 @@ The POS DB & SUPPLIER MERGE Google Sheet, run in the browser. It uses the **same
 Google Sheet (engine v6.3.89), so the matching, discontinued products, ZZZZ / DISC / SPEC ORD Sub IDs, pricing, OUT_MERGED_DATA
 and the POS INSERT / UPDATE TXT files are the same. Nothing is uploaded: files stay in this browser.
 
+## Your session is kept (v1.6.0)
+
+Everything on the page stays in this browser until you clear it: the POS Database and Supplier Updates (with your sheet
+edits and the SUP BRAND filter), the three stages' results, your edits on OUT_MERGED_DATA / OUT_POS_INSERT / OUT_POS_UPDATE,
+the TXT files and review workbook, and the Update in POS / Discontinue options. Close the page and open it again (even the
+next day) and it is all back, ready for Run stage 3 again or Export TXT again.
+
+- **Clear Results** removes the results (the input files stay); **Clear session files** removes the POS Database and
+  supplier rows too; running a stage replaces the results.
+- The results come back only when the inputs are the same as when they were saved. If a reference table changed in the
+  meantime (e.g. a new Ongoing Discounts saved in the Library), the inputs come back and the page asks you to run again.
+- The session keeps the POS Database it used. When the Library has a newer one, the page says so — remove the POS
+  Database (✕) and reload the page to use the newer one.
+- Saved in this tool's IndexedDB store (`phf-pos-supplier-merge`, records `__session_inputs`, `__session_pos`,
+  `__session_state`); the engine's sheets are saved with it (engine-host `dump` / `restore`).
+
+## Filters decide what is processed (v1.6.0)
+
+- **Supplier Updates:** the filter button on **SUP BRAND** (column E) picks the brands to merge. Stages 1 and 2 then use
+  only the supplier rows of those brands — the merge matches, updates and discontinues only them, exactly as though the
+  other rows were not uploaded (the Google Sheet's BUILD OUT_MERGED_DATA — FILTERED BRANDS). Brands are compared in
+  capitals (BioCeuticals = BIOCEUTICALS). The search box only finds rows; it does not change the merge. When a brand is
+  in the supplier rows under two names (e.g. BLACKMORES PROF and BLACKMORES PROFESSIONAL), tick both — otherwise the POS
+  products matched by the other name can come out as discontinued.
+- **OUT_MERGED_DATA:** when a column filter, the search or the status / price / brand selects hide rows, stage 3 makes
+  OUT_POS_INSERT / UPDATE from the rows shown only (the Sheet's GENERATE INSERT + UPDATE — FROM FILTERED DATA).
+- **OUT_POS_INSERT / OUT_POS_UPDATE:** when that tab is filtered, Export TXT again puts only its rows shown in that TXT.
+- Column filters now work like the Google Sheet's: tick the values to show (several at once), OK applies.
+- Each stage card says when a filter is on and how many rows / brands the next run covers.
+
+## Update in POS ticks and Discontinue (v1.6.0)
+
+Each supplier column that feeds the POS UPDATE file has an **Update in POS** tick under its heading:
+
+| Untick | POS keeps (matched products) |
+|---|---|
+| POS SUPPLIER NUMBER | supplier |
+| SUP BRAND | brand |
+| SUP SUB ID | Sub ID |
+| SUP PRODUCT | descr and pos desc |
+| SUP UNITS IN PACK | units |
+| SUP MIN ORDER WS | min order qty (box lot) |
+| SUP WS EXGST | wsp excgst and last price |
+| SUP RRP INC GST | rrp incgst, pr 1–9 pc and ret price — exactly as in POS, nothing recalculated or rounded |
+| SUP GST | gst tax pc |
+
+- The merge still uses every column for matching; the ticks decide what goes to POS. They act when stage 3 builds the
+  POS files, so after changing one, **Run stage 3 again** (stages 1–2 do not need to run again).
+- With any column unticked, a matched product that ends up the same as POS is left out of the POS UPDATE file — so a Sub
+  ID / box-lot run touches only the products whose Sub ID or box lot changed, and keeping RRP means no new labels.
+- New products (INSERT) always get the full supplier data. POS values come from TMP_MERGED_POS_DATA as they are; units,
+  min order qty, RRP and price levels keep the merge's value only where POS has none (POS cannot take them blank).
+- **Discontinue POS products of these brands that are not in the supplier rows** (ticked by default): untick it and the
+  discontinued (ZZZZ) rows are left out of the POS UPDATE file. They still show in OUT_MERGED_DATA.
+- OUT_MERGED_DATA greys the matching columns for matched products and marks their headings KEPT; OUT_POS_UPDATE marks
+  the kept columns. Stage 3 says how many products kept POS values and how many were left out.
+- The ticks are this tool's own (the Google Sheet does not have them); the script files are unchanged — engine-host
+  v1.2.0 applies them around `m13BuildPosOutputRowsFromOut_`.
+
 ## Inputs (left rail)
 
 | Rail row | Google Sheet tab | Where it comes from | Kept |
 |---|---|---|---|
-| POS Database (required) | TMP_MERGED_POS_DATA | Build POS Master Databases → POS Database output `clean_merged_pos_data_pos_db_….xlsx` | This session |
-| Supplier Updates (required, several files allowed) | IN_SUPPLIER_/_PRODUCT_UPDATES | Build POS Master Databases → `clean_ch2_data_pos_db_….xlsx` / `clean_uhp_data_pos_db_….xlsx` | This session |
+| POS Database (required) | TMP_MERGED_POS_DATA | Build POS Master Databases → POS Database output `clean_merged_pos_data_pos_db_….xlsx` | Kept with the session (v1.6.0) |
+| Supplier Updates (required, several files allowed) | IN_SUPPLIER_/_PRODUCT_UPDATES | Build POS Master Databases → `clean_ch2_data_pos_db_….xlsx` / `clean_uhp_data_pos_db_….xlsx` | Kept with the session (v1.6.0) |
 | Brand Name Changes (recommended) | SRC_POS_BRAND_NAME_CHANGES | Google Sheet tab | Saved in this browser |
 | Product Prefixes (recommended) | SRC_POS_PRODUCT_PREFIX | Google Sheet tab | Saved in this browser |
 | POS Suppliers (recommended) | SRC_POS_SUPPLIERS | Google Sheet tab | Saved in this browser |

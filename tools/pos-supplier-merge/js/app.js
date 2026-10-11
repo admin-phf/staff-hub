@@ -22,6 +22,14 @@
  *         the TXT files with Export TXT again. The tabs look like the Google Sheet (js/sheet-look.js: row-1 totals band,
  *         conditional colours, centred columns). Optional password lock (assets/js/phf-lock.js). Merge v6.3.89.
 
+ * v1.6.0 (12 Oct 2026): (1) the whole session is kept in this browser — POS Database, Supplier Updates, the stage results
+ *         with your edits, the TXT files and the options — and comes back when the page opens, until Clear or a new run;
+ *         (2) filters decide what is processed: a SUP BRAND filter on the supplier sheet merges only those brands (stages
+ *         1–2), filtered OUT_MERGED_DATA rows make stage 3 use only the rows shown (the Sheet's "from filtered data"),
+ *         a filtered OUT_POS_INSERT / UPDATE tab makes Export TXT again use only its rows shown; (3) "Update in POS" ticks on
+ *         the supplier sheet headings: an unticked column keeps POS's current value for matched products (RRP + price
+ *         levels exactly as they are, no new labels), and matched products that end up the same as POS are left out;
+ *         "Discontinue missing products" can be turned off. All done around the unchanged script (engine-host v1.2.0).
  * v1.5.1 (12 Oct 2026): renamed POS New Product Check Clean. With a password set, it opens behind a "Still under
  *         development" prompt and the Lock / Password buttons appear only once it is open (phf-lock.js v1.1.0).
  *         Ongoing Discounts dropped here (on its row or in Drop All) is saved to the Library as that table alone, so the
@@ -29,7 +37,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.5.1';
+  var TOOL_VERSION = 'v1.6.0';
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -67,9 +75,32 @@
     storage: 'indexeddb',
     // v1.5.0 sheet edits: engine sheets (OUT / OUT_POS_*) — cells changed here (marks), undo depth kept by the engine,
     // OUT edited after stage 3, OUT_POS_* edited after the last export, UPDATED SUPPLIER changes waiting for Refresh.
-    edits: { marks: {}, undo: {}, outAfter3: false, pos: {}, busy: false },
-    pendingSup: 0
+    edits: { marks: {}, undo: {}, outAfter3: false, pos: {}, busy: false, optsAfter3: false },
+    pendingSup: 0,
+    // v1.6.0: POS update options (keep[group] = POS keeps its value for matched products), the SUP BRAND scope the engine
+    // was loaded with, and the scope the results were made with.
+    opts: { keep: {}, discontinue: true },
+    loadedScope: '', resultScope: null
   };
+  // v1.6.0 — "Update in POS" ticks on the supplier sheet headings. col = IN_SUPPLIER column (0-based); upd = OUT_POS_UPDATE
+  // columns the tick decides; out = OUT_MERGED_DATA columns greyed for matched products when POS keeps its value.
+  var PR = ['pr 1 pc', 'pr 2 pc', 'pr 3 pc', 'pr 4 pc', 'pr 5 pc', 'pr 6 pc', 'pr 7 pc', 'pr 8 pc', 'pr 9 pc'];
+  var KEEP_GROUPS = [
+    { id: 'supplier', col: 2, what: 'supplier number', upd: ['supplier'], out: ['supplier'] },
+    { id: 'brand', col: 4, what: 'brand', upd: ['brand'], out: ['brand', 'POS BRAND', 'OLD BRAND'] },
+    { id: 'sub', col: 5, what: 'Sub ID', upd: ['sub id'], out: ['sub id'] },
+    { id: 'product', col: 6, what: 'description (descr / pos desc)', upd: ['descr', 'pos desc'], out: ['POS DESCR', 'descr', 'pos desc'] },
+    { id: 'units', col: 7, what: 'units', upd: ['units'], out: ['units'] },
+    { id: 'minorder', col: 8, what: 'min order qty (box lot)', upd: ['min order qty'], out: ['min order qty'] },
+    { id: 'ws', col: 9, what: 'wholesale and last price', upd: ['wsp excgst', 'last price'],
+      out: ['NEW WSP EXGST', 'WSP CHANGE %', 'WSP CHANGE $', 'NEW LAST PRICE', 'CHANGE LAST PRICE %', 'CHANGE LAST PRICE $', 'wsp excgst', 'last price'] },
+    { id: 'rrp', col: 10, what: 'RRP, price levels 1–9 and ret price', upd: ['rrp incgst'].concat(PR, ['ret price']),
+      out: ['NEW RRP', 'WSP TO RRP MARKUP %', 'WSP TO RRP MARKUP +6.5%', 'RRP / MARKUP OVERRIDE', 'FINAL SHELF RRP', 'rrp incgst'].concat(PR, ['ret price']) },
+    { id: 'gst', col: 11, what: 'GST', upd: ['gst tax pc'], out: ['gst tax pc'] }
+  ];
+  function keptGroups(ids) { return KEEP_GROUPS.filter(function (g) { return ids ? ids.indexOf(g.id) >= 0 : state.opts.keep[g.id]; }); }
+  function keptNames(list, ids) { var m = {}; keptGroups(ids).forEach(function (g) { g[list].forEach(function (h) { m[h] = 1; }); }); return m; }
+  function keptText() { return keptGroups().map(function (g) { return g.what; }).join(', '); }
 
   // ---------------------------------------------------------------- utils
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -139,12 +170,12 @@
       kind = 'in-page';
       frame = document.createElement('iframe');
       frame.hidden = true; frame.title = 'POS New Product Check Clean engine';
-      frame.src = './engine-frame.html?v=1.1.0';
+      frame.src = './engine-frame.html?v=1.2.0';
       window.addEventListener('message', frameListener);
       document.body.appendChild(frame);
     }
     try {
-      worker = new Worker('./js/engine-worker.js?v=1.1.0');
+      worker = new Worker('./js/engine-worker.js?v=1.2.0');
       kind = 'worker';
       worker.onmessage = function (ev) { onMsg(ev.data); };
       worker.onerror = function (ev) {
@@ -483,9 +514,10 @@
   // ------------------------------------------------------------- stages
   function renderStages() {
     STAGES.forEach(function (s) {
-      $('#stage-' + s.id).innerHTML = '<section class="panel stage-panel stage-view-card ready"><div class="stage-head"><div class="stage-title"><span class="stepnum">' + s.n + '</span><div><h2>' + esc(s.title) + '</h2></div></div><span class="small-badge wait">WAITING</span></div><p class="stage-description">' + esc(s.desc) + '</p><div class="status info stage-status">Waiting for input files.</div><div class="stage-actions"><button class="btn primary stage-run" data-stage="' + s.id + '" disabled>Run stage ' + s.n + '</button></div><div class="stage-output-inline" data-stage-output="' + s.id + '"></div></section>';
+      $('#stage-' + s.id).innerHTML = '<section class="panel stage-panel stage-view-card ready"><div class="stage-head"><div class="stage-title"><span class="stepnum">' + s.n + '</span><div><h2>' + esc(s.title) + '</h2></div></div><span class="small-badge wait">WAITING</span></div><p class="stage-description">' + esc(s.desc) + '</p><div class="status info stage-status">Waiting for input files.</div><div class="stage-scope" data-stage-scope="' + s.id + '" hidden></div><div class="stage-actions"><button class="btn primary stage-run" data-stage="' + s.id + '" disabled>Run stage ' + s.n + '</button></div><div class="stage-output-inline" data-stage-output="' + s.id + '"></div></section>';
     });
     document.querySelectorAll('.stage-run').forEach(function (b) { b.onclick = function () { runTo(b.dataset.stage); }; });
+    renderScopes();
   }
   function stageSet(id, status, msg) {
     state.stage[id] = { status: status, msg: msg };
@@ -521,27 +553,39 @@
   }
   function invalidateResults(msg) {
     state.results = {};
-    state.edits = { marks: {}, undo: {}, outAfter3: false, pos: {}, busy: false };
-    state.pendingSup = 0;
+    state.edits = { marks: {}, undo: {}, outAfter3: false, pos: {}, busy: false, optsAfter3: false };
+    state.pendingSup = 0; state.resultScope = null;
     state.outputs.forEach(function (o) { if (o.url) URL.revokeObjectURL(o.url); });
     state.outputs.clear();
     STAGES.forEach(function (s) { state.stage[s.id] = { status: 'waiting', msg: msg || '' }; });
-    renderOutputs(); hideReview(); refreshSupSheet();
+    renderOutputs(); hideReview(); refreshSupSheet(); renderScopes();
+    saveSessionSoon(true);
   }
 
-  function buildSheetsPayload() {
+  // v1.6.0: with a SUP BRAND filter on the supplier sheet, the engine gets only the supplier rows of those brands — the
+  // merge then matches, updates and discontinues only them, exactly as though the other rows were not uploaded.
+  // Brands are compared in capitals, so BioCeuticals and BIOCEUTICALS are one brand (as POS keeps them).
+  function supBrandOf(row) { return String(row[4] == null ? '' : row[4]).trim().toUpperCase(); }
+  function supScopeKey() { return supView.brands ? JSON.stringify(supView.brands.slice().sort()) : ''; }
+  function supRowsInScope(brands) {
+    if (brands === undefined) brands = supView.brands;
+    var rows = rowsOf('sup'); if (!brands) return rows;
+    var m = {}; brands.forEach(function (b) { m[b] = 1; });
+    return rows.filter(function (r) { return m[supBrandOf(r)]; });
+  }
+  function buildSheetsPayload(brands) {
     var out = {};
-    M.INPUTS.forEach(function (d) { out[d.sheet] = M.sheetRows(d.sheet, rowsOf(d.id)); });
+    M.INPUTS.forEach(function (d) { out[d.sheet] = M.sheetRows(d.sheet, d.id === 'sup' ? supRowsInScope(brands) : rowsOf(d.id)); });
     return out;
   }
   function ensureLoaded() {
-    if (state.engine && state.loadedRev === state.rev && state.engineInfo) return Promise.resolve();
+    if (state.engine && state.loadedRev === state.rev && state.loadedScope === supScopeKey() && state.engineInfo) return Promise.resolve();
     var needRestart = state.loadedRev !== -1 || !state.engine;
     var p = needRestart ? startEngine() : state.engine.ready;
     return p.then(function () {
       setGlobal('Loading ' + fmtN(rowsOf('pos').length) + ' POS rows and ' + fmtN(rowsOf('sup').length) + ' supplier rows into the merge engine…', 'running');
-      var rev = state.rev;
-      return state.engine.send({ cmd: 'load', sheets: buildSheetsPayload() }).then(function () { state.loadedRev = rev; STAGES.forEach(function (s) { if ((state.stage[s.id] || {}).status === 'done') state.stage[s.id] = { status: 'ready' }; }); });
+      var rev = state.rev, scope = supScopeKey();
+      return state.engine.send({ cmd: 'load', sheets: buildSheetsPayload() }).then(function () { state.loadedRev = rev; state.loadedScope = scope; STAGES.forEach(function (s) { if ((state.stage[s.id] || {}).status === 'done') state.stage[s.id] = { status: 'ready' }; }); });
     });
   }
   function alertsText(res) {
@@ -550,9 +594,11 @@
   function alertFailed(res) {
     return (res.alerts || []).some(function (a) { return /❌|failed/i.test(a.title || ''); });
   }
-  function runStep(step) {
-    return state.engine.send({ cmd: 'run', step: step }).then(function (res) {
+  function runStep(step, extra) {
+    return state.engine.send(Object.assign({ cmd: 'run', step: step }, extra || {})).then(function (res) {
       if (alertFailed(res)) { var e = new Error(alertsText(res)); e.detail = res; throw e; }
+      if (step === 'highlight') state.resultScope = state.loadedScope ? JSON.parse(state.loadedScope) : null;
+      if (step === 'generate') { state.results.info_generate = res.info || null; state.results.keep_generate = (extra && extra.keep) || []; state.results.scope_generate = (extra && extra.visible) ? { rows: extra.visible.length, of: (state.results[SHEETS.OUT] || []).length - 2 } : null; state.edits.optsAfter3 = false; }
       Object.keys(res.sheets || {}).forEach(function (n) { state.results[n] = res.sheets[n]; delete state.edits.marks[n]; });
       if (step === 'export') state.results.files = res.files || [];
       state.pendingSup = res.pending || 0;
@@ -578,8 +624,11 @@
       return 'Complete — ' + (line || fmtN(Math.max(0, (state.results[SHEETS.OUT] || []).length - 2)) + ' rows') + '.';
     }
     var g = (state.results.alerts_generate || [])[0], files = state.results.files || [];
-    var left = stillPending();
-    return 'Complete — ' + (g ? String(g.msg || '').split('\n')[0] : '') + ' · ' + files.length + ' TXT file' + (files.length === 1 ? '' : 's') + ' ready.' +
+    var left = stillPending(), inf = state.results.info_generate, sc = state.results.scope_generate, extra = '';
+    if (inf && (inf.kept || inf.same)) extra += ' POS kept its ' + keptGroups(state.results.keep_generate || []).map(function (g) { return g.what; }).join(', ') + ' for ' + fmtN(inf.kept) + ' matched product' + (inf.kept === 1 ? '' : 's') + (inf.same ? '; ' + fmtN(inf.same) + ' left out (same as POS)' : '') + '.';
+    if (inf && inf.disc) extra += ' ' + fmtN(inf.disc) + ' discontinued product' + (inf.disc === 1 ? '' : 's') + ' left out (Discontinue is off).';
+    if (sc) extra += ' Made from the ' + fmtN(sc.rows) + ' OUT_MERGED_DATA rows shown (filtered, of ' + fmtN(sc.of) + ').';
+    return 'Complete — ' + (g ? String(g.msg || '').split('\n')[0] : '') + ' · ' + files.length + ' TXT file' + (files.length === 1 ? '' : 's') + ' ready.' + extra +
       (left ? ' ' + fmtN(left) + ' OUT row' + (left === 1 ? ' is' : 's are') + ' still SUP OVERRIDE PENDING (supplier in G not found).' : '');
   }
   function runTo(target) {
@@ -603,7 +652,7 @@
           var steps = Promise.resolve();
           // v1.5.0: UPDATED SUPPLIER changes still waiting are refreshed first, so stage 3 uses them.
           var list = s.id === 'export' && state.pendingSup > 0 ? ['refresh'].concat(s.steps) : s.steps;
-          list.forEach(function (step) { steps = steps.then(function () { return runStep(step); }); });
+          list.forEach(function (step) { steps = steps.then(function () { return runStep(step, step === 'generate' ? generateOptions() : null); }); });
           return steps.then(function () {
             stageSet(s.id, 'done', stageSummary(s.id));
             gpct(Math.round(((i + 1) / (tIdx + 1)) * 100));
@@ -620,17 +669,56 @@
       if (current) stageSet(current, 'error', 'Error: ' + e.message);
       setGlobal((current ? 'Stage stopped: ' : 'Could not start: ') + e.message, 'error');
       gpct(0);
-    }).then(function () { state.busy = false; updateRunButtons(); refreshSupSheet(); });
+    }).then(function () { state.busy = false; updateRunButtons(); refreshSupSheet(); renderScopes(); saveSessionSoon(); });
+  }
+  // v1.6.0: what stage 3 sends with 'generate' — the OUT_MERGED_DATA rows shown when a filter / search hides some, the
+  // columns POS keeps for matched products, and the Discontinue switch.
+  function generateOptions() {
+    var o = {}, v = outView();
+    if (v && v.filtered) o.visible = v.rows;
+    var k = keptGroups().map(function (g) { return g.id; });
+    if (k.length) o.keep = k;
+    if (!state.opts.discontinue) o.discontinue = false;
+    return o;
+  }
+  // The OUT_MERGED_DATA rows on screen (Sheet rows): the review search / selects, plus the Sheet view's own filters.
+  function outView() {
+    var R = state.review; if (!R || !state.results[SHEETS.OUT] || !R.fidx) return null;
+    var rows = R.fidx.slice();
+    if (wb.outView === 'sheet' && wb.outGrid && wb.outGrid.filtered()) rows = wb.outGrid.visible().map(function (i) { return R.fidx[i]; });
+    return { filtered: rows.length < R.rows.length, rows: rows, total: R.rows.length };
+  }
+  // The rows on screen in the OUT_POS_INSERT / UPDATE tab (Sheet rows), when a filter / search hides some.
+  function posTabView() {
+    var t = wbTab(wb.active);
+    if (!t.engine || !wb.grid || !wb.grid.filtered()) return null;
+    return { sheet: t.sheet, rows: wb.grid.visible().map(function (i) { return i + 3; }), total: Math.max(0, (state.results[t.sheet] || []).length - 2) };
+  }
+  // Notes on the stage cards: what the next run will cover.
+  function renderScopes() {
+    var set = function (id, html) { var el = document.querySelector('[data-stage-scope="' + id + '"]'); if (!el) return; el.innerHTML = html; el.hidden = !html; };
+    var b = supView.brands, all = supBrandList();
+    var bText = b ? '<b>Brand filter on:</b> merges ' + fmtN(b.length) + ' of ' + fmtN(all.length) + ' brands — ' + esc(b.slice(0, 4).join(', ') + (b.length > 4 ? ' +' + (b.length - 4) : '')) + '.' : '';
+    set('highlight', bText); set('build', bText);
+    var parts = [], v = outView(), k = keptText();
+    if (v && v.filtered) parts.push('<b>Filtered:</b> uses the ' + fmtN(v.rows.length) + ' of ' + fmtN(v.total) + ' OUT_MERGED_DATA rows shown.');
+    if (k) parts.push('<b>POS keeps</b> its ' + esc(k) + ' for matched products.');
+    if (!state.opts.discontinue) parts.push('<b>Discontinue is off</b> — no discontinued products in the POS UPDATE file.');
+    set('export', parts.join(' '));
+  }
+  function addTxtOutputs() {
+    ['txt-0', 'txt-1'].forEach(function (k) { var o = state.outputs.get(k); if (o && o.url) URL.revokeObjectURL(o.url); state.outputs.delete(k); });
+    (state.results.files || []).forEach(function (f, i) {
+      var bin = atob(f.base64), bytes = new Uint8Array(bin.length);
+      for (var k = 0; k < bin.length; k++) bytes[k] = bin.charCodeAt(k);
+      addOutput('export', 'txt-' + i, f.filename, new Blob([bytes], { type: 'text/plain;charset=utf-8' }), fmtN(f.rowCount) + ' rows · ' + (f.label || 'POS file') + ' · tab-separated TXT for POSActive');
+    });
   }
   function afterStage(id) {
     if (id === 'highlight') refreshSupSheet();
     if (id === 'build') { renderReview(); wbShow('out'); return addWorkbookOutput(); }
     if (id === 'export') {
-      (state.results.files || []).forEach(function (f, i) {
-        var bin = atob(f.base64), bytes = new Uint8Array(bin.length);
-        for (var k = 0; k < bin.length; k++) bytes[k] = bin.charCodeAt(k);
-        addOutput('export', 'txt-' + i, f.filename, new Blob([bytes], { type: 'text/plain;charset=utf-8' }), fmtN(f.rowCount) + ' rows · ' + (f.label || 'POS file') + ' · tab-separated TXT for POSActive');
-      });
+      addTxtOutputs();
       if (state.results[SHEETS.OUT]) renderReview(true);   // stage 3 may have refreshed supplier changes first
       renderReviewKpis(); renderTabs();
       if (wb.active === 'ins' || wb.active === 'upd') wbShow(wb.active, true);
@@ -659,6 +747,7 @@
     arr.forEach(function (o) {
       if (!/^txt-/.test(o.key)) return;
       o.warn = state.edits.outAfter3 ? 'Made before your OUT_MERGED_DATA edits — run stage 3 again to include them.'
+        : state.edits.optsAfter3 ? 'Made before the Update in POS / Discontinue options changed — run stage 3 again.'
         : posEd.length ? 'Made before your ' + posEd.join(' / ') + ' edits — use Export TXT again on that tab.' : '';
     });
     var c = $('#outputCount'); c.textContent = arr.length + ' OUTPUT' + (arr.length === 1 ? '' : 'S'); c.className = 'result-badge' + (arr.length ? ' ok' : '');
@@ -849,6 +938,7 @@
     }
     R.page = keep ? (page || 0) : 0;
     renderReviewPage(keep);
+    renderScopes(); renderOutActions();
   }
   function cellHtml(c, r, idx) {
     var v = r[idx[c.h]], s = String(v == null ? '' : v);
@@ -879,12 +969,12 @@
   function drawOutGrid(keep) {
     var R = state.review;
     var cols = R.head.map(function (h, i) { return h === '__EXPORT_VISIBLE__' ? -1 : i; }).filter(function (i) { return i >= 0; });
-    if (!wb.outGrid) wb.outGrid = window.PHFSheetGrid.create($('#reviewGrid'), { search: false });
-    var look = window.PHFSheetLook.forSheet(SHEETS.OUT, R.head);
+    if (!wb.outGrid) wb.outGrid = window.PHFSheetGrid.create($('#reviewGrid'), { search: false, onView: function () { renderScopes(); renderOutActions(); } });
+    var look = keptLook(window.PHFSheetLook.forSheet(SHEETS.OUT, R.head), R.head, 'out', R.idx['ROW STATUS']);
     var marks = state.edits.marks[SHEETS.OUT] || {}, mk = {};
     R.fidx.forEach(function (sheetRow, i) { if (marks[sheetRow]) mk[i] = marks[sheetRow]; });
     wb.outGrid.set({
-      head: R.head, rows: R.filtered, cols: cols, rowNumbers: R.fidx, look: look, marks: mk, keepView: !!keep,
+      head: R.head, rows: R.filtered, cols: cols, rowNumbers: R.fidx, look: look, marks: mk, keepView: !!keep, flags: keptFlags(R.head, 'out'),
       totals: function (vis) { return look.totals(R.rows, vis); },
       edit: {
         readOnly: look.readOnly, rows: false, canUndo: (state.edits.undo[SHEETS.OUT] || 0) > 0,
@@ -893,6 +983,22 @@
       }
     });
     wb.outGrid.busy(state.busy || state.edits.busy);
+  }
+  // v1.6.0: columns whose value POS keeps (unticked on the supplier sheet) — greyed for matched products, KEPT in the heading.
+  function keptFlags(head, list, ids) {
+    var names = keptNames(list, ids), f = null;
+    head.forEach(function (h, i) { if (names[h]) { f = f || {}; f[i] = 'KEPT — POS keeps its current value for matched products (Update in POS is off for this column)'; } });
+    return f;
+  }
+  function keptLook(look, head, list, statusCol) {
+    var names = keptNames(list), cols = {}, any = false;
+    head.forEach(function (h, i) { if (names[h]) { cols[i] = 1; any = true; } });
+    if (!any || !look) return look;
+    var base = look.style;
+    return Object.assign({}, look, { style: function (row, c) {
+      if (cols[c] && (statusCol === undefined || /MATCHED/i.test(String(row[statusCol] || '')))) return { bg: 'ECEFF1', fg: '80868B' };
+      return base ? base(row, c) : null;
+    } });
   }
   // Buttons above OUT_MERGED_DATA: Refresh supplier changes (UPDATED SUPPLIER edits waiting) and Run stage 3 again.
   function renderOutActions() {
@@ -904,7 +1010,8 @@
     host.innerHTML =
       (n ? '<button type="button" class="btn small primary" data-act="refresh"' + (busy ? ' disabled' : '') + ' title="Check the UPDATED SUPPLIER (G) changes against the supplier upload — the Sheet menu REFRESH SUPPLIER CHANGES">Refresh supplier changes (' + fmtN(n) + ')</button>' : '') +
       '<button type="button" class="btn small' + (after3 || !done3 ? ' primary' : '') + '" data-act="stage3"' + (busy ? ' disabled' : '') + ' title="Generate OUT_POS_INSERT / OUT_POS_UPDATE from this OUT_MERGED_DATA and export the TXT files (supplier changes are refreshed first)">' + (done3 ? 'Run stage 3 again' : 'Run stage 3') + '</button>' +
-      '<span class="out-actions-note">' + esc(n ? fmtN(n) + ' UPDATED SUPPLIER change' + (n === 1 ? '' : 's') + ' waiting — refresh to check ' + (n === 1 ? 'it' : 'them') + ' (stage 3 refreshes first).' : after3 ? 'OUT_MERGED_DATA was edited after stage 3 — run stage 3 again to put the edits in the POS files.' : 'Click a cell to edit it, as in the Google Sheet. FINAL SHELF RRP follows RRP / MARKUP OVERRIDE.') + '</span>';
+      '<span class="out-actions-note">' + esc(n ? fmtN(n) + ' UPDATED SUPPLIER change' + (n === 1 ? '' : 's') + ' waiting — refresh to check ' + (n === 1 ? 'it' : 'them') + ' (stage 3 refreshes first).' : after3 ? 'OUT_MERGED_DATA was edited after stage 3 — run stage 3 again to put the edits in the POS files.' : state.edits.optsAfter3 ? 'Update in POS / Discontinue options changed — run stage 3 again to use them.' : 'Click a cell to edit it, as in the Google Sheet. FINAL SHELF RRP follows RRP / MARKUP OVERRIDE.') + '</span>' +
+      (function () { var v = outView(); return v && v.filtered ? '<span class="out-actions-filter">Filtered — stage 3 uses only the ' + fmtN(v.rows.length) + ' of ' + fmtN(v.total) + ' rows shown.</span>' : ''; })();
     host.querySelectorAll('[data-act]').forEach(function (b) {
       b.onclick = function () {
         if (b.dataset.act === 'refresh') runExtra(['refresh'], 'Refresh supplier changes');
@@ -1004,7 +1111,7 @@
     empty.hidden = !!(rows.length > 2) || !canStart;
     if (!empty.hidden) empty.innerHTML = '<strong>' + esc(inputDef(t.input).title) + ' is not loaded.</strong> Drop the ' + esc(t.sheet) + ' file in Drop All, or click a cell below and type or paste (Ctrl+V) rows to start the table — it is saved in this browser.';
     grid.hidden = false;
-    if (!wb.grid) wb.grid = window.PHFSheetGrid.create(grid, { search: true });
+    if (!wb.grid) wb.grid = window.PHFSheetGrid.create(grid, { search: true, onView: function () { var tt = wbTab(wb.active); if (tt.engine) renderWbActions(tt); } });
     var head = rows[1] || [], data = rows.slice(2), look = window.PHFSheetLook.forSheet(t.sheet, head);
     var edit = null, marks = null;
     if (t.input && !t.readOnly) {
@@ -1016,6 +1123,7 @@
     }
     var key = t.id + ':' + state.rev + ':' + (state.results[t.sheet] ? 'r' : 'i');
     wb.grid.set({ head: head, rows: data, look: look, marks: marks, edit: edit, keepView: !!(keep && wb.gridFor === key) || !!keep,
+      flags: t.id === 'upd' && state.results[t.sheet] && state.results.keep_generate && state.results.keep_generate.length ? keptFlags(head, 'upd', state.results.keep_generate) : null,
       totals: function (vis) { return look.totals(data, vis); } });
     wb.grid.busy(state.busy || state.edits.busy);
     wb.gridFor = key; wb.gridRows = data.length;
@@ -1031,8 +1139,10 @@
     var busy = state.busy || state.edits.busy, html = '';
     if (t.engine && state.results[t.sheet]) {
       var edited = !!state.edits.pos[t.sheet];
-      html = '<button type="button" class="btn small' + (edited ? ' primary' : '') + '" data-act="reexport"' + (busy || !state.results.files ? ' disabled' : '') + ' title="Make the two POS TXT files again from OUT_POS_INSERT / OUT_POS_UPDATE as they are now (stage 3 export only — the sheets are not generated again)">Export TXT again</button>' +
-        '<span class="out-actions-note">' + esc(edited ? t.sheet + ' was edited — Export TXT again to put the edits in the POS file. (Running stage 3 again makes this sheet again from OUT_MERGED_DATA.)' : 'Edits here go into the POS file with Export TXT again.') + '</span>';
+      var pv = posTabView();
+      html = '<button type="button" class="btn small' + (edited || pv ? ' primary' : '') + '" data-act="reexport"' + (busy || !state.results.files ? ' disabled' : '') + ' title="Make the two POS TXT files again from OUT_POS_INSERT / OUT_POS_UPDATE as they are now (stage 3 export only — the sheets are not generated again)">Export TXT again</button>' +
+        '<span class="out-actions-note">' + esc(edited ? t.sheet + ' was edited — Export TXT again to put the edits in the POS file. (Running stage 3 again makes this sheet again from OUT_MERGED_DATA.)' : 'Edits here go into the POS file with Export TXT again.') + '</span>' +
+        (pv ? '<span class="out-actions-filter">Filtered — the ' + esc(t.id === 'upd' ? 'POS UPDATE' : 'POS INSERT') + ' TXT will have only the ' + fmtN(pv.rows.length) + ' of ' + fmtN(pv.total) + ' rows shown.</span>' : '');
     } else if (t.input && !t.readOnly && loaded(t.input)) {
       html = '<button type="button" class="btn small" data-act="rerun"' + (busy || !requiredReady() ? ' disabled' : '') + ' title="Run stages 1 → 3 with this table as it is now">Run All Stages</button><span class="out-actions-note">Changes here are saved in this browser straight away. Run the stages again to use them.</span>';
     }
@@ -1114,6 +1224,7 @@
       else extra = ' · Export TXT again to put it in the POS file.';
       if (gg) gg.note(what + '.' + extra, 'success');
       setGlobal(sheet + ': ' + what + '.' + extra, 'success');
+      saveSessionSoon();
     }).catch(function (e) {
       var gg = gridFor(sheet); if (gg) gg.note('Not changed: ' + e.message, 'error');
       setGlobal(sheet + ': ' + e.message, 'error');
@@ -1156,7 +1267,8 @@
     state.busy = true; updateRunButtons(); renderOutActions();
     setGlobal(label + '…', 'running');
     var t0 = Date.now(), chain = Promise.resolve();
-    steps.forEach(function (st) { chain = chain.then(function () { return runStep(st); }); });
+    var pv = steps.indexOf('export') >= 0 ? posTabView() : null;
+    steps.forEach(function (st) { chain = chain.then(function () { var only = {}; if (st === 'export' && pv) only[pv.sheet] = pv.rows; return runStep(st, st === 'export' && pv ? { only: only } : null); }); });
     return chain.then(function () {
       if (steps.indexOf('refresh') >= 0) {
         renderReview(true);
@@ -1165,17 +1277,13 @@
           (left ? ' ' + fmtN(left) + ' row' + (left === 1 ? ' is' : 's are') + ' still SUP OVERRIDE PENDING — the supplier typed in UPDATED SUPPLIER (G) was not found; type it as NAME (account number), e.g. BIOCEUTICALS (20).' : ''), left ? 'missing' : 'success');
       }
       if (steps.indexOf('export') >= 0) {
-        (state.results.files || []).forEach(function (f, i) {
-          var bin = atob(f.base64), bytes = new Uint8Array(bin.length);
-          for (var k = 0; k < bin.length; k++) bytes[k] = bin.charCodeAt(k);
-          addOutput('export', 'txt-' + i, f.filename, new Blob([bytes], { type: 'text/plain;charset=utf-8' }), fmtN(f.rowCount) + ' rows · ' + (f.label || 'POS file') + ' · tab-separated TXT for POSActive');
-        });
-        stageSet('export', 'done', 'Exported again ' + melb() + ' — ' + (state.results.files || []).length + ' TXT files with the OUT_POS_INSERT / UPDATE edits.');
+        addTxtOutputs();
+        stageSet('export', 'done', 'Exported again ' + melb() + ' — ' + (state.results.files || []).length + ' TXT files with the OUT_POS_INSERT / UPDATE edits.' + (pv ? ' The ' + pv.sheet + ' TXT has only the ' + fmtN(pv.rows.length) + ' of ' + fmtN(pv.total) + ' rows shown (filtered).' : ''));
         setGlobal('Export TXT again — ' + (state.results.files || []).length + ' TXT files ready below (' + ((Date.now() - t0) / 1000).toFixed(1) + 's).', 'success');
       }
       return addWorkbookOutput();
     }).catch(function (e) { console.error(e); setGlobal(label + ' stopped: ' + e.message, 'error'); })
-      .then(function () { state.busy = false; updateRunButtons(); renderOutActions(); renderOutputs(); renderTabs(); if (wb.active !== 'sup' && wb.active !== 'out') wbShow(wb.active, true); });
+      .then(function () { state.busy = false; updateRunButtons(); renderOutActions(); renderOutputs(); renderTabs(); if (wb.active !== 'sup' && wb.active !== 'out') wbShow(wb.active, true); saveSessionSoon(); });
   }
 
   // ------------------------------------------------- SRC_ tab edits (v1.5.0, saved reference tables)
@@ -1263,7 +1371,7 @@
   // v1.4.0: every row is in the sheet (no pages). Only the rows near the scroll position are drawn, with gap rows above /
   // below standing in for the rest, so a large list scrolls as quickly as a short one.
   var SUP_BUF = 40, ADDED = 'Added rows', SUP_UNDO_MAX = 40;
-  var supView = { q: '', undo: [], note: '', noteType: 'info', sel: null, vis: [], editing: null, rowH: 27, win: { start: 0, end: 0 }, raf: 0 };
+  var supView = { q: '', undo: [], note: '', noteType: 'info', sel: null, vis: [], editing: null, rowH: 27, win: { start: 0, end: 0 }, raf: 0, brands: null };
 
   function parseTsv(text) {
     var s = String(text || '').replace(/\r\n?/g, '\n'), rows = [], row = [], f = '', q = false, i = 0, n = s.length;
@@ -1351,12 +1459,26 @@
     state.inputs.sup.files.push(e);
     return e;
   }
+  // v1.6.0: after a run with a brand filter, the merge's IN_SUPPLIER rows are only the rows of those brands (in order);
+  // the other rows show without a STATUS and greyed (out = not in that merge).
   function supModel() {
     var refs = [];
     supEntries().forEach(function (e) { e.data.forEach(function (row) { refs.push({ e: e, row: row }); }); });
-    var res = state.results[SHEETS.SUP], run = !!(res && res.length > 2 && res.length - 2 === refs.length);
-    var items = refs.map(function (ref, i) { return { ref: ref, n: i + 1, shown: run ? res[i + 2] : ref.row }; });
+    var res = state.results[SHEETS.SUP], scope = null;
+    if (state.resultScope) { scope = {}; state.resultScope.forEach(function (b) { scope[b] = 1; }); }
+    var nIn = scope ? refs.filter(function (ref) { return scope[supBrandOf(ref.row)]; }).length : refs.length;
+    var run = !!(res && res.length > 2 && res.length - 2 === nIn), k = 0;
+    var items = refs.map(function (ref, i) {
+      var inS = !scope || !!scope[supBrandOf(ref.row)];
+      return { ref: ref, n: i + 1, shown: run && inS ? res[(k++) + 2] : ref.row, out: run && !inS };
+    });
     return { items: items, run: run, summary: run ? String((res[0] || [])[15] || '').trim() : '' };
+  }
+  function supBrandList() {
+    var c = {}, list = [];
+    supEntries().forEach(function (e) { e.data.forEach(function (row) { var b = supBrandOf(row); if (!(b in c)) { c[b] = 0; list.push(b); } c[b]++; }); });
+    list.sort();
+    return list.map(function (b) { return { v: b, n: c[b] }; });
   }
   function supShown(it, c) {
     if (c === 0) return String(it.n);
@@ -1473,9 +1595,12 @@
   // v1.3.1 — the brands this merge covers (SUP BRAND, column E, of every supplier row). Stage 2 matches, updates and
   // discontinues POS products of these brands only, so this is the check before running.
   function supScopeHtml(model) {
-    var counts = {}, list = [], added = 0;
+    var counts = {}, list = [], added = 0, sel = null;
+    if (supView.brands) { sel = {}; supView.brands.forEach(function (b) { sel[b] = 1; }); }
     model.items.forEach(function (it) {
-      var b = String(it.ref.row[4] == null ? '' : it.ref.row[4]).trim().toUpperCase() || '(NO BRAND)';
+      var raw = supBrandOf(it.ref.row);
+      if (sel && !sel[raw]) return;
+      var b = raw || '(NO BRAND)';
       if (!counts[b]) { counts[b] = 0; list.push(b); }
       counts[b]++;
       if (it.ref.e.added) added++;
@@ -1483,11 +1608,42 @@
     if (!model.items.length) return '<span class="sup-scope-label">Brands in this merge: 0</span><span class="sup-scope-note">Paste or drop the supplier rows for the brands you are updating — the merge matches, updates and discontinues only those brands.</span>';
     list.sort();
     var chip = function (b) { return '<span class="sup-brand">' + esc(b) + ' <b>' + fmtN(counts[b]) + '</b></span>'; };
-    var SHOW = 10, files = model.items.length - added;
-    var rows = fmtN(model.items.length) + ' row' + (model.items.length === 1 ? '' : 's') + (added && files ? ' (' + fmtN(added) + ' added here · ' + fmtN(files) + ' from files)' : added ? ' added here' : ' from files');
-    return '<span class="sup-scope-label">Brands in this merge: ' + fmtN(list.length) + '</span><span class="sup-scope-rows">' + rows + '</span>' +
+    var SHOW = 10, inRows = list.reduce(function (a, b) { return a + counts[b]; }, 0), files = inRows - added, allB = supBrandList().length;
+    var rows = fmtN(inRows) + ' row' + (inRows === 1 ? '' : 's') + (added && files ? ' (' + fmtN(added) + ' added here · ' + fmtN(files) + ' from files)' : added ? ' added here' : ' from files');
+    return '<span class="sup-scope-label">Brands in this merge: ' + fmtN(list.length) + (sel ? ' of ' + fmtN(allB) : '') + '</span>' +
+      (sel ? '<span class="sup-scope-filter">SUP BRAND filter on — only these brands are merged <button type="button" class="btn small" data-sup-unfilter>Clear filter</button></span>' : '') +
+      '<span class="sup-scope-rows">' + rows + '</span>' +
       list.slice(0, SHOW).map(chip).join('') +
       (list.length > SHOW ? '<details class="sup-scope-more"><summary>+' + fmtN(list.length - SHOW) + ' more</summary><div>' + list.slice(SHOW).map(chip).join('') + '</div></details>' : '');
+  }
+  // v1.6.0 — the Update in POS ticks and the Discontinue switch (under the supplier sheet's brand line).
+  function supOptsHtml() {
+    var off = keptGroups();
+    return '<div class="sup-opts-main"><span class="sup-scope-label">Update in POS</span>' +
+      (off.length ? '<span class="sup-opts-kept">POS keeps its current <b>' + esc(off.map(function (g) { return g.what; }).join(', ')) + '</b> for matched products — untick a column heading below to keep a field, tick it to update it again. <button type="button" class="btn small" data-keep-all>Update everything</button></span>'
+        : '<span class="sup-scope-note">Every ticked column heading below is updated in POS. Untick one (e.g. SUP RRP INC GST) and POS keeps its current value for matched products — RRP and price levels exactly as they are, so no new labels.</span>') +
+      '</div><label class="sup-disc' + (state.opts.discontinue ? '' : ' is-off') + '"><input type="checkbox" id="supDiscontinue"' + (state.opts.discontinue ? ' checked' : '') + '> Discontinue POS products of these brands that are not in the supplier rows</label>';
+  }
+  function setKeep(id, keep) {
+    if (state.busy) return;
+    if (keep) state.opts.keep[id] = true; else delete state.opts.keep[id];
+    optsChanged();
+  }
+  function optsChanged() {
+    if ((state.stage.export || {}).status === 'done') { state.edits.optsAfter3 = true; stageMsg('export', 'Update in POS / Discontinue options changed — run stage 3 again to use them.', 'ready'); }
+    drawSup(); renderScopes(); renderOutputs(); renderOutActions();
+    if (state.review && state.results[SHEETS.OUT] && wb.outView === 'sheet') drawOutGrid(true);
+    saveSessionSoon();
+  }
+  function setSupBrands(list) {
+    if (state.busy) return;
+    supView.brands = list && list.length ? list : null;
+    supView.sel = null;
+    var w = $('#supWrap'); if (w) w.scrollTop = 0;
+    drawSup(); renderScopes();
+    saveSessionSoon(true);
+    var stale = STAGES.some(function (s2) { return (state.stage[s2.id] || {}).status === 'done'; }) && supScopeKey() !== state.loadedScope;
+    setGlobal(supView.brands ? 'SUP BRAND filter: ' + fmtN(supView.brands.length) + ' brand' + (supView.brands.length === 1 ? '' : 's') + ' — the next run merges only ' + (supView.brands.length === 1 ? 'it' : 'them') + (stale ? ' (run the stages again)' : '') + '.' : 'SUP BRAND filter cleared — the next run merges every brand in Supplier Updates' + (stale ? ' (run the stages again)' : '') + '.', 'info');
   }
 
   // v1.3.1 — CH2 / Unique supplier imports saved by Build Master Databases are added only when asked (buttons on the
@@ -1540,6 +1696,7 @@
       '<div class="sup-head"><div><h3>IN_SUPPLIER_/_PRODUCT_UPDATES</h3><p>The Supplier Updates tab as the Google Sheet shows it. Click a cell and type to change it · Ctrl+V (⌘V) pastes from the selected cell · click an INDEX number to select rows · Ctrl+Z undoes.</p></div><span class="result-badge" id="supCount">0 ROWS</span></div>' +
       '<div class="sup-bar" id="supBar"></div>' +
       '<div class="sup-scope"><div class="sup-scope-brands" id="supScope"></div><div class="sup-scope-lib" data-lib-sup-host hidden></div></div>' +
+      '<div class="sup-opts" id="supOpts"></div>' +
       '<div class="sup-tools"><input type="search" id="supSearch" placeholder="Search barcode, brand, Sub ID, product or status…" aria-label="Search supplier rows">' +
       '<button type="button" class="btn small primary" id="supPasteBtn" title="Paste the clipboard at the selected cell (or add the rows at the end when no cell is selected)">Paste</button>' +
       '<button type="button" class="btn small" id="supAddRow" title="Add an empty row at the end and start typing in it">Add row</button>' +
@@ -1548,13 +1705,23 @@
       '<button type="button" class="btn small" id="supClearAdded" title="Remove every row typed or pasted here (dropped supplier files stay)">Clear added rows</button>' +
       '<button type="button" class="btn small" id="supCopyHeads" title="Copy the 16 headings, ready to paste into Excel or Google Sheets as a template">Copy headings</button></div>' +
       '<div class="status sup-note" id="supNote" hidden></div>' +
-      '<div class="sup-table-wrap" id="supWrap"><table class="sup-table"><thead><tr>' + SUP_HEADS.map(function (h, i) { return '<th class="sup-c' + i + (i === 0 || i === 15 ? ' sup-ro' : '') + '"><span class="sup-col">' + window.XlsxLite.colLetter(i + 1) + '</span>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody id="supBody"></tbody></table></div>' +
+      '<div class="sup-table-wrap" id="supWrap"><table class="sup-table" id="supTable"><thead><tr>' + SUP_HEADS.map(function (h, i) {
+        var g = KEEP_GROUPS.filter(function (x) { return x.col === i; })[0];
+        return '<th class="sup-c' + i + (i === 0 || i === 15 ? ' sup-ro' : '') + '"><span class="sup-col">' + window.XlsxLite.colLetter(i + 1) +
+          (i === 4 ? '<button type="button" class="sup-filt" id="supBrandFilt" title="Filter SUP BRAND — the merge then covers only the brands you keep ticked" aria-label="Filter SUP BRAND"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg></button>' : '') + '</span>' + esc(h) +
+          (g ? '<label class="sup-keep" title="Ticked: update POS ' + esc(g.what) + ' from this column. Unticked: POS keeps its current ' + esc(g.what) + ' for matched products."><input type="checkbox" data-keep="' + g.id + '"> <span>Update in POS</span></label>' : '') + '</th>';
+      }).join('') + '</tr></thead><tbody id="supBody"></tbody></table></div>' +
       '<div class="review-pager sup-foot"><span class="sup-sel-info" id="supSelInfo"></span><span id="supPage"></span></div></div>';
   }
   function drawSup() {
     var host = $('#supSheet'); if (!host) return;
-    var model = supModel(), q = supView.q.trim().toUpperCase();
-    var vis = q ? model.items.filter(function (it) { var s = ''; for (var c = 0; c < 16; c++) s += supShown(it, c) + ' '; return s.toUpperCase().indexOf(q) >= 0; }) : model.items;
+    var model = supModel(), q = supView.q.trim().toUpperCase(), bsel = null;
+    if (supView.brands) { bsel = {}; supView.brands.forEach(function (b) { bsel[b] = 1; }); }
+    var vis = q || bsel ? model.items.filter(function (it) {
+      if (bsel && !bsel[supBrandOf(it.ref.row)]) return false;
+      if (!q) return true;
+      var s = ''; for (var c = 0; c < 16; c++) s += supShown(it, c) + ' '; return s.toUpperCase().indexOf(q) >= 0;
+    }) : model.items;
     supView.vis = vis;
     var t = supTotals(vis);
     var stat = model.run ? (model.summary || 'Stage 1 finished — no summary returned') : (model.items.length ? 'STATUS is set when stage 1 runs (Highlight New Products + Best Buy)' : 'No supplier rows yet — drop supplier files above, or click B3 and paste rows here');
@@ -1562,13 +1729,20 @@
     $('#supBar').innerHTML =
       '<div class="sup-bar-group">' + bc('TOTAL', fmtN(t.total)) + bc('⭐ MATCHED', fmtN(t.matched), 'is-match') + bc('🟢 NEW', fmtN(t.newp), 'is-new') + bc('🚫 NOT USED', fmtN(t.notUsed), 'is-muted') + bc('⚠️ UNMATCHABLE', fmtN(t.unm), 'is-warn') + '</div>' +
       '<div class="sup-bar-group">' + bc('SUPPLIER NAMES', fmtN(t.names)) + bc('TOTAL POS SUPPLIERS', fmtN(t.suppliers)) + bc('UNIQUE BARCODES', fmtN(t.barcodes), '', 'Column D (SUP BARCODE). In the Google Sheet this cell may be labelled UNIQUE BRANDS from an older layout — it counts barcodes.') + bc('UNIQUE BRANDS', fmtN(t.brands)) + bc('TOTAL WS', money(t.ws)) + bc('TOTAL RRP', money(t.rrp)) + '</div>' +
-      '<div class="sup-bar-status' + (model.run ? ' is-run' : '') + '"><span>STATUS</span>' + esc(stat) + (q ? ' <em>· totals are for the ' + fmtN(vis.length) + ' rows matching the search</em>' : '') + '</div>';
+      '<div class="sup-bar-status' + (model.run ? ' is-run' : '') + '"><span>STATUS</span>' + esc(stat) + (q || bsel ? ' <em>· totals are for the ' + fmtN(vis.length) + ' rows shown</em>' : '') + '</div>';
     $('#supScope').innerHTML = supScopeHtml(model);
+    $('#supOpts').innerHTML = supOptsHtml();
+    var tbl = $('#supTable');
+    KEEP_GROUPS.forEach(function (g) {
+      tbl.classList.toggle('keep-c' + g.col, !!state.opts.keep[g.id]);
+      var cb = tbl.querySelector('[data-keep="' + g.id + '"]'); if (cb) { cb.checked = !state.opts.keep[g.id]; cb.disabled = state.busy; }
+    });
+    var bf = $('#supBrandFilt'); if (bf) bf.classList.toggle('is-on', !!supView.brands);
     drawLibSup();
     drawSupRows();
     var added = addedEntry(false), an = added ? added.data.length : 0;
-    var badge = $('#supCount'); badge.textContent = (q ? fmtN(vis.length) + ' OF ' : '') + fmtN(model.items.length) + ' ROWS' + (an ? ' · ' + fmtN(an) + ' ADDED' : ''); badge.className = 'result-badge' + (model.items.length ? ' ok' : '');
-    $('#supPage').textContent = q ? fmtN(vis.length) + ' of ' + fmtN(model.items.length) + ' rows match the search' : 'All ' + fmtN(model.items.length) + ' row' + (model.items.length === 1 ? '' : 's') + ' · scroll the sheet to see every row';
+    var badge = $('#supCount'); badge.textContent = (q || bsel ? fmtN(vis.length) + ' OF ' : '') + fmtN(model.items.length) + ' ROWS' + (an ? ' · ' + fmtN(an) + ' ADDED' : ''); badge.className = 'result-badge' + (model.items.length ? ' ok' : '');
+    $('#supPage').textContent = q || bsel ? fmtN(vis.length) + ' of ' + fmtN(model.items.length) + ' rows ' + (q && bsel ? 'match the search and the SUP BRAND filter' : q ? 'match the search' : 'in the SUP BRAND filter') : 'All ' + fmtN(model.items.length) + ' row' + (model.items.length === 1 ? '' : 's') + ' · scroll the sheet to see every row';
     $('#supUndo').disabled = !supView.undo.length || state.busy;
     $('#supClearAdded').disabled = !an || state.busy;
     ['#supPasteBtn', '#supAddRow'].forEach(function (s) { $(s).disabled = state.busy; });
@@ -1578,7 +1752,7 @@
 
   // ---- rows: the window of rows around the scroll position (r = position in the search-filtered list; the empty row
   // under the last row is r = vis.length). Banding comes from the row number, so it never flickers while scrolling.
-  function supTotalRows() { return supView.vis.length + (supView.q.trim() ? 0 : 1); }
+  function supTotalRows() { return supView.vis.length + (supView.q.trim() || supView.brands ? 0 : 1); }
   function supHeadH() { var th = document.querySelector('#supWrap thead'); return th ? th.offsetHeight : 40; }
   function supWindow() {
     var wrap = $('#supWrap'), rh = supView.rowH || 27, total = supTotalRows();
@@ -1599,7 +1773,7 @@
       var cls = 'sup-c' + c + (c === 0 || c === 15 ? ' sup-ro' : '') + (c === 15 ? ' sup-status ' + supStatusClass(s) : '') + (ed[c] ? ' is-edited' : '');
       cells += '<td class="' + cls + '" data-r="' + r + '" data-c="' + c + '"' + ((c === 6 || c === 15) && s ? ' title="' + esc(s) + '"' : '') + '>' + (c === 0 && added ? '<span class="sup-added-tag" title="Added on this page">+</span>' : '') + esc(s) + '</td>';
     }
-    return '<tr class="' + (added ? 'is-added' : '') + band + '">' + cells + '</tr>';
+    return '<tr class="' + (added ? 'is-added' : '') + (it.out ? ' is-out' : '') + band + '"' + (it.out ? ' title="Not in the last merge (the SUP BRAND filter left this brand out)"' : '') + '>' + cells + '</tr>';
   }
   function supGap(px) { return px > 0 ? '<tr class="sup-gap" aria-hidden="true"><td colspan="16" style="height:' + Math.round(px) + 'px"></td></tr>' : ''; }
   function drawSupRows() {
@@ -1608,7 +1782,7 @@
     var w = supWindow(), html = [supGap(w.start * rh)];
     for (var r = w.start; r < w.end; r++) html.push(supRowHtml(r));
     html.push(supGap((total - w.end) * rh));
-    if (!vis.length && q) html = ['<tr><td colspan="16" class="sup-empty">No rows match the search.</td></tr>'];
+    if (!vis.length && (q || supView.brands)) html = ['<tr><td colspan="16" class="sup-empty">No rows match the search / SUP BRAND filter.</td></tr>'];
     body.innerHTML = html.join('');
     supView.win = { start: w.start, end: w.end };
     // Keep the gap rows true to the real row height (it depends on the browser's font size).
@@ -1747,7 +1921,23 @@
     $('#supWrap').addEventListener('scroll', supOnScroll, { passive: true });
     $('#supUndo').onclick = supUndo;
     $('#supDelRows').onclick = deleteSelectedRows;
-    $('#supAddRow').onclick = function () { supView.q = ''; $('#supSearch').value = ''; drawSup(); supGoTo(supView.vis.length, 1); host.focus(); startEdit(''); };
+    $('#supAddRow').onclick = function () { supView.q = ''; $('#supSearch').value = ''; if (supView.brands) setSupBrands(null); drawSup(); supGoTo(supView.vis.length, 1); host.focus(); startEdit(''); };
+    // v1.6.0: Update in POS ticks, the Discontinue switch and the SUP BRAND filter.
+    host.addEventListener('change', function (e) {
+      var k = e.target.closest('[data-keep]'); if (k) { setKeep(k.dataset.keep, !k.checked); return; }
+      if (e.target.id === 'supDiscontinue') { state.opts.discontinue = e.target.checked; optsChanged(); }
+    });
+    host.addEventListener('click', function (e) {
+      if (e.target.closest('[data-keep-all]')) { state.opts.keep = {}; optsChanged(); return; }
+      if (e.target.closest('[data-sup-unfilter]')) { setSupBrands(null); return; }
+      var bf = e.target.closest('#supBrandFilt');
+      if (bf) {
+        e.preventDefault(); e.stopPropagation();
+        if (state.busy) return;
+        window.PHFSheetGrid.picker({ anchor: bf, title: 'SUP BRAND', values: supBrandList().map(function (x) { return { v: x.v, n: x.n }; }), selected: supView.brands, onApply: setSupBrands });
+      }
+    });
+    $('#supTable').querySelector('thead').addEventListener('mousedown', function (e) { if (e.target.closest('.sup-keep,.sup-filt')) e.stopPropagation(); });
     $('#supClearAdded').onclick = function () {
       var e = addedEntry(false); if (!e) return;
       var n = e.data.length;
@@ -1856,6 +2046,113 @@
     }, Promise.resolve()).then(function () { return got; });
   }
 
+  // ------------------------------------------------ v1.6.0 session kept in this browser
+  /* Two records in this tool's IndexedDB store: the session inputs (POS Database, Supplier Updates with their edits, the
+     SUP BRAND filter) and the session state (stage results, edits, TXT files, options and the engine's sheets — engine
+     dump). On open they come back after the saved reference tables and the Library files; the results are put back only
+     when the inputs are the same as when they were saved. Clear Results / Clear session files / a new run replace them. */
+  var SESSION_IN = '__session_inputs', SESSION_POS = '__session_pos', SESSION_ST = '__session_state';
+  var sessTimer = 0, sessInputsDirty = false, sessRestoring = true, savedPosSig = null, sessPending = false, sessQueued = false;
+  // Closing the page while the session is being saved would lose the latest results, so the browser asks first.
+  window.addEventListener('beforeunload', function (e) { if (sessPending && !sessRestoring) { e.preventDefault(); e.returnValue = ''; } });
+  function posSig() { var x = state.inputs.pos; return x ? JSON.stringify([x.savedAt || '', x.files.map(function (f) { return [f.name, f.size, f.data.length, f.libSavedAt || '']; })]) : ''; }
+  function inputsSig() {
+    var o = {};
+    M.INPUTS.forEach(function (d) { var x = state.inputs[d.id]; o[d.id] = x ? [x.savedAt || '', x.files.map(function (f) { return [f.name, f.data.length, f.libSavedAt || '']; })] : null; });
+    return JSON.stringify(o);
+  }
+  function saveSessionSoon(inputsToo) {
+    if (inputsToo) sessInputsDirty = true;
+    if (sessRestoring) return;
+    sessPending = true; sessQueued = true;
+    clearTimeout(sessTimer);
+    sessTimer = setTimeout(saveSession, 1200);
+  }
+  function saveSession() {
+    if (state.storage !== 'indexeddb') { sessPending = false; return Promise.resolve(); }
+    if (state.busy || state.edits.busy || sessRestoring) { clearTimeout(sessTimer); sessTimer = setTimeout(saveSession, 1500); return Promise.resolve(); }
+    sessQueued = false;
+    var jobs = [];
+    if (sessInputsDirty) {
+      sessInputsDirty = false;
+      var ps = posSig(), rin = { id: SESSION_IN, savedAt: melb(), sup: state.inputs.sup || null, brands: supView.brands, pos: ps };
+      jobs.push(dbTx('readwrite', function (st) { st.put(rin); }));
+      // The POS Database (tens of thousands of rows) is written only when it changes.
+      if (ps !== savedPosSig) { var rp = { id: SESSION_POS, pos: state.inputs.pos || null }; jobs.push(dbTx('readwrite', function (st) { st.put(rp); }).then(function () { savedPosSig = ps; })); }
+    }
+    var has = STAGES.some(function (x) { return (state.stage[x.id] || {}).status === 'done'; }) && !!state.engine && state.loadedRev === state.rev;
+    var sig = inputsSig();
+    // The sheets themselves are in the engine dump; the results keep everything else (alerts, TXT files, counts).
+    var res = {}, sheetKeys = [];
+    Object.keys(state.results).forEach(function (k) { var v = state.results[k]; if (Array.isArray(v) && v.length && Array.isArray(v[0])) sheetKeys.push(k); else res[k] = v; });
+    jobs.push((has ? state.engine.send({ cmd: 'dump' }).then(function (r) { return r.dump; }).catch(function (e) { console.warn('Engine dump failed', e); return null; }) : Promise.resolve(null)).then(function (dump) {
+      var keep = has && dump;
+      var rst = { id: SESSION_ST, savedAt: melb(), opts: state.opts, outView: wb.outView, sig: sig,
+        stage: keep ? state.stage : null, results: keep ? res : null, sheetKeys: keep ? sheetKeys : null, dump: keep ? dump : null,
+        edits: keep ? { marks: state.edits.marks, outAfter3: state.edits.outAfter3, pos: state.edits.pos, optsAfter3: state.edits.optsAfter3 } : null,
+        pendingSup: keep ? state.pendingSup : 0, resultScope: keep ? state.resultScope : null, loadedScope: keep ? state.loadedScope : '' };
+      return dbTx('readwrite', function (st) { st.put(rst); });
+    }));
+    return Promise.all(jobs).catch(function (e) { console.warn('Session not saved', e); }).then(function () { if (!sessQueued) sessPending = false; });
+  }
+  function restoreInputs() {
+    var rin = null, rpos = null;
+    return dbTx('readonly', function (st) { return st.get(SESSION_IN); }).then(function (rec) { rin = rec; return rec ? dbTx('readonly', function (st) { return st.get(SESSION_POS); }) : null; }).then(function (rec) {
+      rpos = rec;
+      if (!rin) return false;
+      var any = false;
+      if (rin.sup && rin.sup.files && rin.sup.files.length) { state.inputs.sup = rin.sup; any = true; }
+      if (rpos && rpos.pos && rpos.pos.files && rpos.pos.files.length) { state.inputs.pos = rpos.pos; any = true; savedPosSig = posSig(); }
+      else savedPosSig = '';
+      supView.brands = rin.brands && rin.brands.length ? rin.brands : null;
+      state.rev++;
+      return any;
+    }).catch(function (e) { console.warn('Saved session inputs unavailable', e); return false; });
+  }
+  function restoreState() {
+    return dbTx('readonly', function (st) { return st.get(SESSION_ST); }).then(function (rec) {
+      if (!rec) return null;
+      if (rec.opts) state.opts = { keep: rec.opts.keep || {}, discontinue: rec.opts.discontinue !== false };
+      if (rec.outView) wb.outView = rec.outView;
+      refreshSupSheet(); renderScopes();
+      if (!rec.dump || !rec.results || !rec.stage || !requiredReady()) return null;
+      if (rec.sig !== inputsSig()) return { changed: true, at: rec.savedAt };
+      setGlobal('Putting your last session back (saved ' + rec.savedAt + ')…', 'running');
+      // The engine is loaded with the brand scope the results were made with; a different SUP BRAND filter now makes the
+      // next run load it again (ensureLoaded compares loadedScope).
+      var scope = rec.loadedScope || '';
+      return state.engine.ready.then(function () {
+        return state.engine.send({ cmd: 'load', sheets: buildSheetsPayload(scope ? JSON.parse(scope) : null) });
+      }).then(function () {
+        return state.engine.send({ cmd: 'restore', dump: rec.dump, sheets: rec.sheetKeys || [] });
+      }).then(function (res) {
+        state.loadedRev = state.rev; state.loadedScope = scope;
+        state.results = rec.results; state.stage = rec.stage;
+        Object.keys((res && res.sheets) || {}).forEach(function (n) { state.results[n] = res.sheets[n]; });
+        STAGES.forEach(function (x) { var st = state.stage[x.id]; if (!st || st.status === 'running') state.stage[x.id] = { status: 'ready' }; });
+        state.edits = Object.assign({ marks: {}, undo: {}, outAfter3: false, pos: {}, busy: false, optsAfter3: false }, rec.edits || {});
+        state.edits.undo = {}; state.edits.busy = false;
+        state.pendingSup = res && res.pending !== undefined ? res.pending : (rec.pendingSup || 0);
+        state.resultScope = rec.resultScope || null;
+        STAGES.forEach(function (x) { var st = state.stage[x.id]; stageSet(x.id, st.status, st.msg); });
+        addTxtOutputs();
+        if (state.results[SHEETS.OUT]) { renderReview(); }
+        renderTabs(); refreshSupSheet(); renderScopes(); updateRunButtons(); renderOutputs();
+        if (state.results[SHEETS.OUT]) wbShow('out', true);
+        return addWorkbookOutput().then(function () { return { at: rec.savedAt }; });
+      });
+    }).catch(function (e) { console.warn('Session results not restored', e); return { failed: e.message }; });
+  }
+  // A session keeps the POS Database it used; say so when the Library has a newer one.
+  window.PHFMergeSession = { pending: function () { return sessPending || sessRestoring; } };
+  function newerPosNote() {
+    var f = state.inputs.pos && state.inputs.pos.files[0];
+    if (!LIB || !f || !f.libKind) return Promise.resolve('');
+    return LIB.get(f.libKind).then(function (rec) {
+      return rec && rec.savedAt !== f.libSavedAt ? ' A newer POS Database is in the Library (built ' + LIB.when(rec) + ') — this session keeps the one it used; remove the POS Database (✕ on its row) and reload the page to use the newer one.' : '';
+    }).catch(function () { return ''; });
+  }
+
   // ----------------------------------------------------------------- boot
   function renderAll() { renderInputNav(); renderInputSummary(); updateRunButtons(); renderTabs(); if (wb.active !== 'sup' && wb.active !== 'out') wbShow(wb.active, true); }
   function boot() {
@@ -1863,7 +2160,7 @@
     $('#supPanel').innerHTML = supSheetHtml(); wireSupSheet();
     renderTabs(); wbShow('sup', true);
     $('#runAllBtn').onclick = function () { runTo('export'); };
-    $('#clearAllBtn').onclick = function () { if (state.busy) return; invalidateResults('Results cleared.'); startEngine().then(updateRunButtons); setGlobal('Results cleared. Input files are kept.', 'info'); };
+    $('#clearAllBtn').onclick = function () { if (state.busy) return; invalidateResults('Results cleared.'); startEngine().then(updateRunButtons); setGlobal('Results cleared. Input files are kept (and stay saved in this browser).', 'info'); };
     $('#railClearSession').onclick = function () {
       removeInputs(M.INPUTS.filter(function (d) { return !d.stored; }).map(function (d) { return d.id; }), 'POS database and supplier rows removed (including rows added in the sheet). Saved reference data is kept.');
     };
@@ -1871,11 +2168,22 @@
       removeInputs(M.INPUTS.filter(function (d) { return d.stored; }).map(function (d) { return d.id; }), 'Saved reference data removed from this browser.');
     };
     renderAll();
-    refLoadAll().then(function () { renderAll(); return libLoad(); }).then(function (got) {
+    var hadInputs = false;
+    refLoadAll().then(restoreInputs).then(function (had) { hadInputs = had; renderAll(); return libLoad(); }).then(function (got) {
       renderAll();
       var saved = M.INPUTS.filter(function (d) { return d.stored && loaded(d.id); }).length;
-      setGlobal((got && got.length ? 'From the Library: ' + got.join(' · ') + '. ' : '') + (saved ? saved + ' saved reference table' + (saved === 1 ? '' : 's') + ' loaded from this browser. ' : '') + readinessText(), requiredReady() ? 'ready' : 'missing');
+      setGlobal((got && got.length ? 'From the Library: ' + got.join(' · ') + '. ' : '') + (hadInputs ? 'Your POS Database and Supplier Updates from last time are back. ' : '') + (saved ? saved + ' saved reference table' + (saved === 1 ? '' : 's') + ' loaded from this browser. ' : '') + readinessText(), requiredReady() ? 'ready' : 'missing');
       if (state.activeInput) showInput(state.activeInput);
+      return restoreState();
+    }).then(function (r) {
+      sessRestoring = false;
+      return newerPosNote().then(function (note) {
+        if (r && r.at && !r.changed) setGlobal('Your last session is back (saved ' + r.at + ') — results, edits and TXT files. It stays until Clear Results, Clear session files or a new run.' + note, 'success');
+        else if (r && r.changed) setGlobal('Your input files are back, but they changed since the results were saved (' + r.at + ') — run the stages again.' + note, 'missing');
+        else if (r && r.failed) setGlobal('Your input files are back; the saved results could not be put back (' + r.failed + ') — run the stages again.' + note, 'missing');
+        else if (note) setGlobal(readinessText() + note, 'info');
+        saveSessionSoon(true);
+      });
     });
     libSupRefresh();
     if (LIB) LIB.onChange(function (msg) {

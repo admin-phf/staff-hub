@@ -1,4 +1,12 @@
-/* PHF Staff Hub — POS Supplier New Product Check and Clean Merge · engine-host.js v1.1.0 (11 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.2.0 (12 Oct 2026)
+ * v1.2.0 (all outside the Apps Script files, which are unchanged):
+ *   run 'generate' + visible:[OUT sheet rows] → the Sheet's "from filtered data" generate (only those OUT rows);
+ *   run 'generate' + keep:['ws','rrp','sub','brand','product','units','minorder','gst','supplier'] → matched products keep
+ *     POS's current value for those fields in OUT_POS_UPDATE (from TMP_MERGED_POS_DATA, exactly as stored) and a matched
+ *     product that ends up the same as POS is left out; discontinue:false leaves the DISCONTINUED rows out;
+ *   run 'export' + only:{ sheet: [sheet rows] } → the TXT for that sheet has only those rows;
+ *   { cmd:'dump' } / { cmd:'restore', dump } → the engine's sheets (all but TMP_MERGED_POS_DATA) and document properties,
+ *     so the page can keep a session in the browser and put it back after the inputs are loaded again.
  * Message handler around the unchanged Apps Script engine.
  * Runs inside the Web Worker (js/engine-worker.js) or, when workers are not
  * available (page opened from a file), inside engine-frame.html.
@@ -40,7 +48,7 @@
     return {
       setup: typeof G.SCRIPT_VERSION !== 'undefined' ? G.SCRIPT_VERSION : '',
       merge: (typeof G.M13 !== 'undefined' && G.M13 && G.M13.VERSION) ? G.M13.VERSION : '',
-      host: 'v1.1.0',
+      host: 'v1.2.0',
       worker: isWorker
     };
   }
@@ -162,6 +170,121 @@
     return out;
   }
 
+  // ------------------------------------------------ v1.2.0 run options (keep POS values, discontinue, filtered rows)
+  var KEEP_COLS = {                       // OUT_POS_UPDATE column → TMP_MERGED_POS_DATA heading, by tick group
+    ws: [[12, 'POS WSP EXCGST'], [13, 'POS LAST PRICE']],
+    rrp: [[15, 'POS RRP INCGST'], [16, 'POS PR 1 PC'], [17, 'POS PR 2 PC'], [18, 'POS PR 3 PC'], [19, 'POS PR 4 PC'], [20, 'POS PR 5 PC'],
+      [21, 'POS PR 6 PC'], [22, 'POS PR 7 PC'], [23, 'POS PR 8 PC'], [24, 'POS PR 9 PC'], [25, 'POS RET PRICE']],
+    sub: [[2, 'POS SUB ID']], brand: [[3, 'POS BRAND']], product: [[4, 'POS DESCR'], [5, 'POS POS DESC']],
+    units: [[10, 'POS UNITS']], minorder: [[11, 'POS MIN ORDER QTY']], gst: [[14, 'POS GST TAX PC']], supplier: [[8, 'POS SUPPLIER']]
+  };
+  // Columns compared to say a matched product is the same as POS (POS INDEX and pos soh are not product data).
+  var SAME_COLS = [[2, 'POS SUB ID'], [3, 'POS BRAND'], [4, 'POS DESCR'], [5, 'POS POS DESC'], [6, 'POS DISSNO'], [7, 'POS PROD GRP'], [8, 'POS SUPPLIER'],
+    [9, 'POS LOYALTY SCHEME'], [10, 'POS UNITS'], [11, 'POS MIN ORDER QTY'], [12, 'POS WSP EXCGST'], [13, 'POS LAST PRICE'], [14, 'POS GST TAX PC'],
+    [15, 'POS RRP INCGST'], [16, 'POS PR 1 PC'], [17, 'POS PR 2 PC'], [18, 'POS PR 3 PC'], [19, 'POS PR 4 PC'], [20, 'POS PR 5 PC'], [21, 'POS PR 6 PC'],
+    [22, 'POS PR 7 PC'], [23, 'POS PR 8 PC'], [24, 'POS PR 9 PC'], [25, 'POS RET PRICE'], [26, 'POS PHARM PROD'], [27, 'POS SCALES'], [28, 'POS ITEMSIZE'], [29, 'POS PACKAGING']];
+  var runOpts = null, runInfo = null;
+  function posByPlu() {
+    var t = shim.ss._find('TMP_MERGED_POS_DATA'); if (!t) return null;
+    var head = (t.cells[1] || []).map(function (h) { return String(h == null ? '' : h).trim().toUpperCase(); });
+    var col = {}; head.forEach(function (h, i) { if (h && col[h] === undefined) col[h] = i; });
+    var plu = col['POS PLU'], map = {};
+    if (plu === undefined) return null;
+    for (var r = 2; r < t.cells.length; r++) { var row = t.cells[r]; if (!row) continue; var k = String(row[plu] == null ? '' : row[plu]).trim(); if (k && !map[k]) map[k] = row; }
+    return { map: map, col: col };
+  }
+  function sameVal(a, b) {
+    var x = String(a == null ? '' : a).replace(/[$,]/g, '').trim(), y = String(b == null ? '' : b).replace(/[$,]/g, '').trim();
+    if (x === y) return true;
+    var nx = Number(x), ny = Number(y);
+    if (x !== '' && y !== '' && isFinite(nx) && isFinite(ny)) return Math.abs(nx - ny) < 0.00005;
+    return false;
+  }
+  // Fields POS cannot take blank: when POS itself has no value there, the merge's value stays.
+  var NEED_VALUE = { 10: 1, 11: 1, 15: 1, 16: 1, 17: 1, 18: 1, 19: 1, 20: 1, 21: 1, 22: 1, 23: 1, 24: 1, 25: 1 };
+  function installRunHooks() {
+    if (G.__phfHooks) return; G.__phfHooks = true;
+    var origUpd = G.m13BuildUpdateOutputRow_, origBuilt = G.m13BuildPosOutputRowsFromOut_, origVis = G.m13BuildVisibleRowSetFromHelper_;
+    if (typeof origUpd === 'function') G.m13BuildUpdateOutputRow_ = function (row, headers) {
+      var out = origUpd.apply(this, arguments);
+      if (runOpts) { try { out.__status = G.m13OutStatusKey_(G.m13OutVal_(row, headers, ['ROW STATUS', 'STATUS'])); } catch (e) { out.__status = ''; } }
+      return out;
+    };
+    if (typeof origBuilt === 'function') G.m13BuildPosOutputRowsFromOut_ = function () {
+      var built = origBuilt.apply(this, arguments);
+      if (!runOpts) return built;
+      var keep = runOpts.keep || [], noDisc = runOpts.discontinue === false, pos = keep.length ? posByPlu() : null;
+      var info = { kept: 0, same: 0, disc: 0, notFound: 0 };
+      built.updateRows = built.updateRows.filter(function (row) {
+        if (row.__status === 'DISCONTINUED') { if (noDisc) { info.disc++; return false; } return true; }
+        if (row.__status !== 'MATCHED' || !keep.length) return true;
+        var p = pos && pos.map[String(row[1] == null ? '' : row[1]).trim()];
+        if (!p) { info.notFound++; return true; }
+        keep.forEach(function (g) {
+          (KEEP_COLS[g] || []).forEach(function (kc) {
+            var ci = pos.col[kc[1]]; if (ci === undefined) return;
+            var v = p[ci] == null ? '' : p[ci];
+            if (String(v).trim() === '' && NEED_VALUE[kc[0]]) return;
+            row[kc[0]] = v;
+          });
+        });
+        info.kept++;
+        var same = SAME_COLS.every(function (sc) { var ci = pos.col[sc[1]]; return ci === undefined || sameVal(row[sc[0]], p[ci]); });
+        if (same) { info.same++; info.kept--; return false; }
+        return true;
+      });
+      built.updateRows.forEach(function (row, i) { row[0] = i + 1; delete row.__status; });
+      runInfo = info;
+      return built;
+    };
+    if (typeof origVis === 'function') G.m13BuildVisibleRowSetFromHelper_ = function () {
+      if (runOpts && runOpts.visible) { var v = {}; runOpts.visible.forEach(function (r) { v[r] = true; }); return v; }
+      return origVis.apply(this, arguments);
+    };
+  }
+  // Export with only some rows of a POS sheet: the other rows are emptied for the export (the TXT skips empty rows) and
+  // put back after it, so row positions and number formats stay as they are.
+  function withOnlyRows(only, fn) {
+    var saved = [];
+    Object.keys(only || {}).forEach(function (name) {
+      var sh = shim.ss._find(name); if (!sh) return;
+      var keep = {}; (only[name] || []).forEach(function (r) { keep[r] = true; });
+      saved.push({ sh: sh, snap: snapSheet(sh) });
+      for (var r = 3; r <= sh.cells.length; r++) if (!keep[r]) sh.cells[r - 1] = null;
+      sh._recount();
+    });
+    try { return fn(); }
+    finally { saved.forEach(function (s) { s.sh.cells = s.snap.cells; s.sh.notes = s.snap.notes; s.sh.maxRows = s.snap.maxRows; s.sh._recount(); }); }
+  }
+  // ------------------------------------------------ v1.2.0 session dump / restore
+  var SKIP_KEYS = { ss: 1, _proxy: 1, filter: 1 };
+  function dumpSheets() {
+    var out = [];
+    shim.ss.sheets.forEach(function (sh) {
+      if (sh.name === 'TMP_MERGED_POS_DATA') { out.push({ name: sh.name, tmp: true }); return; }
+      var o = { name: sh.name };
+      Object.keys(sh).forEach(function (k) { if (!SKIP_KEYS[k] && typeof sh[k] !== 'function') o[k] = sh[k]; });
+      out.push(o);
+    });
+    return { v: 1, sheets: out, props: G.PropertiesService.getDocumentProperties().getProperties() };
+  }
+  function restoreSheets(d) {
+    if (!d || d.v !== 1 || !d.sheets) throw new Error('The saved session is from another version.');
+    var tmp = shim.ss._find('TMP_MERGED_POS_DATA'), list = [];
+    d.sheets.forEach(function (o) {
+      if (o.tmp) { if (tmp) list.push(tmp); return; }
+      shim.addSheet(o.name, []);
+      var sh = shim.ss._find(o.name);
+      shim.ss.sheets.splice(shim.ss.sheets.indexOf(sh), 1);
+      Object.keys(o).forEach(function (k) { if (k !== 'name') sh[k] = o[k]; });
+      sh.filter = null;
+      list.push(sh);
+    });
+    shim.ss.sheets = list;
+    var dp = G.PropertiesService.getDocumentProperties(); dp.deleteAllProperties(); dp.setProperties(d.props || {});
+    undo = {};
+  }
+
   function handle(msg) {
     if (!msg || !msg.cmd) return;
     currentId = msg.id;
@@ -172,6 +295,19 @@
         makeShim();
         Object.keys(msg.sheets || {}).forEach(function (name) { shim.addSheet(name, msg.sheets[name]); });
         post({ type: 'loaded', id: msg.id, versions: versions() });
+        return;
+      }
+      if (msg.cmd === 'dump') {
+        if (!shim) throw new Error('Nothing is loaded in the engine.');
+        post({ type: 'result', id: msg.id, dump: dumpSheets() });
+        return;
+      }
+      if (msg.cmd === 'restore') {
+        if (!shim) throw new Error('Load the inputs before putting a session back.');
+        restoreSheets(msg.dump);
+        var shown = {};
+        (msg.sheets || []).forEach(function (n) { var dd = shim.sheetDisplay(n); if (dd) shown[n] = dd; });
+        post({ type: 'result', id: msg.id, sheets: shown, pending: pending() });
         return;
       }
       if (msg.cmd === 'edit' || msg.cmd === 'undo') {
@@ -189,12 +325,19 @@
         if (step === 'build') clearQueue();          // a new OUT_MERGED_DATA: supplier changes queued for the old one no longer apply
         undo = {};                                   // the script rewrote its sheets: earlier edits can no longer be undone
         var t0 = Date.now();
-        var ret = G[fnName]();
+        installRunHooks();
+        runInfo = null;
+        runOpts = (step === 'generate' && (msg.visible || (msg.keep && msg.keep.length) || msg.discontinue === false))
+          ? { visible: msg.visible || null, keep: msg.keep || [], discontinue: msg.discontinue !== false } : null;
+        if (step === 'generate' && msg.visible) fnName = 'generateInsertUpdateSheetsFromFilteredData';
+        var ret;
+        try { ret = step === 'export' && msg.only ? withOnlyRows(msg.only, function () { return G[fnName](); }) : G[fnName](); }
+        finally { runOpts = null; }
         var files = [];
         if (step === 'export' && ret && ret.length) {
           files = ret.map(function (f) { return { label: f.label, filename: f.filename, rowCount: f.rowCount, base64: f.base64 }; });
         }
-        post({ type: 'result', id: msg.id, step: step, ms: Date.now() - t0, alerts: alerts, dialogs: dialogs, logs: logs.slice(-40), sheets: sheetsFor(step), files: files, pending: pending() });
+        post({ type: 'result', id: msg.id, step: step, ms: Date.now() - t0, alerts: alerts, dialogs: dialogs, logs: logs.slice(-40), sheets: sheetsFor(step), files: files, pending: pending(), info: runInfo });
         return;
       }
     } catch (e) {

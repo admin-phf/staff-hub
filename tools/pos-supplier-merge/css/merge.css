@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS Supplier New Product Check and Clean Merge v1.5.0 (11 Oct 2026; v1.4.0 earlier the same day)
+/* PHF Staff Hub — POS New Product Check Clean v1.6.0 (12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
    Tool-only additions. Layout and colours come from css/app.css (same layout as
    Build Master Databases) and the shared assets/css/theme.css (linked last). */
 
@@ -299,3 +299,44 @@ body.phf-page-merge .review-table .rv-clamp{display:-webkit-box;-webkit-box-orie
 body.phf-page-merge .review-table .rv-clamp.is-open{display:block;-webkit-line-clamp:unset}
 /* Header: the longer name wraps under the title; the breadcrumb wraps before it can reach the title. */
 body.phf-page-merge .phf-shell-meta{max-width:330px}
+
+/* v1.6.0 — Update in POS ticks on the supplier headings: an unticked column is greyed (POS keeps its value). */
+body.phf-page-merge .sup-keep{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:4px;font-size:9px;font-weight:700;letter-spacing:.02em;text-transform:none;color:#2E7D32;cursor:pointer;white-space:nowrap}
+body.phf-page-merge .sup-keep input{width:13px;height:13px;margin:0;accent-color:#2E7D32;cursor:pointer}
+body.phf-page-merge .sup-table.keep-c2 th.sup-c2,body.phf-page-merge .sup-table.keep-c4 th.sup-c4,body.phf-page-merge .sup-table.keep-c5 th.sup-c5,body.phf-page-merge .sup-table.keep-c6 th.sup-c6,body.phf-page-merge .sup-table.keep-c7 th.sup-c7,body.phf-page-merge .sup-table.keep-c8 th.sup-c8,body.phf-page-merge .sup-table.keep-c9 th.sup-c9,body.phf-page-merge .sup-table.keep-c10 th.sup-c10,body.phf-page-merge .sup-table.keep-c11 th.sup-c11{background:#FFF4E0;color:#7A4F00}
+body.phf-page-merge .sup-table.keep-c2 th.sup-c2 .sup-keep,body.phf-page-merge .sup-table.keep-c4 th.sup-c4 .sup-keep,body.phf-page-merge .sup-table.keep-c5 th.sup-c5 .sup-keep,body.phf-page-merge .sup-table.keep-c6 th.sup-c6 .sup-keep,body.phf-page-merge .sup-table.keep-c7 th.sup-c7 .sup-keep,body.phf-page-merge .sup-table.keep-c8 th.sup-c8 .sup-keep,body.phf-page-merge .sup-table.keep-c9 th.sup-c9 .sup-keep,body.phf-page-merge .sup-table.keep-c10 th.sup-c10 .sup-keep,body.phf-page-merge .sup-table.keep-c11 th.sup-c11 .sup-keep{color:#B06000}
+body.phf-page-merge .sup-table.keep-c2 td.sup-c2,body.phf-page-merge .sup-table.keep-c4 td.sup-c4,body.phf-page-merge .sup-table.keep-c5 td.sup-c5,body.phf-page-merge .sup-table.keep-c6 td.sup-c6,body.phf-page-merge .sup-table.keep-c7 td.sup-c7,body.phf-page-merge .sup-table.keep-c8 td.sup-c8,body.phf-page-merge .sup-table.keep-c9 td.sup-c9,body.phf-page-merge .sup-table.keep-c10 td.sup-c10,body.phf-page-merge .sup-table.keep-c11 td.sup-c11{background-image:repeating-linear-gradient(135deg,rgba(128,134,139,.13) 0 6px,rgba(128,134,139,.04) 6px 12px);color:#80868B}
+body.phf-page-merge .sup-filt{display:inline-grid;place-items:center;width:18px;height:16px;margin-left:5px;padding:0;border:1px solid transparent;border-radius:4px;background:transparent;color:#7B8794;cursor:pointer;vertical-align:middle}
+body.phf-page-merge .sup-filt svg{width:11px;height:11px}
+body.phf-page-merge .sup-filt:hover{border-color:#A8C7FA;background:#E8F0FE;color:#0B57D0}
+body.phf-page-merge .sup-filt.is-on{background:#0B57D0;border-color:#0B57D0;color:#fff}
+body.phf-page-merge .sup-table tbody tr.is-out td{color:#9AA0A6}
+body.phf-page-merge .sup-opts{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;justify-content:space-between;padding:8px 12px;background:#F4F8F4;border-bottom:1px solid #CFE3D2;font-size:11.5px;color:#304030}
+body.phf-page-merge .sup-opts-main{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;flex:1 1 520px;min-width:0}
+body.phf-page-merge .sup-opts-kept{color:#7A4F00}
+body.phf-page-merge .sup-opts-kept b{font-weight:800}
+body.phf-page-merge .sup-disc{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:#304030;cursor:pointer}
+body.phf-page-merge .sup-disc input{width:14px;height:14px;margin:0;accent-color:#2E7D32}
+body.phf-page-merge .sup-disc.is-off{color:#A50E0E}
+body.phf-page-merge .sup-scope-filter{display:inline-flex;align-items:center;gap:6px;padding:2px 4px 2px 9px;border-radius:999px;background:#E8F0FE;border:1px solid #A8C7FA;color:#0B57D0;font-weight:700;font-size:11px}
+body.phf-page-merge .sup-scope-filter .btn{min-height:22px;padding:1px 8px;font-size:10.5px}
+
+/* Notes on the stage cards and above the sheets: what the next run covers. */
+body.phf-page-merge .stage-scope{margin:-2px 0 8px;padding:6px 9px;border-radius:7px;background:#FFF7E0;border:1px solid #F0D58A;color:#5C4300;font-size:11.5px;line-height:1.4}
+body.phf-page-merge .stage-scope[hidden]{display:none}
+body.phf-page-merge .stage-scope b{color:#7A4F00}
+body.phf-page-merge .out-actions-filter{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;background:#FFF7E0;border:1px solid #F0D58A;color:#7A4F00;font-size:11.5px;font-weight:700}
+
+/* Column filter picker (sheet-grid v1.2.0): tick the values to show. */
+body.phf-page-merge .wbg-pop.wbg-pick{position:fixed;z-index:60;width:300px;max-height:min(420px,80vh)}
+body.phf-page-merge .wbg-plinks{display:flex;align-items:center;gap:10px;margin:0 0 4px;font-size:11.5px}
+body.phf-page-merge .wbg-plink{border:0;background:none;padding:0;color:#0B57D0;font:700 11.5px/1.2 var(--phf-font);cursor:pointer}
+body.phf-page-merge .wbg-plink:hover{text-decoration:underline}
+body.phf-page-merge .wbg-pcount{margin-left:auto;color:var(--phf-muted);font-weight:600}
+body.phf-page-merge label.wbg-pv{align-items:center;justify-content:flex-start}
+body.phf-page-merge label.wbg-pv input{margin:0;width:14px;height:14px;flex:0 0 auto;accent-color:#0B57D0}
+body.phf-page-merge label.wbg-pv span{flex:1 1 auto}
+body.phf-page-merge label.wbg-pv.is-on{background:transparent;font-weight:400}
+body.phf-page-merge label.wbg-pv:hover{background:#E8F0FE}
+body.phf-page-merge .wbg-flag{display:block;margin-top:2px;font-size:8.5px;font-weight:800;letter-spacing:.06em;color:#B06000}
+body.phf-page-merge th.wbg-flagged{background:#FFF4E0!important;color:#7A4F00!important}
