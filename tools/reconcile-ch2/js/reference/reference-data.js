@@ -1,3 +1,9 @@
+// v2.10.0 (12 Oct 2026): the discount rules are the Staff Hub's shared Ongoing Discounts file (Library kind
+// "lib:ref-discounts", also used by Build POS Master Databases and POS New Product Check Clean), so a file dropped in any of
+// the three fills the others. A POS DB & SUPPLIER MERGE workbook dropped here still works: its SRC_POS_ONGOING_DISCOUNTS sheet
+// is saved as the shared Ongoing Discounts file and the whole workbook is kept as "supplierMerge" for its supplier names,
+// CH2 supplier links and brand changes. Saved before v2.10.0 as "supplierMerge" only? It is still read, and its discounts sheet
+// is copied to the shared file the first time Reconcile opens.
 // v2.9.2 (10 Oct 2026): this store is also the Staff Hub Library (assets/js/phf-library.js). Build Master Databases saves
 // the full merged master here as "posMaster", so it is ready without dropping it. Clear removes only Reconcile's own files.
 (function(global){
@@ -78,22 +84,69 @@
     return {supplierMap,ch2SupplierLookup,discountRules,brandMap,info:{supplierRows:supplierMap.size,ch2Rows:ch2SupplierLookup.size,discountRules:discountRules.length,brandChanges:brandMap.size}};
   }
 
+  const DISC_KIND='lib:ref-discounts',FULL_KIND='supplierMerge',SOURCE='Reconcile CH2 Order';
+  const DISC_REQ=[['POS DISCOUNT%','POS_DISCOUNT','POS DISCOUNT %','DISCOUNT']];
+  // A workbook with more than the discount sheet (POS DB & SUPPLIER MERGE) → its SRC_POS_ONGOING_DISCOUNTS sheet on its own.
+  async function discountsOnly(file){
+    const name=clean(file&&file.name).toLowerCase();if(name.endsWith('.csv'))return null;
+    const wb=await readWorkbook(file);if(wb.SheetNames.length<2)return null;
+    const s=locateSheet(wb,DISC_REQ,['SRC_POS_ONGOING_DISCOUNTS']);if(!s)return null;
+    const ws=Object.assign({},wb.Sheets[s.name]);
+    for(const k of Object.keys(ws))if(k[0]!=='!'&&ws[k]&&typeof ws[k]==='object'){const c=Object.assign({},ws[k]);delete c.f;delete c.F;ws[k]=c;}
+    const out=global.XLSX.utils.book_new();global.XLSX.utils.book_append_sheet(out,ws,'SRC_POS_ONGOING_DISCOUNTS');
+    const buf=global.XLSX.write(out,{bookType:'xlsx',type:'array'});
+    const base=clean(file.name).replace(/\.(xlsx|xlsm|xls)$/i,'');
+    return new File([buf],`SRC_POS_ONGOING_DISCOUNTS (from ${base}).xlsx`,{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',lastModified:file.lastModified||Date.now()});
+  }
+  // Save a dropped discount file: always as the shared Ongoing Discounts; a full workbook is also kept for its extra sheets.
+  async function saveDiscounts(file){
+    const disc=await discountsOnly(file);
+    if(disc){await save(FULL_KIND,file);await save(DISC_KIND,disc,{name:disc.name,meta:`From ${file.name}`});return {full:true,name:disc.name};}
+    await save(DISC_KIND,file);
+    return {full:false,name:file.name};
+  }
+  // Saved before v2.10.0 as supplierMerge only: copy its discounts sheet to the shared Ongoing Discounts file once.
+  async function shareLegacy(){
+    try{const [disc,full]=await Promise.all([load(DISC_KIND),load(FULL_KIND)]);if(disc||!full||!full.blob)return false;
+      const f=full.blob instanceof File?full.blob:new File([full.blob],full.name||'POS DB & SUPPLIER MERGE.xlsx',{type:full.blob.type||''});
+      const d=await discountsOnly(f);if(!d)return false;await save(DISC_KIND,d,{name:d.name,meta:`From ${full.name}`});return true;}
+    catch(err){console.warn('Could not share the saved discount rules as Ongoing Discounts',err);return false;}
+  }
+
   function openDb(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(STORE))db.createObjectStore(STORE,{keyPath:'kind'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
-  async function save(kind,file){parsedCache=null;const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);store.delete('parsedReferenceCache');store.put({kind,name:file.name,size:file.size,lastModified:file.lastModified||0,savedAt:new Date().toISOString(),blob:file});tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
+  async function save(kind,file,info={}){parsedCache=null;
+    if(global.PHFLibrary)return global.PHFLibrary.put(kind,file,{name:info.name||file.name,source:SOURCE,meta:info.meta||''}).then(()=>{});
+    const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);store.delete('parsedReferenceCache');store.put({kind,name:info.name||file.name,size:file.size,lastModified:file.lastModified||0,savedAt:new Date().toISOString(),blob:file,source:SOURCE,meta:info.meta||''});tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
   async function load(kind){const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly'),req=tx.objectStore(STORE).get(kind);req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error);});}
-  async function clear(kind){parsedCache=null;const db=await openDb();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);if(kind){store.delete(kind);store.delete('parsedReferenceCache');}else{['posMaster','supplierMerge','parsedReferenceCache'].forEach(k=>store.delete(k));}tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});}
+  // clear(DISC_KIND) removes the Ongoing Discounts and the workbook it came from; clear() removes all Reconcile's reference files.
+  async function clear(kind){parsedCache=null;const kinds=kind?(kind===DISC_KIND||kind===FULL_KIND?[DISC_KIND,FULL_KIND]:[kind]):['posMaster',DISC_KIND,FULL_KIND];
+    const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite'),store=tx.objectStore(STORE);kinds.concat('parsedReferenceCache').forEach(k=>store.delete(k));tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});
+    try{if(global.BroadcastChannel){const ch=new BroadcastChannel('phf-library');kinds.forEach(k=>ch.postMessage({action:'remove',kind:k}));ch.close();}}catch(e){}}
   async function saveParsedCache(cacheKey,master,supplier){
     try{const db=await openDb();await new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put({kind:'parsedReferenceCache',cacheKey,master,supplier,savedAt:new Date().toISOString()});tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});return true;}
     catch(err){console.warn('Parsed reference cache could not be saved; current run remains valid.',err);return false;}
   }
-  async function status(){const [master,supplier]=await Promise.all([load('posMaster'),load('supplierMerge')]);return {master,supplier};}
+  // supplier = the discount rules in use: the shared Ongoing Discounts file, or (saved before v2.10.0) the supplierMerge workbook.
+  async function status(){const [master,discounts,full]=await Promise.all([load('posMaster'),load(DISC_KIND),load(FULL_KIND)]);return {master,supplier:discounts||full||null,discounts,full};}
+  // Discount rules from the shared Ongoing Discounts file; supplier names / CH2 links / brand changes from the full workbook
+  // when one was dropped (otherwise from the Ongoing Discounts file itself and the built-in supplier names).
+  async function parseSupplierRefs(st){
+    if(!st.discounts)return parseSupplierMerge(st.full.blob);
+    const disc=await parseSupplierMerge(st.discounts.blob);
+    if(!st.full||!st.full.blob)return disc;
+    let full;try{full=await parseSupplierMerge(st.full.blob);}catch(err){console.warn('POS DB & SUPPLIER MERGE workbook could not be read; using Ongoing Discounts only.',err);return disc;}
+    for(const [k,v] of disc.supplierMap)if(!full.supplierMap.has(k))full.supplierMap.set(k,v);
+    return {supplierMap:full.supplierMap,ch2SupplierLookup:full.ch2SupplierLookup.size?full.ch2SupplierLookup:disc.ch2SupplierLookup,discountRules:disc.discountRules,brandMap:full.brandMap.size?full.brandMap:disc.brandMap,
+      info:{supplierRows:full.supplierMap.size,ch2Rows:(full.ch2SupplierLookup.size?full.ch2SupplierLookup:disc.ch2SupplierLookup).size,discountRules:disc.discountRules.length,brandChanges:(full.brandMap.size?full.brandMap:disc.brandMap).size}};
+  }
   async function parseStored(){
-    const st=await status();if(!st.master)throw new Error('POS/master reference data is not loaded on this computer. Open Admin and load the latest merged_alligned_pos_supplier_uhp_full workbook.');if(!st.supplier)throw new Error('Supplier/discount reference data is not loaded on this computer. Open Admin and load the POS DB & SUPPLIER MERGE workbook or the SRC_POS_ONGOING_DISCOUNTS CSV.');
-    const cacheKey=JSON.stringify([st.master.name,st.master.size,st.master.savedAt,st.supplier.name,st.supplier.size,st.supplier.savedAt]);
+    const st=await status();if(!st.master)throw new Error('POS/master reference data is not loaded on this computer. Open Admin and load the latest merged_alligned_pos_supplier_uhp_full workbook.');if(!st.supplier)throw new Error('Ongoing Discounts is not loaded on this computer. Drop the Ongoing Discounts file (SRC_POS_ONGOING_DISCOUNTS) or the POS DB & SUPPLIER MERGE workbook on its row.');
+    const sig=r=>r?[r.name,r.size,r.savedAt]:null;
+    const cacheKey=JSON.stringify([sig(st.master),sig(st.discounts),sig(st.full)]);
     if(parsedCache&&parsedCache.key===cacheKey)return parsedCache.value;
     const stored=await load('parsedReferenceCache');
     if(stored&&stored.cacheKey===cacheKey&&stored.master&&stored.supplier){const value={master:stored.master,supplier:stored.supplier,meta:st};parsedCache={key:cacheKey,value};return value;}
-    const [master,supplier]=await Promise.all([parsePosMaster(st.master.blob),parseSupplierMerge(st.supplier.blob)]);const value={master,supplier,meta:st};parsedCache={key:cacheKey,value};await saveParsedCache(cacheKey,master,supplier);return value;
+    const [master,supplier]=await Promise.all([parsePosMaster(st.master.blob),parseSupplierRefs(st)]);const value={master,supplier,meta:st};parsedCache={key:cacheKey,value};await saveParsedCache(cacheKey,master,supplier);return value;
   }
-  PHF.referenceStore={save,load,clear,status,parseStored,parsePosMaster,parseSupplierMerge};
+  PHF.referenceStore={save,saveDiscounts,shareLegacy,load,clear,status,parseStored,parsePosMaster,parseSupplierMerge,DISC_KIND};
 })(window);

@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS Supplier New Product Check and Clean Merge · merge-map v1.0.1 (11 Oct 2026: renamed tools in the input descriptions)
+/* PHF Staff Hub — POS New Product Check Clean · merge-map v1.0.2 (12 Oct 2026: Ongoing Discounts is shared with Reconcile CH2 Order; v1.0.1 11 Oct 2026: renamed tools in the input descriptions)
  * merge-map.js — input definitions, file recognition and column mapping.
  * Shared by the page (to check dropped files) and the engine (to build the
  * in-memory workbook). Sheet names, headings and text columns are the ones in
@@ -38,7 +38,7 @@
     { id: 'suppliers', sheet: 'SRC_POS_SUPPLIERS', title: 'POS Suppliers', group: 'Reference data', recommended: true, stored: true,
       desc: 'SRC_POS_SUPPLIERS — POS supplier account numbers and names.', need: ['POS ACCNO', 'POS ACNAME'] },
     { id: 'disc', sheet: 'SRC_POS_ONGOING_DISCOUNTS', title: 'Ongoing Discounts', group: 'Reference data', recommended: true, stored: true,
-      desc: 'SRC_POS_ONGOING_DISCOUNTS — the same discount file Build POS Master Databases uses.', need: ['POS DISCOUNT%'] },
+      desc: 'SRC_POS_ONGOING_DISCOUNTS — one shared file with Build POS Master Databases and Reconcile CH2 Order.', need: ['POS DISCOUNT%'] },
     { id: 'fr', sheet: 'SRC_POS_FIND_REPLACE', title: 'Find & Replace', group: 'Reference data', recommended: false, stored: true,
       desc: 'SRC_POS_FIND_REPLACE — supplier wording → POS wording for descriptions.', need: ['SUP FIND', 'POS REPLACE'] }
   ];

@@ -1,4 +1,15 @@
-# Prahran Health Foods — CH2 Reconciler v2.9.1
+# Prahran Health Foods — CH2 Reconciler v2.10.0
+
+## v2.10.0 — Ongoing Discounts is one shared file (12 Oct 2026 04:40 AEDT)
+
+- The **Supplier + discount rules** row is now **Ongoing Discounts** — the same Library file Build POS Master Databases and
+  POS New Product Check Clean use. Drop it once in any of the three tools and the others have it.
+- The POS DB & SUPPLIER MERGE workbook still works here: its SRC_POS_ONGOING_DISCOUNTS sheet is saved as the shared Ongoing
+  Discounts file, and the whole workbook is kept for its supplier names, CH2 supplier links and brand changes (as before).
+- A workbook saved here before v2.10.0 is shared automatically the first time Reconcile opens.
+- Clear all input files also removes the shared Ongoing Discounts (it says so in the confirm).
+
+# Prahran Health Foods — CH2 Reconciler v2.9.1 (previous)
 
 ## v2.9.1 — shared and blank Sub IDs in the POSActive prediction (09 Oct 2026 09:05 AEDT)
 

@@ -1,4 +1,7 @@
-/* Reconcile CH2 v2.8.0 — input rail + workspace, laid out like Build Master Databases, with Drop All Input Files Here.
+/* Reconcile CH2 v2.10.0 (12 Oct 2026) — the discount rules row is the Staff Hub's shared Ongoing Discounts file (Library
+   kind lib:ref-discounts): loaded from the Library on open, and a file dropped here is saved there for Build POS Master
+   Databases and POS New Product Check Clean too. The POS DB & SUPPLIER MERGE workbook is still accepted.
+   v2.8.0 — input rail + workspace, laid out like Build Master Databases, with Drop All Input Files Here.
    The reconciliation engine (app.js) is unchanged: this script reads the page state app.js
    already maintains (file lists, run button, status, results, download buttons) and forwards
    files dropped on the rail to app.js's own file inputs. Reference files dropped on the rail
@@ -11,7 +14,7 @@
 
   const INPUTS=[
     {id:'master',group:'Reference data',title:'POS / master',kind:'ref',refKind:'posMaster',req:true},
-    {id:'supplier',group:'Reference data',title:'Supplier + discount rules',kind:'ref',refKind:'supplierMerge',req:true},
+    {id:'supplier',group:'Reference data',title:'Ongoing Discounts',kind:'ref',refKind:'lib:ref-discounts',req:true},
     {id:'pos',group:'Order files',title:'POS back-end order',kind:'order',input:'#posInput',list:'#posFiles',req:true},
     {id:'invoices',group:'Order files',title:'Supplier invoices',kind:'order',input:'#invoiceInput',list:'#invoiceFiles',req:true,multiple:true}
   ];
@@ -133,24 +136,28 @@
 
   /* ---------- reference data saved from the rail (same checks as reference-admin) ---------- */
   async function loadReferenceStatus(){
-    try{const s=PHF.referenceStore?await PHF.referenceStore.status():{};ref.master=s.master||null;ref.supplier=s.supplier||null;}
+    try{const s=PHF.referenceStore?await PHF.referenceStore.status():{};ref.master=s.master||null;ref.supplier=s.supplier||null;ref.full=s.full||null;}
     catch(err){console.error(err);ref.message.master=ref.message.supplier='Reference data unavailable';}
     schedule();
   }
+  // Resolves true when the file was validated and saved.
   async function saveReference(def,file){
-    if(!file)return;
+    if(!file)return false;let ok=false;
     select(def.id);
-    if(!/\.(xlsx|xlsm|csv)$/i.test(file.name||'')){ref.invalid[def.id]=true;ref.message[def.id]='Not saved — choose an .xlsx, .xlsm or .csv file.';render();return;}
-    const store=PHF.referenceStore;if(!store){ref.invalid[def.id]=true;ref.message[def.id]='Not saved — reference store unavailable.';render();return;}
+    if(!/\.(xlsx|xlsm|csv)$/i.test(file.name||'')){ref.invalid[def.id]=true;ref.message[def.id]='Not saved — choose an .xlsx, .xlsm or .csv file.';render();return false;}
+    const store=PHF.referenceStore;if(!store){ref.invalid[def.id]=true;ref.message[def.id]='Not saved — reference store unavailable.';render();return false;}
     ref.busy[def.id]=true;ref.invalid[def.id]=false;ref.message[def.id]=`Checking ${file.name}…`;render();
     try{
-      if(def.refKind==='posMaster'){const p=await store.parsePosMaster(file);if(!p.info.records)throw new Error('No usable CH2-linked POS records were found.');ref.message[def.id]=`Validated ${p.info.records.toLocaleString()} CH2-linked POS records`;}
-      else{const p=await store.parseSupplierMerge(file);if(!p.info.discountRules)throw new Error('No usable discount rules were found. Load POS DB & SUPPLIER MERGE or a SRC_POS_ONGOING_DISCOUNTS CSV.');ref.message[def.id]=`Validated ${p.info.discountRules.toLocaleString()} discount rules`;}
-      await store.save(def.refKind,file);
+      if(def.refKind==='posMaster'){const p=await store.parsePosMaster(file);if(!p.info.records)throw new Error('No usable CH2-linked POS records were found.');ref.message[def.id]=`Validated ${p.info.records.toLocaleString()} CH2-linked POS records`;await store.save(def.refKind,file);}
+      else{const p=await store.parseSupplierMerge(file);if(!p.info.discountRules)throw new Error('No usable discount rules were found. Load the Ongoing Discounts file (SRC_POS_ONGOING_DISCOUNTS) or the POS DB & SUPPLIER MERGE workbook.');
+        const r=await store.saveDiscounts(file);
+        ref.message[def.id]=`Validated ${p.info.discountRules.toLocaleString()} discount rules · saved as the shared Ongoing Discounts${r.full?' (its SRC_POS_ONGOING_DISCOUNTS sheet; the workbook is kept for its supplier names)':''}`;}
+      ok=true;
       await loadReferenceStatus();
       const app=global.PHFReconcileApp;if(app&&app.refreshReferenceStatus)await app.refreshReferenceStatus();
     }catch(err){console.error(err);ref.invalid[def.id]=true;ref.message[def.id]=`Not saved — ${err&&err.message?err.message:err}`;}
     finally{ref.busy[def.id]=false;render();}
+    return ok;
   }
   function wireReferenceDrops(){
     document.querySelectorAll('[data-ref-drop]').forEach(zone=>{
@@ -166,7 +173,7 @@
 
   /* ---------- Drop All Input Files Here (v2.8.0) ----------
      Every dropped file is identified from its headings (file name only as a fallback): PDFs and readable invoice
-     spreadsheets → Supplier invoices, merged_alligned master → POS / master, discount rules → Supplier + discount rules,
+     spreadsheets → Supplier invoices, merged_alligned master → POS / master, discount rules → Ongoing Discounts,
      BROWSEORDERFILES-style exports → POS back-end order. Each is handed to the same handler as its own control; anything
      ambiguous, duplicated or unrecognised stays listed with a picker. Nothing runs until Run reconciliation is pressed. */
   const bulk=[];
@@ -201,7 +208,7 @@
   }
   async function assign(r,id){
     const def=INPUTS.find(d=>d.id===id);if(!def)return false;
-    if(def.kind==='ref'){await saveReference(def,r.file);const ok=!!ref[def.id]&&!ref.invalid[def.id]&&ref[def.id].name===r.file.name;r.msg=ok?`Saved as ${def.title} — ${ref.message[def.id]||'validated'}.`:`Not saved as ${def.title} — ${ref.message[def.id]||'structure not recognised'}`;return ok;}
+    if(def.kind==='ref'){const ok=await saveReference(def,r.file);r.msg=ok?`Saved as ${def.title} — ${ref.message[def.id]||'validated'}.`:`Not saved as ${def.title} — ${ref.message[def.id]||'structure not recognised'}`;return ok;}
     const okExt=def.id==='pos'?/\.(xls|xlsx|csv)$/i:/\.(pdf|xls|xlsx|csv)$/i;
     if(!okExt.test(String(r.file.name||''))){r.msg=`Not added — ${def.title} accepts ${def.id==='pos'?'.xls, .xlsx or .csv':'PDF, .xls, .xlsx or .csv'} files.`;return false;}
     acceptFiles(id,[r.file]);r.msg=`Added to ${def.title}.`;return true;
@@ -264,13 +271,17 @@
     const order=$('#railClearOrder'),all=$('#railClearAll'),clear=$('#clearBtn');
     if(order)order.onclick=()=>{if(clear)clear.click();bulk.length=0;renderBulk();schedule();};
     if(all)all.onclick=async()=>{
-      if(!global.confirm('Clear all input files?\n\nThis removes the POS order and supplier invoices from this session AND the saved POS / master and Supplier + discount rules from this browser. You will need to drop the reference files again before the next run.'))return;
+      if(!global.confirm('Clear all input files?\n\nThis removes the POS order and supplier invoices from this session AND the saved POS / master and Ongoing Discounts from this browser (Ongoing Discounts is shared, so Build POS Master Databases and POS New Product Check Clean lose it too). You will need to drop the reference files again before the next run.'))return;
       if(clear)clear.click();bulk.length=0;renderBulk();
       try{if(PHF.referenceStore)await PHF.referenceStore.clear();}catch(err){console.error(err);}
       ref.message.master=ref.message.supplier='';ref.invalid.master=ref.invalid.supplier=false;
       await loadReferenceStatus();const app=global.PHFReconcileApp;if(app&&app.refreshReferenceStatus)await app.refreshReferenceStatus();render();
     };
   }
-  wireReferenceDrops();wireBulkDrop();wireRailClear();observe();render();renderBulk();loadReferenceStatus();
+  // A reference file saved or deleted by another tool or tab (shared Library) shows here straight away.
+  const REF_KINDS={posMaster:1,'lib:ref-discounts':1,supplierMerge:1};
+  if(global.PHFLibrary)global.PHFLibrary.onChange(m=>{if(!m||!(m.action==='clear'||REF_KINDS[m.kind]))return;loadReferenceStatus();const app=global.PHFReconcileApp;if(app&&app.refreshReferenceStatus)app.refreshReferenceStatus();});
+  wireReferenceDrops();wireBulkDrop();wireRailClear();observe();render();renderBulk();
+  (PHF.referenceStore&&PHF.referenceStore.shareLegacy?PHF.referenceStore.shareLegacy():Promise.resolve(false)).then(shared=>{loadReferenceStatus();if(shared){const app=global.PHFReconcileApp;if(app&&app.refreshReferenceStatus)app.refreshReferenceStatus();}});
   global.PHFReconcileWorkspace={select,render,bulkAccept};
 })(window);

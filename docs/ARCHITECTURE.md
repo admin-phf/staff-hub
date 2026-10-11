@@ -364,3 +364,37 @@ All implemented stages keep source business files local to the browser and gener
   tool is open (no entry, remembered in localStorage `phf-lock:<tool>` = hash, or the right password — WebCrypto PBKDF2
   SHA-256, 150,000 rounds, 16-byte salt). Set password downloads a new config to commit. The hub marks locked tiles
   (`a.tile[href*="/tools/<tool>/"]` → `.badge.lock`). Styles are injected by the script. Merge tool: `start()` waits for it.
+
+## Staff Hub v21.13.0 — Supplier Contacts, one Ongoing Discounts file, POS New Product Check Clean (12 Oct 2026 04:40 AEDT)
+- Hub tile order: Build POS Master Databases · Reconcile CH2 Order · Supplier Contacts · Update Specials · Customer Special
+  Orders · Resources · New Products (Soon) · POS New Product Check Clean (`.badge.dev` "In development", `assets/css/hub.css`).
+- `tools/supplier-contacts/` v1.0.0 (new): `index.html`, `css/contacts.css`, `js/contacts.js`. One table of supplier and
+  utility contacts. Search = every word in any field (digits also match phone numbers typed without spaces), `<mark>`
+  highlights. Rows band E9F0F5 / F5F5F5, utilities (Section = Utility, always below the suppliers, after an orange
+  "Utilities" divider) FDEADA / FCD5B4; Reconcile's yellow hover (`background-image` over the row colour). Actions column
+  and Supplier column stay in view (sticky). Add / edit (`<dialog>`, all fields, duplicate-name check, new rows go to the
+  end of their section), delete straight away, Undo (50 steps), Download .xlsx (ExcelJS: navy / gold header, frozen
+  heading + Supplier, filter, conditional formats so the bands survive sorting) and .csv (UTF-8 BOM, CRLF).
+  Storage: Library kind `lib:contacts` (the .xlsx itself, saved 0.3 s after each change; CSV if ExcelJS is unavailable).
+  The data is never in the repository — each computer loads the file once. Reader (`fromMatrix`): heading row in the first
+  15 rows (Supplier or *ContactName), columns by name in any order, unknown columns kept as extra fields, no Section column →
+  rows after "Totally Workwear Moorabbin" are utilities (so the Monday Orders / V8 files load directly too).
+- `assets/js/phf-library.js` v1.1.0: kind `lib:contacts` (`keep: true` — `clearAll()` / hub Delete all leaves it);
+  `lib:ref-discounts` is also Reconcile's discount file and clears Reconcile's `parsedReferenceCache` (`PARSED` kinds);
+  `supplierMerge` = "POS DB & Supplier Merge workbook" (Reconcile extras); RENAMED maps both old merge-tool names.
+- Reconcile CH2 Order v2.10.0: the discount row is **Ongoing Discounts** (`refKind 'lib:ref-discounts'`).
+  `reference-data.js` v2.10.0 — `saveDiscounts(file)`: a plain discount file (one sheet / CSV) → `lib:ref-discounts`; a
+  workbook with more sheets (POS DB & SUPPLIER MERGE) → its SRC_POS_ONGOING_DISCOUNTS sheet (formulas dropped, values kept)
+  as `SRC_POS_ONGOING_DISCOUNTS (from <name>).xlsx` in `lib:ref-discounts` + the whole workbook as `supplierMerge`.
+  `status().supplier` = discounts || supplierMerge. `parseSupplierRefs`: discount rules from `lib:ref-discounts`; supplier
+  names, CH2 supplier links and brand changes from `supplierMerge` when present. `shareLegacy()` (on open): a
+  `supplierMerge` saved before v2.10.0 with no `lib:ref-discounts` → its discount sheet becomes the shared file.
+  `clear('lib:ref-discounts')` removes both; `save()` goes through `PHFLibrary.put` (source "Reconcile CH2 Order") so other
+  tabs update. The rail listens to `PHFLibrary.onChange`. Reconcile pages now load `assets/js/phf-library.js`.
+- POS New Product Check Clean v1.5.1 (was POS Supplier New Product Check and Clean Merge; folder unchanged).
+  `shareToLib(id, file, sheets, tab, entry)`: Ongoing Discounts from its row or from Drop All goes to `lib:ref-discounts`
+  (before, Drop All did not save it); from a workbook with more tabs only that tab, as `SRC_POS_ONGOING_DISCOUNTS (from
+  <name>).xlsx`, so Build POS Master Databases (which reads the first / active sheet) and Reconcile can use it.
+  `assets/js/phf-lock.js` v1.1.0: the prompt is "Still under development" with a password box (light overlay, amber
+  icon, Back to Staff Hub as the main button); `guard()` draws Lock / Password only after the tool opens and Lock clears
+  them while the prompt shows; `markTiles()` turns a locked tool's tile badge into `.badge.dev` "In development".

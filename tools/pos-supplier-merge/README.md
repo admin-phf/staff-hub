@@ -1,6 +1,10 @@
-# POS Supplier New Product Check and Clean Merge v1.5.0 (Staff Hub v21.12.0)
+# POS New Product Check Clean v1.5.1 (Staff Hub v21.13.0)
 
-Updated 11 Oct 2026 15:50 AEDT. (Named POS Supplier Merge up to v1.3.1; the folder and web address are unchanged.)
+Updated 12 Oct 2026 04:40 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.5.1: renamed; with a password set the page opens behind a **Still under development** prompt (below) and the hub tile
+says In development. Ongoing Discounts is one shared file with Build POS Master Databases and Reconcile CH2 Order.
 
 Import, Update, Discontinue and Clean Products and/or Supplier information against current POS Database.
 The POS DB & SUPPLIER MERGE Google Sheet, run in the browser. It uses the **same script files** as the
@@ -16,7 +20,7 @@ and the POS INSERT / UPDATE TXT files are the same. Nothing is uploaded: files s
 | Brand Name Changes (recommended) | SRC_POS_BRAND_NAME_CHANGES | Google Sheet tab | Saved in this browser |
 | Product Prefixes (recommended) | SRC_POS_PRODUCT_PREFIX | Google Sheet tab | Saved in this browser |
 | POS Suppliers (recommended) | SRC_POS_SUPPLIERS | Google Sheet tab | Saved in this browser |
-| Ongoing Discounts (recommended) | SRC_POS_ONGOING_DISCOUNTS | Same file Build POS Master Databases uses | Saved in this browser |
+| Ongoing Discounts (recommended) | SRC_POS_ONGOING_DISCOUNTS | One shared file with Build POS Master Databases and Reconcile CH2 Order — drop it in any of them | Saved in this browser (Library) |
 | Find & Replace (optional) | SRC_POS_FIND_REPLACE | Google Sheet tab | Saved in this browser |
 
 Files are recognised from their headings (the heading row can be row 1 or row 2). A downloaded copy of the
@@ -52,10 +56,11 @@ decreases blue, no change grey, the higher RRP green, ☑ green / ☒ red / ☐ 
 up / blue down / grey same), NEW markup under 35% GP orange, OLD BRAND / BARCODE UPDATE / RRP OVERRIDE amber, supplier
 overrides orange. Columns the Sheet centres are centred. The review workbook (.xlsx) uses the same colours and totals.
 
-## Password lock (v1.5.0)
+## Password lock (v1.5.0, prompt v1.5.1)
 
-**Set password** (top right) makes `phf-lock-config.js`; put it in `assets/js/` and commit — from then on the tool asks
-for the password once per browser (Lock asks again), and its Staff Hub tile shows LOCKED. The file holds a salted
+**Set password** (top right) makes `phf-lock-config.js`; put it in `assets/js/` and commit — from then on the tool opens
+behind a **Still under development** message with a password box, once per browser (Lock asks again), and its Staff Hub
+tile says In development. The Lock / Password buttons show only once the tool is open. The file holds a salted
 PBKDF2-SHA-256 hash, never the password. Password / Remove the password makes a new file the same way. This is a
 static GitHub Pages site, so the lock keeps staff out but is not real security (someone who can read the page code can get
 round it); for that, put the site behind a sign-in such as Cloudflare Access.

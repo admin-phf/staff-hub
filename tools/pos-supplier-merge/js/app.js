@@ -1,4 +1,5 @@
-/* PHF Staff Hub — POS Supplier New Product Check and Clean Merge v1.4.0 (11 Oct 2026; was POS Supplier Merge)
+/* PHF Staff Hub — POS New Product Check Clean v1.5.1 (12 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+ * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
  * three merge stages, downloads and the OUT_MERGED_DATA review table.
@@ -20,11 +21,15 @@
  *         changes, FINAL SHELF RRP worked out again) and stage 3 can run again; OUT_POS_INSERT / UPDATE edits go into
  *         the TXT files with Export TXT again. The tabs look like the Google Sheet (js/sheet-look.js: row-1 totals band,
  *         conditional colours, centred columns). Optional password lock (assets/js/phf-lock.js). Merge v6.3.89.
- */
+
+ * v1.5.1 (12 Oct 2026): renamed POS New Product Check Clean. With a password set, it opens behind a "Still under
+ *         development" prompt and the Lock / Password buttons appear only once it is open (phf-lock.js v1.1.0).
+ *         Ongoing Discounts dropped here (on its row or in Drop All) is saved to the Library as that table alone, so the
+ *         other tools can read it (Reconcile CH2 Order now uses the same file). */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.5.0';
+  var TOOL_VERSION = 'v1.5.1';
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -133,7 +138,7 @@
     function startFrame() {
       kind = 'in-page';
       frame = document.createElement('iframe');
-      frame.hidden = true; frame.title = 'POS Supplier New Product Check and Clean Merge engine';
+      frame.hidden = true; frame.title = 'POS New Product Check Clean engine';
       frame.src = './engine-frame.html?v=1.1.0';
       window.addEventListener('message', frameListener);
       document.body.appendChild(frame);
@@ -236,6 +241,25 @@
     if (def.stored) refSave(id);
     invalidateResults('Inputs changed — run the stages again.');
   }
+  // The shared Ongoing Discounts file goes to the Library as that table alone (v1.5.1): from a workbook with more tabs
+  // (the Google Sheet download) its SRC_POS_ONGOING_DISCOUNTS tab becomes its own .xlsx, so Build POS Master Databases
+  // and Reconcile CH2 Order can read it too.
+  function shareToLib(id, file, sheets, tab, entry) {
+    if (!LIB || !LIB_SHARED[id]) return;
+    var out = file;
+    if (sheets.length > 1) {
+      var sh = sheets.filter(function (x) { return x.name === tab; })[0];
+      if (!sh) return;
+      var wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sh.rows), 'SRC_POS_ONGOING_DISCOUNTS');
+      out = new File([XLSX.write(wb, { bookType: 'xlsx', type: 'array' })], 'SRC_POS_ONGOING_DISCOUNTS (from ' + file.name.replace(/\.(xlsx|xlsm|xls)$/i, '') + ').xlsx',
+        { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', lastModified: file.lastModified || Date.now() });
+    }
+    LIB.put(LIB_SHARED[id], out, { name: out.name, source: 'POS New Product Check Clean', meta: out === file ? '' : 'From ' + file.name }).then(function (r) {
+      entry.libKind = LIB_SHARED[id]; entry.libSavedAt = r.savedAt; entry.libWhen = LIB.when(r);
+      if (inputDef(id).stored) refSave(id); renderAll(); if (state.activeInput === id) showInput(id);
+    }).catch(function (e) { console.warn('Library save failed', e); });
+  }
   function acceptFile(id, file) {
     var def = inputDef(id);
     setGlobal('Reading ' + file.name + '…', 'running');
@@ -243,7 +267,7 @@
       var best = mapForInput(id, sheets);
       var entry = fileEntry(file, best.tab, best.mapped);
       addToInput(id, entry);
-      if (LIB && LIB_SHARED[id]) LIB.put(LIB_SHARED[id], file, { name: file.name, source: 'POS Supplier New Product Check and Clean Merge' }).then(function (r) { entry.libKind = LIB_SHARED[id]; entry.libSavedAt = r.savedAt; entry.libWhen = LIB.when(r); if (inputDef(id).stored) refSave(id); renderAll(); if (state.activeInput === id) showInput(id); }).catch(function (e) { console.warn('Library save failed', e); });
+      shareToLib(id, file, sheets, best.tab, entry);
       setGlobal(def.title + ': ' + file.name + ' loaded — ' + fmtN(best.mapped.report.rows) + ' rows.', 'success');
       renderAll(); showInput(id);
       return true;
@@ -283,7 +307,9 @@
           try {
             var mp = M.mapTable(sh.rows, inputDef(id).sheet, id);
             if (!mp.data.length) { notes.push(sh.name + ': no data rows'); return; }
-            addToInput(id, fileEntry(file, sh.name, mp));
+            var entry = fileEntry(file, sh.name, mp);
+            addToInput(id, entry);
+            shareToLib(id, file, sheets, sh.name, entry);
             rec.assigned.push(inputDef(id).title + (sheets.length > 1 ? ' (tab ' + sh.name + ')' : '') + ' · ' + fmtN(mp.data.length) + ' rows');
             rec.ids.push(id);
             recognised++;
@@ -681,7 +707,7 @@
     head = head.slice(0, width);
     var X = window.XlsxLite, last = X.colLetter(width), n = Math.max(0, rows.length - 2), data = rows.slice(2);
     var look = window.PHFSheetLook ? window.PHFSheetLook.forSheet(name, head) : null, tot = look ? look.totals(data, data) : {};
-    var summary = sheetSummary(name, rows) + ' · POS Supplier New Product Check and Clean Merge ' + TOOL_VERSION + ' (engine ' + (String((state.engineInfo || {}).merge || '').match(/v\d+\.\d+\.\d+/) || [''])[0] + ') · ' + melb();
+    var summary = sheetSummary(name, rows) + ' · POS New Product Check Clean ' + TOOL_VERSION + ' (engine ' + (String((state.engineInfo || {}).merge || '').match(/v\d+\.\d+\.\d+/) || [''])[0] + ') · ' + melb();
     return {
       name: name.replace(/[\\/?*\[\]:]/g, '_').replace(/_+/g, '_').slice(0, 31), columnCount: width, freeze: 'A3',
       autoFilter: 'A2:' + last + (n + 2), dimension: 'A1:' + last + (n + 2),
@@ -1863,7 +1889,7 @@
   function start() {
     var L = window.PHFLock;
     if (!L) { boot(); return; }
-    L.guard(LIB_TOOL, { label: 'POS Supplier New Product Check and Clean Merge', ctl: $('#phfLockCtl') }).then(boot);
+    L.guard(LIB_TOOL, { label: 'POS New Product Check Clean', ctl: $('#phfLockCtl') }).then(boot);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

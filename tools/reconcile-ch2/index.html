@@ -17,8 +17,8 @@
 <body class="phf-page-reconcile">
   <header class="phf-shell-header header-container">
   <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
-  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="Reconcile CH2 Order — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg></span><div class="phf-shell-copy title-row"><h1>Reconcile CH2 Order</h1><p class="phf-shell-version version-text">v2.9.4</p></div></a>
-  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Reconcile CH2 Order</span></nav><p class="phf-shell-updated build-details">Updated 11 Oct 2026 10:55 AEDT</p></div>
+  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="Reconcile CH2 Order — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg></span><div class="phf-shell-copy title-row"><h1>Reconcile CH2 Order</h1><p class="phf-shell-version version-text">v2.10.0</p></div></a>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Reconcile CH2 Order</span></nav><p class="phf-shell-updated build-details">Updated 12 Oct 2026 04:40 AEDT</p></div>
 </header>
   <main class="wrap phf-full">
 
@@ -27,7 +27,7 @@
         <div class="sidebar-title">Input files</div>
         <div class="sidebar-helper">Drop each file onto its matching row, or drop them all together in Drop All Input Files.</div>
         <div id="inputNav"></div>
-        <div class="sidebar-actions" aria-label="Clear input files"><button type="button" class="btn small" id="railClearOrder" title="Remove the POS order and supplier invoices from this session (saved reference data stays)">Clear order files</button><button type="button" class="btn small rail-clear-all" id="railClearAll" title="Remove the order files and the saved POS / master and Supplier + discount rules from this browser">Clear all input files</button></div>
+        <div class="sidebar-actions" aria-label="Clear input files"><button type="button" class="btn small" id="railClearOrder" title="Remove the POS order and supplier invoices from this session (saved reference data stays)">Clear order files</button><button type="button" class="btn small rail-clear-all" id="railClearAll" title="Remove the order files and the saved POS / master and Ongoing Discounts from this browser (Ongoing Discounts is shared with the other tools)">Clear all input files</button></div>
         <div class="sidebar-footer"><strong>Saved vs session</strong>Reference data stays saved in this browser. Order files are held in memory for this session only. <a href="./reference-admin.html">Reference admin</a></div>
       </aside>
 
@@ -60,10 +60,10 @@
               <div class="input-meta"><div><strong>Used by</strong>Every reconciliation · CH2 code to POS links</div><div><strong>Storage</strong>Saved in this browser</div><div><strong>Status</strong><span data-ref-status="master">Checking…</span></div></div>
             </section>
             <section class="panel input-workspace-card" data-input-card="supplier" hidden>
-              <div class="input-workspace-head"><div><div class="nav-separator">Reference data</div><h2>Supplier + discount rules <span>*</span></h2><p>Required · POS DB &amp; SUPPLIER MERGE, or a CSV export of SRC_POS_ONGOING_DISCOUNTS</p></div><span class="small-badge" data-badge>REQUIRED</span></div>
+              <div class="input-workspace-head"><div><div class="nav-separator">Reference data</div><h2>Ongoing Discounts <span>*</span></h2><p>Required · the shared Ongoing Discounts file (SRC_POS_ONGOING_DISCOUNTS, .xlsx or .csv), or the POS DB &amp; SUPPLIER MERGE workbook · loaded once for every tool</p></div><span class="small-badge" data-badge>REQUIRED</span></div>
               <div class="dropzone" data-ref-drop="supplier" tabindex="0" role="button"><div><strong data-drop-title>Drop file here</strong><small>or click to choose .xlsx / .xlsm / .csv · saved in this browser</small></div></div>
               <input class="hidden" type="file" data-ref-input="supplier" accept=".xlsx,.xlsm,.csv">
-              <div class="input-meta"><div><strong>Used by</strong>Discount and wholesale audit</div><div><strong>Storage</strong>Saved in this browser</div><div><strong>Status</strong><span data-ref-status="supplier">Checking…</span></div></div>
+              <div class="input-meta"><div><strong>Used by</strong>Discount and wholesale audit · also Build POS Master Databases and POS New Product Check Clean</div><div><strong>Storage</strong>Saved in this browser · shared Library file</div><div><strong>Status</strong><span data-ref-status="supplier">Checking…</span></div></div>
             </section>
             <section class="panel input-workspace-card" data-input-card="pos" hidden>
               <div class="input-workspace-head"><div><div class="nav-separator">Order files</div><h2>POS back-end order <span>*</span></h2><p>Required · one POS order export (.xls, .xlsx or .csv)</p></div><span class="small-badge" data-badge>REQUIRED</span></div>
@@ -97,7 +97,7 @@
           <section class="stage-dashboard single" aria-label="Reconciliation action">
             <div id="stage-reconcile">
               <section class="panel stage-panel stage-view-card">
-                <div class="stage-head"><div class="stage-title"><span class="stepnum">1</span><div><h2>Reconcile CH2 order <small>v2.9.4</small></h2></div></div><span class="small-badge wait" id="stageBadge">WAITING</span></div>
+                <div class="stage-head"><div class="stage-title"><span class="stepnum">1</span><div><h2>Reconcile CH2 order <small>v2.10.0</small></h2></div></div><span class="small-badge wait" id="stageBadge">WAITING</span></div>
                 <p class="stage-description">POS back-end order + supplier invoices → receiving checklist, POSActive import (Found quantities at CH2 invoice prices) and exception report. Price and data checks are review notes; downloads stay available.</p>
                 <div class="status info stage-status" id="status">Add one POS order and at least one supplier invoice to continue.</div>
                 <div class="progress hidden" id="progress"><div id="progressBar"></div></div>
@@ -162,8 +162,9 @@
     </section>
   </main>
 
+  <script src="../../assets/js/phf-library.js?v=1.1.0"></script>
   <script src="./js/reference/reference-config.js?v=2638"></script>
-  <script src="./js/reference/reference-data.js?v=2.9.2"></script>
+  <script src="./js/reference/reference-data.js?v=2.10.0"></script>
   <script src="./js/core/schema.js?v=2638"></script>
   <script src="./js/core/integrity.js?v=2.8.0"></script>
   <script src="./js/parsers/pos-order.js?v=2638"></script>
@@ -172,7 +173,7 @@
   <script src="./js/core/linked-pos.js?v=2.8.0"></script>
   <script src="./js/export/pos-import.js?v=2.9.1"></script>
   <script src="./js/export/report.js?v=2.8.0"></script>
-  <script src="./js/app.js?v=2.9.3"></script>
-  <script src="./js/ui/workspace.js?v=2.9.0"></script>
+  <script src="./js/app.js?v=2.10.0"></script>
+  <script src="./js/ui/workspace.js?v=2.10.0"></script>
 </body>
 </html>

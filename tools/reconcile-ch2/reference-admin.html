@@ -41,16 +41,17 @@
           <input class="hidden" id="masterRefInput" type="file" accept=".xlsx,.xlsm,.csv">
         </div>
         <div class="reference-card reference-drop-card" id="supplierCard" tabindex="0">
-          <div><strong>Supplier + discount rules</strong><small id="supplierRefStatus">Not loaded</small><span class="reference-drop-hint">Drag &amp; drop the supplier/discount file here</span></div>
-          <button class="btn" id="supplierRefBtn" type="button">Choose supplier rules</button>
+          <div><strong>Ongoing Discounts</strong><small id="supplierRefStatus">Not loaded</small><span class="reference-drop-hint">Drag &amp; drop the Ongoing Discounts file (or POS DB &amp; SUPPLIER MERGE) here — shared with the other tools</span></div>
+          <button class="btn" id="supplierRefBtn" type="button">Choose Ongoing Discounts</button>
           <input class="hidden" id="supplierRefInput" type="file" accept=".xlsx,.xlsm,.csv">
         </div>
       </div>
       <div class="reference-actions"><span id="referenceReady" class="ref-ready warn">Checking…</span><button class="btn ghost small" id="clearReferenceBtn" type="button">Clear stored reference data</button></div>
     </section>
   </main>
+  <script src="../../assets/js/phf-library.js?v=1.1.0"></script>
   <script src="./js/reference/reference-config.js?v=2638"></script>
-  <script src="./js/reference/reference-data.js?v=2638"></script>
-  <script src="./js/reference/reference-admin.js?v=2639"></script>
+  <script src="./js/reference/reference-data.js?v=2.10.0"></script>
+  <script src="./js/reference/reference-admin.js?v=2.10.0"></script>
 </body>
 </html>

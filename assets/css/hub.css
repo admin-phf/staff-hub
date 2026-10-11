@@ -20,11 +20,13 @@ body{-webkit-font-smoothing:antialiased}
 .tile.soon h2{color:#4A5562}
 .vers{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
 .vers span{font-size:10.5px;font-weight:700;color:var(--phf-navy,#1E3A5F);background:var(--phf-alt,#E9F0F5);border-radius:5px;padding:2px 6px}
-/* State badges: green live · blue build · grey soon */
+/* State badges: green live · blue build · amber in development · grey soon */
 .badge{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;padding:4px 9px;border-radius:999px;border:1px solid transparent;line-height:1.2}
 .badge.live{background:var(--phf-green,#2E7D32);color:#fff}
 .badge.build{background:var(--phf-blue-bg,#E8F0FE);color:var(--phf-blue-ink,#174EA6);border-color:var(--phf-blue-line,#A8C7FA)}
 .badge.soon{background:var(--phf-grey-bg,#EEF1F3);color:var(--phf-grey-ink,#5F6368);border-color:#D5DBE0}
+/* v21.13.0: a tool still being built and tested (opens with a password for now) */
+.badge.dev{background:var(--phf-amber-bg,#FFF7E0);color:var(--phf-amber-ink,#7A4F00);border-color:var(--phf-amber-line,#F0D58A)}
 .note{display:flex;align-items:center;gap:12px;margin-top:16px;padding:12px 16px;border:1px solid var(--phf-line,#D6DEE6);border-radius:12px;background:#fff;color:#4A5562;font-size:13px;line-height:1.5}
 .note strong{color:var(--phf-navy,#1E3A5F)}
 .note-ico{width:32px;height:32px;border-radius:8px;background:var(--phf-amber-bg,#FFF7E0);color:var(--phf-amber-ink,#7A4F00);display:grid;place-items:center;flex:0 0 auto}

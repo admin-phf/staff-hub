@@ -18,7 +18,8 @@ Each page's `<body>` has a scope class so the theme never leaks between tools:
 | Build POS Master Databases | `database-builder-page phf-page-db` |
 | Legacy stage pages (ch2 / uhp / master) | `database-builder-page phf-page-db phf-page-db-legacy` |
 | Update Specials | `phf-page-specials` |
-| POS Supplier New Product Check and Clean Merge | `database-builder-page phf-page-db phf-page-merge` (Build POS Master Databases rules + `merge.css`) |
+| POS New Product Check Clean | `database-builder-page phf-page-db phf-page-merge` (Build POS Master Databases rules + `merge.css`) |
+| Supplier Contacts | `phf-page-contacts` (`contacts.css`; tokens, bands, pills and buttons from `theme.css`) |
 
 ## Structure colours
 | Token | Hex | Use |
@@ -58,13 +59,20 @@ lines, no gridlines, and a navy / gold totals row. Price moves (new vs current, 
 values stay plain numbers, so every reader of the file still works.
 
 ## Merge workbook sheets (Google Sheet look, v21.12.0)
-The POS Supplier New Product Check and Clean Merge tabs copy the POS DB & SUPPLIER MERGE Google Sheet rather than the
+The POS New Product Check Clean tabs copy the POS DB & SUPPLIER MERGE Google Sheet rather than the
 theme: grey column letters (#F8F9FA), a navy #1E3A5F row-1 totals band with gold #FFD966 text, #E9F0F5 / #2C3E50 row-2
 headings with a filter button each and a 3 px #C4C7C5 frozen-row line, rows #F5F5F5 / #E9F0F5, #E1E3E6 gridlines,
 Google Sans 11 px, values left-aligned (centred where the Sheet centres them) and the Sheet's conditional colours from
 `js/sheet-look.js` (up #D93025 on #FCE8E6, down #1A73E8 on #E8F0FE, OK #0F9D58 on #E6F4EA, warn #E37400 on #FEF3E2,
 review #9334E6 on #F3E8FD, flat #9E9E9E). Selection is Google blue (#1A73E8 border, #D3E3FD fill); an orange corner marks an
-edited cell. The password lock (`assets/js/phf-lock.js`) brings its own styles: navy card icon, white header buttons, a
-navy / gold LOCKED badge on hub tiles.
+edited cell. The password lock (`assets/js/phf-lock.js` v1.1.0) brings its own styles: a light "Still under development"
+prompt (amber #FFF7E0 / #7A4F00 icon), white header buttons, and the amber "In development" hub badge (`.badge.dev`).
+
+## Supplier Contacts (v21.13.0)
+`body.phf-page-contacts` (`tools/supplier-contacts/css/contacts.css`): one white card with a navy / gold band, a search box,
+the action buttons (Add contact blue, Download green) and a table with a navy / gold sticky heading. Supplier rows band
+#E9F0F5 / #F5F5F5; utility rows band #FDEADA / #FCD5B4 (light orange, as in the Monday Orders file) below an orange #F79646
+"Utilities" divider; the row hover is Reconcile's pale yellow `rgba(255,206,84,.22)` laid over the row colour. The
+downloaded .xlsx uses the same colours as conditional formats on the Section column, so they stay right after sorting.
 
 Update Specials customer artwork (`.slide`, PNG/ZIP/PDF/Mailchimp exports) is deliberately untouched: the theme only styles the editor around it.

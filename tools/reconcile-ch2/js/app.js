@@ -1,3 +1,4 @@
+// v2.10.0 (12 Oct 2026): status messages name the shared Ongoing Discounts row (was Supplier + discount rules).
 // v2.9.3 (10 Oct 2026): Not on POS order and GST differences sit side by side when both are shown (.pos-check-pair in assets/css/compact-layout.css).
 (function(global){
   'use strict';
@@ -960,7 +961,7 @@
     els.posFiles.replaceChildren();if(state.pos)els.posFiles.append(fileRow(state.pos,()=>{resetReceivingState({clearStorage:true});state.pos=null;state.result=null;state.posParsed=null;state.runIntegrity=null;state.orderOverrides=new Map();renderFiles();hideResults();}));
     els.invoiceFiles.replaceChildren();state.invoices.forEach((f,i)=>els.invoiceFiles.append(fileRow(f,()=>{resetReceivingState({clearStorage:true});state.invoices.splice(i,1);state.result=null;state.docs=[];state.runIntegrity=null;state.orderOverrides=new Map();renderFiles();hideResults();})));
     const filesReady=!!state.pos&&state.invoices.length>0,ready=filesReady&&state.referenceReady;els.runBtn.disabled=!ready;
-    if(!state.referenceReady)setStatus('Reference data is not ready on this computer. Drop the POS / master and Supplier + discount rules files on their rows under Reference data, or in Drop All Input Files Here.','warn');
+    if(!state.referenceReady)setStatus('Reference data is not ready on this computer. Drop the POS / master and Ongoing Discounts files on their rows under Reference data, or in Drop All Input Files Here.','warn');
     else if(filesReady)setStatus(`Ready: 1 POS order and ${state.invoices.length} supplier invoice${state.invoices.length===1?'':'s'} selected.`,'ok');
     else setStatus('Add one POS order and at least one supplier invoice to continue.','info');
   }
@@ -1226,7 +1227,7 @@
   }
 
   async function run(){
-    if(!state.pos||!state.invoices.length||!state.referenceReady){setStatus('Reference data is not ready on this computer. Drop the POS / master and Supplier + discount rules files on their rows under Reference data, or in Drop All Input Files Here.','warn');return;}
+    if(!state.pos||!state.invoices.length||!state.referenceReady){setStatus('Reference data is not ready on this computer. Drop the POS / master and Ongoing Discounts files on their rows under Reference data, or in Drop All Input Files Here.','warn');return;}
     els.runBtn.disabled=true;els.clearBtn.disabled=true;hideResults();setProgress(4);setStatus('Loading POS/master and discount reference data…','info');
     try{
       state.refs=await PHF.referenceStore.parseStored();setProgress(18);setStatus(`Reference data ready: ${state.refs.master.info.records.toLocaleString()} CH2 codes and ${state.refs.supplier.info.discountRules.toLocaleString()} discount rules. Reading POS order…`,'info');

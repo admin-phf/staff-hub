@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Supplier Contacts | Prahran Health Foods</title>
+  <link rel="stylesheet" href="../../assets/css/shell.css?v=21.6.0">
+  <link rel="stylesheet" href="../../assets/css/theme.css?v=20.0.2">
+  <link rel="stylesheet" href="./css/contacts.css?v=1.0.0">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+</head>
+<body class="phf-page-contacts">
+  <header class="phf-shell-header header-container">
+    <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="../../assets/img/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
+    <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="Supplier Contacts — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M8 17c.8-1.8 2.2-2.6 4-2.6s3.2.8 4 2.6"/></svg></span><div class="phf-shell-copy title-row"><h1>Supplier Contacts</h1><p class="phf-shell-version version-text">v1.0.0</p></div></a>
+    <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Supplier Contacts</span></nav><p class="phf-shell-updated build-details">Updated 12 Oct 2026 04:40 AEDT</p></div>
+  </header>
+
+  <main class="sc-wrap">
+    <section class="sc-card" id="scCard" aria-labelledby="scHeading">
+      <div class="phf-band sc-band">
+        <h2 id="scHeading">Supplier contacts</h2>
+        <small id="scCount">Loading…</small>
+        <span class="phf-pill" id="scSaved">Checking…</span>
+      </div>
+
+      <div class="sc-toolbar" role="toolbar" aria-label="Supplier contacts">
+        <div class="sc-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" id="scSearch" placeholder="Search every field — supplier, code, account, phone, email, notes…" aria-label="Search every field" autocomplete="off" spellcheck="false">
+          <button type="button" class="sc-clear" id="scClear" hidden aria-label="Clear the search">×</button>
+        </div>
+        <span class="sc-shown" id="scShown" aria-live="polite"></span>
+        <div class="sc-actions">
+          <button type="button" class="btn primary" id="scAdd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Add contact</button>
+          <button type="button" class="btn" id="scUndo" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Undo</button>
+          <button type="button" class="btn dl" id="scDownXlsx" disabled title="Download the list as an Excel file (same colours, filter and frozen heading)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>Download .xlsx</button>
+          <button type="button" class="btn dl" id="scDownCsv" disabled title="Download the list as a CSV file">.csv</button>
+          <button type="button" class="btn" id="scLoadBtn" title="Load a contacts file (.xlsx, .xlsm or .csv) — it replaces the list here; Undo puts the old list back">Load contacts file…</button>
+          <input type="file" id="scFile" accept=".xlsx,.xlsm,.xls,.csv" hidden>
+        </div>
+      </div>
+      <div class="sc-msg" id="scMsg" role="status" aria-live="polite"></div>
+
+      <div class="sc-empty" id="scEmpty" hidden>
+        <div class="sc-drop" id="scEmptyDrop" tabindex="0" role="button" aria-label="Drop or choose the Supplier Contacts file">
+          <strong>Drop the Supplier Contacts file here</strong>
+          <small>or click to choose it · .xlsx / .xlsm / .csv · kept in this browser after the first time</small>
+        </div>
+        <p>The contact list is not stored on GitHub. Load the file once on each computer; every change you make here is saved in this browser straight away, and <b>Download</b> gives you a copy to share or keep as a backup.</p>
+      </div>
+
+      <div class="sc-table-wrap" id="scTableWrap" hidden>
+        <table class="sc-table">
+          <colgroup id="scCols"></colgroup>
+          <thead id="scHead"></thead>
+          <tbody id="scBody"></tbody>
+        </table>
+      </div>
+      <div class="sc-drop-cover" aria-hidden="true"><span>Drop the contacts file to load it</span></div>
+    </section>
+
+    <div class="sc-note"><span aria-hidden="true">🔒</span><span><strong>Privacy:</strong> supplier contacts stay in this browser on this computer (Staff Hub Library). Do not commit the contacts file to the GitHub repository. Double-click a row, or press ✎, to edit it; ✕ deletes straight away and Undo brings it back.</span></div>
+  </main>
+
+  <dialog class="sc-dialog" id="scDialog" aria-labelledby="scDlgTitle">
+    <form id="scDlgForm" method="dialog" novalidate>
+      <div class="phf-band"><h3 id="scDlgTitle">Add contact</h3></div>
+      <div class="sc-dlg-body">
+        <div class="sc-dlg-fields" id="scDlgFields"></div>
+        <p class="sc-dlg-note" id="scDlgNote"></p>
+        <div class="sc-dlg-err" id="scDlgErr" role="alert"></div>
+      </div>
+      <div class="sc-dlg-actions">
+        <button type="button" class="btn danger" id="scDlgDel" hidden>Delete</button>
+        <span class="sc-grow"></span>
+        <button type="button" class="btn" id="scDlgCancel">Cancel</button>
+        <button type="submit" class="btn primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="../../assets/js/phf-library.js?v=1.1.0"></script>
+  <script src="./js/contacts.js?v=1.0.0"></script>
+</body>
+</html>

@@ -1,4 +1,7 @@
-/* PHF Staff Hub — Library v1.0.2 (11 Oct 2026)
+/* PHF Staff Hub — Library v1.1.0 (12 Oct 2026)
+ * v1.1.0: Supplier Contacts list ("lib:contacts") — the only copy of edits made there, so Delete all keeps it (its own ✕
+ *         deletes it). Ongoing Discounts is also Reconcile CH2 Order's discount file; a POS DB & SUPPLIER MERGE workbook
+ *         dropped there stays as "supplierMerge" for its supplier names. Tool renamed POS New Product Check Clean.
  * v1.0.2: tool names Build POS Master Databases / POS Supplier New Product Check and Clean Merge; records saved under the
  *         old names show the new ones (info().made / displayName()).
  * v1.0.1: the CH2 / Unique supplier imports are used by POS Supplier Merge only when its Add button is pressed.
@@ -17,20 +20,23 @@
 
   var DB_NAME = 'PHFStaffHub', DB_VERSION = 1, STORE = 'referenceFiles';
   var HIDDEN = { parsedReferenceCache: true };
+  var PARSED = { posMaster: true, supplierMerge: true, 'lib:ref-discounts': true }; // kinds Reconcile CH2 keeps parsed
   var STALE_MS = 24 * 60 * 60 * 1000;
 
   // kind → what it is, which tool makes it and which tools use it (shown on the home page Library panel).
+  var MERGE = 'POS New Product Check Clean';
   var KINDS = {
-    'lib:pos-db':          { label: 'POS Database', made: 'Build POS Master Databases', used: 'POS Supplier New Product Check and Clean Merge', generated: true },
-    'lib:ch2-db':          { label: 'CH2 supplier import', made: 'Build POS Master Databases', used: 'POS Supplier New Product Check and Clean Merge (Add button)', generated: true },
-    'lib:uhp-db':          { label: 'Unique supplier import', made: 'Build POS Master Databases', used: 'POS Supplier New Product Check and Clean Merge (Add button)', generated: true },
+    'lib:pos-db':          { label: 'POS Database', made: 'Build POS Master Databases', used: MERGE, generated: true },
+    'lib:ch2-db':          { label: 'CH2 supplier import', made: 'Build POS Master Databases', used: MERGE + ' (Add button)', generated: true },
+    'lib:uhp-db':          { label: 'Unique supplier import', made: 'Build POS Master Databases', used: MERGE + ' (Add button)', generated: true },
     'posMaster':           { label: 'Full merged master', made: 'Build POS Master Databases', used: 'Reconcile CH2 Order', generated: true },
     'lib:master-selected': { label: 'Selected-columns master', made: 'Build POS Master Databases', used: 'Kept here to download', generated: true },
     'lib:to-order':        { label: 'To-Order file', made: 'Build POS Master Databases', used: 'Kept here to download', generated: true },
     'lib:ref-brand':       { label: 'Brand Abbreviation', made: 'Loaded in Build POS Master Databases', used: 'Build POS Master Databases' },
     'lib:ref-box':         { label: 'Weight & Dimensions', made: 'Loaded in Build POS Master Databases', used: 'Build POS Master Databases' },
-    'lib:ref-discounts':   { label: 'Ongoing Discounts', made: 'Loaded in Build POS Master Databases or POS Supplier New Product Check and Clean Merge', used: 'Build POS Master Databases · POS Supplier New Product Check and Clean Merge' },
-    'supplierMerge':       { label: 'Supplier + discount rules', made: 'Loaded in Reconcile CH2 Order', used: 'Reconcile CH2 Order' }
+    'lib:ref-discounts':   { label: 'Ongoing Discounts', made: 'Loaded in Build POS Master Databases, Reconcile CH2 Order or ' + MERGE, used: 'Build POS Master Databases · Reconcile CH2 Order · ' + MERGE },
+    'supplierMerge':       { label: 'POS DB & Supplier Merge workbook', made: 'Loaded in Reconcile CH2 Order (its discounts are saved as Ongoing Discounts)', used: 'Reconcile CH2 Order (supplier names and CH2 supplier links)' },
+    'lib:contacts':        { label: 'Supplier Contacts', made: 'Loaded and edited in Supplier Contacts', used: 'Supplier Contacts — the only copy of edits made there (Download it to share or back up)', keep: true }
   };
   var ORDER = Object.keys(KINDS);
 
@@ -84,7 +90,7 @@
     return tx('readwrite', function (store) {
       store.put(rec);
       // Reconcile CH2 keeps a parsed copy of its reference files; a new master / rules file must be parsed again.
-      if (kind === 'posMaster' || kind === 'supplierMerge') store.delete('parsedReferenceCache');
+      if (PARSED[kind]) store.delete('parsedReferenceCache');
     }).then(function () { var out = strip(rec); emit({ action: 'put', kind: kind, record: out }); return out; });
   }
   function get(kind) {
@@ -101,11 +107,15 @@
   function remove(kind) {
     return tx('readwrite', function (store) {
       store.delete(kind);
-      if (kind === 'posMaster' || kind === 'supplierMerge') store.delete('parsedReferenceCache');
+      if (PARSED[kind]) store.delete('parsedReferenceCache');
     }).then(function () { emit({ action: 'remove', kind: kind }); });
   }
+  // Delete all keeps the kinds marked keep (the Supplier Contacts list); each one's own ✕ deletes it.
   function clearAll() {
-    return tx('readwrite', function (store) { store.clear(); }).then(function () { emit({ action: 'clear' }); });
+    return tx('readwrite', function (store) {
+      var req = store.getAllKeys();
+      req.onsuccess = function () { (req.result || []).forEach(function (k) { if (!(KINDS[k] && KINDS[k].keep)) store.delete(k); }); };
+    }).then(function () { emit({ action: 'clear' }); });
   }
   function strip(rec) { var o = {}; for (var k in rec) if (k !== 'blob') o[k] = rec[k]; return o; }
   function toFile(rec) {
@@ -129,8 +139,8 @@
     var d = Math.round(h / 24); return d + ' day' + (d === 1 ? '' : 's') + ' ago';
   }
   function info(kind) { return KINDS[kind] || { label: kind, made: '', used: '' }; }
-  // Records saved before the 11 Oct 2026 renames carry the old tool names as their source.
-  var RENAMED = { 'Build Master Databases': 'Build POS Master Databases', 'POS Supplier Merge': 'POS Supplier New Product Check and Clean Merge' };
+  // Records saved before the 11 / 12 Oct 2026 renames carry the old tool names as their source.
+  var RENAMED = { 'Build Master Databases': 'Build POS Master Databases', 'POS Supplier Merge': MERGE, 'POS Supplier New Product Check and Clean Merge': MERGE };
   function displayName(name) { return RENAMED[name] || name || ''; }
   function onChange(fn) { if (typeof fn === 'function') listeners.push(fn); }
   function estimate() {
@@ -144,7 +154,7 @@
   function isDismissed(tool, rec) { try { return !!rec && localStorage.getItem(dismissKey(tool, rec.kind)) === (rec.savedAt || ''); } catch (e) { return false; } }
 
   g.PHFLibrary = {
-    VERSION: 'v1.0.2', KINDS: KINDS, ORDER: ORDER,
+    VERSION: 'v1.1.0', KINDS: KINDS, ORDER: ORDER,
     put: put, get: get, list: list, remove: remove, clearAll: clearAll,
     toFile: toFile, isStale: isStale, when: when, ago: ago, info: info, displayName: displayName, onChange: onChange, estimate: estimate,
     dismiss: dismiss, isDismissed: isDismissed

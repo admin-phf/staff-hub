@@ -1,4 +1,4 @@
-/* PHF Staff Hub — Library panel on the home page v1.0.1 (11 Oct 2026; v1.0.0 10 Oct 2026; v1.0.1 shows the renamed tools): lists the files the tools saved in this
+/* PHF Staff Hub — Library panel on the home page v1.0.2 (12 Oct 2026; v1.0.0 10 Oct 2026; v1.0.1 shows the renamed tools; v1.0.2 mentions the Supplier Contacts list): lists the files the tools saved in this
    browser (assets/js/phf-library.js), with Download, ✕ (delete straight away) and Delete all. */
 (function () {
   'use strict';
@@ -14,7 +14,7 @@
       $('#libSummary').textContent = recs.length ? recs.length + ' file' + (recs.length === 1 ? '' : 's') + ' · ' + size(total) : 'Empty';
       $('#libClearAll').disabled = !recs.length;
       if (!recs.length) {
-        $('#libList').innerHTML = '<div class="phf-lib-empty">Nothing saved yet. Files appear here when Build POS Master Databases finishes a build, or when you load a reference file (Brand Abbreviation, Weight &amp; Dimensions, Ongoing Discounts, or Reconcile CH2’s reference files).</div>';
+        $('#libList').innerHTML = '<div class="phf-lib-empty">Nothing saved yet. Files appear here when Build POS Master Databases finishes a build, or when you load a reference file (Brand Abbreviation, Weight &amp; Dimensions, Ongoing Discounts, or Reconcile CH2’s reference files), and when you load the Supplier Contacts list.</div>';
         return;
       }
       $('#libList').innerHTML = recs.map(function (r) {
