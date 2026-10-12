@@ -1,7 +1,34 @@
-# POS New Product Check Clean v1.7.2 (Staff Hub v21.17.2)
+# POS New Product Check Clean v1.8.0 (Staff Hub v21.18.0)
 
-Updated 12 Oct 2026 20:15 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 13 Oct 2026 09:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.8.0: the supplier sheet looks like its Google Sheet tab —
+- **Totals in row 1, above their columns** (navy with gold, as in the Sheet): A total rows · B supplier names · C POS
+  suppliers · D barcodes · E brands · J total WS · K total RRP · P the STATUS counts (matched · new · not used ·
+  unmatchable). With a search or the SUP BRAND filter on they are for the rows shown (lighter gold, hover says so). The
+  separate strip above the sheet is gone.
+- **Headings navy with gold text.** Untick Update in POS and that heading's text turns grey — the navy stays; tick it and
+  it is gold again. The column's cells stay light grey and the column stays on the sheet.
+- **Prices show 2 decimals** (J SUP WS EXGST, K SUP RRP INC GST, N SUP DISCOUNT PRICE: 87.00, 37.50). Display only —
+  the cell, the copy (Ctrl+C) and the merge keep the value as it is.
+- **The latest message is one line in the title band** ("✓ Pasted at B3: …"), next to the title — no green box between
+  the toolbar and the sheet. A long one wraps to a second line; the full text is on hover.
+- **Toolbar**: every button 32 px, Paste blue and the rest white, the same as OUT_MERGED_DATA; the Update in POS box is
+  white.
+- **Rows pasted or typed here are not amber.** The gold edge on INDEX marks them. Amber now means a value changed after it
+  arrived: on a row from a file any change, on a row added here a value you change (not the first time a cell is filled).
+
+OUT_MERGED_DATA —
+- **The Update in POS tick is under every heading POS can keep** (units, min order qty, the WSP / last price columns, NEW
+  RRP, the markups, FINAL SHELF RRP, price levels 1–9, ret price, GST, brand, Sub ID, description, supplier). It is the
+  same setting as the supplier sheet's ticks (the ticks of one group move together) and OUT recalculates straight away.
+  Unticked = the heading's text turns grey and matched products show POS's value in grey, as before. No KEPT label.
+- The coloured tiles show only with **Review columns**; the Sheet view has the same totals in row 1 above the columns.
+- Toolbar buttons and boxes 32 px.
+
+Run bar: a long message (e.g. "A newer POS Database … was saved to the Library …") wraps onto two lines instead of being
+cut off; the full text is on hover.
 
 v1.7.2: supplier sheet clean-up —
 - One navy strip: the title (ⓘ = how the sheet works), the STATUS summary and the totals, with the row count on the right.
@@ -71,7 +98,7 @@ edits and the SUP BRAND filter), the three stages' results, your edits on OUT_ME
 the TXT files and review workbook, and the Update in POS / Discontinue options. Close the page and open it again (even the
 next day) and it is all back, ready for Run stage 3 again or Export TXT again.
 
-- **Clear Results** removes the results (the input files stay); **Clear session files** removes the POS Database and
+- **Clear results** removes the results (the input files stay); **Clear session files** removes the POS Database and
   supplier rows too; running a stage replaces the results.
 - The results come back only when the inputs are the same as when they were saved. If a reference table changed in the
   meantime (e.g. a new Ongoing Discounts saved in the Library), the inputs come back and the page asks you to run again.
@@ -159,7 +186,7 @@ Columns the merge works out itself (INDEX, SRC STATUS / POS MATCH, FINAL SHELF R
 
 | Tab | What an edit does | Then |
 |---|---|---|
-| SRC_POS_FIND_REPLACE · ONGOING_DISCOUNTS · BRAND_NAME_CHANGES · PRODUCT_PREFIX · SUPPLIERS | Changes the reference table, **saved in this browser straight away** (rows typed under the last row are added; an empty tab can be started by typing or pasting). POS DISCOUNT% takes 7.5, 7.5% or 0.075 as 7.50%, like the Sheet. | The stages reset — **Run All Stages** (button on the tab) uses the change. The Library copy of Ongoing Discounts (shared with Build POS Master Databases) is not changed. |
+| SRC_POS_FIND_REPLACE · ONGOING_DISCOUNTS · BRAND_NAME_CHANGES · PRODUCT_PREFIX · SUPPLIERS | Changes the reference table, **saved in this browser straight away** (rows typed under the last row are added; an empty tab can be started by typing or pasting). POS DISCOUNT% takes 7.5, 7.5% or 0.075 as 7.50%, like the Sheet. | The stages reset — **Run all stages** (button on the tab) uses the change. The Library copy of Ongoing Discounts (shared with Build POS Master Databases) is not changed. |
 | OUT_MERGED_DATA | Goes into the engine's copy of the Sheet and runs the script's own **onEdit**: ROW STATUS → NEW writes the fake barcode (K / AP) when there is no real one, UPDATED SUPPLIER (G) shows SUP OVERRIDE PENDING and is queued, RRP / MARKUP OVERRIDE (AN) makes FINAL SHELF RRP / rrp incgst work out again, row-1 totals follow. | **Refresh supplier changes** (= REFRESH SUPPLIER CHANGES) checks G edits against the supplier upload; **Run stage 3 again** makes OUT_POS_INSERT / UPDATE and the TXT files from the edited sheet (it refreshes waiting supplier changes first). |
 | OUT_POS_INSERT · OUT_POS_UPDATE | Changes the rows, adds or deletes rows. | **Export TXT again** writes the two TXT files from these sheets as they are (stage 3 again would make them again from OUT_MERGED_DATA). |
 | IN_SUPPLIER_/_PRODUCT_UPDATES | As before (below). | Run the stages again. |
@@ -209,7 +236,7 @@ Stage 2 opens OUT_MERGED_DATA, as the Sheet's menu does.
 A merge only covers the brands in **Supplier Updates**: stage 2 matches, updates and discontinues (ZZZZ) the POS
 products of those brands and returns them in full, and leaves every other POS brand out. Supplier Updates therefore
 **starts empty** — paste or drop the supplier list / catalogue of the brand or distributor you are updating. The line
-under the sheet's totals bar shows **Brands in this merge: N** with the rows per brand, so the scope can be checked
+above the sheet shows **Brands in this merge: N** with the rows per brand, so the scope can be checked
 before running.
 
 The CH2 and Unique full sets saved by Build POS Master Databases are **never loaded on their own**. To merge a
@@ -231,16 +258,18 @@ The IN_SUPPLIER_/_PRODUCT_UPDATES tab is the first workbook tab, full width unde
 scrolling sheet with the headings fixed at the top (v1.4.0 — no pages; only the rows near the scroll position are drawn,
 so a long list stays quick). It works like a small Google Sheet:
 
-- **Totals bar** (Sheet row 1): TOTAL · ⭐ MATCHED · 🟢 NEW · 🚫 NOT USED · ⚠️ UNMATCHABLE, SUPPLIER NAMES, TOTAL POS SUPPLIERS,
-  UNIQUE BARCODES (column D — older copies of the Sheet label this cell UNIQUE BRANDS), UNIQUE BRANDS, TOTAL WS, TOTAL RRP
-  and the stage-1 STATUS summary. Like the Sheet's SUBTOTAL formulas, the totals count only the rows the search shows.
+- **Totals** (Sheet row 1, v1.8.0 above their columns): A TOTAL (hover: ⭐ matched · 🟢 new · 🚫 not used · ⚠️
+  unmatchable), B SUPPLIER NAMES, C TOTAL POS SUPPLIERS, D UNIQUE BARCODES (older copies of the Sheet label this cell UNIQUE
+  BRANDS), E UNIQUE BRANDS, J TOTAL WS, K TOTAL RRP and P the STATUS counts (hover: the stage-1 summary). Like the Sheet's
+  SUBTOTAL formulas, the totals count only the rows the search / SUP BRAND filter shows.
 - **Edit**: click a cell and type (or double-click / Enter / F2 to change it). Enter, Tab and the arrow keys move;
-  Shift + click or drag selects a range; Delete clears it; Ctrl+C copies it. Changed cells turn amber.
+  Shift + click or drag selects a range; Delete clears it; Ctrl+C copies it. Changed cells turn amber (v1.8.0: on rows
+  pasted or typed here, only a value changed after it arrived).
 - **Paste**: click a cell and press Ctrl+V (⌘V) — the copied block fills from that cell, adding rows past the last one
   (click B in the empty row under the last row to add rows). A block with the heading row is matched by heading.
   Nothing selected: columns are read by position (16 = A–P, 14 = B–O, 15 = B–P) and checked against the data.
 - **Rows**: Add row; click INDEX numbers (Shift + click for several) and Delete rows; Undo (Ctrl+Z) steps back one change.
-  Typed or pasted rows are kept as an "Added rows" supplier entry (+ in INDEX); Clear added rows removes them.
+  Typed or pasted rows are kept as an "Added rows" supplier entry (gold edge on INDEX); Clear added rows removes them.
 - INDEX is numbered automatically and STATUS is written by the merge, so A and P are read-only.
 - Every change updates the supplier input for this session and resets the stages, so the next run uses it.
 

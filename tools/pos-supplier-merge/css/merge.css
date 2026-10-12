@@ -88,35 +88,38 @@ body.phf-page-merge :is(.review-panel,.wb-sheet-panel)>.results-head p{color:var
    16 headings (Sheet row 2 colours) and F5F5F5 / E9F0F5 banded rows. Paste lands here (Ctrl+V / ⌘V). */
 body.phf-page-merge .sup-sheet{margin-top:16px;border:1px solid var(--phf-line-strong);border-radius:10px;background:#fff;overflow:hidden;outline:none}
 body.phf-page-merge .sup-sheet:focus{box-shadow:0 0 0 3px var(--phf-blue-line);border-color:var(--phf-blue)}
-body.phf-page-merge .sup-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;background:var(--phf-navy);color:var(--phf-gold);padding:6px 12px}
-body.phf-page-merge .sup-head>.sup-title{flex:0 1 330px;min-width:220px}
+body.phf-page-merge .sup-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;background:var(--phf-navy);color:var(--phf-gold);padding:8px 14px;min-height:42px}
+body.phf-page-merge .sup-head>.sup-title{flex:0 0 auto;min-width:0}
 body.phf-page-merge .sup-head h3{display:flex;align-items:center;gap:7px;margin:0;font:700 12px/1.3 var(--phf-font);letter-spacing:.09em;text-transform:uppercase;color:var(--phf-gold);white-space:nowrap}
 body.phf-page-merge .sup-info{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;border:1px solid rgba(230,205,116,.7);color:var(--phf-gold);font:italic 700 10px/1 Georgia,serif;letter-spacing:0;text-transform:none;cursor:help}
-body.phf-page-merge .sup-status{margin-top:2px;font-size:11px;font-weight:600;color:var(--phf-band-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-body.phf-page-merge .sup-status>span{display:inline-block;margin-right:6px;padding:0 6px;border-radius:999px;background:rgba(255,255,255,.1);color:var(--phf-gold);font-size:9px;font-weight:800;letter-spacing:.07em}
-body.phf-page-merge .sup-status.is-run{color:var(--phf-gold);font-weight:700}
-body.phf-page-merge .sup-status em{color:var(--phf-band-text);font-weight:600}
-@media(max-width:1500px){body.phf-page-merge .sup-head>.sup-title{flex:1 1 100%;display:flex;align-items:baseline;gap:12px;min-width:0}body.phf-page-merge .sup-head>.sup-title .sup-status{margin:0;min-width:0}}
-body.phf-page-merge .sup-bar{flex:1 1 640px;display:flex;flex-wrap:wrap;min-width:0}
-body.phf-page-merge .sup-bar-cell{flex:1 0 auto;display:flex;flex-direction:column;justify-content:center;padding:2px 9px;border-left:1px solid rgba(255,255,255,.1);min-width:62px;text-align:center}
-body.phf-page-merge .sup-bar-cell.is-gap{border-left-color:rgba(255,255,255,.28)}
-body.phf-page-merge .sup-bar-cell span{display:block;font-size:9px;line-height:1.2;font-weight:800;letter-spacing:.05em;color:var(--phf-band-text);white-space:nowrap}
-body.phf-page-merge .sup-bar-cell strong{display:block;margin-top:1px;font-size:14.5px;line-height:1.15;color:var(--phf-gold);font-variant-numeric:tabular-nums;white-space:nowrap}
-body.phf-page-merge .sup-bar-cell.is-match strong{color:#A8C7FA}
-body.phf-page-merge .sup-bar-cell.is-new strong{color:#9CDCAB}
-body.phf-page-merge .sup-bar-cell.is-muted strong{color:#C4CDD5}
-body.phf-page-merge .sup-bar-cell.is-warn strong{color:#F6C76B}
-body.phf-page-merge .sup-tools{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;padding:6px 12px;background:var(--phf-soft);border-bottom:1px solid var(--phf-line)}
-body.phf-page-merge .sup-tools input[type=search]{flex:1 1 240px;min-height:30px;border:1px solid var(--phf-line-strong);border-radius:8px;padding:4px 10px;font-size:12.5px}
+/* v1.8.0: the latest message — one line in the title band (a second line when long; the full text on hover) */
+body.phf-page-merge .sup-msg{flex:1 1 300px;min-width:0;position:relative;padding-left:25px;font:600 12.5px/1.4 var(--phf-font);color:#fff;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+body.phf-page-merge .sup-msg[hidden]{display:none}
+body.phf-page-merge .sup-msg::before{content:"i";position:absolute;left:0;top:0;display:grid;place-items:center;width:17px;height:17px;border-radius:50%;background:rgba(255,255,255,.18);color:#fff;font:italic 700 10px/1 Georgia,serif}
+body.phf-page-merge .sup-msg.is-success::before{content:"✓";background:var(--phf-green);font:700 10px/1 var(--phf-font)}
+body.phf-page-merge .sup-msg:is(.is-warn,.is-missing)::before{content:"!";background:#B06000;font:800 11px/1 var(--phf-font)}
+body.phf-page-merge .sup-msg.is-error::before{content:"!";background:var(--phf-red);font:800 11px/1 var(--phf-font)}
+body.phf-page-merge .sup-msg:is(.is-warn,.is-missing){color:#FFE7A8}
+body.phf-page-merge .sup-msg.is-error{color:#FFC9C2}
+body.phf-page-merge .sup-head>.result-badge{margin-left:auto}
+body.phf-page-merge .sup-tools{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;padding:7px 12px;background:#fff;border-bottom:1px solid var(--phf-line)}
+body.phf-page-merge .sup-tools input[type=search]{flex:1 1 240px;min-height:32px;border:1px solid var(--phf-line-strong);border-radius:8px;padding:4px 10px;font-size:13px}
 body.phf-page-merge .sup-tools input:focus{outline:2px solid var(--phf-blue-line);border-color:var(--phf-blue)}
-body.phf-page-merge .sup-note{margin:8px 12px 0!important}
-body.phf-page-merge .sup-note[hidden]{display:none!important}
 body.phf-page-merge .sup-table-wrap{overflow:auto;max-height:max(320px,calc(100vh - 150px));margin:8px 12px 0;border:1px solid var(--phf-line);border-radius:8px;background:#fff}
 body.phf-page-merge .sup-table{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;font-family:"Google Sans","Product Sans",var(--phf-font);font-size:var(--sup-fs,11.5px)}
 body.phf-page-merge .sup-table thead{position:sticky;top:0;z-index:3}
 body.phf-page-merge .sup-table th{background:#E9F0F5;color:#2C3E50;font-weight:800;letter-spacing:.04em;font-size:var(--sup-hfs,10px);text-transform:uppercase;text-align:center;padding:3px var(--sup-pad,6px) 4px;white-space:normal;overflow-wrap:break-word;line-height:1.2;vertical-align:top;border-right:1px solid #D6DEE6}
 body.phf-page-merge .sup-table tr.sup-letters th{height:18px;padding:0 4px;background:#F8F9FA;color:#5F6368;font-size:10px;font-weight:500;letter-spacing:.02em;vertical-align:middle;border-bottom:1px solid #C4C7C5;border-right-color:#E1E3E6}
-body.phf-page-merge .sup-table tr.sup-heads th{border-bottom:2px solid var(--phf-navy)}
+/* v1.8.0: row 1 = the totals, navy with gold as in the Google Sheet (label over value; the label may wrap at a word), then
+   the headings navy with gold text; an unticked Update in POS heading turns its text grey (the navy stays). */
+body.phf-page-merge .sup-table tr.sup-tot th{background:var(--phf-navy);color:var(--phf-gold);vertical-align:middle;text-transform:uppercase;padding:4px var(--sup-pad,6px);border-right:1px solid #2F4B70;border-bottom:1px solid #2F4B70;height:36px;line-height:1.2}
+body.phf-page-merge .sup-table tr.sup-tot th .sup-tl{display:block;font-size:calc(var(--sup-hfs,10px) - 1px);font-weight:800;letter-spacing:.05em;color:var(--phf-band-text)}
+body.phf-page-merge .sup-table tr.sup-tot th b{display:block;margin-top:1px;font-size:calc(var(--sup-fs,11.5px) + .5px);font-weight:700;letter-spacing:0;color:var(--phf-gold);white-space:nowrap;font-variant-numeric:tabular-nums}
+body.phf-page-merge .sup-table tr.sup-tot th.sup-t-st{text-transform:none;font-size:calc(var(--sup-hfs,10px) + .5px);font-weight:700;letter-spacing:0;color:var(--phf-gold)}
+body.phf-page-merge .sup-table tr.sup-tot th.sup-t-st span{display:block}
+body.phf-page-merge .sup-table tr.sup-tot th.sup-t-st.is-wait{color:var(--phf-band-text);font-weight:600;font-style:italic}
+body.phf-page-merge .sup-table tr.sup-tot.is-filtered th b{color:#FFE7A8}
+body.phf-page-merge .sup-table tr.sup-heads th{background:var(--phf-navy);color:var(--phf-gold);border-right-color:#2F4B70;border-bottom:2px solid var(--phf-gold)}
 /* v1.7.1: heading bands — the label centred in a band as tall as the tallest label (--sup-hlh from supFit), the Update in POS
    tick on one line under it in every column (an empty band where a column has none). */
 body.phf-page-merge .sup-table th .sup-hl{display:flex;align-items:center;justify-content:center;text-align:center;min-height:var(--sup-hlh,24px)}
@@ -146,7 +149,7 @@ body.phf-page-merge .sup-panel .sup-head{border-radius:calc(var(--phf-radius) - 
 body.phf-page-merge .sup-table tbody{user-select:none}
 body.phf-page-merge .sup-table td{position:relative;cursor:cell}
 body.phf-page-merge .sup-table tbody tr td.sup-ro{background:#EEF1F3;color:#7B8794;cursor:default}
-body.phf-page-merge .sup-table th.sup-ro{color:#7B8794}
+body.phf-page-merge .sup-table tr.sup-heads th.sup-ro{color:var(--phf-gold)}
 body.phf-page-merge .sup-table tbody tr td.is-edited{background:#FFF7E0;color:#7A4F00;font-weight:600}
 body.phf-page-merge .sup-table tbody tr td.is-sel{background:#D2E3FC;color:#174EA6}
 body.phf-page-merge .sup-table tbody tr td.is-anchor{box-shadow:inset 0 0 0 2px #1A73E8;background:#E8F0FE}
@@ -318,7 +321,7 @@ body.phf-page-merge .phf-shell-meta{max-width:330px}
    v1.6.1: greyed = the Sheet's "no change" grey text (#9E9E9E) on the row's own band (was a grey hatch). */
 body.phf-page-merge .sup-keep{display:inline-flex;align-items:center;justify-content:center;margin:0;cursor:pointer}
 body.phf-page-merge .sup-keep input{width:13px;height:13px;margin:0;accent-color:#2E7D32;cursor:pointer}
-body.phf-page-merge .sup-table.keep-c2 th.sup-c2,body.phf-page-merge .sup-table.keep-c4 th.sup-c4,body.phf-page-merge .sup-table.keep-c5 th.sup-c5,body.phf-page-merge .sup-table.keep-c6 th.sup-c6,body.phf-page-merge .sup-table.keep-c7 th.sup-c7,body.phf-page-merge .sup-table.keep-c8 th.sup-c8,body.phf-page-merge .sup-table.keep-c9 th.sup-c9,body.phf-page-merge .sup-table.keep-c10 th.sup-c10,body.phf-page-merge .sup-table.keep-c11 th.sup-c11{background:#FFF4E0;color:#7A4F00}
+body.phf-page-merge .sup-table.keep-c2 th.sup-c2,body.phf-page-merge .sup-table.keep-c4 th.sup-c4,body.phf-page-merge .sup-table.keep-c5 th.sup-c5,body.phf-page-merge .sup-table.keep-c6 th.sup-c6,body.phf-page-merge .sup-table.keep-c7 th.sup-c7,body.phf-page-merge .sup-table.keep-c8 th.sup-c8,body.phf-page-merge .sup-table.keep-c9 th.sup-c9,body.phf-page-merge .sup-table.keep-c10 th.sup-c10,body.phf-page-merge .sup-table.keep-c11 th.sup-c11{background:var(--phf-navy);color:#8B9DB5}
 body.phf-page-merge .sup-table.keep-c2 th.sup-c2 .sup-keep,body.phf-page-merge .sup-table.keep-c4 th.sup-c4 .sup-keep,body.phf-page-merge .sup-table.keep-c5 th.sup-c5 .sup-keep,body.phf-page-merge .sup-table.keep-c6 th.sup-c6 .sup-keep,body.phf-page-merge .sup-table.keep-c7 th.sup-c7 .sup-keep,body.phf-page-merge .sup-table.keep-c8 th.sup-c8 .sup-keep,body.phf-page-merge .sup-table.keep-c9 th.sup-c9 .sup-keep,body.phf-page-merge .sup-table.keep-c10 th.sup-c10 .sup-keep,body.phf-page-merge .sup-table.keep-c11 th.sup-c11 .sup-keep{color:#B06000}
 body.phf-page-merge .sup-table.keep-c2 td.sup-c2,body.phf-page-merge .sup-table.keep-c4 td.sup-c4,body.phf-page-merge .sup-table.keep-c5 td.sup-c5,body.phf-page-merge .sup-table.keep-c6 td.sup-c6,body.phf-page-merge .sup-table.keep-c7 td.sup-c7,body.phf-page-merge .sup-table.keep-c8 td.sup-c8,body.phf-page-merge .sup-table.keep-c9 td.sup-c9,body.phf-page-merge .sup-table.keep-c10 td.sup-c10,body.phf-page-merge .sup-table.keep-c11 td.sup-c11{color:#9E9E9E}
 body.phf-page-merge .sup-filt{display:inline-grid;place-items:center;width:18px;height:16px;margin-left:5px;padding:0;border:1px solid transparent;border-radius:4px;background:transparent;color:#7B8794;cursor:pointer;vertical-align:middle}
@@ -326,13 +329,13 @@ body.phf-page-merge .sup-filt svg{width:11px;height:11px}
 body.phf-page-merge .sup-filt:hover{border-color:#A8C7FA;background:#E8F0FE;color:#0B57D0}
 body.phf-page-merge .sup-filt.is-on{background:#0B57D0;border-color:#0B57D0;color:#fff}
 body.phf-page-merge .sup-table tbody tr.is-out td{color:#9AA0A6}
-body.phf-page-merge .sup-opts{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-left:auto;padding:3px 10px;border-radius:8px;background:#F4F8F4;border:1px solid #CFE3D2;font-size:11.5px;color:#304030}
+body.phf-page-merge .sup-opts{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-left:auto;min-height:32px;padding:3px 10px;border-radius:8px;background:#fff;border:1px solid var(--phf-line-strong);font-size:12px;color:var(--phf-ink)}
 body.phf-page-merge .sup-opts-main{display:inline-flex;flex-wrap:wrap;gap:4px 8px;align-items:center;min-width:0;cursor:help}
-body.phf-page-merge .sup-opts .btn{min-height:24px;padding:2px 9px;font-size:11px}
-body.phf-page-merge .sup-tools>.btn{min-height:30px;padding:4px 12px;font-size:12px;border-radius:7px}
+body.phf-page-merge .sup-opts .btn{min-height:26px;padding:2px 10px;font-size:12px}
+body.phf-page-merge .sup-tools>.btn{min-height:32px;padding:5px 14px;font-size:13px;border-radius:8px}   /* v1.8.0: as on OUT_MERGED_DATA */
 body.phf-page-merge .sup-opts-kept{color:#7A4F00}
 body.phf-page-merge .sup-opts-kept b{font-weight:800}
-body.phf-page-merge .sup-disc{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:#304030;cursor:pointer}
+body.phf-page-merge .sup-disc{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:var(--phf-navy);cursor:pointer}
 body.phf-page-merge .sup-disc input{width:14px;height:14px;margin:0;accent-color:#2E7D32}
 body.phf-page-merge .sup-disc.is-off{color:#A50E0E}
 body.phf-page-merge .sup-scope-filter{display:inline-flex;align-items:center;gap:6px;padding:2px 4px 2px 9px;border-radius:999px;background:#E8F0FE;border:1px solid #A8C7FA;color:#0B57D0;font-weight:700;font-size:11px}
@@ -375,3 +378,18 @@ body.phf-page-merge .wb-runbar-status.is-running{color:#FFE7A8}
 body.phf-page-merge .wb-runbar-status.is-success{color:#BDF0CB}
 body.phf-page-merge .wb-runbar-status.is-error{color:#FFC9C2}
 body.phf-page-merge .wb-runbar+.wb-pages .sup-sheet,body.phf-page-merge .wb-runbar+.wb-pages>.panel{border-top-left-radius:0!important;border-top-right-radius:0!important}
+
+/* v1.8.0 — OUT_MERGED_DATA: the Update in POS tick under every heading POS can keep (sheet-grid v1.3.0 ticks); an
+   unticked heading's text is grey, as on the supplier sheet. No KEPT label here. The coloured tiles show only with the
+   Review columns (the Sheet view has the same totals in row 1). One button height (32 px) on both sheets' toolbars. */
+body.phf-page-merge .wbg-table tr.wbg-headrow.wbg-has-ticks th{height:50px}
+body.phf-page-merge .wbg-tick{display:flex;justify-content:center;margin:3px 0 0;cursor:pointer}
+body.phf-page-merge .wbg-tick input{width:13px;height:13px;margin:0;accent-color:#2E7D32;cursor:pointer}
+body.phf-page-merge .wbg-tick input:disabled{cursor:not-allowed}
+body.phf-page-merge .wbg-table tr.wbg-headrow th.wbg-off{color:#A0A7AE}
+body.phf-page-merge .review-kpis[hidden]{display:none}
+body.phf-page-merge .review-filters input[type=search],body.phf-page-merge .review-filters select{min-height:32px;padding-top:4px;padding-bottom:4px}
+body.phf-page-merge :is(.review-filters,.out-actions,.wb-view) .btn{min-height:32px;padding:5px 14px;font-size:13px;border-radius:8px}
+body.phf-page-merge .wb-view .btn{border-radius:0}
+/* Run bar: a long message wraps to two lines (the full text is on hover) instead of being cut off. */
+body.phf-page-merge .wb-runbar-status{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:1.3}

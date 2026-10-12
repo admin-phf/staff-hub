@@ -1,8 +1,12 @@
 /* =====================================================================
-   PHF Staff Hub — unified theme v20.0.2 (11 Oct 2026; v20.0.1 10 Oct 2026; v20.0.0 06 Oct 2026; v19.0.0 05 Oct 2026)
+   PHF Staff Hub — unified theme v20.1.0 (13 Oct 2026; v20.0.2 11 Oct 2026; v20.0.1 10 Oct 2026; v20.0.0 06 Oct 2026;
+   v19.0.0 05 Oct 2026)
    Palette lifted from Reconcile CH2 → POS layout.
    v20.0.1: workspace panel rules also cover panels placed side by side in a .dash-row (compact-layout.css).
    v20.0.2: … and panels stacked in a .dash-stack inside a row.
+   v20.1.0 (Staff Hub v21.18.0): Build / Reconcile / POS New Product Check Clean buttons in Sentence case at 32px (no more
+            capitals on the stage buttons); a finished step is one line with a green tick (no green box); Reconcile's
+            result numbers in one navy strip.
 
    Structure : navy bands with gold capitals (panel headings, table
                headers, selected tabs / layout buttons).
@@ -163,6 +167,10 @@ body[class*="phf-page-"] .status.ok,body[class*="phf-page-"] .status.success{bac
 body[class*="phf-page-"] .status.warn{background:var(--phf-amber-bg);border-color:var(--phf-amber-line);color:var(--phf-amber-ink)}
 body[class*="phf-page-"] .status.err,body[class*="phf-page-"] .status.error,body[class*="phf-page-"] .status.missing{background:var(--phf-red-bg);border-color:var(--phf-red-line);color:var(--phf-red-ink)}
 body[class*="phf-page-"] .progress>div,body[class*="phf-page-"] .progress>#globalProgressBar{background:var(--phf-blue)}
+/* v21.18.0: a finished step is one line — a green tick and the text, no box (Build, Reconcile, POS New Product Check
+   Clean). Warnings and errors keep their box, because they need you to act. */
+:is(body.phf-page-db,body.phf-page-reconcile) .status:is(.success,.ok){position:relative;background:none!important;border:0!important;border-radius:0;padding:2px 0 2px 25px!important;font-weight:600;line-height:1.4}
+:is(body.phf-page-db,body.phf-page-reconcile) .status:is(.success,.ok)::before{content:"✓";position:absolute;left:0;top:2px;display:grid;place-items:center;width:17px;height:17px;border-radius:50%;background:var(--phf-green);color:#fff;font:700 10px/1 var(--phf-font)}
 
 /* ---------- 6. File inputs: red required → blue drag-over → green loaded; grey optional ---------- */
 body[class*="phf-page-"] .dropzone{border:2px dashed var(--phf-grey-line);background:var(--phf-soft);border-radius:10px;transition:border-color .15s,background .15s}
@@ -218,6 +226,15 @@ body[class*="phf-page-"] .kpi .n,body[class*="phf-page-"] .kpi strong{color:var(
 body[class*="phf-page-"] .kpi.bad .n{color:var(--phf-red)}
 body[class*="phf-page-"] .kpi.good .n{color:var(--phf-green)}
 body[class*="phf-page-"] .kpi .l,body[class*="phf-page-"] .kpi span{color:var(--phf-muted)}
+/* v21.18.0: Reconcile CH2 Order's result numbers — one navy strip, label over number (was six light tiles) */
+body.phf-page-reconcile .results .kpis{display:flex!important;flex-wrap:wrap;gap:0!important;background:var(--phf-navy);border-radius:10px;overflow:hidden;margin-bottom:14px}
+body.phf-page-reconcile .results .kpis .kpi{flex:1 1 140px;display:flex;flex-direction:column-reverse;align-items:center;justify-content:center;gap:1px;min-height:46px;padding:5px 10px!important;background:transparent!important;border:0!important;border-right:1px solid #33507A!important;border-radius:0;text-align:center}
+body.phf-page-reconcile .results .kpis .kpi:last-child{border-right:0!important}
+body.phf-page-reconcile .results .kpis .kpi .l{font-size:10px!important;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--phf-band-text)!important;white-space:nowrap}
+body.phf-page-reconcile .results .kpis .kpi .n{font-size:17px!important;line-height:1.2;font-weight:800;color:var(--phf-gold)!important;font-variant-numeric:tabular-nums}
+body.phf-page-reconcile .results .kpis .kpi.good .n{color:#81C995!important}
+body.phf-page-reconcile .results .kpis .kpi.bad .n{color:#F28B82!important}
+body.phf-page-reconcile .results .kpis .kpi.warn .n{color:#FDD663!important}
 body[class*="phf-page-"] .match-note{border:1px solid var(--phf-line);border-left:1px solid var(--phf-line);background:var(--phf-soft);color:#4A5562;border-radius:10px}
 body[class*="phf-page-"] .match-note strong{color:var(--phf-navy)}
 body[class*="phf-page-"] .privacy strong{color:var(--phf-navy)}
@@ -327,7 +344,8 @@ body.phf-page-db .full-width-wrap{padding-top:16px!important}
 :is(body.phf-page-db,body.phf-page-reconcile) .stage-dashboard .stage-title h2 small{color:var(--phf-band-text);opacity:1!important;letter-spacing:.04em;font-weight:600}
 :is(body.phf-page-db,body.phf-page-reconcile) .stage-dashboard .stage-description{margin:0 0 2px!important;font-size:12px!important;color:var(--phf-muted)!important}
 :is(body.phf-page-db,body.phf-page-reconcile) .stage-dashboard .stage-status{margin-top:10px!important}
-:is(body.phf-page-db,body.phf-page-reconcile) .stage-dashboard .stage-actions .btn{text-transform:uppercase;letter-spacing:.06em;font-size:12px!important;min-height:40px}
+/* v21.18.0: one button look on Build, Reconcile and POS New Product Check Clean — Sentence case, 13px, 32px high */
+:is(body.phf-page-db,body.phf-page-reconcile) .stage-dashboard .stage-actions .btn{text-transform:none;letter-spacing:0;font-size:13px!important;min-height:32px;padding-top:5px;padding-bottom:5px}
 :is(body.phf-page-db,body.phf-page-reconcile) .stage-dashboard .done .stage-build:not(:disabled){background:#fff;border-color:var(--phf-line-strong);color:var(--phf-navy)}
 body.phf-page-db .master-callout>div,:is(body.phf-page-db,body.phf-page-reconcile) .stage-dashboard .master-callout>div{background:var(--phf-soft);border:1px solid var(--phf-line)}
 body.phf-page-db .master-callout strong{color:var(--phf-navy);text-transform:uppercase;letter-spacing:.06em;font-size:10px}
@@ -339,7 +357,8 @@ body.phf-page-db .ready-chip.missing{background:var(--phf-red-bg);border-color:v
 :is(body.phf-page-db,body.phf-page-reconcile) .empty-output{background:var(--phf-soft);color:var(--phf-muted);font-size:12.5px;padding:12px 14px}
 :is(body.phf-page-db,body.phf-page-reconcile) .download-link{border-radius:8px;font-weight:700}
 :is(body.phf-page-db,body.phf-page-reconcile) .download-link.secondary{background:#fff;color:var(--phf-navy);border:1px solid var(--phf-line-strong)}
-body.phf-page-db .dashboard-run .actions .btn{text-transform:uppercase;letter-spacing:.06em;font-size:12px}
+body.phf-page-db .dashboard-run .actions .btn{text-transform:none;letter-spacing:0;font-size:13px;min-height:32px;padding-top:5px;padding-bottom:5px}
+:is(body.phf-page-db,body.phf-page-reconcile) .download-link{min-height:32px!important}
 /* Legacy stage pages (ch2.html / uhp.html / master.html) */
 body.phf-page-db-legacy main.wrap{padding-top:16px}
 body.phf-page-db-legacy main.wrap>.topbar,body.phf-page-db-legacy main.wrap>h1{display:none!important}

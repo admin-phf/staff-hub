@@ -1,4 +1,6 @@
-/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.2.1 (12 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.3.0 (13 Oct 2026)
+ * v1.3.0: set({ ticks: { col: { id, on, title } } }) puts a tick under that heading (an unticked heading's text is grey);
+ * ticking calls opts.onTick(id, on) — the page changes the setting and sets the grid again.
  * v1.2.1: edit.cellLock(row, col) → message — that cell is not edited (typing, Delete or paste skip it) and the message
  * is shown instead (OUT_MERGED_DATA: the KEPT columns of matched products).
  * v1.2.0: column filters work like the Google Sheet's — tick the values to show (several at once), OK applies; the same
@@ -69,7 +71,7 @@
     var count = host.querySelector('.wbg-count'), tools = host.querySelector('.wbg-edit-tools'), noteEl = host.querySelector('.wbg-note');
     var filtInfo = host.querySelector('.wbg-filters'), selInfo = host.querySelector('.wbg-sel');
     var st = { head: [], rows: [], cols: [], vis: [], q: '', hay: null, look: null, totals: null, firstRow: 3, nums: null, rowH: 25, win: { start: 0, end: 0 },
-      raf: 0, edit: null, sel: null, editing: null, busy: false, filters: {}, marks: null, flags: null };
+      raf: 0, edit: null, sel: null, editing: null, busy: false, filters: {}, marks: null, flags: null, ticks: null };
     function viewChanged() { if (opts.onView) { try { opts.onView(); } catch (e) { if (G.console) console.error(e); } } }
 
     // ------------------------------------------------------------------ layout
@@ -99,10 +101,12 @@
       table.querySelector('thead').innerHTML =
         '<tr class="wbg-letters"><th class="wbg-rn wbg-corner"></th>' + st.cols.map(function (c) { return '<th>' + colLetter(c + 1) + '</th>'; }).join('') + '</tr>' +
         totalsHtml() +
-        '<tr class="wbg-headrow"><th class="wbg-rn">' + (st.firstRow - 1) + '</th>' + st.cols.map(function (c, k) {
-          var flag = st.flags && st.flags[c];
-          return '<th data-hc="' + k + '"' + (st.edit && ro[c] ? ' class="wbg-ro-head' + (flag ? ' wbg-flagged' : '') + '" title="' + esc(st.head[c]) + ' — worked out by the merge (read-only here)"' : (flag ? ' class="wbg-flagged"' : '') + ' title="' + esc(st.head[c]) + (flag ? ' — ' + esc(flag) : '') + '"') + '>' + esc(st.head[c]) +
+        '<tr class="wbg-headrow' + (st.ticks ? ' wbg-has-ticks' : '') + '"><th class="wbg-rn">' + (st.firstRow - 1) + '</th>' + st.cols.map(function (c, k) {
+          var flag = st.flags && st.flags[c], tick = st.ticks && st.ticks[c];
+          var cls = (st.edit && ro[c] ? 'wbg-ro-head' : '') + (flag ? ' wbg-flagged' : '') + (tick && !tick.on ? ' wbg-off' : '');
+          return '<th data-hc="' + k + '"' + (cls.trim() ? ' class="' + cls.trim() + '"' : '') + (st.edit && ro[c] ? ' title="' + esc(st.head[c]) + ' — worked out by the merge (read-only here)"' : ' title="' + esc(st.head[c]) + (flag ? ' — ' + esc(flag) : '') + '"') + '>' + esc(st.head[c]) +
             (flag ? '<span class="wbg-flag">' + esc(String(flag).split(' — ')[0]) + '</span>' : '') +
+            (tick ? '<label class="wbg-tick" title="' + esc(tick.title || '') + '"><input type="checkbox" data-tick="' + esc(tick.id) + '"' + (tick.on ? ' checked' : '') + (st.busy ? ' disabled' : '') + ' aria-label="Update in POS: ' + esc(st.head[c]) + '"></label>' : '') +
             '<button type="button" class="wbg-filt' + (st.filters[c] !== undefined ? ' is-on' : '') + '" data-fc="' + c + '" aria-label="Filter ' + esc(st.head[c]) + '">' + FILTER_SVG + '</button></th>';
         }).join('') + '</tr>';
     }
@@ -362,6 +366,11 @@
       paintSel();
     });
     document.addEventListener('mouseup', function () { dragging = false; });
+    table.addEventListener('change', function (ev) {                     // v1.3.0: a heading tick
+      var cb = ev.target.closest('input[data-tick]'); if (!cb) return;
+      if (st.busy || !opts.onTick) { cb.checked = !cb.checked; return; }
+      opts.onTick(cb.dataset.tick, cb.checked);
+    });
     table.addEventListener('dblclick', function (ev) { var td = ev.target.closest('tbody td[data-r]'); if (!td || +td.dataset.c < 0) return; goTo(+td.dataset.r, +td.dataset.c); startEdit(); });
     wrap.addEventListener('keydown', function (ev) {
       var tg = ev.target; if (tg && tg !== wrap && /^(INPUT|TEXTAREA|BUTTON|SELECT)$/.test(tg.tagName)) return;
@@ -407,7 +416,7 @@
         var keep = d.keepView === true;
         st.head = (d.head || []).map(function (h) { return String(h == null ? '' : h); });
         st.rows = d.rows || []; st.hay = null; st.look = d.look || null; st.totals = d.totals || null;
-        st.firstRow = d.firstRow || 3; st.nums = d.rowNumbers || null; st.edit = d.edit || null; st.marks = d.marks || null; st.flags = d.flags || null;
+        st.firstRow = d.firstRow || 3; st.nums = d.rowNumbers || null; st.edit = d.edit || null; st.marks = d.marks || null; st.flags = d.flags || null; st.ticks = d.ticks || null;
         st.cols = d.cols || st.head.map(function (h, i) { return i; });
         host.classList.toggle('wbg-two', !!(st.look && st.look.twoLine));
         host.classList.toggle('wbg-grey', !!(st.look && st.look.grey));
@@ -430,7 +439,10 @@
       visible: function () { return st.vis.map(function (e) { return e.n; }); },
       filtered: function () { return !!(st.q.trim() || Object.keys(st.filters).length) && st.vis.length < st.rows.length; },
       clearFilters: function () { if (!st.q && !Object.keys(st.filters).length) return; st.q = ''; if (search) search.value = ''; st.filters = {}; redraw(); },
-      busy: function (b) { st.busy = !!b; host.classList.toggle('is-busy', st.busy); updateTools(); },
+      busy: function (b) {
+        st.busy = !!b; host.classList.toggle('is-busy', st.busy); updateTools();
+        table.querySelectorAll('input[data-tick]').forEach(function (cb) { cb.disabled = st.busy; });
+      },
       note: say,
       select: function (srcRow, srcCol) {
         var r = -1; for (var i = 0; i < st.vis.length; i++) if (st.vis[i].n === srcRow) { r = i; break; }

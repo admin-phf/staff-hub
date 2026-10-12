@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.7.2 (12 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.8.0 (13 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -57,7 +57,16 @@
  * v1.7.2 (12 Oct 2026): supplier sheet clean-up — one navy strip (title, status, totals, rows), one scope line, the
  *         Update in POS / Discontinue options in the toolbar; headings in two rows like the other tabs (letters, then the
  *         heading on up to 2 lines with its tick); the sheet fills the window under the run bar; spare width goes to
- *         SUP PRODUCT; no + badge on pasted rows (the gold edge stays). */
+ *         SUP PRODUCT; no + badge on pasted rows (the gold edge stays).
+ * v1.8.0 (13 Oct 2026): the supplier sheet looks like its Google Sheet tab — the totals sit in a navy row 1 above the
+ *         columns (A total · B supplier names · C POS suppliers · D barcodes · E brands · J total WS · K total RRP · P the
+ *         STATUS counts) instead of a strip above the sheet; navy headings with gold text, an unticked Update in POS heading
+ *         turns its text grey (the navy stays); prices (J, K, N) show 2 decimals (display only); the latest message is one
+ *         line in the title band (no green box); toolbar buttons 32 px, blue Paste and white the rest, as on OUT_MERGED_DATA.
+ *         Rows pasted or typed here are not amber — amber marks a value changed after it arrived (rows from files: any
+ *         change). OUT_MERGED_DATA: the Update in POS tick is under every heading POS can keep (the same setting as the
+ *         supplier sheet; it recalculates straight away), no KEPT label; its coloured tiles show only in Review columns (the
+ *         Sheet view has the same totals in row 1); toolbar 32 px. Run bar messages wrap to two lines. */
 (function () {
   'use strict';
 
@@ -1091,6 +1100,7 @@
     var R = state.review, cols = REVIEW_COLS.filter(function (c) { return R.idx[c.h] !== undefined; });
     var sheetView = wb.outView === 'sheet';
     $('#reviewTableWrap').hidden = sheetView; $('#reviewPager').hidden = sheetView; $('#reviewGrid').hidden = !sheetView;
+    $('#reviewKpis').hidden = sheetView;      // v1.8.0: the Sheet view has the same totals in row 1, above the columns
     document.querySelectorAll('[data-out-view]').forEach(function (x) { x.classList.toggle('is-on', x.dataset.outView === wb.outView); });
     var badge = $('#reviewCount'); badge.textContent = fmtN(R.filtered.length) + ' OF ' + fmtN(R.rows.length) + ' ROWS'; badge.className = 'result-badge ok';
     if (sheetView) { drawOutGrid(keep); return; }
@@ -1106,12 +1116,13 @@
   function drawOutGrid(keep) {
     var R = state.review;
     var cols = R.head.map(function (h, i) { return h === '__EXPORT_VISIBLE__' ? -1 : i; }).filter(function (i) { return i >= 0; });
-    if (!wb.outGrid) wb.outGrid = window.PHFSheetGrid.create($('#reviewGrid'), { search: false, onView: function () { renderScopes(); renderOutActions(); } });
+    if (!wb.outGrid) wb.outGrid = window.PHFSheetGrid.create($('#reviewGrid'), { search: false, onView: function () { renderScopes(); renderOutActions(); },
+      onTick: function (id, on) { setKeep(id, !on); } });              // v1.8.0: Update in POS ticks in the headings
     var look = keptLook(window.PHFSheetLook.forSheet(SHEETS.OUT, R.head), R.head, 'out', R.idx['ROW STATUS']);
     var marks = state.edits.marks[SHEETS.OUT] || {}, mk = {};
     R.fidx.forEach(function (sheetRow, i) { if (marks[sheetRow]) mk[i] = marks[sheetRow]; });
     wb.outGrid.set({
-      head: R.head, rows: R.filtered, cols: cols, rowNumbers: R.fidx, look: look, marks: mk, keepView: !!keep, flags: keptFlags(R.head, 'out'),
+      head: R.head, rows: R.filtered, cols: cols, rowNumbers: R.fidx, look: look, marks: mk, keepView: !!keep, ticks: keepTicks(R.head),
       totals: function (vis) { return look.totals(R.rows, vis); },
       edit: {
         readOnly: look.readOnly, cellLock: keptLock(R.head, 'out', R.idx['ROW STATUS']), rows: false, canUndo: (state.edits.undo[SHEETS.OUT] || 0) > 0,
@@ -1121,7 +1132,20 @@
     });
     wb.outGrid.busy(state.busy || state.edits.busy);
   }
-  // v1.6.0: columns whose value POS keeps (unticked on the supplier sheet) — greyed for matched products, KEPT in the heading.
+  // v1.8.0: OUT_MERGED_DATA — the Update in POS tick under every heading POS can keep (the group's `out` columns), the same
+  // setting as the supplier sheet's ticks; unticked = POS keeps its value (grey heading text, grey cells for matched rows).
+  function keepTicks(head) {
+    var t = null;
+    head.forEach(function (h, i) {
+      var g = KEEP_GROUPS.filter(function (x) { return x.out.indexOf(h) >= 0; })[0]; if (!g) return;
+      var on = !state.opts.keep[g.id];
+      t = t || {};
+      t[i] = { id: g.id, on: on, title: 'Update in POS (' + g.what + ') — ' + (on ? 'ticked: POS ' + g.what + ' is updated from the merge. Untick to keep POS’s current value for matched products.' : 'unticked: POS keeps its current ' + g.what + ' for matched products. Tick to update it.') + ' Same tick as the supplier sheet heading.' };
+    });
+    return t;
+  }
+  // v1.6.0: columns whose value POS keeps (unticked on the supplier sheet) — greyed for matched products, KEPT in the heading
+  // (v1.8.0: OUT_POS_UPDATE only; OUT_MERGED_DATA has the ticks).
   function keptFlags(head, list, ids) {
     var names = keptNames(list, ids), f = null;
     head.forEach(function (h, i) { if (names[h]) { f = f || {}; f[i] = 'KEPT — POS keeps its current value for matched products (Update in POS is off for this column)'; } });
@@ -1146,7 +1170,7 @@
     return function (row, c) {
       if (!cols[c] || !isMatched(row[statusCol])) return '';
       var g = keptGroups().filter(function (x) { return x[list].indexOf(head[c]) >= 0; })[0];
-      return 'KEPT — POS keeps its current ' + (g ? g.what : 'value') + ' for matched products, so ' + head[c] + ' shows POS\'s value and is not edited here. Tick Update in POS on the supplier sheet heading to change it.';
+      return 'KEPT — POS keeps its current ' + (g ? g.what : 'value') + ' for matched products, so ' + head[c] + ' shows POS\'s value and is not edited here. Tick Update in POS in this heading (or on the supplier sheet) to change it.';
     };
   }
   // Buttons above OUT_MERGED_DATA: Refresh supplier changes (UPDATED SUPPLIER edits waiting) and Run stage 3 again.
@@ -1293,7 +1317,7 @@
         '<span class="out-actions-note">' + esc(edited ? t.sheet + ' was edited — Export TXT again to put the edits in the POS file. (Running stage 3 again makes this sheet again from OUT_MERGED_DATA.)' : 'Edits here go into the POS file with Export TXT again.') + '</span>' +
         (pv ? '<span class="out-actions-filter">Filtered — the ' + esc(t.id === 'upd' ? 'POS UPDATE' : 'POS INSERT') + ' TXT will have only the ' + fmtN(pv.rows.length) + ' of ' + fmtN(pv.total) + ' rows shown.</span>' : '');
     } else if (t.input && !t.readOnly && loaded(t.input)) {
-      html = '<button type="button" class="btn small" data-act="rerun"' + (busy || !requiredReady() ? ' disabled' : '') + ' title="Run stages 1 → 3 with this table as it is now">Run All Stages</button><span class="out-actions-note">Changes here are saved in this browser straight away. Run the stages again to use them.</span>';
+      html = '<button type="button" class="btn small" data-act="rerun"' + (busy || !requiredReady() ? ' disabled' : '') + ' title="Run stages 1 → 3 with this table as it is now">Run all stages</button><span class="out-actions-note">Changes here are saved in this browser straight away. Run the stages again to use them.</span>';
     }
     host.innerHTML = html;
     host.querySelectorAll('[data-act]').forEach(function (b) {
@@ -1669,12 +1693,14 @@
     supCommit(res.msg, res.type);
     return true;
   }
-  function setSupCell(row, c, raw) {
+  // v1.8.0: added = the row was pasted or typed on this page. Filling an empty cell of such a row is how it arrives, so it
+  // is not marked; a value changed after it arrived is (2 = marked by v1.8.0 — older marks on added rows are not shown).
+  function setSupCell(row, c, raw, added) {
     if (c <= 0 || c >= 15) return false;
-    var v = supValue(c, raw);
-    if (String(row[c] == null ? '' : row[c]) === String(v)) return false;
+    var v = supValue(c, raw), was = String(row[c] == null ? '' : row[c]);
+    if (was === String(v)) return false;
     row[c] = v;
-    row.__ed = row.__ed || {}; row.__ed[c] = true;
+    if (!(added && was === '')) { row.__ed = row.__ed || {}; row.__ed[c] = 2; }
     return true;
   }
 
@@ -1707,12 +1733,12 @@
       for (var i = 0; i < rows.length; i++) {
         var cells = skipFirst ? rows[i].slice(1) : rows[i];
         if (!cells.some(function (v) { return String(v).trim() !== ''; }) && !vis[r0 + i]) continue;
-        var target = vis[r0 + i] ? vis[r0 + i].ref.row : null;
-        if (!target) { target = blankSupRow(); addedEntry(true).data.push(target); added++; }
+        var target = vis[r0 + i] ? vis[r0 + i].ref.row : null, here = !!(vis[r0 + i] && vis[r0 + i].ref.e.added);
+        if (!target) { target = blankSupRow(); addedEntry(true).data.push(target); added++; here = true; }
         for (var j = 0; j < cells.length; j++) {
           var c = c0 + j;
           if (c >= 15) { if (String(cells[j]).trim() !== '' && c > 15) cut++; continue; }
-          if (setSupCell(target, c, cells[j])) changed++;
+          if (setSupCell(target, c, cells[j], here)) changed++;
         }
       }
       if (!changed && !added) return null;
@@ -1725,8 +1751,9 @@
 
   function supSay(msg, type) {
     supView.note = msg || ''; supView.noteType = type || 'info';
+    // v1.8.0: one line in the title band (wraps to a second line when long; the full text is on hover).
     var el = $('#supNote'); if (!el) return;
-    el.className = 'status sup-note ' + supView.noteType; el.textContent = supView.note; el.hidden = !supView.note;
+    el.className = 'sup-msg is-' + supView.noteType; el.textContent = supView.note; el.title = supView.note; el.hidden = !supView.note;
   }
   function supStatusClass(v) {
     var s = String(v || '').toUpperCase();
@@ -1741,6 +1768,32 @@
       names: uniq(1), suppliers: uniq(2), barcodes: uniq(3), brands: uniq(4), ws: sum(9), rrp: sum(10) };
   }
   function money(n) { return '$' + Number(n || 0).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  // v1.8.0 — row 1 of the supplier sheet, column by column as the Google Sheet has it: { l: label, v: value, tip } or, in
+  // P (STATUS), { st: true, lines: [...] }; null = an empty cell.
+  function supTotCells(t, model, stat) {
+    var cells = SUP_HEADS.map(function () { return null; });
+    var c = function (i, l, v, tip) { cells[i] = { l: l, v: v, tip: tip || '' }; };
+    c(0, 'TOTAL', fmtN(t.total), 'Supplier rows' + (model.run ? ' — ⭐ matched ' + fmtN(t.matched) + ' · 🟢 new ' + fmtN(t.newp) + ' · 🚫 not used ' + fmtN(t.notUsed) + ' · ⚠️ unmatchable ' + fmtN(t.unm) : ''));
+    c(1, 'SUPPLIER NAMES', fmtN(t.names));
+    c(2, 'POS SUPPLIERS', fmtN(t.suppliers), 'Total POS suppliers');
+    c(3, 'BARCODES', fmtN(t.barcodes), 'Unique barcodes in column D (SUP BARCODE). In the Google Sheet this cell may be labelled UNIQUE BRANDS from an older layout — it counts barcodes.');
+    c(4, 'BRANDS', fmtN(t.brands), 'Unique brands');
+    c(9, 'TOTAL WS', money(t.ws));
+    c(10, 'TOTAL RRP', money(t.rrp));
+    var blank = Math.max(0, t.total - t.matched - t.newp - t.notUsed - t.unm);
+    cells[15] = { st: true, tip: stat, lines: model.run
+      ? ['Matched ' + fmtN(t.matched) + ' · New ' + fmtN(t.newp), 'Not used ' + fmtN(t.notUsed) + ' · Unmatchable ' + fmtN(t.unm) + (blank ? ' · Blank ' + fmtN(blank) : '')]
+      : [model.items.length ? 'STATUS — set by stage 1' : 'No supplier rows yet'] };
+    return cells;
+  }
+  // v1.8.0 — prices (J SUP WS EXGST, K SUP RRP INC GST, N SUP DISCOUNT PRICE) show 2 decimals; the cell keeps its value.
+  var SUP_DP2 = { 9: 1, 10: 1, 13: 1 };
+  function supCellText(it, c) {
+    var s = supShown(it, c);
+    if (!SUP_DP2[c] || s === '') return s;
+    var t = s.trim(), n = Number(t.replace(/[$,\s]/g, ''));
+    return /^\$?\s*-?[\d,]*\.?\d+$/.test(t) && isFinite(n) ? n.toFixed(2) : s;
+  }
   // v1.3.1 — the brands this merge covers (SUP BRAND, column E, of every supplier row). Stage 2 matches, updates and
   // discontinues POS products of these brands only, so this is the check before running.
   function supScopeHtml(model) {
@@ -1870,7 +1923,9 @@
     var wrap = $('#supWrap'), tbl = $('#supTable'); if (!wrap || !tbl) return;
     var W = wrap.clientWidth; if (W < 200) return;                               // hidden — fitted when it is shown
     var vis = supView.vis || [], fam = getComputedStyle(tbl).fontFamily || 'sans-serif';
-    var key = [W, fam, vis.length, vis.length ? vis[0].n + ':' + vis[vis.length - 1].n : '', state.rev, supView.undo.length, (vis[0] && vis[0].shown !== vis[0].ref.row) ? 1 : 0].join('|');
+    var tot = supView.tot || [];
+    var key = [W, fam, vis.length, vis.length ? vis[0].n + ':' + vis[vis.length - 1].n : '', state.rev, supView.undo.length, (vis[0] && vis[0].shown !== vis[0].ref.row) ? 1 : 0,
+      tot.map(function (x) { return x ? (x.st ? x.lines.join('/') : x.v) : ''; }).join('|')].join('|');
     if (key === supFitFor) return;
     // the longest text of each column on show (as characters, measured per font below)
     // The text each column has to show: INDEX the highest number on show; numbers, barcodes and IDs every value that
@@ -1883,7 +1938,7 @@
     var NUMLIKE = /^[\s$-]*[\d.,]+%?$/, CODE = { 3: 1, 5: 1 };
     rows.forEach(function (it) {
       for (var c = 1; c < SUP_HEADS.length; c++) {
-        var t = supShown(it, c); if (!t) continue;
+        var t = supCellText(it, c); if (!t) continue;
         texts[c].push(t);
         if (NUMLIKE.test(t) || (CODE[c] && t.length <= 16)) exact[c].push(t);
       }
@@ -1921,7 +1976,16 @@
         var cw = 0;
         // H–O show tabular figures (every digit as wide as 0), so their digits are measured as 0s; 3px to spare.
         longest[c].forEach(function (t) { cw = Math.max(cw, supTextW((c === 15 ? 'italic 700 ' : '') + cell, c >= 7 && c <= 14 ? t.replace(/\d/g, '0') : t) + 3); });
-        var min = Math.ceil(hw + 2 * pad + 2), want = Math.ceil(Math.max(hw, Math.min(cw, SUP_CAP[c] || 320)) + 2 * pad + 2);
+        // v1.8.0: row 1 (totals) — the value on one line must fit (its digits as 0s); the label may wrap at a word.
+        var x = tot[c], tmin = 0, twant = 0;
+        if (x && x.st) x.lines.forEach(function (l) { twant = Math.max(twant, supTextW('700 ' + (hfs + 0.5) + 'px ' + fam, l) + 3); });
+        else if (x) {
+          var lab = function (s) { return supTextW('800 ' + (hfs - 1) + 'px ' + fam, s) + s.length * (hfs - 1) * 0.05; };
+          var vw = supTextW('700 ' + (fs + 0.5) + 'px ' + fam, x.v.replace(/\d/g, '0')) + 3;
+          tmin = Math.max(vw, Math.max.apply(null, x.l.split(/\s+/).map(lab)));
+          twant = Math.max(vw, lab(x.l));
+        }
+        var min = Math.ceil(Math.max(hw, tmin) + 2 * pad + 2), want = Math.ceil(Math.max(hw, twant, Math.min(cw, SUP_CAP[c] || 320)) + 2 * pad + 2);
         mins.push(min); wants.push(want);
         floors.push(SUP_GIVE[c] ? Math.min(want, Math.max(min, Math.ceil(SUP_GIVE[c] * ct + 2 * pad + 2))) : want);
       }
@@ -1966,10 +2030,10 @@
   }
   function supSheetHtml() {
     return '<div class="sup-sheet" id="supSheet" tabindex="0" aria-label="IN_SUPPLIER_/_PRODUCT_UPDATES sheet">' +
-      // v1.7.2: one navy strip (title · status · totals · rows), one scope line (brands · Library), one toolbar (search ·
-      // edit buttons · Update in POS · Discontinue), then the sheet.
-      '<div class="sup-head"><div class="sup-title"><h3>IN_SUPPLIER_/_PRODUCT_UPDATES <span class="sup-info" tabindex="0" title="The Supplier Updates tab as the Google Sheet shows it. Click a cell and type to change it · Ctrl+V (⌘V) pastes from the selected cell · click an INDEX number to select rows · Ctrl+Z undoes. The tick in a heading = that column updates POS for matched products." aria-label="About this sheet">i</span></h3><div class="sup-status" id="supStatus"></div></div>' +
-      '<div class="sup-bar" id="supBar"></div><span class="result-badge" id="supCount">0 ROWS</span></div>' +
+      // v1.8.0: the title band (title · the latest message on one line · rows), one scope line (brands · Library), one
+      // toolbar (search · edit buttons · Update in POS · Discontinue), then the sheet with its totals in row 1.
+      '<div class="sup-head"><div class="sup-title"><h3>IN_SUPPLIER_/_PRODUCT_UPDATES <span class="sup-info" tabindex="0" title="The Supplier Updates tab as the Google Sheet shows it. Click a cell and type to change it · Ctrl+V (⌘V) pastes from the selected cell · click an INDEX number to select rows · Ctrl+Z undoes. The tick in a heading = that column updates POS for matched products." aria-label="About this sheet">i</span></h3></div>' +
+      '<div class="sup-msg" id="supNote" role="status" hidden></div><span class="result-badge" id="supCount">0 ROWS</span></div>' +
       '<div class="sup-scope"><div class="sup-scope-brands" id="supScope"></div><div class="sup-scope-lib" data-lib-sup-host hidden></div></div>' +
       '<div class="sup-tools"><input type="search" id="supSearch" placeholder="Search barcode, brand, Sub ID, product or status…" aria-label="Search supplier rows">' +
       '<button type="button" class="btn small primary" id="supPasteBtn" title="Paste the clipboard at the selected cell (or add the rows at the end when no cell is selected)">Paste</button>' +
@@ -1979,13 +2043,13 @@
       '<button type="button" class="btn small" id="supClearAdded" title="Remove every row typed or pasted here (dropped supplier files stay)">Clear added rows</button>' +
       '<button type="button" class="btn small" id="supCopyHeads" title="Copy the 16 headings, ready to paste into Excel or Google Sheets as a template">Copy headings</button>' +
       '<div class="sup-opts" id="supOpts"></div></div>' +
-      '<div class="status sup-note" id="supNote" hidden></div>' +
-      // v1.7.2: two heading rows like the other workbook tabs — the column letters (grey, with the SUP BRAND filter), then
-      // each heading centred on up to two lines with its Update in POS tick on one line under it.
+      // v1.7.2: heading rows like the other workbook tabs — the column letters (grey, with the SUP BRAND filter), v1.8.0 the
+      // totals (row 1 of the Google Sheet, navy), then each heading centred on up to two lines with its Update in POS tick.
       '<div class="sup-table-wrap" id="supWrap"><table class="sup-table" id="supTable">' + supColsHtml() + '<thead><tr class="sup-letters">' + SUP_HEADS.map(function (h, i) {
         return '<th class="sup-l' + i + '">' + window.XlsxLite.colLetter(i + 1) +
           (i === 4 ? '<button type="button" class="sup-filt" id="supBrandFilt" title="Filter SUP BRAND — the merge then covers only the brands you keep ticked" aria-label="Filter SUP BRAND"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg></button>' : '') + '</th>';
-      }).join('') + '</tr><tr class="sup-heads">' + SUP_HEADS.map(function (h, i) {
+      }).join('') + '</tr><tr class="sup-tot" id="supTot">' + SUP_HEADS.map(function (h, i) { return '<th class="sup-t' + i + '"></th>'; }).join('') +
+      '</tr><tr class="sup-heads">' + SUP_HEADS.map(function (h, i) {
         var g = KEEP_GROUPS.filter(function (x) { return x.col === i; })[0];
         return '<th class="sup-c' + i + (i === 0 || i === 15 ? ' sup-ro' : '') + '"><span class="sup-hl">' + esc(h) + '</span><span class="sup-tick">' +
           (g ? '<label class="sup-keep" title="Update in POS — ticked: POS ' + esc(g.what) + ' is updated from this column. Unticked: POS keeps its current ' + esc(g.what) + ' for matched products."><input type="checkbox" data-keep="' + g.id + '" aria-label="Update in POS: ' + esc(h) + '"></label>' : '') + '</span></th>';
@@ -2004,13 +2068,16 @@
     supView.vis = vis;
     var t = supTotals(vis);
     var stat = model.run ? (model.summary || 'Stage 1 finished — no summary returned') : (model.items.length ? 'STATUS is set when stage 1 runs (Highlight New Products + Best Buy)' : 'No supplier rows yet — drop supplier files above, or click B3 and paste rows here');
-    var bc = function (label, val, cls, tip) { return '<div class="sup-bar-cell' + (cls ? ' ' + cls : '') + '"' + (tip ? ' title="' + esc(tip) + '"' : '') + '><span>' + label + '</span><strong>' + val + '</strong></div>'; };
-    $('#supBar').innerHTML =
-      bc('TOTAL', fmtN(t.total)) + bc('⭐ MATCHED', fmtN(t.matched), 'is-match') + bc('🟢 NEW', fmtN(t.newp), 'is-new') + bc('🚫 NOT USED', fmtN(t.notUsed), 'is-muted') + bc('⚠️ UNMATCHABLE', fmtN(t.unm), 'is-warn') +
-      bc('SUPPLIER NAMES', fmtN(t.names), 'is-gap') + bc('POS SUPPLIERS', fmtN(t.suppliers), '', 'Total POS suppliers') + bc('BARCODES', fmtN(t.barcodes), '', 'Unique barcodes in column D (SUP BARCODE). In the Google Sheet this cell may be labelled UNIQUE BRANDS from an older layout — it counts barcodes.') + bc('BRANDS', fmtN(t.brands), '', 'Unique brands') + bc('TOTAL WS', money(t.ws)) + bc('TOTAL RRP', money(t.rrp));
-    var stEl = $('#supStatus'); stEl.className = 'sup-status' + (model.run ? ' is-run' : '');
-    stEl.innerHTML = '<span>STATUS</span>' + esc(stat) + (q || bsel ? ' <em>· totals for the ' + fmtN(vis.length) + ' rows shown</em>' : '');
-    stEl.title = stat;
+    // v1.8.0: the totals are row 1 of the sheet, each above its column as in the Google Sheet (for the rows shown).
+    supView.tot = supTotCells(t, model, stat);
+    var totRow = $('#supTot');
+    totRow.innerHTML = supView.tot.map(function (x, i) {
+      if (!x) return '<th class="sup-t' + i + '"></th>';
+      return '<th class="sup-t' + i + (x.st ? ' sup-t-st' + (model.run ? '' : ' is-wait') : '') + '"' + (x.tip ? ' title="' + esc(x.tip) + '"' : '') + '>' +
+        (x.st ? x.lines.map(function (l) { return '<span>' + esc(l) + '</span>'; }).join('') : '<span class="sup-tl">' + esc(x.l) + '</span><b>' + esc(x.v) + '</b>') + '</th>';
+    }).join('');
+    totRow.classList.toggle('is-filtered', !!(q || bsel));
+    totRow.title = q || bsel ? 'Totals for the ' + fmtN(vis.length) + ' rows shown (search / SUP BRAND filter)' : '';
     $('#supScope').innerHTML = supScopeHtml(model);
     $('#supOpts').innerHTML = supOptsHtml();
     var tbl = $('#supTable');
@@ -2051,8 +2118,8 @@
     }
     var ed = it.ref.row.__ed || {}, added = !!it.ref.e.added, cells = '';
     for (var c = 0; c < 16; c++) {
-      var s = supShown(it, c);
-      var cls = 'sup-c' + c + (c === 0 || c === 15 ? ' sup-ro' : '') + (c === 15 ? ' sup-status ' + supStatusClass(s) : '') + (ed[c] ? ' is-edited' : '');
+      var s = supCellText(it, c), mark = added ? ed[c] === 2 : !!ed[c];      // v1.8.0: see setSupCell
+      var cls = 'sup-c' + c + (c === 0 || c === 15 ? ' sup-ro' : '') + (c === 15 ? ' sup-status ' + supStatusClass(s) : '') + (mark ? ' is-edited' : '');
       cells += '<td class="' + cls + '" data-r="' + r + '" data-c="' + c + '"' + ((c === 6 || c === 15) && s ? ' title="' + esc(s) + '"' : c === 0 && added ? ' title="Added on this page"' : '') + '>' + esc(s) + '</td>';
     }
     return '<tr class="' + (added ? 'is-added' : '') + (it.out ? ' is-out' : '') + band + '"' + (it.out ? ' title="Not in the last merge (the SUP BRAND filter left this brand out)"' : '') + '>' + cells + '</tr>';
@@ -2159,7 +2226,7 @@
     supMutate(function () {
       var row = it ? it.ref.row : null;
       if (!row) { row = blankSupRow(); addedEntry(true).data.push(row); }
-      var changed = setSupCell(row, ed.c, val);
+      var changed = setSupCell(row, ed.c, val, !it || !!it.ref.e.added);
       if (!changed && it) return null;
       return { msg: it ? 'Changed ' + window.XlsxLite.colLetter(ed.c + 1) + (ed.r + 3) + ' (' + SUP_HEADS[ed.c] + ').' : 'Row ' + (ed.r + 3) + ' added.', type: 'success' };
     });
@@ -2168,7 +2235,7 @@
     var b = selBox(); if (!b) return;
     supMutate(function () {
       var n = 0;
-      for (var r = b.r1; r <= b.r2; r++) { var it = supView.vis[r]; if (!it) continue; for (var c = Math.max(1, b.c1); c <= Math.min(14, b.c2); c++) if (setSupCell(it.ref.row, c, '')) n++; }
+      for (var r = b.r1; r <= b.r2; r++) { var it = supView.vis[r]; if (!it) continue; for (var c = Math.max(1, b.c1); c <= Math.min(14, b.c2); c++) if (setSupCell(it.ref.row, c, '', !!it.ref.e.added)) n++; }
       return n ? { msg: fmtN(n) + ' cell' + (n === 1 ? '' : 's') + ' cleared.', type: 'success' } : null;
     });
   }
@@ -2342,7 +2409,7 @@
   /* Two records in this tool's IndexedDB store: the session inputs (POS Database, Supplier Updates with their edits, the
      SUP BRAND filter) and the session state (stage results, edits, TXT files, options and the engine's sheets — engine
      dump). On open they come back after the saved reference tables and the Library files; the results are put back only
-     when the inputs are the same as when they were saved. Clear Results / Clear session files / a new run replace them. */
+     when the inputs are the same as when they were saved. Clear results / Clear session files / a new run replace them. */
   var SESSION_IN = '__session_inputs', SESSION_POS = '__session_pos', SESSION_ST = '__session_state';
   var sessTimer = 0, sessInputsDirty = false, sessRestoring = true, savedPosSig = null, sessPending = false, sessQueued = false;
   // Closing the page while the session is being saved would lose the latest results, so the browser asks first.
@@ -2475,7 +2542,7 @@
     }).then(function (r) {
       sessRestoring = false;
       return newerPosNote().then(function (note) {
-        if (r && r.at && !r.changed) setGlobal('Your last session is back (saved ' + r.at + ') — results, edits and TXT files. It stays until Clear Results, Clear session files or a new run.' + note, 'success');
+        if (r && r.at && !r.changed) setGlobal('Your last session is back (saved ' + r.at + ') — results, edits and TXT files. It stays until Clear results, Clear session files or a new run.' + note, 'success');
         else if (r && r.changed) setGlobal('Your input files are back, but they changed since the results were saved (' + r.at + ') — run the stages again.' + note, 'missing');
         else if (r && r.failed) setGlobal('Your input files are back; the saved results could not be put back (' + r.failed + ') — run the stages again.' + note, 'missing');
         else if (note) setGlobal(readinessText() + note, 'info');

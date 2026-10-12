@@ -548,3 +548,32 @@ All implemented stages keep source business files local to the browser and gener
   `SUP_SIZES` step: 'two', 'empty3' (3 lines for columns with nothing on show), 'all3' (steps ≥ 2). Pick: the first try at
   step ≤ 1 where SUP PRODUCT keeps 40 characters (`sumC`), else step 0 'empty3' when the floors fit, else the first try
   whose floors fit, else the last (scaled). Spare room by `SUP_SPARE` {G .8, P .08, B .06, E .06}. No + tag width.
+
+## Staff Hub v21.18.0 — POS New Product Check Clean v1.8.0: sheets like the Google Sheet tabs, one look across the tools (13 Oct 2026 09:30 AEDT)
+- `supSheetHtml`: `.sup-head` = `.sup-title` (h3 + `.sup-info`) · `#supNote.sup-msg` (the latest `supSay` message, one line,
+  `-webkit-line-clamp: 2`, class `is-<type>` → icon) · `#supCount`. `#supBar`, `#supStatus` and the `.status.sup-note`
+  box are gone. thead = `tr.sup-letters` · `tr.sup-tot#supTot` (`th.sup-tN`) · `tr.sup-heads`.
+- `supTotCells(t, model, stat)` → 16 cells for row 1: `{ l, v, tip }` in A, B, C, D, E, J, K, `{ st, lines, tip }` in P
+  (counts from `supTotals(vis)`, tip = the stage-1 summary); kept in `supView.tot`. `supFit` adds row 1 to each column:
+  min = the value on one line (digits as 0s, `fs + .5` px bold) or the longest label word (`hfs - 1` px, 800); want also
+  the whole label; P only wants its two lines (it may wrap). The fit key includes the row-1 values.
+- `supCellText(it, c)` = `supShown` with J, K, N (`SUP_DP2`) as 2 decimals when the cell is a number; used for the rows
+  and `supFit`. Copy, search, editing and the merge use the value.
+- `setSupCell(row, c, raw, added)`: on a row added here, filling an empty cell is not marked; otherwise `__ed[c] = 2`.
+  `supRowHtml` shows `is-edited` for `__ed[c] === 2` on added rows (older `true` marks on them are ignored) and for any
+  mark on file rows. Callers: `pasteAtCell` (new rows and rows of the added entry → added), `commitEdit`, `clearSelectedCells`.
+- CSS: `tr.sup-tot th` navy / gold (`.sup-tl` label, `b` value), `.sup-t-st` lines, `.is-filtered` lighter values;
+  `tr.sup-heads th` navy / gold with a gold bottom line; `.keep-cN th.sup-cN` navy with #8B9DB5 text; `.sup-tools` white,
+  buttons and search 32 px, `.sup-opts` white.
+- OUT_MERGED_DATA: `drawOutGrid` passes `ticks: keepTicks(head)` (every column in a `KEEP_GROUPS[].out` list → `{ id, on,
+  title }`) instead of `flags`; the grid's `onTick(id, on)` → `setKeep(id, !on)` → `optsChanged()` (same path as the
+  supplier sheet). `keptFlags` stays for OUT_POS_UPDATE. `renderReviewPage` hides `#reviewKpis` in the Sheet view.
+- sheet-grid v1.3.0: `set({ ticks })` → `<label class="wbg-tick"><input data-tick>` in the heading, `th.wbg-off` when
+  unticked, `tr.wbg-has-ticks` (50 px heading row); a `change` listener on the table calls `opts.onTick`; `busy()`
+  disables the ticks.
+- `.wb-runbar-status` wraps to two lines (`-webkit-line-clamp: 2`), title = full text.
+- theme.css v20.1.0 (Build, Reconcile, merge — `body.phf-page-db` / `.phf-page-reconcile`): stage and Build all buttons
+  `text-transform: none`, 13 px, 32 px; `.download-link` 32 px; `.status.success|.ok` = one line with a ✓ (no box);
+  Reconcile `.results .kpis` = one navy strip (`.kpi` column-reverse: label over number; good / bad / warn colours).
+  Build v21.14.1: `STAGES[].btn` labels ("Build POS database"), "Build all databases" / "Clear session". Merge: "Run all
+  stages" / "Clear results".
