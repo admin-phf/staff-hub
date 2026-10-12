@@ -472,3 +472,10 @@ All implemented stages keep source business files local to the browser and gener
   `pos-import.buildInvoicePayload` merges records with the same Sub ID, POS source row, invoice and terms (`mergedFrom`,
   checked line by line in `validateInvoiceAccuracy`), else a SPLIT LINES warning; review notes list MERGED / SPLIT LINES from
   `result.detail[].invoiceRows`; `beforeunload` prompt while receiving counts / ticks exist.
+
+## Staff Hub v21.15.1 — Build POS Master Databases v21.12.1: dropped files kept in memory (12 Oct 2026 12:30 AEDT)
+- `memFile(file)` copies a dropped file into the page's memory (`new File([await f.arrayBuffer()], …)`, flagged `__mem`)
+  in `acceptInputFile` (not for Library files) and before `identifyFile` in `bulkAccept`. A build no longer reads the
+  computer's copy, so moving, renaming, deleting or re-exporting a file after the drop (Chrome: NotFoundError "A requested
+  file or directory could not be found…" / NotReadableError) cannot stop it. `readErr` names the file when a read does fail.
+- `buildAll` marks the stage that was running as Error when Build All stops.
