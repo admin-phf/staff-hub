@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS Supplier Merge v1.0.0
+/* PHF Staff Hub — POS Supplier Merge · sheets-shim v1.0.3
  * sheets-shim.js — an in-memory stand-in for the Google Sheets services the
  * POS Supplier Merge Apps Script (v6.3.87) uses, so the unchanged script files
  * can run in the browser.
@@ -11,6 +11,8 @@
  * Values, formulas, notes, number formats (for display values) and sheet
  * structure (rows / columns / filters) are kept.
  * v1.0.1 (11 Oct 2026): formulas get each cell's displayed text for TO_TEXT (sheets-formula.js v1.0.1).
+ * v1.0.3 (12 Oct 2026): number formats — the same format set again adds nothing, and none are dropped (the 4,000 cap
+ *         dropped the oldest, which changed displayed values after heavy editing).
  * v1.0.2 (11 Oct 2026): a Sheet / Range has no onEdit event fields (range, source, value…) — reading one gives
  *         undefined, so the script's onEdit helpers tell a sheet from an event as they do in Google Sheets.
  */
@@ -174,13 +176,20 @@
     }
     return '';
   };
+  // v1.0.3: setting cells to the format they already have adds nothing (edits and supplier refreshes set the same formats
+  // again), and no entry is ever dropped — dropping the oldest ones (the column formats set when OUT_MERGED_DATA is built)
+  // changed how cells were shown, and so the values in the POS TXT files, after heavy editing.
   Sheet.prototype._addFormat = function (r1, c1, r2, c2, fmt) {
+    fmt = String(fmt || '');
+    var area = (r2 - r1 + 1) * (c2 - c1 + 1), same = area <= 2000;
+    for (var r = r1; same && r <= r2; r++) for (var c = c1; same && c <= c2; c++) if (this._formatAt(r, c) !== fmt) same = false;
+    if (same) return;
     for (var i = this.formats.length - 1; i >= 0; i--) {
       var f = this.formats[i];
       if (f.r1 >= r1 && f.r2 <= r2 && f.c1 >= c1 && f.c2 <= c2) this.formats.splice(i, 1);
     }
-    this.formats.push({ r1: r1, c1: c1, r2: r2, c2: c2, fmt: String(fmt || '') });
-    if (this.formats.length > 4000) this.formats.splice(0, this.formats.length - 4000);
+    this.formats.push({ r1: r1, c1: c1, r2: r2, c2: c2, fmt: fmt });
+    if (this.formats.length === 20000 && typeof console !== 'undefined') console.warn('sheets-shim: ' + this.name + ' has 20,000 number-format ranges — display may slow down');
   };
   Sheet.prototype.getName = function () { return this.name; };
   Sheet.prototype.setName = function (n) { this.name = String(n); return this; };

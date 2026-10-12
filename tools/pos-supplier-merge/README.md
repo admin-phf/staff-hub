@@ -1,7 +1,17 @@
-# POS New Product Check Clean v1.6.1 (Staff Hub v21.14.1)
+# POS New Product Check Clean v1.6.2 (Staff Hub v21.15.0)
 
-Updated 12 Oct 2026 09:40 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 12 Oct 2026 12:05 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.6.2: safety fixes —
+- Files can't be added, replaced or removed while a stage runs or your last session is loading (the page says to wait);
+  results made from files that changed during a run are not kept.
+- A TAB inside a cell becomes a space before the merge, so it can't shift the columns of the POS TXT files.
+- Number formats are never dropped any more (after very heavy editing, dropping them changed price levels in the TXT).
+- If the browser refuses to save the session (storage full) the page says so instead of hanging on "Leave site?".
+- Clear session files / removing Supplier Updates also clears the SUP BRAND filter.
+- Price levels kept by an unticked SUP RRP INC GST are now POS's exact values (90.08, not 90): rebuild the POS Database in
+  Build POS Master Databases v21.12.0 once.
 
 v1.6.1: what POS keeps is what OUT_MERGED_DATA shows — with a column unticked, matched products show POS's current values
 there (RRP, price levels 1–9, ret price, FINAL SHELF RRP, …), on the page and in the review workbook, in the Sheet's

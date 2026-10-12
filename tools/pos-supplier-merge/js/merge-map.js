@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean · merge-map v1.0.2 (12 Oct 2026: Ongoing Discounts is shared with Reconcile CH2 Order; v1.0.1 11 Oct 2026: renamed tools in the input descriptions)
+/* PHF Staff Hub — POS New Product Check Clean · merge-map v1.0.3 (12 Oct 2026: TABs in cells become spaces; v1.0.2: Ongoing Discounts is shared with Reconcile CH2 Order; v1.0.1 11 Oct 2026: renamed tools in the input descriptions)
  * merge-map.js — input definitions, file recognition and column mapping.
  * Shared by the page (to check dropped files) and the engine (to build the
  * in-memory workbook). Sheet names, headings and text columns are the ones in
@@ -122,7 +122,7 @@
         var k = colMap[c], v = k >= 0 ? r[k] : '';
         if (isBlank(v)) v = '';
         else {
-          if (typeof v === 'string') v = v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+          if (typeof v === 'string') v = v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '').replace(/\t/g, ' ');   // v1.0.3: no TABs (the POS TXT is tab-separated)
           if (text[c] && typeof v !== 'string') v = String(v);
           if (c > 0 && String(v).trim() !== '') any = true;
         }
@@ -140,7 +140,8 @@
   function sheetRows(sheet, dataRows) {
     var schema = SCHEMAS[sheet];
     var rows = [[''], schema.headers.slice()];
-    (dataRows || []).forEach(function (r, i) { var o = r.slice(0, schema.headers.length); o[0] = String(i + 1); rows.push(o); });
+    // v1.0.3: rows typed or pasted into a sheet on the page get the same TAB clean-up before they reach the merge.
+    (dataRows || []).forEach(function (r, i) { var o = r.slice(0, schema.headers.length).map(function (v) { return typeof v === 'string' && v.indexOf('\t') >= 0 ? v.replace(/\t/g, ' ') : v; }); o[0] = String(i + 1); rows.push(o); });
     return rows;
   }
 

@@ -1,3 +1,5 @@
+// v2.11.0 (12 Oct 2026): validateRun also returns review = true when an invoice check that never blocks (line arithmetic,
+// invoice footer total) failed, so the page shows REVIEW instead of PASS.
 (function(global){
   'use strict';
   const PHF=global.PHFReconcile=global.PHFReconcile||{};
@@ -68,7 +70,8 @@
       if(!c.ok && c.severity==='error')errors.push(`${c.name}: ${c.detail}`);
       else if(!c.ok || c.severity==='warning')warnings.push(`${c.name}: ${c.detail}`);
     }
-    return {ok:errors.length===0,checks,errors,warnings};
+    const review=checks.some(c=>!c.ok&&c.severity==='warning');
+    return {ok:errors.length===0,review,checks,errors,warnings};
   }
 
   function validateOutput(output,posOrder){

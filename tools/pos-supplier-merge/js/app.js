@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.6.1 (12 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.6.2 (12 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -35,6 +35,11 @@
  *         wholesale with no change; Sub ID, brand, description, units, box lot, GST, supplier), on the page, in its totals
  *         and in the review workbook; those cells cannot be edited (sheet-grid v1.2.1 cellLock). Kept cells take the Sheet's
  *         "no change" grey text (#9E9E9E) on the row bands, on the supplier sheet too. The POS UPDATE file is unchanged.
+ * v1.6.2 (12 Oct 2026): files cannot be added, replaced or removed while a stage runs or the last session is coming back
+ *         (inputsLocked; results made from inputs that changed during a run are not kept); a TAB inside a cell becomes a
+ *         space before the merge (merge-map v1.0.3 / engine-host v1.2.1); number formats are never dropped (sheets-shim
+ *         v1.0.3); a save the browser refuses (storage full) is reported instead of hanging; removing Supplier Updates
+ *         clears the SUP BRAND filter.
  * v1.5.1 (12 Oct 2026): renamed POS New Product Check Clean. With a password set, it opens behind a "Still under
  *         development" prompt and the Lock / Password buttons appear only once it is open (phf-lock.js v1.1.0).
  *         Ongoing Discounts dropped here (on its row or in Drop All) is saved to the Library as that table alone, so the
@@ -42,7 +47,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.6.1';
+  var TOOL_VERSION = 'v1.6.2';
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -221,6 +226,8 @@
         var tx = db.transaction(DB_STORE, mode), st = tx.objectStore(DB_STORE), out = fn(st);
         tx.oncomplete = function () { res(out && out.result !== undefined ? out.result : out); db.close(); };
         tx.onerror = function () { rej(tx.error); db.close(); };
+        // v1.6.2: a write the browser refuses (storage full) ends in abort, not error — reject so the page can say so.
+        tx.onabort = function () { rej(tx.error || new Error('The browser stopped saving (storage may be full)')); try { db.close(); } catch (e) {} };
       });
     });
   }
@@ -257,12 +264,12 @@
       kind = 'in-page';
       frame = document.createElement('iframe');
       frame.hidden = true; frame.title = 'POS New Product Check Clean engine';
-      frame.src = './engine-frame.html?v=1.2.0';
+      frame.src = './engine-frame.html?v=1.2.1';
       window.addEventListener('message', frameListener);
       document.body.appendChild(frame);
     }
     try {
-      worker = new Worker('./js/engine-worker.js?v=1.2.0');
+      worker = new Worker('./js/engine-worker.js?v=1.2.1');
       kind = 'worker';
       worker.onmessage = function (ev) { onMsg(ev.data); };
       worker.onerror = function (ev) {
@@ -378,7 +385,15 @@
       if (inputDef(id).stored) refSave(id); renderAll(); if (state.activeInput === id) showInput(id);
     }).catch(function (e) { console.warn('Library save failed', e); });
   }
+  // v1.6.2: files cannot be added, replaced or removed while a stage runs or the last session is coming back — the run (or
+  // the restore) would otherwise finish with the old files and still say Complete.
+  function inputsLocked() {
+    if (!state.busy && !sessRestoring) return false;
+    setGlobal(state.busy ? 'A stage is running — add, replace or remove files when it finishes.' : 'Your last session is still loading — add, replace or remove files in a moment.', 'missing');
+    return true;
+  }
   function acceptFile(id, file) {
+    if (inputsLocked()) return Promise.resolve(false);
     var def = inputDef(id);
     setGlobal('Reading ' + file.name + '…', 'running');
     return readWorkbook(file).then(function (sheets) {
@@ -396,6 +411,7 @@
     });
   }
   function removeFile(id, idx) {
+    if (inputsLocked()) return;
     var cur = state.inputs[id]; if (!cur) return;
     libForget(id, cur.files.slice(idx, idx + 1));
     cur.files.splice(idx, 1);
@@ -410,6 +426,7 @@
 
   // ------------------------------------------------------------ bulk drop
   function bulkAccept(list) {
+    if (inputsLocked()) return Promise.resolve();
     var files = Array.prototype.slice.call(list || []).filter(function (f) { return f && f.size !== undefined; });
     if (!files.length) return;
     setGlobal('Identifying ' + files.length + ' file' + (files.length === 1 ? '' : 's') + '… (nothing will run)', 'running');
@@ -523,10 +540,10 @@
   // v1.2.0: remove inputs straight away — the ✕ beside a rail row, or the two clear buttons. A saved reference table
   // is deleted from this browser too. Drop-list rows that only filled those inputs go as well.
   function removeInputs(ids, message) {
-    if (state.busy) { setGlobal('A stage is running — remove files when it finishes.', 'missing'); return; }
+    if (inputsLocked()) return;
     var gone = ids.filter(function (id) { return state.inputs[id]; });
     gone.forEach(function (id) { libForget(id, state.inputs[id].files); delete state.inputs[id]; if (inputDef(id).stored) refDelete(id); });
-    if (ids.indexOf('sup') >= 0) { supView.undo = []; supView.sel = null; supView.note = ''; }
+    if (ids.indexOf('sup') >= 0) { supView.undo = []; supView.sel = null; supView.note = ''; supView.brands = null; }   // v1.6.2: the SUP BRAND filter goes too
     state.bulk = state.bulk.filter(function (rec) {
       if (!rec.ids || !rec.ids.length) return true;
       var keep = []; rec.ids.forEach(function (id, i) { if (ids.indexOf(id) < 0) keep.push(i); });
@@ -720,6 +737,7 @@
   }
   function runTo(target) {
     if (state.busy) return Promise.resolve();
+    if (sessRestoring) { setGlobal('Your last session is still loading — run again in a moment.', 'missing'); return Promise.resolve(); }
     if (!requiredReady()) { setGlobal(readinessText(), 'missing'); return Promise.resolve(); }
     var tIdx = STAGES.map(function (s) { return s.id; }).indexOf(target);
     state.busy = true;
@@ -756,7 +774,12 @@
       if (current) stageSet(current, 'error', 'Error: ' + e.message);
       setGlobal((current ? 'Stage stopped: ' : 'Could not start: ') + e.message, 'error');
       gpct(0);
-    }).then(function () { state.busy = false; updateRunButtons(); refreshSupSheet(); renderScopes(); saveSessionSoon(); });
+    }).then(function () {
+      state.busy = false;
+      // v1.6.2: results made from inputs that changed during the run are not kept.
+      if (state.loadedRev !== state.rev && Object.keys(state.results).length) { invalidateResults('Inputs changed while the stages ran — run the stages again.'); setGlobal('Inputs changed while the stages ran, so those results were not kept — run the stages again.', 'missing'); }
+      updateRunButtons(); refreshSupSheet(); renderScopes(); saveSessionSoon();
+    });
   }
   // v1.6.0: what stage 3 sends with 'generate' — the OUT_MERGED_DATA rows shown when a filter / search hides some, the
   // columns POS keeps for matched products, and the Discontinue switch.
@@ -2195,7 +2218,11 @@
         pendingSup: keep ? state.pendingSup : 0, resultScope: keep ? state.resultScope : null, loadedScope: keep ? state.loadedScope : '' };
       return dbTx('readwrite', function (st) { st.put(rst); });
     }));
-    return Promise.all(jobs).catch(function (e) { console.warn('Session not saved', e); }).then(function () { if (!sessQueued) sessPending = false; });
+    return Promise.all(jobs).catch(function (e) {
+      console.warn('Session not saved', e);
+      sessInputsDirty = true;                                       // try again with the next save
+      setGlobal('This browser did not save the session (' + (e && e.message || 'storage may be full') + '). Everything is still on the page — download the TXT files before closing it.', 'missing');
+    }).then(function () { if (!sessQueued) sessPending = false; });
   }
   function restoreInputs() {
     var rin = null, rpos = null;

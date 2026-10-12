@@ -443,3 +443,32 @@ All implemented stages keep source business files local to the browser and gener
 - sheet-grid v1.2.1: `edit.cellLock(row, col)` → message: typing / Enter shows it, Delete and paste skip the cell.
 - css/merge.css: unticked supplier columns `color:#9E9E9E` on the row bands (was a hatch).
 - The POS UPDATE file (engine-host v1.2.0) is unchanged.
+
+## Staff Hub v21.15.0 — integrity fixes across Build POS Master Databases, Reconcile CH2 Order and POS New Product Check Clean (12 Oct 2026 12:05 AEDT)
+- Build POS Master Databases v21.12.0 (`js/pipeline.js`; POS v5.0.2, CH2 v1.0.1, Unique v1.0.2):
+  - `posVal` keeps decimals for every numeric POS column (it used `Math.trunc`, so PR_1–9_PC / RET_PRICE / SOH / ITEMSIZE
+    lost their decimals — 20,430 of 34,251 products on the 12 Oct files). Whole numbers are unchanged.
+  - `posRead(file, need)`: heading row = first of the first 80 rows with MAIN_ID and SUB_ID; headings normalised by
+    `posHead` (`Main ID` = `MAIN_ID`); every column keeps its own position; throws when a `need` column is missing
+    (stock: MAIN_ID, SUB_ID, PLU, BRAND, DESCR; template: MAIN_ID, SUB_ID, BRAND, DESCR, WSP_EXCGST, RRP_INCGST).
+  - CH2: `buildCh2` stops without a Wholesale / RRP column (`resolveCh2Columns`); `ch2-core.buildSupplierImport` falls back
+    to the resolved role column (`importRoleCols` / `getValOr`) when the usual heading is not there, and builds SUP PRODUCT
+    from Description 1 + 2 when there is no Long Description.
+  - Unique: `parseUhpRows` keeps each column's position (a blank heading cell no longer shifts the data); `pyStr(null)` is
+    '' (a blank Size gave "… NONE" in 233 descriptions); a missing `UHP_` mapping column is ''; `buildUhp` stops without
+    APN Barcode / W/S ex GST.
+  - `state.busy` + `busyNote()`: one build at a time; drops, Assign, Remove, Clear input files and Clear Session wait.
+  - `addOutput`: an output whose re-open check warned is not saved to the Library (the last good copy stays).
+  - `discSheet(sheets)`: Ongoing Discounts is validated and built from the sheet with the discount headings; the master
+    stage message warns when the file gave 0 rules (`res.discounts.rules`).
+- POS New Product Check Clean v1.6.2: `inputsLocked()` guards `acceptFile` / `removeFile` / `bulkAccept` / `removeInputs`
+  (busy or `sessRestoring`); `runTo` refuses while restoring and drops results when `loadedRev !== rev` at the end;
+  `dbTx` rejects on `tx.onabort`, `saveSession` reports a refused save and retries the inputs next time; removing `sup`
+  clears `supView.brands`. engine-host v1.2.1 `coerce` and merge-map v1.0.3 `mapTable` / `sheetRows` turn TABs into
+  spaces. sheets-shim v1.0.3 `_addFormat`: a range (≤ 2,000 cells) already showing that format adds nothing; no entry is
+  dropped (the 4,000 cap evicted the build's column formats and changed displayed / exported values).
+- Reconcile CH2 Order v2.11.0: `reconcile.candidate` accepts `score >= 280` only with description ≥ 30; `integrity.validateRun`
+  returns `review` (a failed warning-severity check: line arithmetic, footer total) → KPI / status / notes show REVIEW;
+  `pos-import.buildInvoicePayload` merges records with the same Sub ID, POS source row, invoice and terms (`mergedFrom`,
+  checked line by line in `validateInvoiceAccuracy`), else a SPLIT LINES warning; review notes list MERGED / SPLIT LINES from
+  `result.detail[].invoiceRows`; `beforeunload` prompt while receiving counts / ticks exist.

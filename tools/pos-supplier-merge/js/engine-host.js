@@ -1,4 +1,5 @@
-/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.2.0 (12 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.2.1 (12 Oct 2026)
+ * v1.2.1: a TAB in an edited cell becomes a space (the POS TXT files are tab-separated).
  * v1.2.0 (all outside the Apps Script files, which are unchanged):
  *   run 'generate' + visible:[OUT sheet rows] → the Sheet's "from filtered data" generate (only those OUT rows);
  *   run 'generate' + keep:['ws','rrp','sub','brand','product','units','minorder','gst','supplier'] → matched products keep
@@ -48,7 +49,7 @@
     return {
       setup: typeof G.SCRIPT_VERSION !== 'undefined' ? G.SCRIPT_VERSION : '',
       merge: (typeof G.M13 !== 'undefined' && G.M13 && G.M13.VERSION) ? G.M13.VERSION : '',
-      host: 'v1.2.0',
+      host: 'v1.2.1',
       worker: isWorker
     };
   }
@@ -84,7 +85,8 @@
   // What a typed value becomes: text in '@' / text columns (codes keep leading zeros), otherwise a number when it is one.
   function coerce(sh, r, c, v) {
     if (v === null || v === undefined) return '';
-    var s = String(v).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '');
+    // v1.2.1: a TAB becomes a space — the POS TXT files are tab-separated, so a TAB inside a cell would shift every later column.
+    var s = String(v).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '').replace(/\t/g, ' ');
     if (s.trim() === '') return '';
     if (s.charAt(0) === '=') return s;
     if (sh._formatAt(r, c) === '@' || textCol(sh.name, c)) return s;

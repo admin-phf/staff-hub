@@ -1,3 +1,5 @@
+// v2.11.0 (12 Oct 2026): a line is no longer matched to an order row on wholesale price alone — without an exact code /
+// barcode link it also needs some description in common (score ≥ 280 now also needs description ≥ 30).
 (function(global){
   'use strict';
   const PHF=global.PHFReconcile=global.PHFReconcile||{};
@@ -214,7 +216,7 @@
     if(inv.rrp!=null&&pos.rrp!=null){const d=Math.abs(Number(inv.rrp)-Number(pos.rrp));if(d<=0.05)score+=60;else if(d<=0.5)score+=20;}
     if(Number(inv.qtySupplied)===Number(pos.orderedQty))score+=20;
     const normalClose=inv.normalWholesale!=null&&pos.normalWholesale!=null&&Math.abs(Number(inv.normalWholesale)-Number(pos.normalWholesale))<=0.05;
-    const accepted=exact||(normalClose&&desc>=30)||desc>=58||score>=280;
+    const accepted=exact||(normalClose&&desc>=30)||desc>=58||(score>=280&&desc>=30);
     if(!exact){
       if(normalClose&&desc>=68){confidence='HIGH';method='NORMAL W/S + DESCRIPTION';}
       else if((normalClose&&desc>=30)||desc>=75){confidence='MEDIUM';method='DESCRIPTION / PRICE';}

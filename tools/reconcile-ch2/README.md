@@ -1,4 +1,21 @@
-# Prahran Health Foods — CH2 Reconciler v2.10.0
+# Prahran Health Foods — CH2 Reconciler v2.11.0
+
+## v2.11.0 — split invoice lines, Integrity REVIEW, leave prompt (12 Oct 2026 12:05 AEDT)
+
+- **One product on several CH2 lines.** POSActive keeps only the last TXT line with a Sub ID on an order row, so a product
+  CH2 billed on two lines (e.g. 6 + 6) was received as 6. Lines of the same invoice for the same POS order row with the same
+  unit price, Disc %, Normal W/S and GST are now **one TXT line** with the quantities and amounts added (first line number;
+  the invoice check compares it with all of its lines). Lines at different prices, or on different invoices, stay separate
+  and a **SPLIT LINES** note says to check that row in POSActive after importing. Review notes list both (MERGED LINES /
+  SPLIT LINES).
+- **Integrity REVIEW.** When the invoice footer total does not reconcile or a billed line's arithmetic fails, Integrity
+  shows **REVIEW** (amber) instead of PASS, with a note that a line may have been missed when the invoice was read. Downloads
+  stay available, as before.
+- **No match on price alone.** Without a CH2 code / barcode / Sub ID link, a line also needs some description in common
+  with the order row (a matching Normal W/S alone matched unrelated products).
+- **Leave prompt.** Receiving counts and ticks live only on the page, so the browser asks before a reload or a link leaves
+  it while any are entered. Every Run still starts a fresh receiving session (v2.6.9).
+- The two real orders tested (105-0008845, 105-0008843) give exactly the same POSActive TXT as before.
 
 ## v2.10.0 — Ongoing Discounts is one shared file (12 Oct 2026 04:40 AEDT)
 
@@ -634,7 +651,7 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - A new interactive **unpacking checkbox** appears immediately to the left of Product # in POS Layout.
 - Checking an item strikes through the entire POS row while preserving existing supply/price colours.
 - The checklist works on supplied and grey not-supplied rows alike.
-- Checklist state is session-local and survives switching between Exceptions / All lines / POS layout and rerunning the same order in the current browser tab.
+- Checklist state is session-local and survives switching between Exceptions / All lines / POS layout. (Since v2.6.9 every Run starts a fresh receiving session.)
 - A **Checked X / N** progress counter and **Clear checks** button are shown in POS Layout.
 - Checklist state is operational only; it does not change reconciliation logic, invoice allocation, integrity checks or Excel output.
 
@@ -654,7 +671,7 @@ Do not commit supplier invoices, POS orders, merged POS masters, customer inform
 - **Add Qty** accepts the quantity found in the current carton/box. Press **Enter**, **Tab**, or click away to add it to the running **Found** total; the Add Qty field then clears automatically.
 - Negative entries are supported for corrections (for example `-6`). Running totals are never allowed below zero.
 - The **Found** field is read-only and shows the cumulative physical quantity entered for that POS row.
-- Quantity totals are session-local, keyed to the POS order/product identity, and survive switching between preview views and rerunning the same order in the current browser tab.
+- Quantity totals are session-local, keyed to the POS order/product identity, and survive switching between preview views. (Since v2.6.9 every Run starts a fresh receiving session; v2.11.0 asks before leaving the page while counts are entered.)
 - A **Clear qty** control resets only the physical-count totals; **Clear checks** continues to reset only the row checklist.
 - Quantity entry works on supplied and grey not-supplied rows alike. It is operational only and does not change reconciliation, pricing, supplier quantities, integrity checks, or Excel output.
 

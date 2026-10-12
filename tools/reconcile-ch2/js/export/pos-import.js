@@ -1,3 +1,7 @@
+// Reconcile CH2 v2.11.0 — 12 Oct 2026: one product CH2 billed on several lines of the same invoice for the same POS order
+// row (same Sub ID) is one TXT line with the quantities and amounts added, when the lines have the same unit price, Disc %,
+// Normal W/S and GST — POSActive keeps only the last line with a Sub ID on that row, so it received only that line before.
+// Lines at different terms, or on different invoices, stay separate with a SPLIT LINES warning to check that row by hand.
 // Reconcile CH2 v2.9.1 — 09 Oct 2026 09:05 AEDT: the prediction also models several lines sharing one Sub ID (e.g. SPECIAL
 // ORDER): POSActive puts them all on the first order row with that Sub ID and the last line wins.
 // v2.9.0 — 09 Oct 2026 00:26 AEDT: predicts POSActive's Current / Adjusted Total after import (Sub IDs it can
@@ -527,6 +531,33 @@
       }
     }
 
+    // v2.11.0 — several billed lines for one POS order row (same Sub ID) → one TXT line when their terms match.
+    {
+      const groupsBy=new Map(),order=[],gstOn=r=>(n(r.gst)||0)>0;
+      for(const r of records){
+        const row=sourceRowKey(r.pos),key=clean(r.subId);
+        if(r.manualReceiving||!row||!key){order.push([r]);continue;}
+        const k=key+'\u0000'+row;if(!groupsBy.has(k)){const g=[];groupsBy.set(k,g);order.push(g);}groupsBy.get(k).push(r);
+      }
+      const merged=[];
+      for(const g of order){
+        if(g.length===1){merged.push(g[0]);continue;}
+        const f=g[0],sameInv=g.every(r=>clean(r.invoiceNo)===clean(f.invoiceNo)),near=(a,b,t)=>Math.abs((n(a)||0)-(n(b)||0))<=t;
+        const sameTerms=g.every(r=>near(r.unitPrice,f.unitPrice,0.00011)&&near(r.disc,f.disc,0.011)&&near(r.normalWs,f.normalWs,0.011)&&gstOn(r)===gstOn(f));
+        const parts=g.map(r=>`invoice ${r.invoiceNo} line ${r.line} qty ${qtyText(r.qty)}`).join(' + ');
+        if(sameInv&&sameTerms){
+          const sum=k=>g.reduce((a,r)=>a+(n(r[k])||0),0),qty=round(sum('qty'),3);
+          merged.push({...f,qty,qtySupplied:qty,extended:round(sum('extended'),2),gst:round(sum('gst'),2),total:round(sum('total'),2),sourceQty:round(sum('sourceQty'),3),
+            receivingAdjusted:g.some(r=>r.receivingAdjusted),mergedFrom:g.map(r=>({invoiceNo:r.invoiceNo,line:r.line,qty:r.qty,extended:r.extended,gst:r.gst,total:r.total,receivingAdjusted:r.receivingAdjusted}))});
+          warnings.push(`MERGED LINES — ${f.description}: CH2 billed it on ${parts} for the same POS order row (Sub ID "${f.subId}"). They are one TXT line (line ${f.line}, qty ${qtyText(qty)}) because POSActive keeps only the last line with that Sub ID.`);
+        }else{
+          merged.push(...g);
+          pushIssue(warnings,`SPLIT LINES — ${f.description}: billed on ${parts} ${sameInv?'at different prices / discounts':'on different invoices'}, all for the same POS order row (Sub ID "${f.subId}"). POSActive keeps only the last of these lines on that row (qty ${qtyText(g[g.length-1].qty)}) — check that row's received quantity and cost in POSActive after importing.`);
+        }
+      }
+      records.length=0;records.push(...merged);
+    }
+
     if(omittedNotSupplied.length){
       const unticked=omittedNotSupplied.filter(x=>x.selected===false).length,explicitZero=omittedNotSupplied.length-unticked;
       const parts=[];if(unticked)parts.push(`${unticked} unticked`);if(explicitZero)parts.push(`${explicitZero} Found=0`);
@@ -700,6 +731,17 @@
     }
     for(const r of records||[]){
       if(r.manualReceiving)continue;
+      // v2.11.0 — a merged line is checked against all of its invoice lines (prices each, quantities and amounts summed).
+      if(r.mergedFrom){
+        const invs=r.mergedFrom.map(m=>(sources.get(clean(m.invoiceNo)+'|'+lineText(m.line))||[]).filter(inv=>digits(inv.productCode)===digits(r.ch2Code)));
+        if(invs.some(l=>l.length!==1)){pushIssue(warnings,`INVOICE CHECK — Invoice ${r.invoiceNo} merged lines ${r.mergedFrom.map(m=>m.line).join(' + ')} CH2 ${r.ch2Code||'(blank)'}: not every source invoice line could be found to compare the exported values with. Review this line in POSActive.`);continue;}
+        const srcs=invs.map(l=>l[0]),chk=(label,value,source,dp,inv)=>{if(n(source)!=null&&fixed(value,dp)!==fixed(source,dp))pushIssue(warnings,`INVOICE CHECK — ${wholesaleReviewLabel(inv)}: exported ${label} ${fixed(value,dp)} differs from the invoice ${fixed(source,dp)}. Review only; download remains available.`);};
+        for(const inv of srcs){chk('Unit Price',r.unitPrice,inv.unitPriceExGst,4,inv);if(!wsBackfilled(inv))chk('Normal W/S',r.normalWs,inv.normalWholesale,2,inv);chk('Disc %',r.disc,inv.discountPct,2,inv);}
+        const tot=k=>srcs.reduce((a,inv)=>a+(n(inv[k])||0),0);
+        if(r.receivingAdjusted){if(fixed(round(r.extended+r.gst,2),2)!==fixed(r.total,2))pushIssue(warnings,`INVOICE CHECK — ${wholesaleReviewLabel(srcs[0])}: exported Extended + GST does not equal Total.`);}
+        else{chk('Qty',r.qty,tot('qtySupplied'),3,srcs[0]);chk('Extended ex GST',r.extended,round(tot('extendedExGst'),2),2,srcs[0]);chk('GST',r.gst,round(tot('gstAmount'),2),2,srcs[0]);chk('Total inc GST',r.total,round(tot('totalIncGst'),2),2,srcs[0]);}
+        continue;
+      }
       const list=sources.get(clean(r.invoiceNo)+'|'+lineText(r.line))||[];
       const matches=list.filter(inv=>digits(inv.productCode)===digits(r.ch2Code));
       if(matches.length!==1){pushIssue(warnings,`INVOICE CHECK — Invoice ${r.invoiceNo} line ${r.line} CH2 ${r.ch2Code||'(blank)'}: no single source invoice line could be found to compare the exported values with. Review this line in POSActive.`);continue;}

@@ -6,8 +6,8 @@ One list of supplier and utility contacts — reps, phone numbers, emails, accou
 edit, delete and download.
 
 v1.1.0: the Index, 100% GST and Min Order columns are gone (a list or file that still has them opens without them, and
-the saved list is saved again without them). Everything is text: numbers are read exactly as stored — 53773, not
-$53,773.00 or 53,773 — and every column of the .xlsx download is formatted as Text, so Excel does not change them either.
+the saved list is saved again without them). Everything is text: numbers are read exactly as stored — 12345, not
+$12,345.00 or 12,345 — and every column of the .xlsx download is formatted as Text, so Excel does not change them either.
 
 ## Where the list is kept
 
@@ -23,8 +23,8 @@ The hub's Library panel shows the saved list. Library **Delete all** leaves it i
 
 ## Using it
 
-- **Search** looks in every field. Several words must all match (`kadac nikki`). Phone numbers match with or without spaces
-  (`0438889556`). Esc or × clears the search.
+- **Search** looks in every field. Several words must all match (`acme sam`). Phone numbers match with or without spaces
+  (`0400000000` finds 0400 000 000). Esc or × clears the search.
 - **Add contact** — every field, and Section (Supplier / Utility). A new contact goes at the end of its section. A name
   that is already in the list is not added twice — open the existing contact instead.
 - **Edit** — double-click a row or press ✎. Changing Section moves the contact to the end of the other section.
@@ -62,7 +62,7 @@ sheet, one row per contact:
 - Code / Product Group and Fax Number come from Monday Orders. V8's Index was used only to place the V8-only rows; the
   list has no Index, 100% GST or Min Order column (v1.1.0). World Trade's "DO NOT THROW AWAY DISPLAY BOXES" (typed in
   V8's Index column) is in its notes.
-- Account numbers shown as money or with thousands commas are plain digits: Spirit Telecom 53773 (was $53,773.00),
-  E Way Customer ID 16982842 (was 16,982,842).
+- Account numbers shown as money or with thousands commas are plain digits (e.g. 12345, not $12,345.00; 98765432, not
+  98,765,432).
 
 805 contacts: 660 suppliers and 145 utilities.

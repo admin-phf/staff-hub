@@ -208,7 +208,7 @@
       throw new Error('No Supplier (or ContactName) heading was found in ' + (file.name || 'the file') + '.');
     });
   }
-  // Every cell as text, as stored: a number is its plain digits (53773, not $53,773.00 from the cell's number format);
+  // Every cell as text, as stored: a number is its plain digits (12345, not $12,345.00 from the cell's number format);
   // only a cell formatted as a date keeps the date shown in Excel.
   function textMatrix(ws) {
     var X = window.XLSX, out = [];
