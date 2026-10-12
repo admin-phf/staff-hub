@@ -1,7 +1,21 @@
-# POS New Product Check Clean v1.6.2 (Staff Hub v21.15.0)
+# POS New Product Check Clean v1.7.0 (Staff Hub v21.17.0)
 
-Updated 12 Oct 2026 12:05 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 12 Oct 2026 18:05 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.7.0: the full sets —
+- The Library now keeps the full sets from Build POS Master Databases v21.14.0: `clean_merged_pos_data` (POS Database),
+  `clean_ch2_data` (CH2 full set) and `clean_uhp_data` (Unique full set).
+- **+ Add CH2 full set / + Add Unique full set** turns the full file into the supplier rows A–P with the Build's own rules
+  (`../database-build/js/supplier-layout.js`): exactly the rows of its `_pos_db` file, so the merge is the same. A full
+  `clean_ch2_data` / `clean_uhp_data` dropped here works the same way ("supplier rows made from the full CH2 set" on its
+  row). `_pos_db` files, the Google Sheet tab and the copies already in the Library load as before.
+- The POS Database's POS MAIN ID is its 13-digit POS MASTER BARCODE when the file has both (the full POS set also has the
+  raw POS_MAIN_ID) — what the merge has always used.
+- The supplier sheet fits the page: no sideways scroll at any window width. Each column gets what its content needs (the
+  13-digit barcode, prices, Sub IDs, the words of its heading), the room left goes mostly to SUP PRODUCT, headings wrap
+  onto two lines and on a narrow window the text steps down a size. A cell cut short ends in … and shows its full text on
+  hover.
 
 v1.6.2: safety fixes —
 - Files can't be added, replaced or removed while a stage runs or your last session is loading (the page says to wait);
@@ -101,8 +115,8 @@ Each supplier column that feeds the POS UPDATE file has an **Update in POS** tic
 
 | Rail row | Google Sheet tab | Where it comes from | Kept |
 |---|---|---|---|
-| POS Database (required) | TMP_MERGED_POS_DATA | Build POS Master Databases → POS Database output `clean_merged_pos_data_….xlsx` (named `clean_merged_pos_data_pos_db_….xlsx` before Build v21.13.0; the new `_pos_db` file is the POS products in the supplier layout) | Kept with the session (v1.6.0) |
-| Supplier Updates (required, several files allowed) | IN_SUPPLIER_/_PRODUCT_UPDATES | Build POS Master Databases → `clean_ch2_data_pos_db_….xlsx` / `clean_uhp_data_pos_db_….xlsx` | Kept with the session (v1.6.0) |
+| POS Database (required) | TMP_MERGED_POS_DATA | Build POS Master Databases → full POS set `clean_merged_pos_data_….xlsx` (the Library copy) | Kept with the session (v1.6.0) |
+| Supplier Updates (required, several files allowed) | IN_SUPPLIER_/_PRODUCT_UPDATES | Build POS Master Databases → full set `clean_ch2_data_….xlsx` / `clean_uhp_data_….xlsx` (made into the supplier rows here, v1.7.0) or the `_pos_db` file in the A–P layout | Kept with the session (v1.6.0) |
 | Brand Name Changes (recommended) | SRC_POS_BRAND_NAME_CHANGES | Google Sheet tab | Saved in this browser |
 | Product Prefixes (recommended) | SRC_POS_PRODUCT_PREFIX | Google Sheet tab | Saved in this browser |
 | POS Suppliers (recommended) | SRC_POS_SUPPLIERS | Google Sheet tab | Saved in this browser |
@@ -176,15 +190,15 @@ products of those brands and returns them in full, and leaves every other POS br
 under the sheet's totals bar shows **Brands in this merge: N** with the rows per brand, so the scope can be checked
 before running.
 
-The CH2 and Unique supplier imports saved by Build POS Master Databases are **never loaded on their own**. To merge a
-whole catalogue, press **+ Add CH2 supplier import** or **+ Add Unique supplier import** (on the sheet, or on the
-Supplier Updates card). ✕ / Remove takes it out again.
+The CH2 and Unique full sets saved by Build POS Master Databases are **never loaded on their own**. To merge a
+whole catalogue, press **+ Add CH2 full set** or **+ Add Unique full set** (on the sheet, or on the Supplier Updates
+card) — the full file becomes the supplier rows A–P (v1.7.0). ✕ / Remove takes it out again.
 
 ## Staff Hub Library (v1.3.0)
 
 When the page opens, files saved in this browser's Staff Hub Library (see the home page) fill empty inputs:
 the **POS Database** from the last Build POS Master Databases build and the shared **Ongoing Discounts** file
-(v1.3.0 also loaded the CH2 / Unique supplier imports; from v1.3.1 they are added with their buttons). Each shows "From the Library · built …"; a build over a day old turns the row amber
+(v1.3.0 also loaded the CH2 / Unique supplier files; from v1.3.1 they are added with their buttons; from v1.7.0 they are the full sets). Each shows "From the Library · built …"; a build over a day old turns the row amber
 (CHECK DATE). A file dropped on the page always wins. ✕ / Remove on a Library file stops it loading here again until
 a newer build is saved; Ongoing Discounts is one shared file, so removing it here deletes the saved copy. An Ongoing
 Discounts file dropped here is saved to the Library for Build POS Master Databases too.

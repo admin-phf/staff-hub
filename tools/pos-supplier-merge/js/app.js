@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.6.2 (12 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.7.0 (12 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -43,11 +43,17 @@
  * v1.5.1 (12 Oct 2026): renamed POS New Product Check Clean. With a password set, it opens behind a "Still under
  *         development" prompt and the Lock / Password buttons appear only once it is open (phf-lock.js v1.1.0).
  *         Ongoing Discounts dropped here (on its row or in Drop All) is saved to the Library as that table alone, so the
- *         other tools can read it (Reconcile CH2 Order now uses the same file). */
+ *         other tools can read it (Reconcile CH2 Order now uses the same file).
+ * v1.7.0 (12 Oct 2026): the Library keeps the full sets from Build POS Master Databases v21.14.0 (clean_merged_pos_data,
+ *         clean_ch2_data, clean_uhp_data). A full CH2 / Unique set — from the Add buttons or dropped in — becomes the
+ *         supplier rows A–P with the Build's own rules (../database-build/js/supplier-layout.js), the same rows as its
+ *         _pos_db file; supplier files in the A–P layout and the older Library copies load as before. The supplier sheet
+ *         fits the page width (no sideways scroll): fixed column widths, headings on two lines, long cells end in … with
+ *         the full text on hover. */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.6.2';
+  var TOOL_VERSION = 'v1.7.0';
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -330,7 +336,10 @@
       : file.arrayBuffer().then(function (b) { return XLSX.read(b, { type: 'array', raw: true, cellDates: false }); });
     return p.then(function (wb) {
       return wb.SheetNames.map(function (name) {
-        return { name: name, rows: XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '', raw: true, blankrows: false }) };
+        var rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '', raw: true, blankrows: false });
+        // v1.7.0: a full CH2 / Unique set (clean_ch2_data / clean_uhp_data) → the supplier rows A–P, as its _pos_db file.
+        var full = window.PHFSupplierLayout ? window.PHFSupplierLayout.fromFullSheet(rows) : null;
+        return full ? { name: name, rows: full.rows, from: full.label } : { name: name, rows: rows };
       });
     });
   }
@@ -342,6 +351,7 @@
     for (var i = 0; i < order.length; i++) {
       try {
         var mp = M.mapTable(order[i].rows, def.sheet, id);
+        if (order[i].from) mp.report.from = order[i].from;
         if (!best || mp.report.found > best.mapped.report.found) best = { tab: order[i].name, mapped: mp };
         if (i === 0 && M.identifyRows(order[i].rows).indexOf(id) >= 0) break;
       } catch (e) { errs.push(order[i].name + ': ' + e.message); }
@@ -441,6 +451,7 @@
           var id = ids[0];
           try {
             var mp = M.mapTable(sh.rows, inputDef(id).sheet, id);
+            if (sh.from) mp.report.from = sh.from;
             if (!mp.data.length) { notes.push(sh.name + ': no data rows'); return; }
             var entry = fileEntry(file, sh.name, mp);
             addToInput(id, entry);
@@ -567,7 +578,7 @@
     var badgeCls = has ? 'done' : def.required ? 'required' : 'wait';
     var files = has ? x.files.map(function (f, i) {
       var rep = f.report || {};
-      return '<div class="file-row"><span><strong>' + esc(f.name) + '</strong>' + (f.tab ? ' · tab ' + esc(f.tab) : '') + ' · ' + fmtN(f.data.length) + ' rows · ' + (rep.found || 0) + ' / ' + (rep.total || 0) + ' columns' + (rep.missing && rep.missing.length ? ' <em class="miss-cols">not in file: ' + esc(rep.missing.join(', ')) + '</em>' : '') + libNote(id, f) + '</span><button type="button" data-remove="' + i + '">Remove</button></div>';
+      return '<div class="file-row"><span><strong>' + esc(f.name) + '</strong>' + (f.tab ? ' · tab ' + esc(f.tab) : '') + ' · ' + fmtN(f.data.length) + ' rows · ' + (rep.found || 0) + ' / ' + (rep.total || 0) + ' columns' + (rep.missing && rep.missing.length ? ' <em class="miss-cols">not in file: ' + esc(rep.missing.join(', ')) + '</em>' : '') + (rep.from ? ' · supplier rows made from the ' + esc(rep.from) : '') + libNote(id, f) + '</span><button type="button" data-remove="' + i + '">Remove</button></div>';
     }).join('') : '';
     var status = problem ? problem : has ? (def.stored ? 'Saved in this browser ' + esc(x.savedAt || '') : 'Loaded ' + esc(x.files[x.files.length - 1].loadedAt || '')) : 'Not loaded';
     $('#inputWorkspace').innerHTML =
@@ -1816,6 +1827,42 @@
     }).catch(function (e) { setGlobal('The ' + label + ' could not be added: ' + e.message, 'error'); return false; });
   }
 
+  // v1.7.0 — the sheet fits the page width (no sideways scroll). Each column gets at least what it needs (the 13-digit
+  // barcode, prices, Sub IDs, the longest word of its heading) and the room left goes mostly to SUP PRODUCT; on a narrow
+  // window the text steps down a size first. [minimum characters, d = digits / t = text, share of the room left]
+  var SUP_FIT = [[5.5, 'd', 0.1], [12, 't', 1], [4, 'd', 0.3], [13, 'd', 0.2], [9, 't', 1], [7.5, 'd', 0.2], [22, 't', 6], [4, 'd', 0.2],
+    [4, 'd', 0.2], [7, 'd', 0.2], [7, 'd', 0.2], [2, 't', 0.1], [4, 'd', 0.1], [6, 'd', 0.2], [4, 'd', 0.1], [13, 't', 1]];
+  var SUP_SIZES = [[11.5, 10, 6], [10.5, 9, 5], [10, 8.5, 4], [9.5, 8, 3], [9, 7.5, 2]];   // [cell px, heading px, side padding px]
+  var supCanvas = null, supFitFor = '';
+  function supColsHtml() { return '<colgroup>' + SUP_FIT.map(function () { return '<col>'; }).join('') + '</colgroup>'; }
+  function supTextW(font, t) { if (!supCanvas) supCanvas = document.createElement('canvas').getContext('2d'); supCanvas.font = font; return supCanvas.measureText(t).width; }
+  function supFit() {
+    var wrap = $('#supWrap'), tbl = $('#supTable'); if (!wrap || !tbl) return;
+    var W = wrap.clientWidth; if (W < 200) return;                               // hidden — fitted when it is shown
+    var fam = getComputedStyle(tbl).fontFamily || 'sans-serif', key = W + '|' + fam;
+    if (key === supFitFor) return;
+    var pick = null;
+    for (var k = 0; k < SUP_SIZES.length; k++) {
+      var fs = SUP_SIZES[k][0], hfs = SUP_SIZES[k][1], pad = SUP_SIZES[k][2];
+      var cd = supTextW(fs + 'px ' + fam, '0123456789') / 10, ct = supTextW(fs + 'px ' + fam, 'METAGENICS OBORNE CH2 BEST BUY') / 30;
+      var mins = SUP_FIT.map(function (f, i) {
+        var hw = 0;
+        String(SUP_HEADS[i]).split(/\s+/).forEach(function (w) { hw = Math.max(hw, supTextW('800 ' + hfs + 'px ' + fam, w) + w.length * hfs * 0.04); });
+        if (KEEP_GROUPS.some(function (g) { return g.col === i; })) hw = Math.max(hw, supTextW('700 9px ' + fam, 'Update') + 4);   // the Update in POS tick
+        return Math.ceil(Math.max(f[0] * (f[1] === 'd' ? cd : ct), hw) + 2 * pad + 2);
+      });
+      pick = { fs: fs, hfs: hfs, pad: pad, mins: mins, sum: mins.reduce(function (a, b) { return a + b; }, 0) };
+      if (pick.sum <= W) break;
+    }
+    var spare = W - pick.sum, share = SUP_FIT.reduce(function (a, f) { return a + f[2]; }, 0);
+    var widths = pick.mins.map(function (m, i) { return Math.floor(spare >= 0 ? m + spare * SUP_FIT[i][2] / share : m * W / pick.sum); });
+    widths[6] += W - widths.reduce(function (a, b) { return a + b; }, 0);       // rounding → SUP PRODUCT
+    tbl.style.setProperty('--sup-fs', pick.fs + 'px'); tbl.style.setProperty('--sup-hfs', pick.hfs + 'px'); tbl.style.setProperty('--sup-pad', pick.pad + 'px');
+    tbl.classList.toggle('is-tight', spare < 0);
+    var cols = tbl.querySelectorAll('col');
+    for (var c = 0; c < cols.length; c++) cols[c].style.width = widths[c] + 'px';
+    supFitFor = key;
+  }
   function supSheetHtml() {
     return '<div class="sup-sheet" id="supSheet" tabindex="0" aria-label="IN_SUPPLIER_/_PRODUCT_UPDATES sheet">' +
       '<div class="sup-head"><div><h3>IN_SUPPLIER_/_PRODUCT_UPDATES</h3><p>The Supplier Updates tab as the Google Sheet shows it. Click a cell and type to change it · Ctrl+V (⌘V) pastes from the selected cell · click an INDEX number to select rows · Ctrl+Z undoes.</p></div><span class="result-badge" id="supCount">0 ROWS</span></div>' +
@@ -1830,7 +1877,7 @@
       '<button type="button" class="btn small" id="supClearAdded" title="Remove every row typed or pasted here (dropped supplier files stay)">Clear added rows</button>' +
       '<button type="button" class="btn small" id="supCopyHeads" title="Copy the 16 headings, ready to paste into Excel or Google Sheets as a template">Copy headings</button></div>' +
       '<div class="status sup-note" id="supNote" hidden></div>' +
-      '<div class="sup-table-wrap" id="supWrap"><table class="sup-table" id="supTable"><thead><tr>' + SUP_HEADS.map(function (h, i) {
+      '<div class="sup-table-wrap" id="supWrap"><table class="sup-table" id="supTable">' + supColsHtml() + '<thead><tr>' + SUP_HEADS.map(function (h, i) {
         var g = KEEP_GROUPS.filter(function (x) { return x.col === i; })[0];
         return '<th class="sup-c' + i + (i === 0 || i === 15 ? ' sup-ro' : '') + '"><span class="sup-col">' + window.XlsxLite.colLetter(i + 1) +
           (i === 4 ? '<button type="button" class="sup-filt" id="supBrandFilt" title="Filter SUP BRAND — the merge then covers only the brands you keep ticked" aria-label="Filter SUP BRAND"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg></button>' : '') + '</span>' + esc(h) +
@@ -1864,6 +1911,7 @@
     });
     var bf = $('#supBrandFilt'); if (bf) bf.classList.toggle('is-on', !!supView.brands);
     drawLibSup();
+    supFit();
     drawSupRows();
     var added = addedEntry(false), an = added ? added.data.length : 0;
     var badge = $('#supCount'); badge.textContent = (q || bsel ? fmtN(vis.length) + ' OF ' : '') + fmtN(model.items.length) + ' ROWS' + (an ? ' · ' + fmtN(an) + ' ADDED' : ''); badge.className = 'result-badge' + (model.items.length ? ' ok' : '');
@@ -2044,6 +2092,16 @@
     var t; $('#supSearch').value = supView.q;
     $('#supSearch').oninput = function () { clearTimeout(t); t = setTimeout(function () { supView.q = $('#supSearch').value; supView.sel = null; $('#supWrap').scrollTop = 0; drawSup(); }, 200); };
     $('#supWrap').addEventListener('scroll', supOnScroll, { passive: true });
+    // v1.7.0: fitted again when the sheet's width changes (window resized, tab shown).
+    if (window.ResizeObserver) { var supRaf = 0; new ResizeObserver(function () { if (supRaf) return; supRaf = requestAnimationFrame(function () { supRaf = 0; supFit(); }); }).observe($('#supWrap')); }
+    else window.addEventListener('resize', supFit);
+    // v1.7.0: a cell cut short with … shows its full text on hover.
+    $('#supWrap').addEventListener('mouseover', function (e) {
+      var td = e.target && e.target.closest ? e.target.closest('#supBody td') : null;
+      if (!td || td.classList.contains('is-editing')) return;
+      if (td.scrollWidth > td.clientWidth + 1) { if (td.title !== td.textContent) td.title = td.textContent; }
+      else if (td.title && !td.classList.contains('sup-c6') && !td.classList.contains('sup-c15')) td.removeAttribute('title');
+    });
     $('#supUndo').onclick = supUndo;
     $('#supDelRows').onclick = deleteSelectedRows;
     $('#supAddRow').onclick = function () { supView.q = ''; $('#supSearch').value = ''; if (supView.brands) setSupBrands(null); drawSup(); supGoTo(supView.vis.length, 1); host.focus(); startEdit(''); };

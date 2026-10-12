@@ -1,4 +1,6 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.6.1 (12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean v1.7.0 (12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
+   v1.7.0: the supplier sheet (IN_SUPPLIER) fits the page width — table-layout fixed with the column shares from app.js
+   (supColsHtml), headings wrap, long cells end in …
    Tool-only additions. Layout and colours come from css/app.css (same layout as
    Build Master Databases) and the shared assets/css/theme.css (linked last). */
 
@@ -110,17 +112,17 @@ body.phf-page-merge .sup-tools input:focus{outline:2px solid var(--phf-blue-line
 body.phf-page-merge .sup-note{margin:8px 12px 0!important}
 body.phf-page-merge .sup-note[hidden]{display:none!important}
 body.phf-page-merge .sup-table-wrap{overflow:auto;max-height:62vh;margin:10px 12px 0;border:1px solid var(--phf-line);border-radius:8px;background:#fff}
-body.phf-page-merge .sup-table{border-collapse:separate;border-spacing:0;width:100%;min-width:1560px;font-size:11.5px}
-body.phf-page-merge .sup-table th{position:sticky;top:0;z-index:2;background:#E9F0F5;color:#2C3E50;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;text-align:center;padding:6px 8px 7px;white-space:nowrap;border-bottom:2px solid var(--phf-navy);border-right:1px solid #D6DEE6}
-body.phf-page-merge .sup-table th .sup-col{display:block;font-size:9px;font-weight:700;color:#7B8794;letter-spacing:.08em;margin-bottom:1px}
-body.phf-page-merge .sup-table td{padding:5px 8px;border-bottom:1px solid #E3E8ED;border-right:1px solid #EDF1F4;color:#1C2833;white-space:nowrap;line-height:1.35}
+body.phf-page-merge .sup-table{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;font-size:var(--sup-fs,11.5px)}
+body.phf-page-merge .sup-table th{position:sticky;top:0;z-index:2;background:#E9F0F5;color:#2C3E50;font-weight:800;letter-spacing:.04em;font-size:var(--sup-hfs,10px);text-transform:uppercase;text-align:center;padding:17px var(--sup-pad,6px) 7px;white-space:normal;overflow-wrap:break-word;line-height:1.25;vertical-align:bottom;border-bottom:2px solid var(--phf-navy);border-right:1px solid #D6DEE6}
+body.phf-page-merge .sup-table th .sup-col{position:absolute;top:4px;left:0;right:0;display:block;font-size:9px;font-weight:700;color:#7B8794;letter-spacing:.08em;line-height:1.2}
+body.phf-page-merge .sup-table td{padding:5px var(--sup-pad,6px);border-bottom:1px solid #E3E8ED;border-right:1px solid #EDF1F4;color:#1C2833;white-space:nowrap;line-height:1.35;overflow:hidden;text-overflow:ellipsis}
 body.phf-page-merge .sup-table tbody tr.sup-b0 td{background:#F5F5F5}
 body.phf-page-merge .sup-table tbody tr.sup-b1 td{background:#E9F0F5}
 body.phf-page-merge .sup-table tbody tr:hover td{background:#FFF9E6}
 body.phf-page-merge .sup-table td.sup-c0{text-align:center;color:var(--phf-muted);position:relative}
-body.phf-page-merge .sup-table td.sup-c6{min-width:240px;max-width:360px;overflow:hidden;text-overflow:ellipsis}
+body.phf-page-merge .sup-table td.sup-c6{overflow:hidden;text-overflow:ellipsis}
 body.phf-page-merge .sup-table td.sup-c7,body.phf-page-merge .sup-table td.sup-c8,body.phf-page-merge .sup-table td.sup-c9,body.phf-page-merge .sup-table td.sup-c10,body.phf-page-merge .sup-table td.sup-c11,body.phf-page-merge .sup-table td.sup-c12,body.phf-page-merge .sup-table td.sup-c13,body.phf-page-merge .sup-table td.sup-c14{text-align:center;font-variant-numeric:tabular-nums}
-body.phf-page-merge .sup-table td.sup-status{min-width:150px;max-width:300px;overflow:hidden;text-overflow:ellipsis;text-align:center;font-style:italic;color:#9AA0A6}
+body.phf-page-merge .sup-table td.sup-status{overflow:hidden;text-overflow:ellipsis;text-align:center;font-style:italic;color:#9AA0A6}
 body.phf-page-merge .sup-table tbody tr td.sup-status.st-match{background:#E8F0FE;color:#1565C0;font-weight:700}
 body.phf-page-merge .sup-table tbody tr td.sup-status.st-new{background:#E6F4EA;color:#137333;font-weight:700}
 body.phf-page-merge .sup-table tbody tr td.sup-status.st-unm{background:#FFF3CD;color:#856404;font-weight:700}
@@ -302,7 +304,7 @@ body.phf-page-merge .phf-shell-meta{max-width:330px}
 
 /* v1.6.0 — Update in POS ticks on the supplier headings: an unticked column is greyed (POS keeps its value).
    v1.6.1: greyed = the Sheet's "no change" grey text (#9E9E9E) on the row's own band (was a grey hatch). */
-body.phf-page-merge .sup-keep{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:4px;font-size:9px;font-weight:700;letter-spacing:.02em;text-transform:none;color:#2E7D32;cursor:pointer;white-space:nowrap}
+body.phf-page-merge .sup-keep{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px 4px;margin-top:4px;font-size:9px;font-weight:700;letter-spacing:.02em;line-height:1.2;text-transform:none;color:#2E7D32;cursor:pointer;white-space:normal}
 body.phf-page-merge .sup-keep input{width:13px;height:13px;margin:0;accent-color:#2E7D32;cursor:pointer}
 body.phf-page-merge .sup-table.keep-c2 th.sup-c2,body.phf-page-merge .sup-table.keep-c4 th.sup-c4,body.phf-page-merge .sup-table.keep-c5 th.sup-c5,body.phf-page-merge .sup-table.keep-c6 th.sup-c6,body.phf-page-merge .sup-table.keep-c7 th.sup-c7,body.phf-page-merge .sup-table.keep-c8 th.sup-c8,body.phf-page-merge .sup-table.keep-c9 th.sup-c9,body.phf-page-merge .sup-table.keep-c10 th.sup-c10,body.phf-page-merge .sup-table.keep-c11 th.sup-c11{background:#FFF4E0;color:#7A4F00}
 body.phf-page-merge .sup-table.keep-c2 th.sup-c2 .sup-keep,body.phf-page-merge .sup-table.keep-c4 th.sup-c4 .sup-keep,body.phf-page-merge .sup-table.keep-c5 th.sup-c5 .sup-keep,body.phf-page-merge .sup-table.keep-c6 th.sup-c6 .sup-keep,body.phf-page-merge .sup-table.keep-c7 th.sup-c7 .sup-keep,body.phf-page-merge .sup-table.keep-c8 th.sup-c8 .sup-keep,body.phf-page-merge .sup-table.keep-c9 th.sup-c9 .sup-keep,body.phf-page-merge .sup-table.keep-c10 th.sup-c10 .sup-keep,body.phf-page-merge .sup-table.keep-c11 th.sup-c11 .sup-keep{color:#B06000}

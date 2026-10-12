@@ -1,4 +1,6 @@
-/* PHF Staff Hub — Library v1.1.0 (12 Oct 2026)
+/* PHF Staff Hub — Library v1.1.1 (12 Oct 2026)
+ * v1.1.1: the POS, CH2 and Unique entries are the full sets from Build POS Master Databases v21.14.0 (clean_merged_pos_data,
+ *         clean_ch2_data, clean_uhp_data); POS New Product Check Clean makes its supplier rows from the CH2 / Unique ones.
  * v1.1.0: Supplier Contacts list ("lib:contacts") — the only copy of edits made there, so Delete all keeps it (its own ✕
  *         deletes it). Ongoing Discounts is also Reconcile CH2 Order's discount file; a POS DB & SUPPLIER MERGE workbook
  *         dropped there stays as "supplierMerge" for its supplier names. Tool renamed POS New Product Check Clean.
@@ -26,9 +28,9 @@
   // kind → what it is, which tool makes it and which tools use it (shown on the home page Library panel).
   var MERGE = 'POS New Product Check Clean';
   var KINDS = {
-    'lib:pos-db':          { label: 'POS Database', made: 'Build POS Master Databases', used: MERGE, generated: true },
-    'lib:ch2-db':          { label: 'CH2 supplier import', made: 'Build POS Master Databases', used: MERGE + ' (Add button)', generated: true },
-    'lib:uhp-db':          { label: 'Unique supplier import', made: 'Build POS Master Databases', used: MERGE + ' (Add button)', generated: true },
+    'lib:pos-db':          { label: 'POS Database (full set)', made: 'Build POS Master Databases', used: MERGE, generated: true },
+    'lib:ch2-db':          { label: 'CH2 full set', made: 'Build POS Master Databases', used: MERGE + ' (Add button)', generated: true },
+    'lib:uhp-db':          { label: 'Unique full set', made: 'Build POS Master Databases', used: MERGE + ' (Add button)', generated: true },
     'posMaster':           { label: 'Full merged master', made: 'Build POS Master Databases', used: 'Reconcile CH2 Order', generated: true },
     'lib:master-selected': { label: 'Selected-columns master', made: 'Build POS Master Databases', used: 'Kept here to download', generated: true },
     'lib:to-order':        { label: 'To-Order file', made: 'Build POS Master Databases', used: 'Kept here to download', generated: true },

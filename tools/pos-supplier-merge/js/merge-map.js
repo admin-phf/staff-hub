@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean · merge-map v1.0.4 (12 Oct 2026: POS Database file name in the help text; v1.0.3: TABs in cells become spaces; v1.0.2: Ongoing Discounts is shared with Reconcile CH2 Order; v1.0.1 11 Oct 2026: renamed tools in the input descriptions)
+/* PHF Staff Hub — POS New Product Check Clean · merge-map v1.1.0 (12 Oct 2026: the full sets from Build POS Master Databases v21.14.0 — POS MAIN ID is POS MASTER BARCODE when a file has both, as the merge has always used; v1.0.4: POS Database file name in the help text; v1.0.3: TABs in cells become spaces; v1.0.2: Ongoing Discounts is shared with Reconcile CH2 Order; v1.0.1 11 Oct 2026: renamed tools in the input descriptions)
  * merge-map.js — input definitions, file recognition and column mapping.
  * Shared by the page (to check dropped files) and the engine (to build the
  * in-memory workbook). Sheet names, headings and text columns are the ones in
@@ -26,10 +26,10 @@
   // id, sheet, title, rail group, required / recommended, saved in this browser, several files
   var INPUTS = [
     { id: 'pos', sheet: 'TMP_MERGED_POS_DATA', title: 'POS Database', group: 'POS data', required: true, stored: false, multi: false,
-      desc: 'Build POS Master Databases → POS Database output (clean_merged_pos_data_….xlsx — before Build v21.13.0 it was clean_merged_pos_data_pos_db_….xlsx), or the TMP_MERGED_POS_DATA tab of the Google Sheet.',
+      desc: 'Build POS Master Databases → full POS set (clean_merged_pos_data_….xlsx, the Library copy), or the TMP_MERGED_POS_DATA tab of the Google Sheet.',
       need: ['POS MASTER BRAND', 'POS PLU', 'POS SUB ID', 'POS DESCR'] },
     { id: 'sup', sheet: 'IN_SUPPLIER_/_PRODUCT_UPDATES', title: 'Supplier Updates', group: 'Supplier updates', required: true, stored: false, multi: true,
-      desc: 'Build POS Master Databases → Oborne / CH2 or Unique / UHP supplier import (clean_…_pos_db_….xlsx), or the IN_SUPPLIER tab. Several supplier files are combined into one list.',
+      desc: 'Build POS Master Databases → full CH2 or Unique set (clean_ch2_data_….xlsx / clean_uhp_data_….xlsx — made into the supplier rows A–P here), a supplier file in the A–P layout (clean_…_pos_db_….xlsx), or the IN_SUPPLIER tab. Several supplier files are combined into one list.',
       need: ['SUP BARCODE', 'SUP BRAND', 'SUP PRODUCT', 'SUP WS EXGST'] },
     { id: 'brands', sheet: 'SRC_POS_BRAND_NAME_CHANGES', title: 'Brand Name Changes', group: 'Reference data', recommended: true, stored: true,
       desc: 'SRC_POS_BRAND_NAME_CHANGES — supplier brand → POS brand.', need: ['SUP BRAND', 'POS BRAND'] },
@@ -46,7 +46,9 @@
   // Source headings accepted for a schema heading (normalised), in order of preference.
   var ALIASES = {
     'INDEX': ['INDEX', 'POS INDEX'],
-    'POS MAIN ID': ['POS MAIN ID', 'POS MASTER BARCODE'],
+    // v1.1.0: the 13-digit POS MASTER BARCODE first (the full POS set also has the raw POS_MAIN_ID) — what the merge got
+    // from every Build POS Database before; the Google Sheet's TMP tab has only POS MAIN ID.
+    'POS MAIN ID': ['POS MASTER BARCODE', 'POS MAIN ID'],
     'POS SUPPLIER NUMBER': ['POS SUPPLIER NUMBER', 'POS SUPPLIER NO', 'POS SUPPLIER'],
     'POS ACCNO': ['POS ACCNO', 'ACCNO'],
     'POS ACNAME': ['POS ACNAME', 'ACNAME']

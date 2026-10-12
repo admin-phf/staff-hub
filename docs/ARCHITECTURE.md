@@ -496,3 +496,27 @@ All implemented stages keep source business files local to the browser and gener
   a worker and answers `m13ExtractSizeAndType_` for each description; `withSizes(rows, 6)` appends them (blank if the
   worker cannot run).
 - POS New Product Check Clean merge-map v1.0.4: the POS Database help text names `clean_merged_pos_data_….xlsx`.
+
+## Staff Hub v21.17.0 — the full sets in the Library; _pos_db = supplier layout A–P only; supplier sheet fits the page (12 Oct 2026 18:05 AEDT)
+- Build POS Master Databases v21.14.0: `LIB_OUT` = `pos-main` → `lib:pos-db`, `ch2-main` → `lib:ch2-db`, `uhp-main` →
+  `lib:uhp-db` (the kind ids are unchanged; Library v1.1.1 labels them POS Database (full set) / CH2 full set / Unique
+  full set). The `_pos_db` outputs are download only.
+- POS v5.2.0: `clean_merged_pos_data` = `POS_STD` (POS_INDEX, POS_MASTER_BRAND, POS_MASTER_BARCODE, POS_MAIN_ID … POS_SOH),
+  sheet Clean_Merged_POS_Data, rows in the A–Z order (master brand, brand, description, barcode); POS_INDEX keeps the
+  BrowseStockItems row, as in `state.models.pos` and the Combined Master. `POS_DB` is gone. `clean_merged_pos_data_pos_db`
+  = `C.SUPPLIER_IMPORT_HEADERS` (16 columns, sheet IN_SUPPLIER_UPDATE), same rows as before.
+- CH2 v1.2.0 / Unique v1.2.0: `_pos_db` rows from `PHFSupplierLayout.ch2` / `.uhp` (`js/supplier-layout.js` v1.0.0:
+  `buildSupplierImport` + `bc13`, `cleanCh2Product`, `numOrBlank` — moved there from pipeline.js unchanged). SUP SIZE /
+  SUP TYPE and `js/size-worker.js` are removed; the merge works size / type out itself (OUT_MERGED_DATA AL SIZE / AM TYPE →
+  BR itemsize / BS packaging).
+- POS New Product Check Clean v1.7.0: loads `../database-build/js/ch2-core.js`, `uhp-core.js` and `supplier-layout.js`.
+  `readWorkbook` passes each sheet through `PHFSupplierLayout.fromFullSheet(rows)` — a sheet whose heading row (first 8
+  rows) has CH2_MASTER_BARCODE + CH2_WHOLESALE_EX_GST or UHP_MASTER_BARCODE + UHP_WS_EX_GST becomes `[HEADERS, …supplier
+  rows]` with `from` = full CH2 / Unique set (shown on the file row as `report.from`); Library Add, drops and Drop All all
+  go through it. merge-map v1.1.0: `ALIASES['POS MAIN ID']` = POS MASTER BARCODE first, then POS MAIN ID.
+- Supplier sheet: `supColsHtml()` colgroup + `supFit()` (after `drawSup`, and on a ResizeObserver of #supWrap): canvas
+  measures digit / text widths for `SUP_SIZES` steps (cell / heading px, padding) and each `SUP_FIT` column's minimum
+  (characters × width, or the longest heading word / the Update in POS tick); the room left is shared by `SUP_FIT` weights
+  (mostly SUP PRODUCT); below the minimum at the smallest step the widths scale down (`.is-tight`). CSS: table-layout
+  fixed, `--sup-fs` / `--sup-hfs` / `--sup-pad`, headings wrap with the column letter pinned to the top, cells nowrap with
+  ellipsis; a cut-short cell gets its full text as a title on mouseover.
