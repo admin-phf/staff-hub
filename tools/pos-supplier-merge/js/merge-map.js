@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean · merge-map v1.0.3 (12 Oct 2026: TABs in cells become spaces; v1.0.2: Ongoing Discounts is shared with Reconcile CH2 Order; v1.0.1 11 Oct 2026: renamed tools in the input descriptions)
+/* PHF Staff Hub — POS New Product Check Clean · merge-map v1.0.4 (12 Oct 2026: POS Database file name in the help text; v1.0.3: TABs in cells become spaces; v1.0.2: Ongoing Discounts is shared with Reconcile CH2 Order; v1.0.1 11 Oct 2026: renamed tools in the input descriptions)
  * merge-map.js — input definitions, file recognition and column mapping.
  * Shared by the page (to check dropped files) and the engine (to build the
  * in-memory workbook). Sheet names, headings and text columns are the ones in
@@ -26,7 +26,7 @@
   // id, sheet, title, rail group, required / recommended, saved in this browser, several files
   var INPUTS = [
     { id: 'pos', sheet: 'TMP_MERGED_POS_DATA', title: 'POS Database', group: 'POS data', required: true, stored: false, multi: false,
-      desc: 'Build POS Master Databases → POS Database output (clean_merged_pos_data_pos_db_….xlsx), or the TMP_MERGED_POS_DATA tab of the Google Sheet.',
+      desc: 'Build POS Master Databases → POS Database output (clean_merged_pos_data_….xlsx — before Build v21.13.0 it was clean_merged_pos_data_pos_db_….xlsx), or the TMP_MERGED_POS_DATA tab of the Google Sheet.',
       need: ['POS MASTER BRAND', 'POS PLU', 'POS SUB ID', 'POS DESCR'] },
     { id: 'sup', sheet: 'IN_SUPPLIER_/_PRODUCT_UPDATES', title: 'Supplier Updates', group: 'Supplier updates', required: true, stored: false, multi: true,
       desc: 'Build POS Master Databases → Oborne / CH2 or Unique / UHP supplier import (clean_…_pos_db_….xlsx), or the IN_SUPPLIER tab. Several supplier files are combined into one list.',

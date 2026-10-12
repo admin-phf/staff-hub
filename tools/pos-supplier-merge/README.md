@@ -101,7 +101,7 @@ Each supplier column that feeds the POS UPDATE file has an **Update in POS** tic
 
 | Rail row | Google Sheet tab | Where it comes from | Kept |
 |---|---|---|---|
-| POS Database (required) | TMP_MERGED_POS_DATA | Build POS Master Databases → POS Database output `clean_merged_pos_data_pos_db_….xlsx` | Kept with the session (v1.6.0) |
+| POS Database (required) | TMP_MERGED_POS_DATA | Build POS Master Databases → POS Database output `clean_merged_pos_data_….xlsx` (named `clean_merged_pos_data_pos_db_….xlsx` before Build v21.13.0; the new `_pos_db` file is the POS products in the supplier layout) | Kept with the session (v1.6.0) |
 | Supplier Updates (required, several files allowed) | IN_SUPPLIER_/_PRODUCT_UPDATES | Build POS Master Databases → `clean_ch2_data_pos_db_….xlsx` / `clean_uhp_data_pos_db_….xlsx` | Kept with the session (v1.6.0) |
 | Brand Name Changes (recommended) | SRC_POS_BRAND_NAME_CHANGES | Google Sheet tab | Saved in this browser |
 | Product Prefixes (recommended) | SRC_POS_PRODUCT_PREFIX | Google Sheet tab | Saved in this browser |

@@ -479,3 +479,20 @@ All implemented stages keep source business files local to the browser and gener
   computer's copy, so moving, renaming, deleting or re-exporting a file after the drop (Chrome: NotFoundError "A requested
   file or directory could not be found…" / NotReadableError) cannot stop it. `readErr` names the file when a read does fail.
 - `buildAll` marks the stage that was running as Error when Build All stops.
+
+## Staff Hub v21.16.0 — Build POS Master Databases v21.13.0: the same file pair for POS, CH2 and Unique (12 Oct 2026 16:55 AEDT)
+- Each stage gives the complete set first and `_pos_db` = the shortened file in the supplier import layout
+  (`SUP_LAYOUT` = IN_SUPPLIER headings A–P + `SUP SIZE`, `SUP TYPE`; sheet IN_SUPPLIER_UPDATE).
+- POS v5.1.0: `pos-main` → `clean_merged_pos_data_DD.MM.YY.xlsx` = the sorted POS_DB layout (sheet POS_DB_Data, what
+  `_pos_db` was) and is the Library POS Database (`LIB_OUT['pos-main'] = 'lib:pos-db'`); `pos-db` →
+  `clean_merged_pos_data_pos_db_DD.MM.YY.xlsx` = POS products in `SUP_LAYOUT`, same A–Z order (B blank, C POS_SUPPLIER,
+  D `bc13(POS_MASTER_BARCODE)`, E POS_BRAND, F POS_SUB_ID, G POS_DESCR, H POS_UNITS, I POS_MIN_ORDER_QTY, J POS_WSP_EXCGST,
+  K POS_RRP_INCGST, L Y when POS_GST_TAX_PC > 0). The BrowseStockItems-order file with POS_INDEX / POS_MAIN_ID is no longer
+  written; `state.models.pos` (POS_STD) for the Combined Master is unchanged.
+- CH2 v1.1.0 / Unique v1.1.0 `_pos_db`: D `bc13` (digits; leading zeros dropped above 13, padded below — longer real codes
+  stay); CH2 G `cleanCh2Product` (starred CH2 stock notes matching `CH2_NOTE` removed, other starred notes keep their words,
+  spaces collapsed, capitals); CH2 I `numOrBlank` (N/A → blank). The complete files are unchanged.
+- SUP SIZE / SUP TYPE: `js/size-worker.js` loads sheets-formula / sheets-shim and the merge script (1.0 Setup, 1.3 Merge) in
+  a worker and answers `m13ExtractSizeAndType_` for each description; `withSizes(rows, 6)` appends them (blank if the
+  worker cannot run).
+- POS New Product Check Clean merge-map v1.0.4: the POS Database help text names `clean_merged_pos_data_….xlsx`.
