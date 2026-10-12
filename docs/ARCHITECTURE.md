@@ -535,3 +535,16 @@ All implemented stages keep source business files local to the browser and gener
 - Run bar `#wbRunBar` (index.html, first child of `#workbook`, `position: sticky; top: 0`): `.wb-run[data-run]` buttons call
   `runTo(id)`; `updateRunButtons` sets their disabled state, `stageSet` their `is-<status>` class and badge, `setGlobal`
   mirrors the status into `#wbRunStatus`.
+
+## Staff Hub v21.17.2 — POS New Product Check Clean v1.7.2: supplier sheet clean-up (12 Oct 2026 20:15 AEDT)
+- `supSheetHtml`: `.sup-head` = `.sup-title` (h3 + `.sup-info` title tooltip, `#supStatus`) · `#supBar` (11 flat
+  `.sup-bar-cell`s, `flex: 1 0 auto`) · `#supCount`; `.sup-scope` (one line; chips in `.sup-brand-list`, faded via
+  `.is-clipped` from `supClip()` only when cut; `:has(.sup-scope-more[open])` wraps); `.sup-tools` ends with `#supOpts`
+  (`supOptsHtml` short form, explanation in `title`). Below 1500 px the title takes its own line.
+- thead: `tr.sup-letters` (`th.sup-lN`, filter button in E) + `tr.sup-heads` (`th.sup-cN` with `.sup-hl` and `.sup-tick`
+  holding only the checkbox); `thead` is the sticky element. Cells use the grid font ("Google Sans", "Product Sans",
+  --phf-font), 4px padding, #E1E3E6 lines; the wrap is `max-height: max(320px, calc(100vh - 150px))`.
+- `supFit`: `headMin(font, words, lines)` = the narrowest width splitting a heading into 2 (or 3) lines; tries per
+  `SUP_SIZES` step: 'two', 'empty3' (3 lines for columns with nothing on show), 'all3' (steps ≥ 2). Pick: the first try at
+  step ≤ 1 where SUP PRODUCT keeps 40 characters (`sumC`), else step 0 'empty3' when the floors fit, else the first try
+  whose floors fit, else the last (scaled). Spare room by `SUP_SPARE` {G .8, P .08, B .06, E .06}. No + tag width.

@@ -1,7 +1,19 @@
-# POS New Product Check Clean v1.7.1 (Staff Hub v21.17.1)
+# POS New Product Check Clean v1.7.2 (Staff Hub v21.17.2)
 
-Updated 12 Oct 2026 19:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 12 Oct 2026 20:15 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.7.2: supplier sheet clean-up —
+- One navy strip: the title (ⓘ = how the sheet works), the STATUS summary and the totals, with the row count on the right.
+  One cream line: the brands in the merge on one line (+N more) and the Library buttons. The toolbar holds search, the edit
+  buttons, **Update in POS** (what POS keeps · Update everything; the full explanation on hover) and **Discontinue
+  missing products**.
+- Headings in two rows like the other tabs: the grey letters row (SUP BRAND filter in E), then each heading centred on up
+  to two lines with its Update in POS tick on one line under it (the tick's hover says what it does). Empty columns take
+  three lines only when the window is short of room. Same font and lines as the sheet grid.
+- The sheet fills the window under the run bar (at 1880 × 1000: 30 rows instead of 19; the first row 253 px under the run
+  bar instead of 445). Room left over goes to SUP PRODUCT (and a little to STATUS / names), not to every column.
+- Pasted rows keep the gold edge on INDEX ("Added on this page" on hover) — no + badge on every row.
 
 v1.7.1: the supplier sheet and a run bar —
 - Every column is as wide as what it holds: the page measures the headings and the rows on show (INDEX with its + tag,

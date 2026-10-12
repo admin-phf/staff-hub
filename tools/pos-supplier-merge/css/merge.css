@@ -1,4 +1,6 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.7.1 (12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean v1.7.2 (12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
+   v1.7.2: supplier sheet clean-up — compact head strip, one scope line, options in the toolbar, two heading rows as the
+   sheet grid (letters row, headings + ticks), grid font / lines, the sheet fills the window under the run bar.
    v1.7.1: supplier headings in three aligned bands; the run bar (.wb-runbar) sticky above the workbook.
    v1.7.0: the supplier sheet (IN_SUPPLIER) fits the page width — table-layout fixed with the column shares from app.js
    (supColsHtml), headings wrap, long cells end in …
@@ -86,41 +88,40 @@ body.phf-page-merge :is(.review-panel,.wb-sheet-panel)>.results-head p{color:var
    16 headings (Sheet row 2 colours) and F5F5F5 / E9F0F5 banded rows. Paste lands here (Ctrl+V / ⌘V). */
 body.phf-page-merge .sup-sheet{margin-top:16px;border:1px solid var(--phf-line-strong);border-radius:10px;background:#fff;overflow:hidden;outline:none}
 body.phf-page-merge .sup-sheet:focus{box-shadow:0 0 0 3px var(--phf-blue-line);border-color:var(--phf-blue)}
-body.phf-page-merge .sup-head{display:flex;align-items:center;gap:12px;background:var(--phf-navy);color:var(--phf-gold);padding:10px 14px}
-body.phf-page-merge .sup-head>div{flex:1 1 auto;min-width:0}
-body.phf-page-merge .sup-head h3{margin:0;font:700 12.5px/1.3 var(--phf-font);letter-spacing:.1em;text-transform:uppercase;color:var(--phf-gold)}
-body.phf-page-merge .sup-head p{margin:2px 0 0;color:var(--phf-band-text);font-size:11.5px;font-weight:600}
-body.phf-page-merge .sup-bar{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);background:var(--phf-navy-hover);border-top:1px solid rgba(255,255,255,.12)}
-body.phf-page-merge .sup-bar-group{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);border-right:1px solid rgba(255,255,255,.14)}
-body.phf-page-merge .sup-bar-group:last-of-type{border-right:0}
-body.phf-page-merge .sup-bar-cell{display:flex;flex-direction:column;justify-content:space-between;padding:8px 8px;border-right:1px solid rgba(255,255,255,.08);min-width:0;text-align:center}
-body.phf-page-merge .sup-bar-cell:last-child{border-right:0}
-body.phf-page-merge .sup-bar-cell span{display:block;font-size:9.5px;line-height:1.25;font-weight:800;letter-spacing:.05em;color:var(--phf-band-text);overflow-wrap:anywhere}
-body.phf-page-merge .sup-bar-cell strong{display:block;margin-top:2px;font-size:16px;line-height:1.15;color:var(--phf-gold);font-variant-numeric:tabular-nums;white-space:nowrap}
+body.phf-page-merge .sup-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;background:var(--phf-navy);color:var(--phf-gold);padding:6px 12px}
+body.phf-page-merge .sup-head>.sup-title{flex:0 1 330px;min-width:220px}
+body.phf-page-merge .sup-head h3{display:flex;align-items:center;gap:7px;margin:0;font:700 12px/1.3 var(--phf-font);letter-spacing:.09em;text-transform:uppercase;color:var(--phf-gold);white-space:nowrap}
+body.phf-page-merge .sup-info{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;border:1px solid rgba(230,205,116,.7);color:var(--phf-gold);font:italic 700 10px/1 Georgia,serif;letter-spacing:0;text-transform:none;cursor:help}
+body.phf-page-merge .sup-status{margin-top:2px;font-size:11px;font-weight:600;color:var(--phf-band-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.phf-page-merge .sup-status>span{display:inline-block;margin-right:6px;padding:0 6px;border-radius:999px;background:rgba(255,255,255,.1);color:var(--phf-gold);font-size:9px;font-weight:800;letter-spacing:.07em}
+body.phf-page-merge .sup-status.is-run{color:var(--phf-gold);font-weight:700}
+body.phf-page-merge .sup-status em{color:var(--phf-band-text);font-weight:600}
+@media(max-width:1500px){body.phf-page-merge .sup-head>.sup-title{flex:1 1 100%;display:flex;align-items:baseline;gap:12px;min-width:0}body.phf-page-merge .sup-head>.sup-title .sup-status{margin:0;min-width:0}}
+body.phf-page-merge .sup-bar{flex:1 1 640px;display:flex;flex-wrap:wrap;min-width:0}
+body.phf-page-merge .sup-bar-cell{flex:1 0 auto;display:flex;flex-direction:column;justify-content:center;padding:2px 9px;border-left:1px solid rgba(255,255,255,.1);min-width:62px;text-align:center}
+body.phf-page-merge .sup-bar-cell.is-gap{border-left-color:rgba(255,255,255,.28)}
+body.phf-page-merge .sup-bar-cell span{display:block;font-size:9px;line-height:1.2;font-weight:800;letter-spacing:.05em;color:var(--phf-band-text);white-space:nowrap}
+body.phf-page-merge .sup-bar-cell strong{display:block;margin-top:1px;font-size:14.5px;line-height:1.15;color:var(--phf-gold);font-variant-numeric:tabular-nums;white-space:nowrap}
 body.phf-page-merge .sup-bar-cell.is-match strong{color:#A8C7FA}
 body.phf-page-merge .sup-bar-cell.is-new strong{color:#9CDCAB}
 body.phf-page-merge .sup-bar-cell.is-muted strong{color:#C4CDD5}
 body.phf-page-merge .sup-bar-cell.is-warn strong{color:#F6C76B}
-body.phf-page-merge .sup-bar-status{grid-column:1/-1;padding:7px 12px;border-top:1px solid rgba(255,255,255,.12);color:var(--phf-band-text);font-size:11.5px;font-weight:600;text-align:center}
-body.phf-page-merge .sup-bar-status>span{display:inline-block;margin-right:8px;padding:1px 7px;border-radius:999px;background:rgba(255,255,255,.1);color:var(--phf-gold);font-size:9.5px;font-weight:800;letter-spacing:.07em}
-body.phf-page-merge .sup-bar-status.is-run{color:var(--phf-gold);font-weight:700}
-body.phf-page-merge .sup-bar-status em{color:var(--phf-band-text);font-weight:600}
-@media(max-width:1100px){body.phf-page-merge .sup-bar{grid-template-columns:1fr}body.phf-page-merge .sup-bar-group{border-right:0;border-bottom:1px solid rgba(255,255,255,.12)}}
-@media(max-width:640px){body.phf-page-merge .sup-bar-group{grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}}
-body.phf-page-merge .sup-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 12px;background:var(--phf-soft);border-bottom:1px solid var(--phf-line)}
-body.phf-page-merge .sup-tools input[type=search]{flex:1 1 260px;min-height:34px;border:1px solid var(--phf-line-strong);border-radius:8px;padding:6px 10px;font-size:13px}
+body.phf-page-merge .sup-tools{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;padding:6px 12px;background:var(--phf-soft);border-bottom:1px solid var(--phf-line)}
+body.phf-page-merge .sup-tools input[type=search]{flex:1 1 240px;min-height:30px;border:1px solid var(--phf-line-strong);border-radius:8px;padding:4px 10px;font-size:12.5px}
 body.phf-page-merge .sup-tools input:focus{outline:2px solid var(--phf-blue-line);border-color:var(--phf-blue)}
 body.phf-page-merge .sup-note{margin:8px 12px 0!important}
 body.phf-page-merge .sup-note[hidden]{display:none!important}
-body.phf-page-merge .sup-table-wrap{overflow:auto;max-height:62vh;margin:10px 12px 0;border:1px solid var(--phf-line);border-radius:8px;background:#fff}
-body.phf-page-merge .sup-table{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;font-size:var(--sup-fs,11.5px)}
-body.phf-page-merge .sup-table th{position:sticky;top:0;z-index:2;background:#E9F0F5;color:#2C3E50;font-weight:800;letter-spacing:.04em;font-size:var(--sup-hfs,10px);text-transform:uppercase;text-align:center;padding:4px var(--sup-pad,6px) 6px;white-space:normal;overflow-wrap:break-word;line-height:1.25;vertical-align:top;border-bottom:2px solid var(--phf-navy);border-right:1px solid #D6DEE6}
-body.phf-page-merge .sup-table th .sup-col{display:flex;align-items:center;justify-content:center;height:16px;font-size:9px;font-weight:700;color:#7B8794;letter-spacing:.08em;line-height:1}
+body.phf-page-merge .sup-table-wrap{overflow:auto;max-height:max(320px,calc(100vh - 150px));margin:8px 12px 0;border:1px solid var(--phf-line);border-radius:8px;background:#fff}
+body.phf-page-merge .sup-table{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;font-family:"Google Sans","Product Sans",var(--phf-font);font-size:var(--sup-fs,11.5px)}
+body.phf-page-merge .sup-table thead{position:sticky;top:0;z-index:3}
+body.phf-page-merge .sup-table th{background:#E9F0F5;color:#2C3E50;font-weight:800;letter-spacing:.04em;font-size:var(--sup-hfs,10px);text-transform:uppercase;text-align:center;padding:3px var(--sup-pad,6px) 4px;white-space:normal;overflow-wrap:break-word;line-height:1.2;vertical-align:top;border-right:1px solid #D6DEE6}
+body.phf-page-merge .sup-table tr.sup-letters th{height:18px;padding:0 4px;background:#F8F9FA;color:#5F6368;font-size:10px;font-weight:500;letter-spacing:.02em;vertical-align:middle;border-bottom:1px solid #C4C7C5;border-right-color:#E1E3E6}
+body.phf-page-merge .sup-table tr.sup-heads th{border-bottom:2px solid var(--phf-navy)}
 /* v1.7.1: heading bands — the label centred in a band as tall as the tallest label (--sup-hlh from supFit), the Update in POS
    tick on one line under it in every column (an empty band where a column has none). */
-body.phf-page-merge .sup-table th .sup-hl{display:flex;align-items:center;justify-content:center;text-align:center;min-height:var(--sup-hlh,26px);margin-top:2px}
-body.phf-page-merge .sup-table th .sup-tick{display:flex;justify-content:center;align-items:flex-start;height:30px;margin-top:5px}
-body.phf-page-merge .sup-table td{padding:5px var(--sup-pad,6px);border-bottom:1px solid #E3E8ED;border-right:1px solid #EDF1F4;color:#1C2833;white-space:nowrap;line-height:1.35;overflow:hidden;text-overflow:ellipsis}
+body.phf-page-merge .sup-table th .sup-hl{display:flex;align-items:center;justify-content:center;text-align:center;min-height:var(--sup-hlh,24px)}
+body.phf-page-merge .sup-table th .sup-tick{display:flex;justify-content:center;align-items:center;height:15px;margin-top:3px}
+body.phf-page-merge .sup-table td{padding:4px var(--sup-pad,6px);border-bottom:1px solid #E1E3E6;border-right:1px solid #E1E3E6;color:#1C2833;white-space:nowrap;line-height:1.35;overflow:hidden;text-overflow:ellipsis}
 body.phf-page-merge .sup-table tbody tr.sup-b0 td{background:#F5F5F5}
 body.phf-page-merge .sup-table tbody tr.sup-b1 td{background:#E9F0F5}
 body.phf-page-merge .sup-table tbody tr:hover td{background:#FFF9E6}
@@ -133,7 +134,6 @@ body.phf-page-merge .sup-table tbody tr td.sup-status.st-new{background:#E6F4EA;
 body.phf-page-merge .sup-table tbody tr td.sup-status.st-unm{background:#FFF3CD;color:#856404;font-weight:700}
 body.phf-page-merge .sup-table tbody tr td.sup-status.st-notused{color:#9AA0A6}
 body.phf-page-merge .sup-table tr.is-added td.sup-c0{box-shadow:inset 3px 0 0 var(--phf-gold)}
-body.phf-page-merge .sup-added-tag{display:inline-block;margin-right:5px;padding:0 4px;border-radius:4px;background:var(--phf-navy);color:var(--phf-gold);font-size:9px;font-weight:800;font-style:normal;line-height:14px;vertical-align:1px}
 body.phf-page-merge .sup-table td.sup-empty{white-space:normal;text-align:center;padding:30px 20px;color:var(--phf-muted);background:#fff!important;border:2px dashed var(--phf-line-strong);font-size:12.5px}
 body.phf-page-merge .sup-table td.sup-empty strong{color:var(--phf-navy)}
 body.phf-page-merge .sup-sheet .review-pager{padding:0 12px 12px}
@@ -174,8 +174,14 @@ body.phf-page-merge .input-nav-item.loaded.lib-stale strong{color:var(--phf-ambe
 
 /* v1.3.1 — "Brands in this merge" line under the totals bar (the brands stage 2 matches, updates and discontinues) and
    the Add … from the Library buttons for the CH2 / Unique supplier imports (never loaded on their own). */
-body.phf-page-merge .sup-scope{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding:9px 12px;background:#FFFBEA;border-bottom:1px solid #EFD98C}
-body.phf-page-merge .sup-scope-brands{display:flex;flex-wrap:wrap;gap:5px 6px;align-items:center;min-width:0;flex:1 1 520px;font-size:11.5px;color:#4A3B00}
+body.phf-page-merge .sup-scope{display:flex;flex-wrap:nowrap;gap:8px 16px;align-items:center;justify-content:space-between;padding:5px 12px;background:#FFFBEA;border-bottom:1px solid #EFD98C}
+body.phf-page-merge .sup-scope:has(.sup-scope-more[open]){flex-wrap:wrap}
+body.phf-page-merge .sup-scope-brands{display:flex;flex-wrap:nowrap;gap:5px 6px;align-items:center;min-width:0;flex:1 1 520px;overflow:hidden;font-size:11.5px;color:#4A3B00}
+body.phf-page-merge .sup-scope-brands:has(.sup-scope-more[open]){flex-wrap:wrap;overflow:visible}
+body.phf-page-merge .sup-scope-brands>*{flex:0 0 auto}
+body.phf-page-merge .sup-brand-list{display:flex;gap:5px 6px;align-items:center;min-width:0;flex:0 1 auto!important;overflow:hidden}
+body.phf-page-merge .sup-brand-list.is-clipped{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 28px),transparent)}
+body.phf-page-merge .sup-scope-brands:has(.sup-scope-more[open]) .sup-brand-list{flex-wrap:wrap;overflow:visible;-webkit-mask-image:none;mask-image:none}
 body.phf-page-merge .sup-scope-label{font-weight:800;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--phf-navy);margin-right:4px}
 body.phf-page-merge .sup-scope-rows{font-weight:700;color:#6B5A24;margin-right:6px}
 body.phf-page-merge .sup-scope-note{color:#6B5A24}
@@ -186,7 +192,8 @@ body.phf-page-merge .sup-scope-more summary{cursor:pointer;font-weight:800;color
 body.phf-page-merge .sup-scope-more summary::-webkit-details-marker{display:none}
 body.phf-page-merge .sup-scope-more[open]{display:flex;flex-wrap:wrap;gap:5px 6px;flex-basis:100%}
 body.phf-page-merge .sup-scope-more[open]>div{display:flex;flex-wrap:wrap;gap:5px 6px}
-body.phf-page-merge .sup-scope-lib{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+body.phf-page-merge .sup-scope-lib{display:flex;flex-wrap:nowrap;gap:6px;align-items:center;flex:0 0 auto}
+body.phf-page-merge .sup-scope .sup-lib-add{flex-direction:row;align-items:baseline;gap:6px;min-height:26px;padding:3px 10px;white-space:nowrap}
 body.phf-page-merge .sup-scope-lib[hidden]{display:none}
 body.phf-page-merge .sup-lib-label{font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--phf-muted)}
 body.phf-page-merge .sup-lib-add{display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;min-height:34px;padding:5px 10px;text-align:left;line-height:1.2;border-color:var(--phf-blue-line);color:var(--phf-blue-ink);background:#fff}
@@ -309,7 +316,7 @@ body.phf-page-merge .phf-shell-meta{max-width:330px}
 
 /* v1.6.0 — Update in POS ticks on the supplier headings: an unticked column is greyed (POS keeps its value).
    v1.6.1: greyed = the Sheet's "no change" grey text (#9E9E9E) on the row's own band (was a grey hatch). */
-body.phf-page-merge .sup-keep{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;margin:0;font-size:9px;font-weight:700;letter-spacing:.02em;line-height:1.15;text-transform:none;color:#2E7D32;cursor:pointer;white-space:normal;text-align:center}
+body.phf-page-merge .sup-keep{display:inline-flex;align-items:center;justify-content:center;margin:0;cursor:pointer}
 body.phf-page-merge .sup-keep input{width:13px;height:13px;margin:0;accent-color:#2E7D32;cursor:pointer}
 body.phf-page-merge .sup-table.keep-c2 th.sup-c2,body.phf-page-merge .sup-table.keep-c4 th.sup-c4,body.phf-page-merge .sup-table.keep-c5 th.sup-c5,body.phf-page-merge .sup-table.keep-c6 th.sup-c6,body.phf-page-merge .sup-table.keep-c7 th.sup-c7,body.phf-page-merge .sup-table.keep-c8 th.sup-c8,body.phf-page-merge .sup-table.keep-c9 th.sup-c9,body.phf-page-merge .sup-table.keep-c10 th.sup-c10,body.phf-page-merge .sup-table.keep-c11 th.sup-c11{background:#FFF4E0;color:#7A4F00}
 body.phf-page-merge .sup-table.keep-c2 th.sup-c2 .sup-keep,body.phf-page-merge .sup-table.keep-c4 th.sup-c4 .sup-keep,body.phf-page-merge .sup-table.keep-c5 th.sup-c5 .sup-keep,body.phf-page-merge .sup-table.keep-c6 th.sup-c6 .sup-keep,body.phf-page-merge .sup-table.keep-c7 th.sup-c7 .sup-keep,body.phf-page-merge .sup-table.keep-c8 th.sup-c8 .sup-keep,body.phf-page-merge .sup-table.keep-c9 th.sup-c9 .sup-keep,body.phf-page-merge .sup-table.keep-c10 th.sup-c10 .sup-keep,body.phf-page-merge .sup-table.keep-c11 th.sup-c11 .sup-keep{color:#B06000}
@@ -319,8 +326,10 @@ body.phf-page-merge .sup-filt svg{width:11px;height:11px}
 body.phf-page-merge .sup-filt:hover{border-color:#A8C7FA;background:#E8F0FE;color:#0B57D0}
 body.phf-page-merge .sup-filt.is-on{background:#0B57D0;border-color:#0B57D0;color:#fff}
 body.phf-page-merge .sup-table tbody tr.is-out td{color:#9AA0A6}
-body.phf-page-merge .sup-opts{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;justify-content:space-between;padding:8px 12px;background:#F4F8F4;border-bottom:1px solid #CFE3D2;font-size:11.5px;color:#304030}
-body.phf-page-merge .sup-opts-main{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;flex:1 1 520px;min-width:0}
+body.phf-page-merge .sup-opts{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-left:auto;padding:3px 10px;border-radius:8px;background:#F4F8F4;border:1px solid #CFE3D2;font-size:11.5px;color:#304030}
+body.phf-page-merge .sup-opts-main{display:inline-flex;flex-wrap:wrap;gap:4px 8px;align-items:center;min-width:0;cursor:help}
+body.phf-page-merge .sup-opts .btn{min-height:24px;padding:2px 9px;font-size:11px}
+body.phf-page-merge .sup-tools>.btn{min-height:30px;padding:4px 12px;font-size:12px;border-radius:7px}
 body.phf-page-merge .sup-opts-kept{color:#7A4F00}
 body.phf-page-merge .sup-opts-kept b{font-weight:800}
 body.phf-page-merge .sup-disc{display:inline-flex;align-items:center;gap:6px;font-weight:700;color:#304030;cursor:pointer}

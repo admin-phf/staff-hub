@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.7.1 (12 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.7.2 (12 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -53,11 +53,15 @@
  * v1.7.1 (12 Oct 2026): supplier sheet columns as wide as what they hold (supFit measures the rows on show — INDEX with
  *         its + tag, empty columns narrow, SUP PRODUCT / STATUS / names give way first on a narrow window); headings in
  *         three aligned bands (letter · heading centred · Update in POS tick on one line). Run bar above the workbook,
- *         sticky while scrolling: the three stages with their state and the run status (the same runs as the cards). */
+ *         sticky while scrolling: the three stages with their state and the run status (the same runs as the cards).
+ * v1.7.2 (12 Oct 2026): supplier sheet clean-up — one navy strip (title, status, totals, rows), one scope line, the
+ *         Update in POS / Discontinue options in the toolbar; headings in two rows like the other tabs (letters, then the
+ *         heading on up to 2 lines with its tick); the sheet fills the window under the run bar; spare width goes to
+ *         SUP PRODUCT; no + badge on pasted rows (the gold edge stays). */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.7.1';
+  var TOOL_VERSION = 'v1.7.2';
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -1758,16 +1762,18 @@
     return '<span class="sup-scope-label">Brands in this merge: ' + fmtN(list.length) + (sel ? ' of ' + fmtN(allB) : '') + '</span>' +
       (sel ? '<span class="sup-scope-filter">SUP BRAND filter on — only these brands are merged <button type="button" class="btn small" data-sup-unfilter>Clear filter</button></span>' : '') +
       '<span class="sup-scope-rows">' + rows + '</span>' +
-      list.slice(0, SHOW).map(chip).join('') +
+      '<span class="sup-brand-list">' + list.slice(0, SHOW).map(chip).join('') + '</span>' +   // v1.7.2: one line, fades out
       (list.length > SHOW ? '<details class="sup-scope-more"><summary>+' + fmtN(list.length - SHOW) + ' more</summary><div>' + list.slice(SHOW).map(chip).join('') + '</div></details>' : '');
   }
   // v1.6.0 — the Update in POS ticks and the Discontinue switch (under the supplier sheet's brand line).
   function supOptsHtml() {
     var off = keptGroups();
-    return '<div class="sup-opts-main"><span class="sup-scope-label">Update in POS</span>' +
-      (off.length ? '<span class="sup-opts-kept">POS keeps its current <b>' + esc(off.map(function (g) { return g.what; }).join(', ')) + '</b> for matched products — untick a column heading below to keep a field, tick it to update it again. <button type="button" class="btn small" data-keep-all>Update everything</button></span>'
-        : '<span class="sup-scope-note">Every ticked column heading below is updated in POS. Untick one (e.g. SUP RRP INC GST) and POS keeps its current value for matched products — RRP and price levels exactly as they are, so no new labels.</span>') +
-      '</div><label class="sup-disc' + (state.opts.discontinue ? '' : ' is-off') + '"><input type="checkbox" id="supDiscontinue"' + (state.opts.discontinue ? ' checked' : '') + '> Discontinue POS products of these brands that are not in the supplier rows</label>';
+    // v1.7.2: one short line in the toolbar; the full explanation is on hover.
+    var tip = 'Every ticked column heading is updated in POS. Untick one (e.g. SUP RRP INC GST) and POS keeps its current value for matched products — RRP and price levels exactly as they are, so no new labels.';
+    return '<span class="sup-opts-main" title="' + esc(tip) + '"><span class="sup-scope-label">Update in POS</span>' +
+      (off.length ? '<span class="sup-opts-kept">keeping POS’s <b>' + esc(off.map(function (g) { return g.what; }).join(', ')) + '</b></span> <button type="button" class="btn small" data-keep-all>Update everything</button>'
+        : '<span class="sup-scope-note">every ticked heading</span>') +
+      '</span><label class="sup-disc' + (state.opts.discontinue ? '' : ' is-off') + '" title="Discontinue POS products of these brands that are not in the supplier rows"><input type="checkbox" id="supDiscontinue"' + (state.opts.discontinue ? ' checked' : '') + '> Discontinue missing products</label>';
   }
   function setKeep(id, keep) {
     if (state.busy) return;
@@ -1848,6 +1854,7 @@
   // STATUS, SUP BRAND to its floor
   var SUP_GIVE_ORDER = [[6, 34], [1, 10], [4, 14], [6, 26], [15, 12], [4, 9]];
   var SUP_CAP = { 6: 760 };                               // widest a column grows for its content (px); others 320
+  var SUP_SPARE = { 6: 0.8, 15: 0.08, 1: 0.06, 4: 0.06 }; // v1.7.2: who gets the room left over
   var supCanvas = null, supFitFor = '';
   function supColsHtml() { return '<colgroup>' + SUP_HEADS.map(function () { return '<col>'; }).join('') + '</colgroup>'; }
   function supTextW(font, t) { if (!supCanvas) supCanvas = document.createElement('canvas').getContext('2d'); if (supCanvas.font !== font) supCanvas.font = font; return supCanvas.measureText(t).width; }
@@ -1857,7 +1864,9 @@
     for (var k = 0; k < 600; k++) out.push(vis[300 + Math.floor(k * step)]);
     return out;
   }
+  function supClip() { var bl = document.querySelector('#supScope .sup-brand-list'); if (bl) bl.classList.toggle('is-clipped', bl.scrollWidth > bl.clientWidth + 1); }
   function supFit() {
+    supClip();                                                                     // v1.7.2: the brand line fades only when cut
     var wrap = $('#supWrap'), tbl = $('#supTable'); if (!wrap || !tbl) return;
     var W = wrap.clientWidth; if (W < 200) return;                               // hidden — fitted when it is shown
     var vis = supView.vis || [], fam = getComputedStyle(tbl).fontFamily || 'sans-serif';
@@ -1868,8 +1877,8 @@
     // looks like one (so a $144.66 among $35s is never cut); everything else the length almost every row fits in (98.5% of
     // the sample, all rows when there are under 100) — a stray long value (CH2's "Log in to ParagonCare Direct to view
     // pricing" in the price columns) ends in … with the full text on hover instead of widening the column.
-    var rows = supSample(vis), longest = SUP_HEADS.map(function () { return []; }), added = false, maxN = 0;
-    vis.forEach(function (it) { if (it.ref.e.added) added = true; if (it.n > maxN) maxN = it.n; });
+    var rows = supSample(vis), longest = SUP_HEADS.map(function () { return []; }), maxN = 0;
+    vis.forEach(function (it) { if (it.n > maxN) maxN = it.n; });
     var texts = SUP_HEADS.map(function () { return []; }), exact = SUP_HEADS.map(function () { return []; });
     var NUMLIKE = /^[\s$-]*[\d.,]+%?$/, CODE = { 3: 1, 5: 1 };
     rows.forEach(function (it) {
@@ -1888,31 +1897,50 @@
     }
     if (maxN) longest[0] = [String(maxN).replace(/\d/g, '8')];
     var pick = null;
-    for (var k = 0; k < SUP_SIZES.length; k++) {
+    // v1.7.2: headings take 2 lines; when the content does not fit, empty columns take 3, then (smaller text) every column.
+    var tries = [];
+    SUP_SIZES.forEach(function (sz, k) { tries.push([k, 'two']); tries.push([k, 'empty3']); if (k >= 2) tries.push([k, 'all3']); });
+    var headMin = function (hf, hfs, words, lines) {
+      var lw = function (ws) { var t = ws.join(' '); return supTextW(hf, t) + t.length * hfs * 0.04; }, best = lw(words);
+      for (var i = 1; i < words.length; i++) {
+        best = Math.min(best, Math.max(lw(words.slice(0, i)), lw(words.slice(i))));
+        if (lines > 2) for (var j = i + 1; j < words.length; j++) best = Math.min(best, Math.max(lw(words.slice(0, i)), lw(words.slice(i, j)), lw(words.slice(j))));
+      }
+      return best;
+    };
+    var results = [];
+    for (var tr = 0; tr < tries.length; tr++) {
+      var k = tries[tr][0], mode = tries[tr][1];
       var fs = SUP_SIZES[k][0], hfs = SUP_SIZES[k][1], pad = SUP_SIZES[k][2], cell = fs + 'px ' + fam;
       var ct = supTextW(cell, 'METAGENICS OBORNE CH2 BEST BUY') / 30;
       var mins = [], wants = [], floors = [];
       for (var c = 0; c < SUP_HEADS.length; c++) {
-        var hw = 0;
-        var hf = '800 ' + hfs + 'px ' + fam, ht = String(SUP_HEADS[c]);
-        ht.split(/\s+/).forEach(function (w) { hw = Math.max(hw, supTextW(hf, w) + w.length * hfs * 0.04); });
-        hw = Math.max(hw, (supTextW(hf, ht) + ht.length * hfs * 0.04) / 3 * 1.15);        // a heading takes 3 lines at most
-        if (KEEP_GROUPS.some(function (g) { return g.col === c; })) hw = Math.max(hw, supTextW('700 9px ' + fam, 'Update') + 4);
+        var lines = mode === 'all3' || (mode === 'empty3' && !longest[c].length) ? 3 : 2;
+        var hw = headMin('800 ' + hfs + 'px ' + fam, hfs, String(SUP_HEADS[c]).split(/\s+/), lines);
+        if (KEEP_GROUPS.some(function (g) { return g.col === c; })) hw = Math.max(hw, 16);      // the tick
         var cw = 0;
         // H–O show tabular figures (every digit as wide as 0), so their digits are measured as 0s; 3px to spare.
         longest[c].forEach(function (t) { cw = Math.max(cw, supTextW((c === 15 ? 'italic 700 ' : '') + cell, c >= 7 && c <= 14 ? t.replace(/\d/g, '0') : t) + 3); });
-        if (c === 0 && added) cw += 18;                                            // the + tag
         var min = Math.ceil(hw + 2 * pad + 2), want = Math.ceil(Math.max(hw, Math.min(cw, SUP_CAP[c] || 320)) + 2 * pad + 2);
         mins.push(min); wants.push(want);
         floors.push(SUP_GIVE[c] ? Math.min(want, Math.max(min, Math.ceil(SUP_GIVE[c] * ct + 2 * pad + 2))) : want);
       }
       var sumW = wants.reduce(function (a, b) { return a + b; }, 0), sumF = floors.reduce(function (a, b) { return a + b; }, 0);
-      pick = { fs: fs, hfs: hfs, pad: pad, ct: ct, wants: wants, floors: floors, sumW: sumW, sumF: sumF };
-      if (sumF <= W) break;
+      // comfortable = SUP PRODUCT keeps 40 characters (more if it has room) and every other column its content
+      var sumC = sumW - wants[6] + Math.min(wants[6], Math.ceil(40 * ct + 2 * pad + 2));
+      results.push({ k: k, mode: mode, fs: fs, hfs: hfs, pad: pad, ct: ct, wants: wants, floors: floors, sumW: sumW, sumF: sumF, sumC: sumC });
     }
+    // the full size or one step down when that keeps SUP PRODUCT comfortable; otherwise the largest text that fits once
+    // text columns give way (3-line headings on empty columns first); otherwise the smallest, scaled down
+    var find = function (fn) { for (var i = 0; i < results.length; i++) if (fn(results[i])) return results[i]; return null; };
+    pick = find(function (r) { return r.k <= 1 && r.mode !== 'all3' && r.sumC <= W; }) ||
+      find(function (r) { return r.k === 0 && r.mode === 'empty3' && r.sumF <= W; }) ||
+      find(function (r) { return r.sumF <= W; }) || results[results.length - 1];
     var widths, tight = false;
-    if (pick.sumW <= W) {                                                          // room to spare: shared in proportion
-      widths = pick.wants.map(function (w) { return Math.floor(w * W / pick.sumW); });
+    if (pick.sumW <= W) {                                                          // v1.7.2: room to spare → SUP PRODUCT
+      var spareW = W - pick.sumW, shareTot = 0;                                    // mostly, a little to STATUS / names
+      Object.keys(SUP_SPARE).forEach(function (k) { shareTot += SUP_SPARE[k]; });
+      widths = pick.wants.map(function (w, i) { return Math.floor(w + spareW * (SUP_SPARE[i] || 0) / shareTot); });
     } else if (pick.sumF <= W) {                                                   // text columns give way toward their floors,
       var give = pick.sumW - W;                                                    // SUP PRODUCT first, then the names, STATUS last
       widths = pick.wants.slice();
@@ -1938,24 +1966,29 @@
   }
   function supSheetHtml() {
     return '<div class="sup-sheet" id="supSheet" tabindex="0" aria-label="IN_SUPPLIER_/_PRODUCT_UPDATES sheet">' +
-      '<div class="sup-head"><div><h3>IN_SUPPLIER_/_PRODUCT_UPDATES</h3><p>The Supplier Updates tab as the Google Sheet shows it. Click a cell and type to change it · Ctrl+V (⌘V) pastes from the selected cell · click an INDEX number to select rows · Ctrl+Z undoes.</p></div><span class="result-badge" id="supCount">0 ROWS</span></div>' +
-      '<div class="sup-bar" id="supBar"></div>' +
+      // v1.7.2: one navy strip (title · status · totals · rows), one scope line (brands · Library), one toolbar (search ·
+      // edit buttons · Update in POS · Discontinue), then the sheet.
+      '<div class="sup-head"><div class="sup-title"><h3>IN_SUPPLIER_/_PRODUCT_UPDATES <span class="sup-info" tabindex="0" title="The Supplier Updates tab as the Google Sheet shows it. Click a cell and type to change it · Ctrl+V (⌘V) pastes from the selected cell · click an INDEX number to select rows · Ctrl+Z undoes. The tick in a heading = that column updates POS for matched products." aria-label="About this sheet">i</span></h3><div class="sup-status" id="supStatus"></div></div>' +
+      '<div class="sup-bar" id="supBar"></div><span class="result-badge" id="supCount">0 ROWS</span></div>' +
       '<div class="sup-scope"><div class="sup-scope-brands" id="supScope"></div><div class="sup-scope-lib" data-lib-sup-host hidden></div></div>' +
-      '<div class="sup-opts" id="supOpts"></div>' +
       '<div class="sup-tools"><input type="search" id="supSearch" placeholder="Search barcode, brand, Sub ID, product or status…" aria-label="Search supplier rows">' +
       '<button type="button" class="btn small primary" id="supPasteBtn" title="Paste the clipboard at the selected cell (or add the rows at the end when no cell is selected)">Paste</button>' +
       '<button type="button" class="btn small" id="supAddRow" title="Add an empty row at the end and start typing in it">Add row</button>' +
       '<button type="button" class="btn small" id="supDelRows" title="Delete the selected rows (click an INDEX number, Shift+click another to select several)">Delete rows</button>' +
       '<button type="button" class="btn small" id="supUndo" title="Undo the last change (Ctrl+Z)">Undo</button>' +
       '<button type="button" class="btn small" id="supClearAdded" title="Remove every row typed or pasted here (dropped supplier files stay)">Clear added rows</button>' +
-      '<button type="button" class="btn small" id="supCopyHeads" title="Copy the 16 headings, ready to paste into Excel or Google Sheets as a template">Copy headings</button></div>' +
+      '<button type="button" class="btn small" id="supCopyHeads" title="Copy the 16 headings, ready to paste into Excel or Google Sheets as a template">Copy headings</button>' +
+      '<div class="sup-opts" id="supOpts"></div></div>' +
       '<div class="status sup-note" id="supNote" hidden></div>' +
-      '<div class="sup-table-wrap" id="supWrap"><table class="sup-table" id="supTable">' + supColsHtml() + '<thead><tr>' + SUP_HEADS.map(function (h, i) {
+      // v1.7.2: two heading rows like the other workbook tabs — the column letters (grey, with the SUP BRAND filter), then
+      // each heading centred on up to two lines with its Update in POS tick on one line under it.
+      '<div class="sup-table-wrap" id="supWrap"><table class="sup-table" id="supTable">' + supColsHtml() + '<thead><tr class="sup-letters">' + SUP_HEADS.map(function (h, i) {
+        return '<th class="sup-l' + i + '">' + window.XlsxLite.colLetter(i + 1) +
+          (i === 4 ? '<button type="button" class="sup-filt" id="supBrandFilt" title="Filter SUP BRAND — the merge then covers only the brands you keep ticked" aria-label="Filter SUP BRAND"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg></button>' : '') + '</th>';
+      }).join('') + '</tr><tr class="sup-heads">' + SUP_HEADS.map(function (h, i) {
         var g = KEEP_GROUPS.filter(function (x) { return x.col === i; })[0];
-        // v1.7.1: three bands in every heading — column letter, the heading centred, the Update in POS tick (or its space).
-        return '<th class="sup-c' + i + (i === 0 || i === 15 ? ' sup-ro' : '') + '"><span class="sup-col">' + window.XlsxLite.colLetter(i + 1) +
-          (i === 4 ? '<button type="button" class="sup-filt" id="supBrandFilt" title="Filter SUP BRAND — the merge then covers only the brands you keep ticked" aria-label="Filter SUP BRAND"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg></button>' : '') + '</span><span class="sup-hl">' + esc(h) + '</span><span class="sup-tick">' +
-          (g ? '<label class="sup-keep" title="Ticked: update POS ' + esc(g.what) + ' from this column. Unticked: POS keeps its current ' + esc(g.what) + ' for matched products."><input type="checkbox" data-keep="' + g.id + '"><span>Update in POS</span></label>' : '') + '</span></th>';
+        return '<th class="sup-c' + i + (i === 0 || i === 15 ? ' sup-ro' : '') + '"><span class="sup-hl">' + esc(h) + '</span><span class="sup-tick">' +
+          (g ? '<label class="sup-keep" title="Update in POS — ticked: POS ' + esc(g.what) + ' is updated from this column. Unticked: POS keeps its current ' + esc(g.what) + ' for matched products."><input type="checkbox" data-keep="' + g.id + '" aria-label="Update in POS: ' + esc(h) + '"></label>' : '') + '</span></th>';
       }).join('') + '</tr></thead><tbody id="supBody"></tbody></table></div>' +
       '<div class="review-pager sup-foot"><span class="sup-sel-info" id="supSelInfo"></span><span id="supPage"></span></div></div>';
   }
@@ -1973,9 +2006,11 @@
     var stat = model.run ? (model.summary || 'Stage 1 finished — no summary returned') : (model.items.length ? 'STATUS is set when stage 1 runs (Highlight New Products + Best Buy)' : 'No supplier rows yet — drop supplier files above, or click B3 and paste rows here');
     var bc = function (label, val, cls, tip) { return '<div class="sup-bar-cell' + (cls ? ' ' + cls : '') + '"' + (tip ? ' title="' + esc(tip) + '"' : '') + '><span>' + label + '</span><strong>' + val + '</strong></div>'; };
     $('#supBar').innerHTML =
-      '<div class="sup-bar-group">' + bc('TOTAL', fmtN(t.total)) + bc('⭐ MATCHED', fmtN(t.matched), 'is-match') + bc('🟢 NEW', fmtN(t.newp), 'is-new') + bc('🚫 NOT USED', fmtN(t.notUsed), 'is-muted') + bc('⚠️ UNMATCHABLE', fmtN(t.unm), 'is-warn') + '</div>' +
-      '<div class="sup-bar-group">' + bc('SUPPLIER NAMES', fmtN(t.names)) + bc('TOTAL POS SUPPLIERS', fmtN(t.suppliers)) + bc('UNIQUE BARCODES', fmtN(t.barcodes), '', 'Column D (SUP BARCODE). In the Google Sheet this cell may be labelled UNIQUE BRANDS from an older layout — it counts barcodes.') + bc('UNIQUE BRANDS', fmtN(t.brands)) + bc('TOTAL WS', money(t.ws)) + bc('TOTAL RRP', money(t.rrp)) + '</div>' +
-      '<div class="sup-bar-status' + (model.run ? ' is-run' : '') + '"><span>STATUS</span>' + esc(stat) + (q || bsel ? ' <em>· totals are for the ' + fmtN(vis.length) + ' rows shown</em>' : '') + '</div>';
+      bc('TOTAL', fmtN(t.total)) + bc('⭐ MATCHED', fmtN(t.matched), 'is-match') + bc('🟢 NEW', fmtN(t.newp), 'is-new') + bc('🚫 NOT USED', fmtN(t.notUsed), 'is-muted') + bc('⚠️ UNMATCHABLE', fmtN(t.unm), 'is-warn') +
+      bc('SUPPLIER NAMES', fmtN(t.names), 'is-gap') + bc('POS SUPPLIERS', fmtN(t.suppliers), '', 'Total POS suppliers') + bc('BARCODES', fmtN(t.barcodes), '', 'Unique barcodes in column D (SUP BARCODE). In the Google Sheet this cell may be labelled UNIQUE BRANDS from an older layout — it counts barcodes.') + bc('BRANDS', fmtN(t.brands), '', 'Unique brands') + bc('TOTAL WS', money(t.ws)) + bc('TOTAL RRP', money(t.rrp));
+    var stEl = $('#supStatus'); stEl.className = 'sup-status' + (model.run ? ' is-run' : '');
+    stEl.innerHTML = '<span>STATUS</span>' + esc(stat) + (q || bsel ? ' <em>· totals for the ' + fmtN(vis.length) + ' rows shown</em>' : '');
+    stEl.title = stat;
     $('#supScope').innerHTML = supScopeHtml(model);
     $('#supOpts').innerHTML = supOptsHtml();
     var tbl = $('#supTable');
@@ -2018,7 +2053,7 @@
     for (var c = 0; c < 16; c++) {
       var s = supShown(it, c);
       var cls = 'sup-c' + c + (c === 0 || c === 15 ? ' sup-ro' : '') + (c === 15 ? ' sup-status ' + supStatusClass(s) : '') + (ed[c] ? ' is-edited' : '');
-      cells += '<td class="' + cls + '" data-r="' + r + '" data-c="' + c + '"' + ((c === 6 || c === 15) && s ? ' title="' + esc(s) + '"' : '') + '>' + (c === 0 && added ? '<span class="sup-added-tag" title="Added on this page">+</span>' : '') + esc(s) + '</td>';
+      cells += '<td class="' + cls + '" data-r="' + r + '" data-c="' + c + '"' + ((c === 6 || c === 15) && s ? ' title="' + esc(s) + '"' : c === 0 && added ? ' title="Added on this page"' : '') + '>' + esc(s) + '</td>';
     }
     return '<tr class="' + (added ? 'is-added' : '') + (it.out ? ' is-out' : '') + band + '"' + (it.out ? ' title="Not in the last merge (the SUP BRAND filter left this brand out)"' : '') + '>' + cells + '</tr>';
   }
