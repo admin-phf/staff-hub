@@ -1,7 +1,17 @@
-# POS New Product Check Clean v1.7.0 (Staff Hub v21.17.0)
+# POS New Product Check Clean v1.7.1 (Staff Hub v21.17.1)
 
-Updated 12 Oct 2026 18:05 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 12 Oct 2026 19:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.7.1: the supplier sheet and a run bar —
+- Every column is as wide as what it holds: the page measures the headings and the rows on show (INDEX with its + tag,
+  every price, barcode and ID in full) and shares the room left; empty columns stay narrow. On a narrow window the text
+  steps down a size, then SUP PRODUCT, POS SUPPLIER NAME, SUP BRAND and STATUS give way (in that order) before any number.
+  A stray long value (CH2's "Log in to ParagonCare Direct to view pricing") ends in … with the full text on hover.
+- The headings line up: column letters on one line, every heading centred in one band, the Update in POS ticks on one line.
+- **Run bar** right above the workbook, kept at the top of the window while you scroll: **1 Highlight + Best Buy**,
+  **2 Build OUT_MERGED_DATA**, **3 Insert + Update & Export** — the same runs as the stage cards (earlier stages run first
+  when needed), each with its state, and the run status on the right. It shows on every workbook tab.
 
 v1.7.0: the full sets —
 - The Library now keeps the full sets from Build POS Master Databases v21.14.0: `clean_merged_pos_data` (POS Database),

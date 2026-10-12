@@ -1,4 +1,5 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.7.0 (12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean v1.7.1 (12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
+   v1.7.1: supplier headings in three aligned bands; the run bar (.wb-runbar) sticky above the workbook.
    v1.7.0: the supplier sheet (IN_SUPPLIER) fits the page width — table-layout fixed with the column shares from app.js
    (supColsHtml), headings wrap, long cells end in …
    Tool-only additions. Layout and colours come from css/app.css (same layout as
@@ -113,8 +114,12 @@ body.phf-page-merge .sup-note{margin:8px 12px 0!important}
 body.phf-page-merge .sup-note[hidden]{display:none!important}
 body.phf-page-merge .sup-table-wrap{overflow:auto;max-height:62vh;margin:10px 12px 0;border:1px solid var(--phf-line);border-radius:8px;background:#fff}
 body.phf-page-merge .sup-table{border-collapse:separate;border-spacing:0;width:100%;table-layout:fixed;font-size:var(--sup-fs,11.5px)}
-body.phf-page-merge .sup-table th{position:sticky;top:0;z-index:2;background:#E9F0F5;color:#2C3E50;font-weight:800;letter-spacing:.04em;font-size:var(--sup-hfs,10px);text-transform:uppercase;text-align:center;padding:17px var(--sup-pad,6px) 7px;white-space:normal;overflow-wrap:break-word;line-height:1.25;vertical-align:bottom;border-bottom:2px solid var(--phf-navy);border-right:1px solid #D6DEE6}
-body.phf-page-merge .sup-table th .sup-col{position:absolute;top:4px;left:0;right:0;display:block;font-size:9px;font-weight:700;color:#7B8794;letter-spacing:.08em;line-height:1.2}
+body.phf-page-merge .sup-table th{position:sticky;top:0;z-index:2;background:#E9F0F5;color:#2C3E50;font-weight:800;letter-spacing:.04em;font-size:var(--sup-hfs,10px);text-transform:uppercase;text-align:center;padding:4px var(--sup-pad,6px) 6px;white-space:normal;overflow-wrap:break-word;line-height:1.25;vertical-align:top;border-bottom:2px solid var(--phf-navy);border-right:1px solid #D6DEE6}
+body.phf-page-merge .sup-table th .sup-col{display:flex;align-items:center;justify-content:center;height:16px;font-size:9px;font-weight:700;color:#7B8794;letter-spacing:.08em;line-height:1}
+/* v1.7.1: heading bands — the label centred in a band as tall as the tallest label (--sup-hlh from supFit), the Update in POS
+   tick on one line under it in every column (an empty band where a column has none). */
+body.phf-page-merge .sup-table th .sup-hl{display:flex;align-items:center;justify-content:center;text-align:center;min-height:var(--sup-hlh,26px);margin-top:2px}
+body.phf-page-merge .sup-table th .sup-tick{display:flex;justify-content:center;align-items:flex-start;height:30px;margin-top:5px}
 body.phf-page-merge .sup-table td{padding:5px var(--sup-pad,6px);border-bottom:1px solid #E3E8ED;border-right:1px solid #EDF1F4;color:#1C2833;white-space:nowrap;line-height:1.35;overflow:hidden;text-overflow:ellipsis}
 body.phf-page-merge .sup-table tbody tr.sup-b0 td{background:#F5F5F5}
 body.phf-page-merge .sup-table tbody tr.sup-b1 td{background:#E9F0F5}
@@ -304,7 +309,7 @@ body.phf-page-merge .phf-shell-meta{max-width:330px}
 
 /* v1.6.0 — Update in POS ticks on the supplier headings: an unticked column is greyed (POS keeps its value).
    v1.6.1: greyed = the Sheet's "no change" grey text (#9E9E9E) on the row's own band (was a grey hatch). */
-body.phf-page-merge .sup-keep{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px 4px;margin-top:4px;font-size:9px;font-weight:700;letter-spacing:.02em;line-height:1.2;text-transform:none;color:#2E7D32;cursor:pointer;white-space:normal}
+body.phf-page-merge .sup-keep{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;margin:0;font-size:9px;font-weight:700;letter-spacing:.02em;line-height:1.15;text-transform:none;color:#2E7D32;cursor:pointer;white-space:normal;text-align:center}
 body.phf-page-merge .sup-keep input{width:13px;height:13px;margin:0;accent-color:#2E7D32;cursor:pointer}
 body.phf-page-merge .sup-table.keep-c2 th.sup-c2,body.phf-page-merge .sup-table.keep-c4 th.sup-c4,body.phf-page-merge .sup-table.keep-c5 th.sup-c5,body.phf-page-merge .sup-table.keep-c6 th.sup-c6,body.phf-page-merge .sup-table.keep-c7 th.sup-c7,body.phf-page-merge .sup-table.keep-c8 th.sup-c8,body.phf-page-merge .sup-table.keep-c9 th.sup-c9,body.phf-page-merge .sup-table.keep-c10 th.sup-c10,body.phf-page-merge .sup-table.keep-c11 th.sup-c11{background:#FFF4E0;color:#7A4F00}
 body.phf-page-merge .sup-table.keep-c2 th.sup-c2 .sup-keep,body.phf-page-merge .sup-table.keep-c4 th.sup-c4 .sup-keep,body.phf-page-merge .sup-table.keep-c5 th.sup-c5 .sup-keep,body.phf-page-merge .sup-table.keep-c6 th.sup-c6 .sup-keep,body.phf-page-merge .sup-table.keep-c7 th.sup-c7 .sup-keep,body.phf-page-merge .sup-table.keep-c8 th.sup-c8 .sup-keep,body.phf-page-merge .sup-table.keep-c9 th.sup-c9 .sup-keep,body.phf-page-merge .sup-table.keep-c10 th.sup-c10 .sup-keep,body.phf-page-merge .sup-table.keep-c11 th.sup-c11 .sup-keep{color:#B06000}
@@ -343,3 +348,21 @@ body.phf-page-merge label.wbg-pv.is-on{background:transparent;font-weight:400}
 body.phf-page-merge label.wbg-pv:hover{background:#E8F0FE}
 body.phf-page-merge .wbg-flag{display:block;margin-top:2px;font-size:8.5px;font-weight:800;letter-spacing:.06em;color:#B06000}
 body.phf-page-merge th.wbg-flagged{background:#FFF4E0!important;color:#7A4F00!important}
+
+/* v1.7.1 — run bar: the three stages right above the workbook, kept on screen while the page scrolls (the same buttons as
+   the stage cards, with each stage's state and the run status). */
+body.phf-page-merge .wb-runbar{position:sticky;top:0;z-index:31;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 12px;background:var(--phf-navy);border-radius:var(--phf-radius) var(--phf-radius) 0 0;box-shadow:0 3px 8px rgba(16,24,40,.12)}
+body.phf-page-merge .wb-runbar-label{font-size:10px;font-weight:800;letter-spacing:.08em;color:var(--phf-gold);margin-right:2px}
+body.phf-page-merge .wb-run{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;font-weight:700;padding:6px 11px;border-radius:7px;cursor:pointer;white-space:nowrap}
+body.phf-page-merge .wb-run:hover:not(:disabled){background:rgba(255,255,255,.18)}
+body.phf-page-merge .wb-run:disabled{opacity:.45;cursor:not-allowed}
+body.phf-page-merge .wb-run b{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--phf-gold);color:var(--phf-navy);font-size:10.5px}
+body.phf-page-merge .wb-run i{font-style:normal;font-size:9.5px;font-weight:800;letter-spacing:.05em;padding:2px 6px;border-radius:999px;background:rgba(255,255,255,.14);color:#D6DEE6}
+body.phf-page-merge .wb-run.is-running i{background:#FFF1D8;color:#8A5C0D}
+body.phf-page-merge .wb-run.is-done i{background:#DFF0E4;color:#1E6B3A}
+body.phf-page-merge .wb-run.is-error i{background:#FBE8E6;color:#8B2E26}
+body.phf-page-merge .wb-runbar-status{flex:1 1 260px;min-width:0;font-size:12px;color:#E6EDF3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+body.phf-page-merge .wb-runbar-status.is-running{color:#FFE7A8}
+body.phf-page-merge .wb-runbar-status.is-success{color:#BDF0CB}
+body.phf-page-merge .wb-runbar-status.is-error{color:#FFC9C2}
+body.phf-page-merge .wb-runbar+.wb-pages .sup-sheet,body.phf-page-merge .wb-runbar+.wb-pages>.panel{border-top-left-radius:0!important;border-top-right-radius:0!important}

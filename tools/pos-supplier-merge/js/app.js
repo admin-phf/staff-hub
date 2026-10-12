@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.7.0 (12 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.7.1 (12 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -49,11 +49,15 @@
  *         supplier rows A–P with the Build's own rules (../database-build/js/supplier-layout.js), the same rows as its
  *         _pos_db file; supplier files in the A–P layout and the older Library copies load as before. The supplier sheet
  *         fits the page width (no sideways scroll): fixed column widths, headings on two lines, long cells end in … with
- *         the full text on hover. */
+ *         the full text on hover.
+ * v1.7.1 (12 Oct 2026): supplier sheet columns as wide as what they hold (supFit measures the rows on show — INDEX with
+ *         its + tag, empty columns narrow, SUP PRODUCT / STATUS / names give way first on a narrow window); headings in
+ *         three aligned bands (letter · heading centred · Update in POS tick on one line). Run bar above the workbook,
+ *         sticky while scrolling: the three stages with their state and the run status (the same runs as the cards). */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.7.0';
+  var TOOL_VERSION = 'v1.7.1';
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -211,7 +215,10 @@
   function inputDef(id) { return M.inputDef(id); }
   function loaded(id) { var x = state.inputs[id]; return !!(x && x.files && x.files.length); }
   function rowsOf(id) { var x = state.inputs[id]; var out = []; (x && x.files || []).forEach(function (f) { out = out.concat(f.data); }); return out; }
-  function setGlobal(t, type) { var e = $('#globalStatus'); e.className = 'status ' + (type || 'info'); e.textContent = t; }
+  function setGlobal(t, type) {
+    var e = $('#globalStatus'); e.className = 'status ' + (type || 'info'); e.textContent = t;
+    var r = $('#wbRunStatus'); if (r) { r.textContent = t; r.title = t; r.className = 'wb-runbar-status is-' + (type || 'info'); }   // v1.7.1 run bar
+  }
   function gpct(v) { var p = $('#globalProgress'), b = $('#globalProgressBar'); p.classList.toggle('hidden', v <= 0); b.style.width = Math.max(0, Math.min(100, v)) + '%'; }
   function cleanTitle(s) { return String(s || '').replace(/^[^A-Za-z0-9(]+/, '').trim(); }
 
@@ -642,6 +649,8 @@
     var b = card.querySelector('.small-badge');
     b.className = 'small-badge ' + ({ waiting: 'wait', ready: 'ready', running: 'running', done: 'done', error: 'error' }[status] || 'wait');
     b.textContent = { waiting: 'WAITING', ready: 'READY', running: 'RUNNING', done: 'DONE', error: 'ERROR' }[status] || 'WAITING';
+    var rb = document.querySelector('.wb-run[data-run="' + id + '"]');                 // v1.7.1 run bar
+    if (rb) { rb.classList.remove('is-ready', 'is-running', 'is-done', 'is-error'); rb.classList.add('is-' + (status === 'waiting' ? 'waiting' : status)); rb.querySelector('i').textContent = b.textContent; }
     stageMsg(id, msg, status);
   }
   function stageMsg(id, msg, status) {
@@ -655,6 +664,7 @@
       var cur = state.stage[s.id] || {};
       var b = document.querySelector('.stage-run[data-stage="' + s.id + '"]');
       if (b) b.disabled = !ready || state.busy;
+      var rb = document.querySelector('.wb-run[data-run="' + s.id + '"]'); if (rb) rb.disabled = !ready || state.busy;   // v1.7.1
       if (cur.status === 'running' || cur.status === 'done' || cur.status === 'error') return;
       if (ready) stageSet(s.id, 'ready', s.n === 1 ? 'Inputs are ready. This stage can run now.' : 'Ready — earlier stages run first automatically if needed.');
       else stageSet(s.id, 'waiting', state.engineInfo ? readinessText() : 'Waiting for the merge engine to start…');
@@ -1827,40 +1837,103 @@
     }).catch(function (e) { setGlobal('The ' + label + ' could not be added: ' + e.message, 'error'); return false; });
   }
 
-  // v1.7.0 — the sheet fits the page width (no sideways scroll). Each column gets at least what it needs (the 13-digit
-  // barcode, prices, Sub IDs, the longest word of its heading) and the room left goes mostly to SUP PRODUCT; on a narrow
-  // window the text steps down a size first. [minimum characters, d = digits / t = text, share of the room left]
-  var SUP_FIT = [[5.5, 'd', 0.1], [12, 't', 1], [4, 'd', 0.3], [13, 'd', 0.2], [9, 't', 1], [7.5, 'd', 0.2], [22, 't', 6], [4, 'd', 0.2],
-    [4, 'd', 0.2], [7, 'd', 0.2], [7, 'd', 0.2], [2, 't', 0.1], [4, 'd', 0.1], [6, 'd', 0.2], [4, 'd', 0.1], [13, 't', 1]];
+  // v1.7.0 / v1.7.1 — the sheet fits the page width (no sideways scroll) and every column is as wide as what it holds:
+  // supFit() measures the headings (longest word, the Update in POS tick) and the rows on show (a sample of up to ~900,
+  // INDEX with its + tag, STATUS in its bold italic), gives each column its content width, and shares any room left in
+  // proportion. When the content is wider than the window, the text steps down a size; then SUP PRODUCT, STATUS, POS
+  // SUPPLIER NAME and SUP BRAND give way first (down to a floor) — numbers, barcodes and IDs keep their full width.
   var SUP_SIZES = [[11.5, 10, 6], [10.5, 9, 5], [10, 8.5, 4], [9.5, 8, 3], [9, 7.5, 2]];   // [cell px, heading px, side padding px]
+  var SUP_GIVE = { 6: 26, 15: 12, 1: 10, 4: 9 };        // columns that give way → their floor in characters
+  // the order they give way in, [column, down to characters]: SUP PRODUCT to 34, the names, SUP PRODUCT to its floor,
+  // STATUS, SUP BRAND to its floor
+  var SUP_GIVE_ORDER = [[6, 34], [1, 10], [4, 14], [6, 26], [15, 12], [4, 9]];
+  var SUP_CAP = { 6: 760 };                               // widest a column grows for its content (px); others 320
   var supCanvas = null, supFitFor = '';
-  function supColsHtml() { return '<colgroup>' + SUP_FIT.map(function () { return '<col>'; }).join('') + '</colgroup>'; }
-  function supTextW(font, t) { if (!supCanvas) supCanvas = document.createElement('canvas').getContext('2d'); supCanvas.font = font; return supCanvas.measureText(t).width; }
+  function supColsHtml() { return '<colgroup>' + SUP_HEADS.map(function () { return '<col>'; }).join('') + '</colgroup>'; }
+  function supTextW(font, t) { if (!supCanvas) supCanvas = document.createElement('canvas').getContext('2d'); if (supCanvas.font !== font) supCanvas.font = font; return supCanvas.measureText(t).width; }
+  function supSample(vis) {
+    if (vis.length <= 900) return vis;
+    var out = vis.slice(0, 300), step = (vis.length - 300) / 600;
+    for (var k = 0; k < 600; k++) out.push(vis[300 + Math.floor(k * step)]);
+    return out;
+  }
   function supFit() {
     var wrap = $('#supWrap'), tbl = $('#supTable'); if (!wrap || !tbl) return;
     var W = wrap.clientWidth; if (W < 200) return;                               // hidden — fitted when it is shown
-    var fam = getComputedStyle(tbl).fontFamily || 'sans-serif', key = W + '|' + fam;
+    var vis = supView.vis || [], fam = getComputedStyle(tbl).fontFamily || 'sans-serif';
+    var key = [W, fam, vis.length, vis.length ? vis[0].n + ':' + vis[vis.length - 1].n : '', state.rev, supView.undo.length, (vis[0] && vis[0].shown !== vis[0].ref.row) ? 1 : 0].join('|');
     if (key === supFitFor) return;
+    // the longest text of each column on show (as characters, measured per font below)
+    // The text each column has to show: INDEX the highest number on show; numbers, barcodes and IDs every value that
+    // looks like one (so a $144.66 among $35s is never cut); everything else the length almost every row fits in (98.5% of
+    // the sample, all rows when there are under 100) — a stray long value (CH2's "Log in to ParagonCare Direct to view
+    // pricing" in the price columns) ends in … with the full text on hover instead of widening the column.
+    var rows = supSample(vis), longest = SUP_HEADS.map(function () { return []; }), added = false, maxN = 0;
+    vis.forEach(function (it) { if (it.ref.e.added) added = true; if (it.n > maxN) maxN = it.n; });
+    var texts = SUP_HEADS.map(function () { return []; }), exact = SUP_HEADS.map(function () { return []; });
+    var NUMLIKE = /^[\s$-]*[\d.,]+%?$/, CODE = { 3: 1, 5: 1 };
+    rows.forEach(function (it) {
+      for (var c = 1; c < SUP_HEADS.length; c++) {
+        var t = supShown(it, c); if (!t) continue;
+        texts[c].push(t);
+        if (NUMLIKE.test(t) || (CODE[c] && t.length <= 16)) exact[c].push(t);
+      }
+    });
+    var top = function (arr, n) { var by = arr.slice().sort(function (x, y) { return y.length - x.length; }); return by.slice(0, n); };
+    for (var c0 = 1; c0 < SUP_HEADS.length; c0++) {
+      var tx = texts[c0]; if (!tx.length) continue;
+      var lens = tx.map(function (t) { return t.length; }).sort(function (x, y) { return y - x; });
+      var L = rows.length < 100 ? lens[0] : lens[Math.floor(lens.length * 0.015)];
+      longest[c0] = tx.filter(function (t) { return t.length <= L && t.length >= L - 2; }).slice(0, 40).concat(top(exact[c0], 12));
+    }
+    if (maxN) longest[0] = [String(maxN).replace(/\d/g, '8')];
     var pick = null;
     for (var k = 0; k < SUP_SIZES.length; k++) {
-      var fs = SUP_SIZES[k][0], hfs = SUP_SIZES[k][1], pad = SUP_SIZES[k][2];
-      var cd = supTextW(fs + 'px ' + fam, '0123456789') / 10, ct = supTextW(fs + 'px ' + fam, 'METAGENICS OBORNE CH2 BEST BUY') / 30;
-      var mins = SUP_FIT.map(function (f, i) {
+      var fs = SUP_SIZES[k][0], hfs = SUP_SIZES[k][1], pad = SUP_SIZES[k][2], cell = fs + 'px ' + fam;
+      var ct = supTextW(cell, 'METAGENICS OBORNE CH2 BEST BUY') / 30;
+      var mins = [], wants = [], floors = [];
+      for (var c = 0; c < SUP_HEADS.length; c++) {
         var hw = 0;
-        String(SUP_HEADS[i]).split(/\s+/).forEach(function (w) { hw = Math.max(hw, supTextW('800 ' + hfs + 'px ' + fam, w) + w.length * hfs * 0.04); });
-        if (KEEP_GROUPS.some(function (g) { return g.col === i; })) hw = Math.max(hw, supTextW('700 9px ' + fam, 'Update') + 4);   // the Update in POS tick
-        return Math.ceil(Math.max(f[0] * (f[1] === 'd' ? cd : ct), hw) + 2 * pad + 2);
-      });
-      pick = { fs: fs, hfs: hfs, pad: pad, mins: mins, sum: mins.reduce(function (a, b) { return a + b; }, 0) };
-      if (pick.sum <= W) break;
+        var hf = '800 ' + hfs + 'px ' + fam, ht = String(SUP_HEADS[c]);
+        ht.split(/\s+/).forEach(function (w) { hw = Math.max(hw, supTextW(hf, w) + w.length * hfs * 0.04); });
+        hw = Math.max(hw, (supTextW(hf, ht) + ht.length * hfs * 0.04) / 3 * 1.15);        // a heading takes 3 lines at most
+        if (KEEP_GROUPS.some(function (g) { return g.col === c; })) hw = Math.max(hw, supTextW('700 9px ' + fam, 'Update') + 4);
+        var cw = 0;
+        // H–O show tabular figures (every digit as wide as 0), so their digits are measured as 0s; 3px to spare.
+        longest[c].forEach(function (t) { cw = Math.max(cw, supTextW((c === 15 ? 'italic 700 ' : '') + cell, c >= 7 && c <= 14 ? t.replace(/\d/g, '0') : t) + 3); });
+        if (c === 0 && added) cw += 18;                                            // the + tag
+        var min = Math.ceil(hw + 2 * pad + 2), want = Math.ceil(Math.max(hw, Math.min(cw, SUP_CAP[c] || 320)) + 2 * pad + 2);
+        mins.push(min); wants.push(want);
+        floors.push(SUP_GIVE[c] ? Math.min(want, Math.max(min, Math.ceil(SUP_GIVE[c] * ct + 2 * pad + 2))) : want);
+      }
+      var sumW = wants.reduce(function (a, b) { return a + b; }, 0), sumF = floors.reduce(function (a, b) { return a + b; }, 0);
+      pick = { fs: fs, hfs: hfs, pad: pad, ct: ct, wants: wants, floors: floors, sumW: sumW, sumF: sumF };
+      if (sumF <= W) break;
     }
-    var spare = W - pick.sum, share = SUP_FIT.reduce(function (a, f) { return a + f[2]; }, 0);
-    var widths = pick.mins.map(function (m, i) { return Math.floor(spare >= 0 ? m + spare * SUP_FIT[i][2] / share : m * W / pick.sum); });
-    widths[6] += W - widths.reduce(function (a, b) { return a + b; }, 0);       // rounding → SUP PRODUCT
+    var widths, tight = false;
+    if (pick.sumW <= W) {                                                          // room to spare: shared in proportion
+      widths = pick.wants.map(function (w) { return Math.floor(w * W / pick.sumW); });
+    } else if (pick.sumF <= W) {                                                   // text columns give way toward their floors,
+      var give = pick.sumW - W;                                                    // SUP PRODUCT first, then the names, STATUS last
+      widths = pick.wants.slice();
+      SUP_GIVE_ORDER.forEach(function (st) {
+        var c = st[0], to = Math.max(pick.floors[c], Math.ceil(st[1] * pick.ct + 2 * pick.pad + 2)), g = Math.max(0, Math.min(give, widths[c] - to));
+        widths[c] -= g; give -= g;
+      });
+      widths = widths.map(Math.floor);
+    } else {                                                                       // narrower than every floor: scale down
+      tight = true;
+      widths = pick.floors.map(function (w) { return Math.floor(w * W / pick.sumF); });
+    }
+    widths[6] += W - widths.reduce(function (a, b) { return a + b; }, 0);         // rounding → SUP PRODUCT
     tbl.style.setProperty('--sup-fs', pick.fs + 'px'); tbl.style.setProperty('--sup-hfs', pick.hfs + 'px'); tbl.style.setProperty('--sup-pad', pick.pad + 'px');
-    tbl.classList.toggle('is-tight', spare < 0);
+    tbl.classList.toggle('is-tight', tight);
     var cols = tbl.querySelectorAll('col');
-    for (var c = 0; c < cols.length; c++) cols[c].style.width = widths[c] + 'px';
+    for (var i = 0; i < cols.length; i++) cols[i].style.width = widths[i] + 'px';
+    // headings: every label centred in one band as tall as the tallest label, the ticks on one line under it
+    tbl.style.setProperty('--sup-hlh', '0px');
+    var hh = 0; tbl.querySelectorAll('thead .sup-hl').forEach(function (el) { hh = Math.max(hh, el.offsetHeight); });
+    tbl.style.setProperty('--sup-hlh', hh + 'px');
     supFitFor = key;
   }
   function supSheetHtml() {
@@ -1879,9 +1952,10 @@
       '<div class="status sup-note" id="supNote" hidden></div>' +
       '<div class="sup-table-wrap" id="supWrap"><table class="sup-table" id="supTable">' + supColsHtml() + '<thead><tr>' + SUP_HEADS.map(function (h, i) {
         var g = KEEP_GROUPS.filter(function (x) { return x.col === i; })[0];
+        // v1.7.1: three bands in every heading — column letter, the heading centred, the Update in POS tick (or its space).
         return '<th class="sup-c' + i + (i === 0 || i === 15 ? ' sup-ro' : '') + '"><span class="sup-col">' + window.XlsxLite.colLetter(i + 1) +
-          (i === 4 ? '<button type="button" class="sup-filt" id="supBrandFilt" title="Filter SUP BRAND — the merge then covers only the brands you keep ticked" aria-label="Filter SUP BRAND"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg></button>' : '') + '</span>' + esc(h) +
-          (g ? '<label class="sup-keep" title="Ticked: update POS ' + esc(g.what) + ' from this column. Unticked: POS keeps its current ' + esc(g.what) + ' for matched products."><input type="checkbox" data-keep="' + g.id + '"> <span>Update in POS</span></label>' : '') + '</th>';
+          (i === 4 ? '<button type="button" class="sup-filt" id="supBrandFilt" title="Filter SUP BRAND — the merge then covers only the brands you keep ticked" aria-label="Filter SUP BRAND"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg></button>' : '') + '</span><span class="sup-hl">' + esc(h) + '</span><span class="sup-tick">' +
+          (g ? '<label class="sup-keep" title="Ticked: update POS ' + esc(g.what) + ' from this column. Unticked: POS keeps its current ' + esc(g.what) + ' for matched products."><input type="checkbox" data-keep="' + g.id + '"><span>Update in POS</span></label>' : '') + '</span></th>';
       }).join('') + '</tr></thead><tbody id="supBody"></tbody></table></div>' +
       '<div class="review-pager sup-foot"><span class="sup-sel-info" id="supSelInfo"></span><span id="supPage"></span></div></div>';
   }
@@ -2347,6 +2421,7 @@
     $('#supPanel').innerHTML = supSheetHtml(); wireSupSheet();
     renderTabs(); wbShow('sup', true);
     $('#runAllBtn').onclick = function () { runTo('export'); };
+    document.querySelectorAll('.wb-run').forEach(function (b) { b.onclick = function () { runTo(b.dataset.run); }; });   // v1.7.1 run bar
     $('#clearAllBtn').onclick = function () { if (state.busy) return; invalidateResults('Results cleared.'); startEngine().then(updateRunButtons); setGlobal('Results cleared. Input files are kept (and stay saved in this browser).', 'info'); };
     $('#railClearSession').onclick = function () {
       removeInputs(M.INPUTS.filter(function (d) { return !d.stored; }).map(function (d) { return d.id; }), 'POS database and supplier rows removed (including rows added in the sheet). Saved reference data is kept.');

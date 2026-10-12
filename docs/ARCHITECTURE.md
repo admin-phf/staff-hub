@@ -520,3 +520,18 @@ All implemented stages keep source business files local to the browser and gener
   (mostly SUP PRODUCT); below the minimum at the smallest step the widths scale down (`.is-tight`). CSS: table-layout
   fixed, `--sup-fs` / `--sup-hfs` / `--sup-pad`, headings wrap with the column letter pinned to the top, cells nowrap with
   ellipsis; a cut-short cell gets its full text as a title on mouseover.
+
+## Staff Hub v21.17.1 — POS New Product Check Clean v1.7.1: content-sized supplier columns, aligned headings, run bar (12 Oct 2026 19:30 AEDT)
+- `supFit()` now sizes columns from content: `supSample(vis)` (all rows up to 900, else the first 300 + 600 spread);
+  INDEX = the highest `it.n` on show (+18 px when any row is added); numbers / barcodes / IDs (`NUMLIKE`, columns D / F ≤ 16
+  characters) = the longest such value; other text = the 98.5th-percentile length (all rows under 100), measured with
+  canvas (H–O digits as 0 for tabular figures, STATUS in italic 700) + 3 px. `want` = max(heading word / ⅓ of the heading /
+  the Update in POS tick, content capped at 320 px, SUP PRODUCT 760 px). Per `SUP_SIZES` step: room to spare → widths in
+  proportion to `want`; else `SUP_GIVE_ORDER` ([6,34],[1,10],[4,14],[6,26],[15,12],[4,9] — column, down to characters);
+  else floors scaled (`.is-tight`). Cache key: width, font, rows on show, first / last row, `state.rev`, undo depth, run.
+- Headings: `<span class="sup-col">` letter (16 px band), `<span class="sup-hl">` label (flex-centred, `min-height:
+  var(--sup-hlh)` = the tallest label, measured in `supFit`), `<span class="sup-tick">` (30 px) holding the Update in POS
+  label (column flex: tick over text) or nothing.
+- Run bar `#wbRunBar` (index.html, first child of `#workbook`, `position: sticky; top: 0`): `.wb-run[data-run]` buttons call
+  `runTo(id)`; `updateRunButtons` sets their disabled state, `stageSet` their `is-<status>` class and badge, `setGlobal`
+  mirrors the status into `#wbRunStatus`.
