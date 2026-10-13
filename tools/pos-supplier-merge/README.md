@@ -1,7 +1,14 @@
-# POS New Product Check Clean v1.11.0 (Staff Hub v21.21.0)
+# POS New Product Check Clean v1.11.1 (Staff Hub v21.21.1)
 
-Updated 13 Oct 2026 21:00 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 13 Oct 2026 21:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.11.1 — **pasted rows line up by their barcodes.** A block copied from POS SUPPLIER NUMBER onwards (no name column) and
+pasted at B3 used to go one column to the left — supplier number in B, barcode in C — so nothing could match (every row
+UNMATCHABLE / IDENTITY REVIEW). Now a pasted block of 6+ columns finds its barcode column and goes where the barcodes land
+in D, whether you click B3, C3 or D3 or use the Paste button; the message says so ("Pasted at C3 (not B3 — lined up so
+the barcodes are in D)"). A row-shaped block with no barcode column is flagged straight away. Smaller pastes (a few
+prices, one column) go exactly where you click. POS SUPPLIER NAME is filled from the number when stage 1 runs (v1.9.0).
 
 v1.11.0 —
 - **Search / add bar** (the supplier sheet's search box, now the toolbar's whole first line). It starts with the supplier

@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.11.0 (13 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.11.1 (13 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -80,11 +80,13 @@
  *         O POS MEMBER (price levels 1–5; engine-host v1.3.0 works member out from O, the brand flags, then POS). The
  *         search box is a search / add bar (supFindSpec / supFindRows / supFindAdd: started with the supplier, | slots
  *         in column order, barcode first then brand / Sub ID / product / WS); Add 5 rows; Clear empty rows; fill down
- *         (the corner square, Ctrl+D); Ctrl+C writes the clipboard itself. No lines between the sheet's bands. */
+ *         (the corner square, Ctrl+D); Ctrl+C writes the clipboard itself. No lines between the sheet's bands.
+ * v1.11.1 (13 Oct 2026): a pasted block lines up so its barcodes land in D (barcodeCol) — at a selected cell (6+ columns,
+ *         pasted at B–D) and with the Paste button; a row-shaped block with no barcode column is flagged at once. */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.11.0';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.11.1';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -1657,6 +1659,20 @@
     });
     return bc >= rows.length * 0.8 && ws >= rows.length * 0.8;
   }
+  // v1.11.1 — the block column holding the barcodes: the leftmost whose filled cells are mostly 8–14 digits (or 9.3E+12),
+  // filled in at least half the rows. -1 when there is none. Used to line a pasted block up so its barcodes land in D.
+  function barcodeCol(rows) {
+    var width = Math.max.apply(null, rows.map(function (r) { return r.length; }));
+    for (var k = 0; k < Math.min(width, 16); k++) {
+      var filled = 0, bc = 0;
+      rows.forEach(function (r) {
+        var v = String(r[k] == null ? '' : r[k]).replace(/\s+/g, ''); if (!v) return;
+        filled++; if (/^\d{8,14}$/.test(v) || /^\d(\.\d+)?e\+1[0-3]$/i.test(v)) bc++;
+      });
+      if (filled && filled >= rows.length * 0.5 && bc >= filled * 0.8) return k;
+    }
+    return -1;
+  }
   // A pasted block with no cell selected: headings (any order, row 1–8) are used when found; otherwise columns are
   // read by position: 16 columns = A–P, 14 or 15 = from B (POS SUPPLIER NAME), anything else from A when column 1 looks
   // like INDEX. The result is checked against the data (barcodes in D, prices in J).
@@ -1672,6 +1688,8 @@
       var width = Math.max.apply(null, rows.map(function (r) { return r.length; }));
       var idxLike = rows.filter(function (r) { return /^\d{1,6}$/.test(String(r[0]).trim()); }).length >= rows.length * 0.8;
       var start = width >= 16 ? 0 : (width === 14 || width === 15) ? 1 : (idxLike ? 0 : 1);
+      var bk = barcodeCol(rows);                                 // v1.11.1: the barcodes go in D, whatever the width
+      if (bk >= 0 && bk <= 3 && 3 - bk !== start) start = 3 - bk;
       out.data = rows.map(function (r) {
         var o = blankSupRow();
         for (var c = 0; c + start < 16 && c < r.length; c++) o[c + start] = r[c];
@@ -1791,6 +1809,15 @@
     // A 16-column block (A–P, INDEX first) pasted at column A or B keeps its columns: INDEX is skipped.
     var width = Math.max.apply(null, rows.map(function (r) { return r.length; }));
     var skipFirst = width >= 16 && c0 <= 1;
+    // v1.11.1: a row-shaped block (6+ columns) pasted at B, C or D is lined up so its barcodes land in D — a block copied
+    // from POS SUPPLIER NUMBER onwards and pasted at B3 used to go one column to the left (nothing could match).
+    var moved = '', noBc = false;
+    if (width >= 6 && c0 <= 3) {
+      var bk = barcodeCol(skipFirst ? rows.map(function (r) { return r.slice(1); }) : rows);
+      if (bk >= 0 && bk <= 2 && 3 - bk !== c0) { moved = window.XlsxLite.colLetter(c0 + 1); c0 = 3 - bk; }
+      else if (bk === 3 && !skipFirst) { moved = window.XlsxLite.colLetter(c0 + 1); skipFirst = true; c0 = 1; }   // INDEX first
+      else if (bk < 0 && rows.length >= 3) noBc = true;
+    }
     supMutate(function () {
       var added = 0, changed = 0, cut = 0;
       for (var i = 0; i < rows.length; i++) {
@@ -1806,7 +1833,8 @@
       }
       if (!changed && !added) return null;
       var where = SUP_HEADS[c0] ? window.XlsxLite.colLetter(c0 + 1) + (r0 + 3) : '';
-      return { msg: 'Pasted at ' + where + ': ' + fmtN(changed) + ' cell' + (changed === 1 ? '' : 's') + ' changed' + (added ? ', ' + fmtN(added) + ' row' + (added === 1 ? '' : 's') + ' added' : '') + '.' + (cut ? ' ' + fmtN(cut) + ' value(s) past column O were left out (STATUS is written by the merge).' : ''), type: cut ? 'warn' : 'success' };
+      return { msg: 'Pasted at ' + where + (moved ? ' (not ' + moved + (r0 + 3) + ' — lined up so the barcodes are in D)' : '') + ': ' + fmtN(changed) + ' cell' + (changed === 1 ? '' : 's') + ' changed' + (added ? ', ' + fmtN(added) + ' row' + (added === 1 ? '' : 's') + ' added' : '') + '.' + (cut ? ' ' + fmtN(cut) + ' value(s) past column O were left out (STATUS is written by the merge).' : '') +
+        (noBc ? ' Check: no column of barcodes was found — D must hold the barcodes or nothing can match (Undo, then paste from the right cell).' : ''), type: cut || noBc || moved ? 'warn' : 'success' };
     });
     supView.sel = { r: r0, c: c0, r2: r0 + rows.length - 1, c2: Math.min(14, c0 + Math.max.apply(null, rows.map(function (r) { return r.length; })) - 1 - (skipFirst ? 1 : 0)) };
     paintSel();

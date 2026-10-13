@@ -652,3 +652,9 @@ All implemented stages keep source business files local to the browser and gener
 - supplier-layout v1.1.0 (Build and the merge): CH2 rows whose CH2_DESCRIPTION_2 matches /SELL\s*-?\s*TH(ROUGH|RU)/ get
   ` *SELL THRU*` on G; SUP MIN ORDER WS via `numOrText` (N/A kept). Build v21.14.3 loads it (no other change).
 - merge.css v1.11.0: `.sup-scope` / `.sup-tools` bottom borders transparent; `.sup-find*`, `.sup-fill`, `td.is-fill`.
+
+## Staff Hub v21.21.1 — POS New Product Check Clean v1.11.1: pasted rows line up by their barcodes (13 Oct 2026 21:30 AEDT)
+- app.js `barcodeCol(rows)`: the leftmost block column whose filled cells (≥ half the rows) are ≥ 80% 8–14 digits or
+  9.3E+12. `pasteAtCell`: a block of 6+ columns pasted at B–D moves so that column lands in D (`c0 = 3 - k`; k = 3 →
+  INDEX first: skip it, start at B); no barcode column in 3+ rows → a warning in the message. `mapPasted` (Paste with no
+  cell selected): `start = 3 - k` when it differs from the width rule.
