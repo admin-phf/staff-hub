@@ -614,3 +614,41 @@ All implemented stages keep source business files local to the browser and gener
   column in the `out` list of a group POS keeps (`state.opts.keep[g.id]`). The supplier sheet's `data-keep` ticks and
   `optsChanged()` are unchanged, so OUT still recalculates when one changes. `TOOL_VERSION` = 'v1.10.0' (the review
   workbook stamp; it was left at v1.7.2).
+
+## Staff Hub v21.21.0 — POS New Product Check Clean v1.11.0: search / add bar, fill down, M / N / O ticks, SELL THRU, N/A min order (13 Oct 2026 21:00 AEDT)
+- app.js v1.11.0 — supplier sheet:
+  - `#supSearch` is the search / add bar (`.sup-find`, first toolbar line, `#supFindHint`, `#supAddBtn`).
+    `supFindSpec(raw)` → null | `{ text }` (no `|`) | `{ slots, bc, br, sub, prod, ws }` (slots = B–O). `supFindRows`:
+    barcode digits contained in D first (`how: 'barcode'`), else brand / Sub ID / product contained and WS equal
+    (`how: 'backup'`). `drawSup` keeps `supView.find`; `supFiltered` logic uses it instead of `supView.q`.
+  - `supPrefill()` = the most common B | C (cached by `state.rev`); an empty, unfocused bar is refilled in `drawSup`.
+  - `supFindAdd()`: exact barcode (leading zeros dropped) already on the sheet → that row is selected, nothing added;
+    else a row in the added entry via `setSupCell(…, added = true)`; same brand + Sub ID / WS → warning.
+  - `supAddFive()` (Add 5 rows), `supClearEmpty()` (`supRowEmpty`: D–O blank).
+  - Fill down: `paintSel` puts `span.sup-fill` in the selection's bottom-right cell; mousedown on it →
+    `supView.filling = { b, to }`, rows dragged over get `td.is-fill`, mouseup → `supFill(b, to)` (the block repeats,
+    rows past the end are made). Ctrl+D → `supFillDown()`.
+  - Ctrl+C: the sheet's keydown writes `supCopy()` with `copyText()` (hidden textarea + execCommand, else the Clipboard
+    API); in a cell editor with no text highlighted the whole value is selected so the browser copies it. Same in
+    sheet-grid v1.5.0.
+- KEEP_GROUPS: `member` (col 14, pr 1–5, listed before `rrp` so OUT's pr 1–5 headings carry its tick), `stock` (col 12)
+  and `disc` (col 13) with `use: true` (`optsKeptText`: "not using …"; `g.tip` = the heading tick's hover). `setKeep('disc')`
+  bumps `state.rev` and `invalidateResults` (N changes what the merge works out); `buildSheetsPayload` blanks N when it
+  is unticked. `generateOptions` sends `stock: true` while M is ticked. `drawOutGrid` passes `ticks: keepTicks(head)`
+  again (v1.10.0's `keptDim` removed). CSS keep-c12–14.
+- engine-host v1.3.0 (engine-worker v1.3.0, engine-frame):
+  - `KEEP_COLS.member` = OUT_POS_UPDATE 16–20; the generate hook filters `keep` to groups with columns, sets an INSERT
+    row's pos soh (30) from IN_SUPPLIER M by barcode (`supColByBarcode(12, true)`) when `runOpts.stock`, and runs
+    `fixMinOrder` (not a number → INSERT '1', UPDATE POS MIN ORDER QTY from TMP, else '1') on every generate; `runInfo`
+    gains `stock` and `minOrder`.
+  - Member: `m13IsMemberBrand_` wrapped — O from the context's barcode (`supMemberFlag`), FALSE / NO / N / 0 → false,
+    then the script's checks, then `posMember()` (TMP: per PLU PR1 89–91 → true, ≥ 99.5 → false, DISSNO 33 / 29 / 8 / 13
+    skipped; per brand, more 90% than 100% live products). Context (`memCtx = { plu, bc }`) set by wrapping
+    `m13BuildOneOutRow_`, `m13BuildDiscontinuedOutRow_`, `m13ApplySupplierOverrideToOutRow_` and
+    `m13ResolvedShelfPricingForOutput_`.
+  - SELL THRU: `m13ColVal_` / `hbbColVal_` return SUP PRODUCT without ` *SELL THRU*` (candidates[0] === 'SUP PRODUCT');
+    `m13PolishColumnPDescription_` gets descr / Q without it; after 'build' and 'refresh' `noteSellThru()` adds it back
+    to OUT_MERGED_DATA Q where the stripped text matches a noted IN_SUPPLIER G.
+- supplier-layout v1.1.0 (Build and the merge): CH2 rows whose CH2_DESCRIPTION_2 matches /SELL\s*-?\s*TH(ROUGH|RU)/ get
+  ` *SELL THRU*` on G; SUP MIN ORDER WS via `numOrText` (N/A kept). Build v21.14.3 loads it (no other change).
+- merge.css v1.11.0: `.sup-scope` / `.sup-tools` bottom borders transparent; `.sup-find*`, `.sup-fill`, `td.is-fill`.

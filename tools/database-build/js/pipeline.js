@@ -1,5 +1,7 @@
 (function(){'use strict';
-const VERSION='v21.14.2', CH2V='v1.2.0', UHPV='v1.2.0', MASTERV='v2.4.0', POSV='v5.2.0';
+const VERSION='v21.14.3', CH2V='v1.2.0', UHPV='v1.2.0', MASTERV='v2.4.0', POSV='v5.2.0';
+// v21.14.3 (Staff Hub v21.21.0) — supplier-layout v1.1.0: the CH2 _pos_db rows end SUP PRODUCT in " *SELL THRU*" when CH2's
+// Description 2 says SELL THROUGH / SELL THRU.
 // v21.14.2 (Staff Hub v21.19.0) — ✕ on each loaded input row of the rail removes it straight away.
 // v21.14.1 (Staff Hub v21.18.0) — stage buttons in Sentence case (Build POS database …), as on the other tools.
 // v21.14.0 (Staff Hub v21.17.0) — the full sets are the files with every column and the Library copies: clean_merged_pos_data

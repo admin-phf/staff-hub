@@ -1,4 +1,5 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.10.0 (13 Oct 2026; v1.8.0 13 Oct; v1.7.2 12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean v1.11.0 (13 Oct 2026; v1.10.0 / v1.8.0 13 Oct; v1.7.2 12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
+   v1.11.0: no lines between the supplier sheet's bands; the search / add bar; M, N, O ticks; the fill handle (end of file).
    v1.10.0: no inner lines in the heading block of any sheet (end of file).
    v1.7.2: supplier sheet clean-up — compact head strip, one scope line, options in the toolbar, two heading rows as the
    sheet grid (letters row, headings + ticks), grid font / lines, the sheet fills the window under the run bar.
@@ -404,3 +405,20 @@ body.phf-page-merge .sup-table tr.sup-tot th,body.phf-page-merge .sup-table tr.s
 body.phf-page-merge .sup-table tr.sup-tot th{border-bottom-color:transparent}
 body.phf-page-merge .wbg-table tr.wbg-tot th:not(.wbg-rn),body.phf-page-merge .wbg-table tr.wbg-headrow th:not(.wbg-rn){border-right-color:transparent}
 body.phf-page-merge .wbg-table tr.wbg-tot th:not(.wbg-rn){border-bottom-color:transparent}
+
+/* v1.11.0 (Staff Hub v21.21.0) — supplier sheet.
+   No lines between the title band, the brands line and the toolbar (the table keeps its outline). */
+body.phf-page-merge .sup-scope,body.phf-page-merge .sup-tools{border-bottom-color:transparent}
+/* The search / add bar takes the toolbar's first line; the slot under the cursor and what the search found show in it. */
+body.phf-page-merge .sup-find{flex:1 1 100%;display:flex;align-items:center;gap:8px;min-width:0;position:relative}
+body.phf-page-merge .sup-find input{flex:1 1 auto;min-width:0;min-height:32px;border:1px solid var(--phf-line-strong);border-radius:8px;padding:4px 10px;font:13px/1.3 var(--phf-font);letter-spacing:.01em}
+body.phf-page-merge .sup-find input:focus{outline:2px solid var(--phf-blue-line);border-color:var(--phf-blue)}
+body.phf-page-merge .sup-find-hint{flex:0 1 auto;max-width:42%;font-size:11.5px;color:var(--phf-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.phf-page-merge .sup-find-hint[hidden]{display:none}
+body.phf-page-merge .sup-find>.btn{min-height:32px;padding:5px 18px;font-size:13px;border-radius:8px}
+/* M, N, O ticks: an unticked column greyed, as the others. */
+body.phf-page-merge .sup-table:is(.keep-c12) th.sup-c12,body.phf-page-merge .sup-table:is(.keep-c13) th.sup-c13,body.phf-page-merge .sup-table:is(.keep-c14) th.sup-c14{background:var(--phf-navy);color:#8B9DB5}
+body.phf-page-merge .sup-table.keep-c12 td.sup-c12,body.phf-page-merge .sup-table.keep-c13 td.sup-c13,body.phf-page-merge .sup-table.keep-c14 td.sup-c14{color:#9E9E9E}
+/* Fill down: the small square at the corner of the selection; cells being filled get a dashed edge. */
+body.phf-page-merge .sup-table td .sup-fill{position:absolute;right:0;bottom:0;width:7px;height:7px;background:#1A73E8;border:1px solid #fff;cursor:crosshair;z-index:2}
+body.phf-page-merge .sup-table tbody tr td.is-fill{box-shadow:inset 0 0 0 1px #1A73E8;background-image:repeating-linear-gradient(45deg,rgba(26,115,232,.06) 0 4px,transparent 4px 8px)}

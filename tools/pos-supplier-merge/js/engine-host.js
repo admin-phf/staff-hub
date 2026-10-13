@@ -1,4 +1,14 @@
-/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.2.1 (12 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.3.0 (13 Oct 2026)
+ * v1.3.0 (still outside the Apps Script files):
+ *   keep:['member'] → matched products keep POS's price levels 1–5 (the POS MEMBER tick, column O);
+ *   generate + stock:true → a NEW product's pos soh (OUT_POS_INSERT) = its SUP STOCK IN (column M) when that is a number;
+ *   member pricing (m13IsMemberBrand_): the supplier row's O also when stage 3 works the price levels out again (TRUE /
+ *     FALSE wins), then the script's own checks (Product Prefixes D, Ongoing Discounts J), then POS — a matched product's
+ *     own price level 1 (90% = member), a new product's brand: most of its POS products on 90%;
+ *   the " *SELL THRU*" note on SUP PRODUCT: the script reads SUP PRODUCT without it (m13ColVal_ / hbbColVal_), so matching
+ *     and descr / pos desc are exactly as without the note; after stage 2 (and Refresh) OUT_MERGED_DATA's Q gets it back;
+ *   min order qty that is not a number ("N/A", "8 X 1.1KG") stays on the sheets until OUT_POS_INSERT / OUT_POS_UPDATE:
+ *     there it becomes 1 (INSERT, as a blank one does) or POS's current min order (UPDATE; 1 when POS has none).
  * v1.2.1: a TAB in an edited cell becomes a space (the POS TXT files are tab-separated).
  * v1.2.0 (all outside the Apps Script files, which are unchanged):
  *   run 'generate' + visible:[OUT sheet rows] → the Sheet's "from filtered data" generate (only those OUT rows);
@@ -178,7 +188,8 @@
     rrp: [[15, 'POS RRP INCGST'], [16, 'POS PR 1 PC'], [17, 'POS PR 2 PC'], [18, 'POS PR 3 PC'], [19, 'POS PR 4 PC'], [20, 'POS PR 5 PC'],
       [21, 'POS PR 6 PC'], [22, 'POS PR 7 PC'], [23, 'POS PR 8 PC'], [24, 'POS PR 9 PC'], [25, 'POS RET PRICE']],
     sub: [[2, 'POS SUB ID']], brand: [[3, 'POS BRAND']], product: [[4, 'POS DESCR'], [5, 'POS POS DESC']],
-    units: [[10, 'POS UNITS']], minorder: [[11, 'POS MIN ORDER QTY']], gst: [[14, 'POS GST TAX PC']], supplier: [[8, 'POS SUPPLIER']]
+    units: [[10, 'POS UNITS']], minorder: [[11, 'POS MIN ORDER QTY']], gst: [[14, 'POS GST TAX PC']], supplier: [[8, 'POS SUPPLIER']],
+    member: [[16, 'POS PR 1 PC'], [17, 'POS PR 2 PC'], [18, 'POS PR 3 PC'], [19, 'POS PR 4 PC'], [20, 'POS PR 5 PC']]   // v1.3.0
   };
   // Columns compared to say a matched product is the same as POS (POS INDEX and pos soh are not product data).
   var SAME_COLS = [[2, 'POS SUB ID'], [3, 'POS BRAND'], [4, 'POS DESCR'], [5, 'POS POS DESC'], [6, 'POS DISSNO'], [7, 'POS PROD GRP'], [8, 'POS SUPPLIER'],
@@ -202,10 +213,121 @@
     if (x !== '' && y !== '' && isFinite(nx) && isFinite(ny)) return Math.abs(nx - ny) < 0.00005;
     return false;
   }
+  // ------------------------------------------------ v1.3.0 supplier columns M / O, member pricing, SELL THRU
+  var SUP_SHEET = 'IN_SUPPLIER_/_PRODUCT_UPDATES', SELL_THRU = /\s*\*SELL THRU\*\s*/gi;
+  function bcKey(v) { return String(v == null ? '' : v).replace(/\D/g, '').replace(/^0+/, ''); }
+  function pluKey(v) { return String(v == null ? '' : v).trim().replace(/\.0+$/, ''); }
+  // IN_SUPPLIER column c by barcode (D); numeric = only cells that are a number (stock).
+  function supColByBarcode(c, numeric) {
+    var sh = shim && shim.ss._find(SUP_SHEET), map = {}; if (!sh) return map;
+    for (var r = 2; r < sh.cells.length; r++) {
+      var row = sh.cells[r]; if (!row) continue;
+      var k = bcKey(row[3]), v = row[c] == null ? '' : String(row[c]).trim(); if (!k || v === '' || map[k] !== undefined) continue;
+      if (numeric) { var n = Number(v.replace(/,/g, '')); if (!isFinite(n) || n < 0) continue; v = n; }
+      map[k] = v;
+    }
+    return map;
+  }
+  var memCtx = null, memCache = null, supMemCache = null;
+  function supMemberFlag(bc) {
+    var sh = shim && shim.ss._find(SUP_SHEET); if (!sh) return '';
+    if (!supMemCache || supMemCache.sh !== sh || supMemCache.n !== sh.cells.length) supMemCache = { sh: sh, n: sh.cells.length, map: supColByBarcode(14, false) };
+    return supMemCache.map[bc] || '';
+  }
+  // POS: a product's own price level 1 (about 90% = member, 100% = not; the four "no discount" DISSNOs say nothing) and,
+  // per brand, whether most of its live POS products are on 90%.
+  function posMember() {
+    var t = shim && shim.ss._find('TMP_MERGED_POS_DATA'); if (!t) return null;
+    if (memCache && memCache.t === t && memCache.n === t.cells.length) return memCache;
+    var head = (t.cells[1] || []).map(function (h) { return String(h == null ? '' : h).trim().toUpperCase(); }), col = {};
+    head.forEach(function (h, i) { if (h && col[h] === undefined) col[h] = i; });
+    var cP = col['POS PLU'], c1 = col['POS PR 1 PC'], cB = col['POS BRAND'], cD = col['POS DISSNO'], cX = col['POS DESCR'];
+    var out = { t: t, n: t.cells.length, plu: {}, brand: {} }, cnt = {};
+    if (cP === undefined || c1 === undefined) { memCache = out; return out; }
+    var EXCEPT = { '33': 1, '29': 1, '8': 1, '13': 1 }, norm = typeof G.m13NormBrand_ === 'function' ? G.m13NormBrand_ : function (x) { return String(x || '').trim().toUpperCase(); };
+    for (var r = 2; r < t.cells.length; r++) {
+      var row = t.cells[r]; if (!row) continue;
+      var p1 = Number(String(row[c1] == null ? '' : row[c1]).replace(/[%,\s]/g, '')); if (String(row[c1] == null ? '' : row[c1]).trim() === '' || !isFinite(p1)) continue;
+      if (cD !== undefined && EXCEPT[pluKey(row[cD]).split('.')[0]]) continue;
+      var m = p1 >= 89 && p1 < 91 ? true : p1 >= 99.5 ? false : null; if (m === null) continue;
+      var k = pluKey(row[cP]); if (k && out.plu[k] === undefined) out.plu[k] = m;
+      if (cB === undefined || (cX !== undefined && /^ZZZZ/i.test(String(row[cX] || '')))) continue;
+      var b = norm(row[cB]); if (!b) continue;
+      cnt[b] = cnt[b] || [0, 0]; cnt[b][m ? 0 : 1]++;
+    }
+    Object.keys(cnt).forEach(function (b) { if (cnt[b][0] > cnt[b][1]) out.brand[b] = true; });
+    memCache = out; return out;
+  }
+  function wrapCtx(name, mk) {
+    var orig = G[name]; if (typeof orig !== 'function') return;
+    G[name] = function () { var prev = memCtx; try { memCtx = mk(arguments); } catch (e) { memCtx = null; } try { return orig.apply(this, arguments); } finally { memCtx = prev; } };
+  }
+  function installMemberHooks() {
+    var origMem = G.m13IsMemberBrand_; if (typeof origMem !== 'function') return;
+    G.m13IsMemberBrand_ = function (brandNorm, supplierNum, memberFlag, prefixMap, discountRules) {
+      var c = memCtx, flag = String(memberFlag == null ? '' : memberFlag).trim();
+      if (!flag && c && c.bc) flag = supMemberFlag(c.bc);          // the supplier row's O, also when stage 3 works the levels out again
+      if (/^(FALSE|NO|N|0)$/i.test(flag)) return false;            // O = FALSE: not a member, whatever else says
+      if (origMem.call(this, brandNorm, supplierNum, flag, prefixMap, discountRules)) return true;
+      var pm = posMember(); if (!pm) return false;
+      if (c && c.plu && pm.plu[c.plu] !== undefined) return pm.plu[c.plu];   // a matched product: its own PL1 in POS
+      return !!(brandNorm && pm.brand[brandNorm]);                          // otherwise most of the brand's POS products
+    };
+    wrapCtx('m13BuildOneOutRow_', function (a) { var sup = a[2], pos = a[3]; return { plu: pos && pos.plu ? pluKey(pos.plu) : '', bc: sup && sup.barcode ? bcKey(sup.barcode) : '' }; });
+    wrapCtx('m13BuildDiscontinuedOutRow_', function (a) { var pos = a[1]; return { plu: pos && pos.plu ? pluKey(pos.plu) : '', bc: '' }; });
+    wrapCtx('m13ApplySupplierOverrideToOutRow_', function (a) { var row = a[0], sup = a[1]; return { plu: row ? pluKey(row[42]) : '', bc: sup && sup.barcode ? bcKey(sup.barcode) : '' }; });
+    wrapCtx('m13ResolvedShelfPricingForOutput_', function (a) { var f = a[2]; return { plu: pluKey(f(1)), bc: bcKey(f(0)) }; });
+  }
+  function stripNote(v) { return typeof v === 'string' && v.indexOf('*') >= 0 ? v.replace(SELL_THRU, ' ').replace(/\s+/g, ' ').trim() : v; }
+  function installSellThruHooks() {
+    // The script reads SUP PRODUCT through m13ColVal_ / hbbColVal_ with 'SUP PRODUCT' first in the list.
+    ['m13ColVal_', 'hbbColVal_'].forEach(function (name) {
+      var orig = G[name]; if (typeof orig !== 'function') return;
+      G[name] = function (row, map, candidates) {
+        var v = orig.apply(this, arguments);
+        return candidates && candidates[0] === 'SUP PRODUCT' ? stripNote(v) : v;
+      };
+    });
+    var origP = G.m13PolishColumnPDescription_;
+    if (typeof origP === 'function') G.m13PolishColumnPDescription_ = function () {
+      var a = Array.prototype.slice.call(arguments);
+      a[0] = stripNote(a[0]); a[2] = stripNote(a[2]);
+      return origP.apply(this, a);
+    };
+  }
+  // After stage 2 / Refresh: OUT_MERGED_DATA's Q (SUP PRODUCT) shows the note again for the supplier rows that have it.
+  function noteSellThru() {
+    var sup = shim && shim.ss._find(SUP_SHEET), out = shim && shim.ss._find('OUT_MERGED_DATA'); if (!sup || !out) return 0;
+    var noted = {}, any = false, n = 0;
+    for (var r = 2; r < sup.cells.length; r++) {
+      var row = sup.cells[r], g = row && row[6] != null ? String(row[6]) : '';
+      if (g && /\*SELL THRU\*/i.test(g)) { noted[stripNote(g).toUpperCase()] = 1; any = true; }
+    }
+    if (!any) return 0;
+    for (var o = 2; o < out.cells.length; o++) {
+      var orow = out.cells[o], q = orow && orow[16] != null ? String(orow[16]).trim() : '';
+      if (q && !/\*SELL THRU\*/i.test(q) && noted[q.toUpperCase()]) { orow[16] = q + ' *SELL THRU*'; n++; }
+    }
+    return n;
+  }
+  // OUT_POS_INSERT / OUT_POS_UPDATE: min order qty (field 11) must be a number for POS.
+  function fixMinOrder(built, pos) {
+    var isNum = function (v) { var t = String(v == null ? '' : v).replace(/,/g, '').trim(); return t !== '' && isFinite(Number(t)); };
+    var n = 0;
+    (built.insertRows || []).forEach(function (row) { if (!isNum(row[11])) { row[11] = '1'; n++; } });
+    (built.updateRows || []).forEach(function (row) {
+      if (isNum(row[11])) return;
+      var p = pos && pos.map[String(row[1] == null ? '' : row[1]).trim()], ci = pos ? pos.col['POS MIN ORDER QTY'] : undefined;
+      var v = p && ci !== undefined ? p[ci] : '';
+      row[11] = isNum(v) ? v : '1'; n++;
+    });
+    return n;
+  }
   // Fields POS cannot take blank: when POS itself has no value there, the merge's value stays.
   var NEED_VALUE = { 10: 1, 11: 1, 15: 1, 16: 1, 17: 1, 18: 1, 19: 1, 20: 1, 21: 1, 22: 1, 23: 1, 24: 1, 25: 1 };
   function installRunHooks() {
     if (G.__phfHooks) return; G.__phfHooks = true;
+    installMemberHooks(); installSellThruHooks();                    // v1.3.0
     var origUpd = G.m13BuildUpdateOutputRow_, origBuilt = G.m13BuildPosOutputRowsFromOut_, origVis = G.m13BuildVisibleRowSetFromHelper_;
     if (typeof origUpd === 'function') G.m13BuildUpdateOutputRow_ = function (row, headers) {
       var out = origUpd.apply(this, arguments);
@@ -214,9 +336,15 @@
     };
     if (typeof origBuilt === 'function') G.m13BuildPosOutputRowsFromOut_ = function () {
       var built = origBuilt.apply(this, arguments);
-      if (!runOpts) return built;
-      var keep = runOpts.keep || [], noDisc = runOpts.discontinue === false, pos = keep.length ? posByPlu() : null;
-      var info = { kept: 0, same: 0, disc: 0, notFound: 0 };
+      var minFixed = fixMinOrder(built, posByPlu());                   // v1.3.0: "N/A" min order → 1 / POS's
+      if (!runOpts) { runInfo = minFixed ? { kept: 0, same: 0, disc: 0, notFound: 0, stock: 0, minOrder: minFixed } : null; return built; }
+      var keep = (runOpts.keep || []).filter(function (g) { return KEEP_COLS[g]; }), noDisc = runOpts.discontinue === false, pos = keep.length ? posByPlu() : null;
+      var info = { kept: 0, same: 0, disc: 0, notFound: 0, stock: 0, minOrder: minFixed };
+      // v1.3.0: SUP STOCK IN (M) → a new product's stock on hand (pos soh, the last INSERT field).
+      if (runOpts.stock) {
+        var stockBy = supColByBarcode(12, true);
+        (built.insertRows || []).forEach(function (row) { var v = stockBy[bcKey(row[1])]; if (v !== undefined) { row[30] = v; info.stock++; } });
+      }
       built.updateRows = built.updateRows.filter(function (row) {
         if (row.__status === 'DISCONTINUED') { if (noDisc) { info.disc++; return false; } return true; }
         if (row.__status !== 'MATCHED' || !keep.length) return true;
@@ -329,12 +457,13 @@
         var t0 = Date.now();
         installRunHooks();
         runInfo = null;
-        runOpts = (step === 'generate' && (msg.visible || (msg.keep && msg.keep.length) || msg.discontinue === false))
-          ? { visible: msg.visible || null, keep: msg.keep || [], discontinue: msg.discontinue !== false } : null;
+        runOpts = (step === 'generate' && (msg.visible || (msg.keep && msg.keep.length) || msg.discontinue === false || msg.stock))
+          ? { visible: msg.visible || null, keep: msg.keep || [], discontinue: msg.discontinue !== false, stock: !!msg.stock } : null;
         if (step === 'generate' && msg.visible) fnName = 'generateInsertUpdateSheetsFromFilteredData';
         var ret;
         try { ret = step === 'export' && msg.only ? withOnlyRows(msg.only, function () { return G[fnName](); }) : G[fnName](); }
         finally { runOpts = null; }
+        if (step === 'build' || step === 'refresh') noteSellThru();       // v1.3.0
         var files = [];
         if (step === 'export' && ret && ret.length) {
           files = ret.map(function (f) { return { label: f.label, filename: f.filename, rowCount: f.rowCount, base64: f.base64 }; });

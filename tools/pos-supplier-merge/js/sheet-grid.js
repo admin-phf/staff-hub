@@ -1,4 +1,6 @@
-/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.4.0 (13 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.5.0 (13 Oct 2026)
+ * v1.5.0: Ctrl+C / ⌘C copies the selection by writing the clipboard itself (some browsers send no copy event when no text
+ * is selected); typing in a cell with nothing highlighted, Ctrl+C copies the whole cell.
  * v1.4.0: set({ dim: { col: title } }) greys that heading's text without a tick (OUT_MERGED_DATA: the columns POS keeps;
  * the ticks are on the supplier sheet only again); the title is added to the heading's hover.
  * v1.3.0: set({ ticks: { col: { id, on, title } } }) puts a tick under that heading (an unticked heading's text is grey);
@@ -229,6 +231,16 @@
     function lockOf(e, k) { return e && st.edit && st.edit.cellLock && st.cols[k] !== undefined ? st.edit.cellLock(e.r, st.cols[k]) || '' : ''; }
     function emit(change) { if (st.edit && st.edit.onChange) st.edit.onChange(change); }
     function srcIndex(r) { var e = st.vis[r]; return e ? e.n : st.rows.length + (r - st.vis.length); }
+    // v1.5.0: write the clipboard from a key press (a hidden text box + copy, else the Clipboard API).
+    function copyText(txt) {
+      var ta = document.createElement('textarea'), prev = document.activeElement, ok = false;
+      ta.value = txt; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+      document.body.appendChild(ta); ta.select();
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      if (prev && prev.focus) prev.focus({ preventScroll: true });
+      if (!ok && navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).catch(function () {});
+    }
     function startEdit(initial) {
       var s = st.sel; if (!s || s.rows || !st.edit) return;
       var r = s.r2, k = s.c2;
@@ -249,6 +261,7 @@
         else if (ev.key === 'Tab') { ev.preventDefault(); commitEdit(); goTo(ed.r, ed.k + (ev.shiftKey ? -1 : 1)); wrap.focus({ preventScroll: true }); }
         else if (ev.key === 'Escape') { ev.preventDefault(); cancelEdit(); wrap.focus({ preventScroll: true }); }
         else if (ed.typed && /^Arrow/.test(ev.key)) { ev.preventDefault(); commitEdit(); var d = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[ev.key]; goTo(ed.r + d[0], ed.k + d[1]); wrap.focus({ preventScroll: true }); }
+        else if ((ev.ctrlKey || ev.metaKey) && (ev.key === 'c' || ev.key === 'C') && inp.selectionStart === inp.selectionEnd) { var cp = inp.selectionStart; inp.select(); setTimeout(function () { try { inp.setSelectionRange(cp, cp); } catch (e) {} }, 0); }   // v1.5.0: nothing highlighted = the whole cell (the browser copies it)
         ev.stopPropagation();
       });
       inp.addEventListener('paste', function (ev) {
@@ -379,6 +392,7 @@
       var s = st.sel, mod = ev.ctrlKey || ev.metaKey;
       if (mod && (ev.key === 'z' || ev.key === 'Z')) { if (st.edit && st.edit.onUndo && st.edit.canUndo && !st.busy) { ev.preventDefault(); st.edit.onUndo(); } return; }
       if (!s) return;
+      if (mod && (ev.key === 'c' || ev.key === 'C')) { var ct = copySel(); if (ct) { ev.preventDefault(); copyText(ct); say('Copied ' + (selInfo && selInfo.textContent || 'the selection') + '.', 'info'); } return; }   // v1.5.0
       var moves = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
       if (moves[ev.key]) { ev.preventDefault(); if (s.rows) st.sel = { r: s.r2, c: 0, r2: s.r2, c2: 0 }; goTo(st.sel.r2 + moves[ev.key][0], st.sel.c2 + moves[ev.key][1], ev.shiftKey); return; }
       if (ev.key === 'Escape') { st.sel = null; paintSel(); return; }

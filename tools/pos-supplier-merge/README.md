@@ -1,7 +1,45 @@
-# POS New Product Check Clean v1.10.0 (Staff Hub v21.20.0)
+# POS New Product Check Clean v1.11.0 (Staff Hub v21.21.0)
 
-Updated 13 Oct 2026 18:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 13 Oct 2026 21:00 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.11.0 —
+- **Search / add bar** (the supplier sheet's search box, now the toolbar's whole first line). It starts with the supplier
+  most rows have — `OBORNE / CH2 | 134 | ` — and you type over it:
+  - plain text (no `|`) searches every column, as before;
+  - with `|` it is a row in the column order B–O: `POS SUPPLIER NAME | POS SUPPLIER NUMBER | SUP BARCODE | SUP BRAND |
+    SUP SUB ID | SUP PRODUCT | SUP UNITS IN PACK | SUP MIN ORDER WS | SUP WS EXGST | SUP RRP INC GST | SUP GST |
+    SUP STOCK IN | SUP DISCOUNT PRICE | POS MEMBER`. The sheet shows the rows with that barcode; when the barcode is not
+    on the sheet (or empty) it falls back to brand / Sub ID / product / WS. The supplier slots never filter. Next to the
+    bar: the column the cursor is in and what was found ("not on the sheet — Add puts it in");
+  - **Add** (or Enter) adds the row. A barcode already on the sheet is not added again (that row is shown); the same
+    brand with the same Sub ID or WS is added with a warning naming the other row. Esc puts the bar back to the supplier.
+- **Add 5 rows** (was Add row) and **Clear empty rows** (rows with nothing from D to O).
+- **Fill down**, as in Excel / Google Sheets: drag the small blue square at the corner of the selected cell(s) down — the
+  selection repeats into the rows dragged over (new rows are made at the end). Ctrl+D (⌘D) fills a selection down from
+  its first row (one row selected: from the row above). B–O only.
+- **Ctrl+C / ⌘C** copies the selected cells on every sheet by writing the clipboard itself (some browsers sent no copy
+  when no text was highlighted). While typing in a cell with nothing highlighted, Ctrl+C copies the whole cell.
+- **New Update in POS ticks on M, N and O:**
+  - **M SUP STOCK IN** — ticked: a number there becomes a NEW product's stock on hand (pos soh, the last INSERT field) for
+    a buy-in with stock. Matched products keep POS's stock (it comes in through receiving). Empty = nothing.
+  - **N SUP DISCOUNT PRICE** — ticked: a price there is a one-off extra discount (it becomes the last price; empty = WSP
+    less the ongoing discount, as before). Unticked: the column is not used — the stages run again.
+  - **O POS MEMBER** — price levels 1–5. Ticked: worked out by the merge (PL1 90% for members, else 100%; PL2 90%; PL3
+    85%; PL4 80%; PL5 the staff formula). Member = the O cell (TRUE / FALSE wins), else the brand's flag in Product
+    Prefixes (D) / Ongoing Discounts (J), else POS: a matched or discontinued product's own price level 1 (about 90% =
+    member, 100% = not), a new product's brand when most of its live POS products are on 90%. Unticked: POS keeps its
+    price levels 1–5. SUP RRP INC GST unticked still keeps every price level (no new labels).
+  - Before this, a discontinued product of a member brand could come out at PL1 100% although POS has 90% (27 METAGENICS
+    products in the 13 Oct test) — it now keeps POS's 90%.
+- **OUT_MERGED_DATA's Update in POS ticks are back** (as v1.8.0); pr 1–5 carry the O tick, pr 6–9 / ret price the K tick.
+- **\*SELL THRU\***: a CH2 line whose Description 2 says SELL THROUGH / SELL THRU (930 lines on 13 Oct) ends SUP PRODUCT
+  (G) in ` *SELL THRU*` (supplier-layout v1.1.0, also in Build's `_pos_db` file). The merge reads G without it, so
+  matching and descr / pos desc are exactly as before; OUT_MERGED_DATA's SUP PRODUCT (Q) shows it.
+- **Min order "N/A"** (1,250 CH2 lines) stays on the supplier sheet and OUT_MERGED_DATA; OUT_POS_INSERT / OUT_POS_UPDATE
+  (and the TXT) get 1 for a new product and POS's own min order for a matched one. Any other text there ("8 X 1.1KG")
+  goes the same way.
+- No lines between the supplier sheet's title band, brands line and toolbar.
 
 v1.10.0 —
 - **No inner lines in the heading block of any sheet** (IN_SUPPLIER and every workbook tab): the row-1 totals and the
@@ -160,6 +198,9 @@ Each supplier column that feeds the POS UPDATE file has an **Update in POS** tic
 | SUP WS EXGST | wsp excgst and last price |
 | SUP RRP INC GST | rrp incgst, pr 1–9 pc and ret price — exactly as in POS, nothing recalculated or rounded |
 | SUP GST | gst tax pc |
+| SUP STOCK IN (v1.11.0) | no stock goes to POS (ticked: a number = a new product's pos soh) |
+| SUP DISCOUNT PRICE (v1.11.0) | the discount price is not used (the stages run again) |
+| POS MEMBER (v1.11.0) | pr 1–5 pc |
 
 - The merge still uses every column for matching; the ticks decide what goes to POS. They act when stage 3 builds the
   POS files, so after changing one, **Run stage 3 again** (stages 1–2 do not need to run again).

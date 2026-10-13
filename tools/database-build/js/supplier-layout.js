@@ -1,11 +1,14 @@
-/* PHF Staff Hub — supplier-layout v1.0.0 (12 Oct 2026)
+/* PHF Staff Hub — supplier-layout v1.1.0 (13 Oct 2026; v1.0.0 12 Oct 2026)
+ * v1.1.0: a CH2 line whose Description 2 says SELL THROUGH / SELL THRU (** SELL THROUGH **, *SELL THRU, NEW SKU …*) gets
+ * " *SELL THRU*" at the end of SUP PRODUCT. POS New Product Check Clean keeps it out of descr / pos desc. A SUP MIN ORDER WS that
+ * is not a number (N/A) is kept as it is (it was blanked) — POS New Product Check Clean replaces it only in the POS files.
  * The _pos_db rows: POS New Product Check Clean's supplier sheet (IN_SUPPLIER columns A–P) made from a full CH2 or
  * Unique set. One copy of the rules for both tools:
  *   - Build POS Master Databases writes clean_ch2_data_pos_db / clean_uhp_data_pos_db with them;
  *   - POS New Product Check Clean turns a full clean_ch2_data / clean_uhp_data (from the Library, or dropped in) into the
  *     same supplier rows, so the merge gets exactly what the _pos_db file holds.
  * Rules: CH2Core / UHPCore.buildSupplierImport, then SUP BARCODE 13 digits (bc13), CH2 SUP PRODUCT without CH2's stock
- * notes and in capitals (cleanCh2Product), CH2 SUP MIN ORDER WS blank when it is not a number (N/A).
+ * notes and in capitals (cleanCh2Product), CH2 SUP MIN ORDER WS a number when it is one (v1.1.0: else kept, e.g. N/A).
  * Needs ch2-core.js (CH2Core) and uhp-core.js (UHPCore) loaded first.
  */
 (function (global) {
@@ -27,6 +30,12 @@
     var s = String(v == null ? '' : v).replace(/\*+\s*([^*]*?)\s*\*+/g, function (m, inner) { return CH2_NOTE.test(inner) ? ' ' : ' ' + inner + ' '; });
     return s.replace(/\*+/g, ' ').replace(/\s+/g, ' ').trim().toUpperCase();
   }
+  function numOrText(v) {                                   // v1.1.0: N/A and other text stay
+    var s = String(v == null ? '' : v).trim();
+    if (s === '') return '';
+    var n = Number(s);
+    return isFinite(n) ? (typeof v === 'number' ? v : n) : s;
+  }
   function numOrBlank(v) {
     var s = String(v == null ? '' : v).trim();
     if (s === '') return '';
@@ -40,9 +49,14 @@
     return c;
   }
   // headers = the full file's headings (CH2_… / UHP_…), rows = data rows in the same column order.
+  var SELL_THRU = /SELL\s*-?\s*TH(?:ROUGH|RU)/i;
   function ch2(headers, rows) {
-    return core('CH2Core').buildSupplierImport(headers, rows).map(function (r) {
-      r = r.slice(); r[3] = bc13(r[3]); r[6] = cleanCh2Product(r[6]); r[8] = numOrBlank(r[8]); return r;
+    var d2 = (headers || []).map(function (h) { return String(h == null ? '' : h).trim().toUpperCase(); }).indexOf('CH2_DESCRIPTION_2');
+    return core('CH2Core').buildSupplierImport(headers, rows).map(function (r, i) {
+      r = r.slice(); r[3] = bc13(r[3]); r[6] = cleanCh2Product(r[6]); r[8] = numOrText(r[8]);
+      var note = d2 >= 0 && rows[i] ? rows[i][d2] : '';                                    // v1.1.0
+      if (r[6] && SELL_THRU.test(String(note == null ? '' : note))) r[6] += ' *SELL THRU*';
+      return r;
     });
   }
   function uhp(headers, rows) {
@@ -73,7 +87,7 @@
     return null;
   }
 
-  var api = { HEADERS: HEADERS, bc13: bc13, cleanCh2Product: cleanCh2Product, numOrBlank: numOrBlank, ch2: ch2, uhp: uhp, fromFullSheet: fromFullSheet };
+  var api = { VERSION: '1.1.0', HEADERS: HEADERS, bc13: bc13, cleanCh2Product: cleanCh2Product, numOrBlank: numOrBlank, numOrText: numOrText, ch2: ch2, uhp: uhp, fromFullSheet: fromFullSheet };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   global.PHFSupplierLayout = api;
 })(typeof window !== 'undefined' ? window : (typeof self !== 'undefined' ? self : globalThis));
