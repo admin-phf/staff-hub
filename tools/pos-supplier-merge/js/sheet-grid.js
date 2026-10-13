@@ -1,4 +1,7 @@
-/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.6.0 (14 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.7.0 (14 Oct 2026)
+ * v1.7.0: Ctrl + arrow (⌘ + arrow) jumps to the edge of the filled cells like Excel — the end of the run when the next cell is
+ * filled, else the next filled cell, else the sheet's edge; Ctrl + Shift + arrow extends the selection there.
+ * PHFSheetGrid.jump(get, r, c, dr, dc, rMax, cMax) is the shared rule (the supplier sheet uses it too).
  * v1.6.0: set({ rowFlags: { sourceRow: { level: 'hold'|'check'|'fixed', title, on, cells: { col: 1 } } }, rowFilter: fn | null })
  * puts an Upload tick in every row-number cell (unticked = the row stays out of the POS TXT; the page keeps the setting
  * and calls opts.onRowTick(sourceRow, on)), colours the flagged rows' left edge (red hold, amber check, green fixed)
@@ -414,7 +417,14 @@
       if (!s) return;
       if (mod && (ev.key === 'c' || ev.key === 'C')) { var ct = copySel(); if (ct) { ev.preventDefault(); copyText(ct); say('Copied ' + (selInfo && selInfo.textContent || 'the selection') + '.', 'info'); } return; }   // v1.5.0
       var moves = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
-      if (moves[ev.key]) { ev.preventDefault(); if (s.rows) st.sel = { r: s.r2, c: 0, r2: s.r2, c2: 0 }; goTo(st.sel.r2 + moves[ev.key][0], st.sel.c2 + moves[ev.key][1], ev.shiftKey); return; }
+      if (moves[ev.key]) {
+        ev.preventDefault(); if (s.rows) st.sel = { r: s.r2, c: 0, r2: s.r2, c2: 0 };
+        if (mod) {                                                                          // v1.7.0 Ctrl + arrow
+          var j = jump(function (r, k) { var e = st.vis[r]; return e ? String(cellDisplay(e.r[st.cols[k]], st.cols[k]) == null ? '' : cellDisplay(e.r[st.cols[k]], st.cols[k])).trim() : ''; }, st.sel.r2, st.sel.c2, moves[ev.key][0], moves[ev.key][1], st.vis.length - 1, st.cols.length - 1);
+          goTo(j[0], j[1], ev.shiftKey); return;
+        }
+        goTo(st.sel.r2 + moves[ev.key][0], st.sel.c2 + moves[ev.key][1], ev.shiftKey); return;
+      }
       if (ev.key === 'Escape') { st.sel = null; paintSel(); return; }
       if (!st.edit) return;
       if (ev.key === 'Tab') { ev.preventDefault(); goTo(s.r2, s.c2 + (ev.shiftKey ? -1 : 1)); return; }
@@ -488,6 +498,17 @@
       }
     };
   }
+  // ---- v1.7.0 Ctrl + arrow: get(r, c) → the cell's text; returns [r, c] to land on.
+  function jump(get, r, c, dr, dc, rMax, cMax) {
+    var inside = function (rr, cc) { return rr >= 0 && rr <= rMax && cc >= 0 && cc <= cMax; };
+    var filled = function (rr, cc) { return inside(rr, cc) && get(rr, cc) !== ''; };
+    var nr = r + dr, nc = c + dc;
+    if (!inside(nr, nc)) return [r, c];
+    if (filled(r, c) && filled(nr, nc)) { while (filled(nr + dr, nc + dc)) { nr += dr; nc += dc; } return [nr, nc]; }   // to the end of the run
+    while (inside(nr, nc) && !filled(nr, nc)) { nr += dr; nc += dc; }                                                      // to the next filled cell
+    if (!inside(nr, nc)) { nr -= dr; nc -= dc; }                                                                           // none: the edge
+    return [nr, nc];
+  }
   // ---- value picker (v1.2.0): the Google Sheet's "filter by values" list — tick the values to show, OK applies.
   // picker({ anchor, title, values: [{ v, n }], selected: [values] | null (all), onApply(values | null = all), onClose })
   var pk = null;
@@ -535,5 +556,5 @@
     document.addEventListener('mousedown', away, true);
     ps.focus();
   }
-  G.PHFSheetGrid = { create: create, parseTsv: parseTsv, picker: picker, closePicker: closePicker, VERSION: 'v1.6.0' };
+  G.PHFSheetGrid = { create: create, parseTsv: parseTsv, picker: picker, closePicker: closePicker, jump: jump, VERSION: 'v1.7.0' };
 })(window);

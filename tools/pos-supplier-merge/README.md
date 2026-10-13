@@ -1,7 +1,27 @@
-# POS New Product Check Clean v1.13.0 (Staff Hub v21.23.0)
+# POS New Product Check Clean v1.14.0 (Staff Hub v21.24.0)
 
-Updated 14 Oct 2026 07:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 14 Oct 2026 10:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.14.0 — **Ticks only where there is a choice; item size; Ctrl + arrow.**
+- **OUT_MERGED_DATA ticks on the CURRENT / NEW pairs only** — supplier (F / G), brand (H / I), description (O / P), WSP
+  (R / S), last price (V / W) and RRP (Z / AA). One of the two is ticked: **NEW** = the merge's value goes to POS, **CURRENT**
+  = POS keeps its own for matched products. The internal columns (CHANGE %, CHANGE $, WSP TO RRP MARKUP %, +6.5 %, CURRENT
+  WSP TO RRP, RRP / MARKUP OVERRIDE, FINAL SHELF RRP) and the final POS block have no ticks. The supplier-sheet ticks are
+  the same settings; Sub ID, units, box lot, GST and member have no pair in OUT, so their ticks are on the supplier sheet
+  only.
+- **Last price has its own tick** (V / W). It used to follow the WSP tick (J). J now covers the WSP alone.
+- **Item size goes to POS** from SIZE (AL), as written — `1KG`, `300G`, `60C`, `20X5G` — for new and matched products,
+  with a tick on the SIZE heading. Unticked: matched products keep POS's item size, new products get none. Discontinued
+  products keep POS's. POS's 143 existing item sizes are plain numbers, so if POSActive refuses the text form, untick SIZE
+  and say so — a number-only form is a one-line change.
+- **SIZE gaps filled** (400 blank rows → 192 on the 14 Oct files): from SUP PRODUCT first, then POS DESCR. Count × size
+  (`20 X 5G`, `4.5G X 30 PACK`, `30 X SACH`) → `20X5G`, `30X4.5G`, `30XSACHET`; weights and volumes (`G`, `GM`, `ML`, `MLS`,
+  `KG`, `L`, `LT`, `OZ`, `LB`); counts (`60S`, `60TB`, `60CHEW`, `50 GUMMIES`, `90 VEGIECAPS`, `30CA`, `3PK`, `1PC`, `SACH`);
+  doses (`MG`, `MCG`, `IU`) last — `COQ10 150MG 60C` is `60C`. A SIZE that is not a size (`1000MG VITAMIN C`, `CONTAINS:
+  …`) is blanked. The rows still blank have no size (books, kits, packs, sprays) or a discontinued name POS cut off.
+- **Ctrl + arrow** (⌘ + arrow) on every sheet jumps to the edge of the filled cells, as in Excel; Ctrl + Shift + arrow
+  extends the selection.
 
 v1.13.0 — **Upload checks before the POS files.**
 - After stage 3, every row of OUT_POS_INSERT and OUT_POS_UPDATE is checked before it goes into the TXT files. There are

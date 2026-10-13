@@ -726,3 +726,24 @@ All implemented stages keep source business files local to the browser and gener
   (193) and UPDATE (1,918 / 3,100) TXT byte for byte; with the change INSERT 158 (35 held, 4 descr fixed), UPDATE 2,991
   (109 held, 42 changed: descr / pos desc / brand / wsp / last price only), every other field identical; Discontinue off
   1,809; Tick all held + Export TXT again puts the 193 back; ticks survive a reload. Details in GITHUB-RELEASE-v21.23.0.md.
+
+## Staff Hub v21.24.0 — POS New Product Check Clean v1.14.0: CURRENT / NEW ticks, item size, SIZE gaps, Ctrl + arrow (14 Oct 2026 10:30 AEDT)
+- app.js v1.14.0: KEEP_GROUPS gain `cur` / `new` (the OUT_MERGED_DATA pair that carries the tick: supplier F/G, brand H/I,
+  product O/P, ws R/S, last V/W, rrp Z/AA) and `single` (size → AL SIZE). `keepTicks(head)` puts a tick on those headings
+  only: NEW `{ id, on: !keep }`, CURRENT `{ id: 'cur:' + id, on: keep }`; `onTick` with a `cur:` id calls `setKeep(id, on)`,
+  otherwise `setKeep(id, !on)` — one setting, two ticks. New groups: `last` (col −1: no supplier-sheet tick; upd 'last
+  price'; KEEP_SHOW / KEEP_ZERO split from `ws`; `keptRows` recomputes FINAL SHELF RRP for it too) and `size` (col −1;
+  upd / out 'itemsize'; KEEP_SHOW itemsize ← POS ITEMSIZE). The supplier sheet ignores groups with col < 0. The POS block
+  and the internal columns carry no ticks; kept cells still go grey (`keptLook`, `keptLock`).
+- engine-host v1.6.0: KEEP_COLS `ws` [[12]], `last` [[13, 'POS LAST PRICE']], `size` [[28, 'POS ITEMSIZE']]; a generate
+  with `size` in `keep` writes '0' into every INSERT row's field 28. `refineSizes(rowsOnly, syncOnly)` after build /
+  refresh (and after an OUT edit with syncOnly): for every OUT row whose AL fails `SZ_OK`, `sizeFrom(Q) || sizeFrom(P) ||
+  sizeFrom(O)` — count × size first (`20 X 5G`, `4.5G X 30`, `30 X SACH` → 20X5G, 30X4.5G, 30XSACHET), then the first
+  weight / volume (SZ_UNIT: G GM ML MLS KG L LT OZ LB), else the first count (CT_UNIT: C CA CAPS VC VEGIECAPS T TABS TB S
+  SG CHEW GUMMIES LOZ PK PACK PC PCS SACH BAG TEABAG SERVE PADS), else the first dose (MG MCG IU); `n%` and brackets are
+  removed first. Then BR (69) = AL for every row that is not DISCONTINUED.
+- sheet-grid v1.7.0: `PHFSheetGrid.jump(get, r, c, dr, dc, rMax, cMax)` — Excel's rule (end of the run when the next cell is
+  filled, else the next filled cell, else the edge); the grid's keydown uses it on Ctrl/⌘ + arrow (Shift extends), and
+  the supplier sheet's keydown calls it with `supShown`.
+- Testing: see GITHUB-RELEASE-v21.24.0.md (item size the only TXT difference against v21.23.0; CURRENT last price and
+  SIZE-off runs change only their own field).

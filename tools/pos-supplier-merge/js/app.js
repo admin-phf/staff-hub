@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.13.0 (14 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.14.0 (14 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -95,11 +95,17 @@
  *         made consistent) stay ticked and are coloured. The "Upload checks" list above the tab shows every flagged row
  *         with its reason, Show held / to check / fixed / all buttons, Tick all / Untick all held. Stage 3 and Export TXT
  *         again write only the ticked rows (uploadOnly → the engine's `only`); the ticks are kept with the session and
- *         the review workbook has an OUT_UPLOAD_CHECKS sheet. Column ticks (Update in POS) never apply to INSERT rows. */
+ *         the review workbook has an OUT_UPLOAD_CHECKS sheet. Column ticks (Update in POS) never apply to INSERT rows.
+ * v1.14.0 (14 Oct 2026): OUT_MERGED_DATA ticks only where there is a choice — one tick on each CURRENT / NEW pair
+ *         (supplier, brand, description, WSP, last price, RRP; keepTicks / KEEP_GROUPS cur + new) and one on SIZE; the
+ *         internal columns (CHANGE %, MARKUP, FINAL SHELF RRP) and the POS block have none. Last price has its own tick
+ *         (KEEP_GROUPS `last`, split from `ws`); item size (`size`) goes to POS from SIZE as written (engine-host v1.6.0
+ *         refineSizes fills the SIZE gaps: 60S, 60TB, 50 GUMMIES, 90 VEGIECAPS, 70MLS, 5LB, 3PK, 30 X SACH, 20X5G).
+ *         Ctrl + arrow jumps to the edge of the data on every sheet (sheet-grid v1.7.0 jump; the supplier sheet too). */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.13.0';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.14.0';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -148,21 +154,26 @@
   // columns the tick decides; out = OUT_MERGED_DATA columns greyed for matched products when POS keeps its value.
   var PR = ['pr 1 pc', 'pr 2 pc', 'pr 3 pc', 'pr 4 pc', 'pr 5 pc', 'pr 6 pc', 'pr 7 pc', 'pr 8 pc', 'pr 9 pc'];
   var KEEP_GROUPS = [
-    { id: 'supplier', col: 2, what: 'supplier number', upd: ['supplier'], out: ['supplier'] },
-    { id: 'brand', col: 4, what: 'brand', upd: ['brand'], out: ['brand', 'POS BRAND', 'OLD BRAND'] },
+    // v1.14.0: `cur` / `new` = the CURRENT / NEW pair on OUT_MERGED_DATA that carries this group's tick there (tick NEW = the
+    // merge's value goes to POS, tick CURRENT = POS keeps its own); groups without a pair have their tick on the supplier
+    // sheet only. col -1 = no supplier-sheet tick (`last`, `size`).
+    { id: 'supplier', col: 2, what: 'supplier number', upd: ['supplier'], out: ['supplier'], cur: 'POS SUPPLIER', new: 'UPDATED SUPPLIER' },
+    { id: 'brand', col: 4, what: 'brand', upd: ['brand'], out: ['brand', 'POS BRAND', 'OLD BRAND'], cur: 'POS BRAND', new: 'SUP BRAND' },
     { id: 'sub', col: 5, what: 'Sub ID', upd: ['sub id'], out: ['sub id'] },
-    { id: 'product', col: 6, what: 'description (descr / pos desc) and packaging', upd: ['descr', 'pos desc', 'packaging'], out: ['POS DESCR', 'descr', 'pos desc', 'packaging'] },   // v1.12.0 packaging
+    { id: 'product', col: 6, what: 'description (descr / pos desc) and packaging', upd: ['descr', 'pos desc', 'packaging'], out: ['POS DESCR', 'descr', 'pos desc', 'packaging'], cur: 'ORIGINAL POS DESCR', new: 'POS DESCR' },   // v1.12.0 packaging
     { id: 'units', col: 7, what: 'units', upd: ['units'], out: ['units'] },
     { id: 'minorder', col: 8, what: 'min order qty (box lot)', upd: ['min order qty'], out: ['min order qty'] },
-    { id: 'ws', col: 9, what: 'wholesale and last price', upd: ['wsp excgst', 'last price'],
-      out: ['NEW WSP EXGST', 'WSP CHANGE %', 'WSP CHANGE $', 'NEW LAST PRICE', 'CHANGE LAST PRICE %', 'CHANGE LAST PRICE $', 'wsp excgst', 'last price'] },
+    { id: 'ws', col: 9, what: 'wholesale price', upd: ['wsp excgst'], out: ['NEW WSP EXGST', 'WSP CHANGE %', 'WSP CHANGE $', 'wsp excgst'], cur: 'CURRENT WSP EXGST', new: 'NEW WSP EXGST' },
+    { id: 'last', col: -1, what: 'last price', upd: ['last price'], out: ['NEW LAST PRICE', 'CHANGE LAST PRICE %', 'CHANGE LAST PRICE $', 'last price'], cur: 'CURRENT LAST PRICE', new: 'NEW LAST PRICE' },   // v1.14.0 its own tick
+    { id: 'size', col: -1, what: 'item size', upd: ['itemsize'], out: ['itemsize'], single: 'SIZE',
+      tip: 'Item size — ticked: SIZE (AL) goes to POS as the item size, as written (1KG, 300G, 60C), for new and matched products. Unticked: matched products keep POS’s item size and new products get none.' },   // v1.14.0
     // v1.11.0 — O (POS MEMBER): price levels 1–5 alone. It is listed before SUP RRP INC GST so OUT_MERGED_DATA's pr 1–5
     // headings carry its tick; unticking SUP RRP INC GST still keeps every price level (RRP and levels exactly as POS has
     // them, so no new labels), as before.
     { id: 'member', col: 14, what: 'price levels 1–5 (member pricing)', upd: PR.slice(0, 5), out: PR.slice(0, 5),
       tip: 'POS MEMBER — ticked: price levels 1–5 follow the merge (PL1 90% for member products, else 100%; PL2 90%; PL3 85%; PL4 80%; PL5 the staff formula). Member = this cell (TRUE / FALSE), else the brand’s flag in Product Prefixes / Ongoing Discounts, else POS: the product’s own PL1, or for a new product most of the brand’s POS products. Unticked: POS keeps its current price levels 1–5 for matched products. (SUP RRP INC GST unticked keeps every price level anyway.)' },
     { id: 'rrp', col: 10, what: 'RRP, price levels 1–9 and ret price', upd: ['rrp incgst'].concat(PR, ['ret price']),
-      out: ['NEW RRP', 'WSP TO RRP MARKUP %', 'WSP TO RRP MARKUP +6.5%', 'RRP / MARKUP OVERRIDE', 'FINAL SHELF RRP', 'rrp incgst'].concat(PR, ['ret price']) },
+      out: ['NEW RRP', 'WSP TO RRP MARKUP %', 'WSP TO RRP MARKUP +6.5%', 'RRP / MARKUP OVERRIDE', 'FINAL SHELF RRP', 'rrp incgst'].concat(PR, ['ret price']), cur: 'CURRENT RRP', new: 'NEW RRP' },
     { id: 'gst', col: 11, what: 'GST', upd: ['gst tax pc'], out: ['gst tax pc'] },
     // v1.11.0 — M, N: `use` ticks decide whether the column is used at all (unticked = not used), not what POS keeps.
     { id: 'stock', col: 12, use: true, what: 'stock in', upd: [], out: [],
@@ -186,12 +197,14 @@
     product: [['POS DESCR', 'POS DESCR'], ['descr', 'POS DESCR'], ['pos desc', 'POS POS DESC'], ['packaging', 'POS PACKAGING']],
     units: [['units', 'POS UNITS', 1]],
     minorder: [['min order qty', 'POS MIN ORDER QTY', 1]],
-    ws: [['NEW WSP EXGST', 'POS WSP EXCGST'], ['wsp excgst', 'POS WSP EXCGST'], ['NEW LAST PRICE', 'POS LAST PRICE'], ['last price', 'POS LAST PRICE']],
+    ws: [['NEW WSP EXGST', 'POS WSP EXCGST'], ['wsp excgst', 'POS WSP EXCGST']],
+    last: [['NEW LAST PRICE', 'POS LAST PRICE'], ['last price', 'POS LAST PRICE']],   // v1.14.0
+    size: [['itemsize', 'POS ITEMSIZE']],
     rrp: [['NEW RRP', 'POS RRP INCGST', 1], ['rrp incgst', 'POS RRP INCGST', 1]].concat(PR.map(function (h) { return [h, 'POS ' + h.toUpperCase(), 1]; }), [['ret price', 'POS RET PRICE', 1]]),
     gst: [['gst tax pc', 'POS GST TAX PC']],
     member: PR.slice(0, 5).map(function (h) { return [h, 'POS ' + h.toUpperCase(), 1]; })   // v1.11.0
   };
-  var KEEP_ZERO = { ws: ['WSP CHANGE %', 'WSP CHANGE $', 'CHANGE LAST PRICE %', 'CHANGE LAST PRICE $'] }, KEEP_BLANK = { brand: ['OLD BRAND'] };
+  var KEEP_ZERO = { ws: ['WSP CHANGE %', 'WSP CHANGE $'], last: ['CHANGE LAST PRICE %', 'CHANGE LAST PRICE $'] }, KEEP_BLANK = { brand: ['OLD BRAND'] };
   // ROW STATUS → matched, as the merge reads it (m13OutStatusKey_: NEW wins over MATCHED).
   function isMatched(v) { var s = String(v == null ? '' : v).toUpperCase(); return s.indexOf('NEW') < 0 && s.indexOf('MATCHED') >= 0; }
   var posMapCache = null;
@@ -232,7 +245,7 @@
       (KEEP_SHOW[g.id] || []).forEach(function (k) { if (H[k[0]] !== undefined && pos.col[k[1]] !== undefined) sets.push({ c: H[k[0]], p: pos.col[k[1]], need: !!k[2], money: !!KEEP_MONEY[k[0]] }); });
       (KEEP_ZERO[g.id] || []).forEach(function (h) { if (H[h] !== undefined) zero.push(H[h]); });
       (KEEP_BLANK[g.id] || []).forEach(function (h) { if (H[h] !== undefined) blank.push(H[h]); });
-      if (g.id === 'ws' || g.id === 'rrp' || g.id === 'gst') shelf = true;
+      if (g.id === 'ws' || g.id === 'last' || g.id === 'rrp' || g.id === 'gst') shelf = true;
       if (g.id === 'gst') gstKept = true;
     });
     var AO = H['FINAL SHELF RRP'], BE = H['rrp incgst'], S_ = H['NEW WSP EXGST'], W_ = H['NEW LAST PRICE'], AB = H['HAS GST'], GT = H['gst tax pc'];
@@ -330,12 +343,12 @@
       kind = 'in-page';
       frame = document.createElement('iframe');
       frame.hidden = true; frame.title = 'POS New Product Check Clean engine';
-      frame.src = './engine-frame.html?v=1.5.0';
+      frame.src = './engine-frame.html?v=1.6.0';
       window.addEventListener('message', frameListener);
       document.body.appendChild(frame);
     }
     try {
-      worker = new Worker('./js/engine-worker.js?v=1.5.0');
+      worker = new Worker('./js/engine-worker.js?v=1.6.0');
       kind = 'worker';
       worker.onmessage = function (ev) { onMsg(ev.data); };
       worker.onerror = function (ev) {
@@ -1315,7 +1328,7 @@
     var R = state.review;
     var cols = R.head.map(function (h, i) { return h === '__EXPORT_VISIBLE__' ? -1 : i; }).filter(function (i) { return i >= 0; });
     if (!wb.outGrid) wb.outGrid = window.PHFSheetGrid.create($('#reviewGrid'), { search: false, onView: function () { renderScopes(); renderOutActions(); outBadge(); },
-      onTick: function (id, on) { setKeep(id, !on); } });              // v1.8.0: Update in POS ticks in the headings (back in v1.11.0)
+      onTick: function (id, on) { if (id.indexOf('cur:') === 0) setKeep(id.slice(4), on); else setKeep(id, !on); } });   // v1.8.0 ticks; v1.14.0 CURRENT / NEW pairs
     var look = keptLook(window.PHFSheetLook.forSheet(SHEETS.OUT, R.head), R.head, 'out', R.idx['ROW STATUS']);
     var marks = state.edits.marks[SHEETS.OUT] || {}, mk = {};
     R.fidx.forEach(function (sheetRow, i) { if (marks[sheetRow]) mk[i] = marks[sheetRow]; });
@@ -1333,13 +1346,17 @@
   // v1.8.0: OUT_MERGED_DATA — the Update in POS tick under every heading POS can keep (the group's `out` columns), the same
   // setting as the supplier sheet's ticks; unticked = POS keeps its value (grey heading text, grey cells for matched rows).
   // v1.11.0: back after v1.10.0 took them off (sheet-grid's `dim` stays unused).
+  // v1.14.0: a tick only where there is a choice — on each CURRENT / NEW pair (one of the two is ticked: NEW = the merge's
+  // value goes to POS, CURRENT = POS keeps its own) and on SIZE (item size). Internal columns and the POS block have none.
   function keepTicks(head) {
     var t = null;
     head.forEach(function (h, i) {
-      var g = KEEP_GROUPS.filter(function (x) { return x.out.indexOf(h) >= 0; })[0]; if (!g) return;
-      var on = !state.opts.keep[g.id];
-      t = t || {};
-      t[i] = { id: g.id, on: on, title: 'Update in POS (' + g.what + ') — ' + (on ? 'ticked: POS ' + g.what + ' is updated from the merge. Untick to keep POS’s current value for matched products.' : 'unticked: POS keeps its current ' + g.what + ' for matched products. Tick to update it.') + ' Same tick as the supplier sheet heading.' };
+      KEEP_GROUPS.forEach(function (g) {
+        var keep = !!state.opts.keep[g.id];
+        if (g.new === h) { t = t || {}; t[i] = { id: g.id, on: !keep, title: 'NEW ' + g.what + ' — ticked: the merge’s ' + g.what + ' goes to POS. Tick CURRENT instead to keep POS’s own for matched products.' + (g.col >= 0 ? ' Same tick as the supplier sheet heading.' : '') }; }
+        else if (g.cur === h) { t = t || {}; t[i] = { id: 'cur:' + g.id, on: keep, title: 'CURRENT ' + g.what + ' — ticked: matched products keep POS’s current ' + g.what + '. Tick NEW instead to update it from the merge.' }; }
+        else if (g.single === h) { t = t || {}; t[i] = { id: g.id, on: !keep, title: g.tip || '' }; }
+      });
     });
     return t;
   }
@@ -2785,7 +2802,11 @@
       if (mod && (e.key === 'c' || e.key === 'C')) { var ct = supCopy(); if (ct) { e.preventDefault(); copyText(ct); supSay('Copied ' + ($('#supSelInfo').textContent || 'the selection') + '.', 'info'); } return; }   // v1.11.0
       if (mod && (e.key === 'd' || e.key === 'D')) { e.preventDefault(); supFillDown(); return; }                     // v1.11.0 fill down
       var moves = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
-      if (moves[e.key]) { e.preventDefault(); supGoTo(s.r2 + moves[e.key][0], s.c2 + moves[e.key][1], e.shiftKey); return; }
+      if (moves[e.key]) {
+        e.preventDefault();
+        if (mod) { var j = window.PHFSheetGrid.jump(function (r, c) { var it = supView.vis[r]; return it ? supShown(it, c).trim() : ''; }, s.r2, s.c2, moves[e.key][0], moves[e.key][1], supView.vis.length - 1, 15); supGoTo(j[0], j[1], e.shiftKey); return; }   // v1.14.0 Ctrl + arrow
+        supGoTo(s.r2 + moves[e.key][0], s.c2 + moves[e.key][1], e.shiftKey); return;
+      }
       if (e.key === 'Tab') { e.preventDefault(); supGoTo(s.r2, s.c2 + (e.shiftKey ? -1 : 1)); return; }
       if (e.key === 'Enter' || e.key === 'F2') { e.preventDefault(); startEdit(); return; }
       if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); clearSelectedCells(); return; }

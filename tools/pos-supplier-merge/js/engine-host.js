@@ -1,4 +1,10 @@
-/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.5.0 (14 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.6.0 (14 Oct 2026)
+ * v1.6.0: SIZE (AL) gaps filled after stage 2 / Refresh (refineSizes): count × size (30X4.5G, 20X5G), weights and volumes
+ *   (G / GM / ML / MLS / KG / L / LT / OZ / LB), counts (60S, 60TB, 60CHEW, 50 GUMMIES, 90 VEGIECAPS, 30CA, 3PK, 1PC,
+ *   SACH) and doses (MG / MCG / IU) read from SUP PRODUCT first, then POS DESCR; a SIZE that is not a size (1000MG
+ *   VITAMIN C, CONTAINS: …) is blanked. BR itemsize = AL SIZE as written (1KG, 300G, 60C) for new and matched rows
+ *   (discontinued rows keep POS's). KEEP_COLS: `ws` is the WSP alone, `last` the last price, `size` the item size
+ *   (unticked: matched products keep POS's item size, new products get 0).
  * v1.5.0: upload checks on every OUT_POS_INSERT / OUT_POS_UPDATE row after stage 3 (uploadChecks): hold (RRP below WSP,
  *   last price under half the WSP, barcode check digit, a new product whose barcode or Sub ID POS already has — the page
  *   unticks these), check (WSP / RRP moves more than 40 %, brand / Sub ID / size differ from POS, a discontinued product
@@ -73,7 +79,7 @@
     return {
       setup: typeof G.SCRIPT_VERSION !== 'undefined' ? G.SCRIPT_VERSION : '',
       merge: (typeof G.M13 !== 'undefined' && G.M13 && G.M13.VERSION) ? G.M13.VERSION : '',
-      host: 'v1.5.0',
+      host: 'v1.6.0',
       worker: isWorker
     };
   }
@@ -180,7 +186,7 @@
       var nr2 = (msg.values || []).length, nc2 = Math.max.apply(null, (msg.values || []).map(function (v) { return v.length; }).concat([1]));
       if (nr2) fireOnEdit(sh, start, 1, nr2, nc2);
     } else throw new Error('Unknown edit ' + op);
-    if (sh.name === 'OUT_MERGED_DATA') refineTypes(full ? null : rowsTouched, true);   // v1.4.0: a TYPE typed in AM → BS
+    if (sh.name === 'OUT_MERGED_DATA') { refineTypes(full ? null : rowsTouched, true); refineSizes(full ? null : rowsTouched, true); }   // v1.4.0: a TYPE typed in AM → BS; v1.6.0 AL → BR
     if (stack.length > UNDO_MAX) stack.shift();
     return reply(sh, full ? null : rowsTouched);
   }
@@ -199,7 +205,7 @@
 
   // ------------------------------------------------ v1.2.0 run options (keep POS values, discontinue, filtered rows)
   var KEEP_COLS = {                       // OUT_POS_UPDATE column → TMP_MERGED_POS_DATA heading, by tick group
-    ws: [[12, 'POS WSP EXCGST'], [13, 'POS LAST PRICE']],
+    ws: [[12, 'POS WSP EXCGST']], last: [[13, 'POS LAST PRICE']], size: [[28, 'POS ITEMSIZE']],   // v1.6.0 last / size split out
     rrp: [[15, 'POS RRP INCGST'], [16, 'POS PR 1 PC'], [17, 'POS PR 2 PC'], [18, 'POS PR 3 PC'], [19, 'POS PR 4 PC'], [20, 'POS PR 5 PC'],
       [21, 'POS PR 6 PC'], [22, 'POS PR 7 PC'], [23, 'POS PR 8 PC'], [24, 'POS PR 9 PC'], [25, 'POS RET PRICE']],
     sub: [[2, 'POS SUB ID']], brand: [[3, 'POS BRAND']], product: [[4, 'POS DESCR'], [5, 'POS POS DESC'], [29, 'POS PACKAGING']],   // v1.4.0 packaging
@@ -366,6 +372,47 @@
       var was = String(row[38] == null ? '' : row[38]), t = syncOnly ? was.trim().toUpperCase() : refineType(row);
       if (!syncOnly && t !== was) { row[38] = t; n++; }
       if (t && String(row[70] == null ? '' : row[70]) !== t) row[70] = t;
+    };
+    if (list) list.forEach(function (r) { if (r >= 3) one(r - 1); }); else for (var i = 2; i < out.cells.length; i++) one(i);
+    return n;
+  }
+  // ------------------------------------------------ v1.6.0 SIZE (AL, index 37) gaps and BR itemsize (index 69)
+  var SZ_UNIT = { KG: 'KG', G: 'G', GM: 'G', GMS: 'G', GRAM: 'G', GRAMS: 'G', ML: 'ML', MLS: 'ML', L: 'LT', LT: 'LT', LTR: 'LT', LITRE: 'LT', LITRES: 'LT', OZ: 'OZ', LB: 'LB', LBS: 'LB' };
+  var DOSE_UNIT = { MG: 'MG', MCG: 'MCG', IU: 'IU' };
+  var CT_UNIT = { C: 'C', CA: 'C', CAP: 'C', CAPS: 'C', CAPSULE: 'C', CAPSULES: 'C', VC: 'VC', VCAP: 'VC', VCAPS: 'VC', VEGIECAP: 'VC', VEGIECAPS: 'VC', VEGECAPS: 'VC', VEGCAPS: 'VC',
+    T: 'T', TAB: 'T', TABS: 'T', TABLET: 'T', TABLETS: 'T', TB: 'T', S: 'S', SG: 'SG', SOFTGEL: 'SG', SOFTGELS: 'SG', CHEW: 'CHEW', CHEWS: 'CHEW', CHEWABLE: 'CHEW', CHEWABLES: 'CHEW',
+    GUMMY: 'GUMMIES', GUMMIES: 'GUMMIES', LOZ: 'LOZ', LOZENGE: 'LOZ', LOZENGES: 'LOZ', PK: 'PK', PACK: 'PK', PC: 'PC', PCS: 'PC', PIECE: 'PC', PIECES: 'PC',
+    SACH: 'SACHET', SACHS: 'SACHET', SACHET: 'SACHET', SACHETS: 'SACHET', BAG: 'BAG', BAGS: 'BAG', TEABAG: 'TB', TEABAGS: 'TB', SERVE: 'SERVE', SERVES: 'SERVE', PADS: 'PADS', PAD: 'PADS' };
+  var SZ_OK = /^\d+(\.\d+)?(KG|G|ML|LT|OZ|LB|MG|MCG|IU|C|VC|T|S|SG|CHEW|GUMMIES|LOZ|PK|PC|SACHET|BAG|TB|SERVE|PADS)$|^\d+X\d+(\.\d+)?(KG|G|ML|LT)$|^\d+XSACHET$/;
+  function sizeFrom(text) {
+    var t = up(text).replace(SELL_THRU, ' ').replace(/\d+(\.\d+)?\s*%/g, ' ').replace(/[(),]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!t) return '';
+    var m;
+    if ((m = t.match(/\b(\d{1,3})\s*X\s*(\d+(?:\.\d+)?)\s*(KG|G|GM|ML|MLS|L|LT)\b/))) return m[1] + 'X' + m[2] + SZ_UNIT[m[3]];           // 20 X 5G, 30X4.5G
+    if ((m = t.match(/\b(\d+(?:\.\d+)?)\s*(KG|G|GM|ML|MLS|L|LT)\s*X\s*(\d{1,3})\b/))) return m[3] + 'X' + m[1] + SZ_UNIT[m[2]];         // 4.5G X 30
+    if ((m = t.match(/\b(\d{1,3})\s*X\s*(?:SACH\w*)\b/))) return m[1] + 'XSACHET';                                                       // 30 X SACH
+    var re = /\b(\d+(?:\.\d+)?)\s*([A-Z]+)\b/g, best = null, rank = 9;
+    while ((m = re.exec(t))) {
+      var u = m[2], r = SZ_UNIT[u] ? 1 : CT_UNIT[u] ? 2 : DOSE_UNIT[u] ? 3 : 0;
+      if (!r || r >= rank) continue;                                                      // weight / volume beats a count beats a dose; first of a kind wins
+      if (r === 2 && (u === 'S' || u === 'T' || u === 'C') && Number(m[1]) > 1000) continue;
+      best = m[1] + (SZ_UNIT[u] || CT_UNIT[u] || DOSE_UNIT[u]); rank = r;
+    }
+    return best || '';
+  }
+  // After stage 2 / Refresh (and an OUT edit, syncOnly): AL filled from Q (SUP PRODUCT), then P (POS DESCR), then O, when it is
+  // empty or not a size; BR itemsize = AL for every row that is not DISCONTINUED (POS keeps a discontinued product's).
+  function refineSizes(rowsOnly, syncOnly) {
+    var out = shim && shim.ss._find('OUT_MERGED_DATA'); if (!out) return 0;
+    var head = (out.cells[1] || []).map(function (h) { return String(h == null ? '' : h).trim().toUpperCase(); });
+    if (head[37] !== 'SIZE' || head[69] !== 'ITEMSIZE') return 0;
+    var n = 0, list = rowsOnly || null;
+    var one = function (i) {
+      var row = out.cells[i]; if (!row || String(row[0] == null ? '' : row[0]).trim() === '') return;
+      var was = up(row[37]), t = was;
+      if (!syncOnly && !SZ_OK.test(was)) { t = sizeFrom(row[16]) || sizeFrom(row[15]) || sizeFrom(row[14]); if (t !== was) { row[37] = t; n++; } }
+      if (/DISCONTINUED/.test(up(row[1]))) return;
+      if (t && String(row[69] == null ? '' : row[69]) !== t) row[69] = t;
     };
     if (list) list.forEach(function (r) { if (r >= 3) one(r - 1); }); else for (var i = 2; i < out.cells.length; i++) one(i);
     return n;
@@ -573,6 +620,7 @@
       var keep = (runOpts.keep || []).filter(function (g) { return KEEP_COLS[g]; }), noDisc = runOpts.discontinue === false, pos = keep.length ? posAll : null;
       var info = { kept: 0, same: 0, disc: 0, notFound: 0, stock: 0, minOrder: minFixed };
       // v1.3.0: SUP STOCK IN (M) → a new product's stock on hand (pos soh, the last INSERT field).
+      if (keep.indexOf('size') >= 0) (built.insertRows || []).forEach(function (row) { row[28] = '0'; });   // v1.6.0: item size unticked → a new product gets none
       if (runOpts.stock) {
         var stockBy = supColByBarcode(12, true);
         (built.insertRows || []).forEach(function (row) { var v = stockBy[bcKey(row[1])]; if (v !== undefined) { row[30] = v; info.stock++; } });
@@ -696,7 +744,7 @@
         var ret;
         try { ret = step === 'export' && msg.only ? withOnlyRows(msg.only, function () { return G[fnName](); }) : G[fnName](); }
         finally { runOpts = null; }
-        if (step === 'build' || step === 'refresh') { noteSellThru(); refineTypes(); }   // v1.3.0 / v1.4.0
+        if (step === 'build' || step === 'refresh') { noteSellThru(); refineTypes(); refineSizes(); }   // v1.3.0 / v1.4.0 / v1.6.0
         var files = [];
         if (step === 'export' && ret && ret.length) {
           files = ret.map(function (f) { return { label: f.label, filename: f.filename, rowCount: f.rowCount, base64: f.base64 }; });
