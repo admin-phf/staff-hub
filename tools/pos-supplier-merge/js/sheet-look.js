@@ -1,7 +1,9 @@
-/* PHF Staff Hub — POS Supplier New Product Check and Clean Merge · sheet-look.js v1.0.0 (11 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · sheet-look.js v1.1.0 (13 Oct 2026; v1.0.0 11 Oct 2026)
+ * v1.1.0: every row-1 total follows the search and column filters on the page — unique values (brands, suppliers),
+ * counts (rows, statuses), $ totals — where the Sheet's COUNTUNIQUE / COUNTIF / SUM count every row; TMP_MERGED_POS_DATA's
+ * price × SOH totals are labelled STOCK VALUE @ WSP / @ LAST PRICE. The review workbook (no filter) is unchanged.
  * The POS DB & SUPPLIER MERGE Google Sheet's look for the web workbook tabs and the review workbook, taken from the
- * script itself (1.0 Setup): the row-1 totals band (SCHEMA totals formulas — SUBTOTAL ones count the rows a filter
- * leaves showing, SUM / COUNTIF / UNIQUE ones count every row, as in the Sheet), the conditional-format colours on
+ * script itself (1.0 Setup): the row-1 totals band (SCHEMA totals formulas), the conditional-format colours on
  * OUT_MERGED_DATA (ensureOutMergedConditionalFormatting_), the centred columns (SCHEMA centreDataCols), number formats
  * the Sheet shows on SRC_POS_ONGOING_DISCOUNTS, and the grey text of TMP_MERGED_POS_DATA.
  *
@@ -48,58 +50,58 @@
       var o = {};
       var B = H('ROW STATUS'), Cc = H('PRICE STATUS'), Q = H('SUP PRODUCT'), AF = H('NOTES');
       o[H('INDEX')] = 'TOTAL ROWS: ' + int(nonBlank(vis, B));
-      o[B] = 'NEW: ' + int(countIf(all, B, function (s) { return s.indexOf('NEW') >= 0; })) + '  |  MATCHED: ' + int(countIf(all, B, function (s) { return s.indexOf('MATCHED') >= 0; })) + '  |  DISC: ' + int(countIf(all, B, function (s) { return s.indexOf('DISCONTINUED') >= 0; }));
-      o[Cc] = 'UP: ' + int(countIf(all, Cc, function (s) { return s === 'PRICE INCREASE'; })) + '  |  DOWN: ' + int(countIf(all, Cc, function (s) { return s === 'PRICE DECREASE'; })) + '  |  NEW: ' + int(countIf(all, Cc, function (s) { return s === 'NEW PRODUCT'; })) + '  |  FLAT: ' + int(countIf(all, Cc, function (s) { return s === 'NO CHANGE'; }));
-      o[H('POS SUPPLIER')] = 'POS SUPPLIERS: ' + int(uniq(all, H('POS SUPPLIER')));
-      o[H('UPDATED SUPPLIER')] = 'UPDATED SUPPLIERS: ' + int(uniq(all, H('UPDATED SUPPLIER')));
-      o[H('POS BRAND')] = 'POS BRANDS: ' + int(uniq(all, H('POS BRAND')));
-      o[H('SUP BRAND')] = 'SUP BRANDS: ' + int(uniq(all, H('SUP BRAND')));
-      o[H('OLD BRAND')] = 'BRAND CHANGES: ' + int(nonBlank(all, H('OLD BRAND')));
-      o[H('BARCODE UPDATE')] = 'BARCODES TO UPDATE: ' + int(nonBlank(all, H('BARCODE UPDATE')));
+      o[B] = 'NEW: ' + int(countIf(vis, B, function (s) { return s.indexOf('NEW') >= 0; })) + '  |  MATCHED: ' + int(countIf(vis, B, function (s) { return s.indexOf('MATCHED') >= 0; })) + '  |  DISC: ' + int(countIf(vis, B, function (s) { return s.indexOf('DISCONTINUED') >= 0; }));
+      o[Cc] = 'UP: ' + int(countIf(vis, Cc, function (s) { return s === 'PRICE INCREASE'; })) + '  |  DOWN: ' + int(countIf(vis, Cc, function (s) { return s === 'PRICE DECREASE'; })) + '  |  NEW: ' + int(countIf(vis, Cc, function (s) { return s === 'NEW PRODUCT'; })) + '  |  FLAT: ' + int(countIf(vis, Cc, function (s) { return s === 'NO CHANGE'; }));
+      o[H('POS SUPPLIER')] = 'POS SUPPLIERS: ' + int(uniq(vis, H('POS SUPPLIER')));
+      o[H('UPDATED SUPPLIER')] = 'UPDATED SUPPLIERS: ' + int(uniq(vis, H('UPDATED SUPPLIER')));
+      o[H('POS BRAND')] = 'POS BRANDS: ' + int(uniq(vis, H('POS BRAND')));
+      o[H('SUP BRAND')] = 'SUP BRANDS: ' + int(uniq(vis, H('SUP BRAND')));
+      o[H('OLD BRAND')] = 'BRAND CHANGES: ' + int(nonBlank(vis, H('OLD BRAND')));
+      o[H('BARCODE UPDATE')] = 'BARCODES TO UPDATE: ' + int(nonBlank(vis, H('BARCODE UPDATE')));
       o[H('ORIGINAL POS DESCR')] = 'TOTAL POS PRODUCTS: ' + int(nonBlank(vis, H('ORIGINAL POS DESCR')));
       o[H('POS DESCR')] = 'TOTAL SUP PRODUCTS: ' + int(nonBlank(vis, Q));
-      o[H('CURRENT WSP EXGST')] = 'CURRENT WSP: ' + money(sum(all, H('CURRENT WSP EXGST')));
-      o[H('NEW WSP EXGST')] = 'NEW WSP: ' + money(sum(all, H('NEW WSP EXGST')));
-      o[H('CURRENT LAST PRICE')] = 'CURRENT LAST PRICE: ' + money(sum(all, H('CURRENT LAST PRICE')));
-      o[H('NEW LAST PRICE')] = 'NEW LAST PRICE: ' + money(sum(all, H('NEW LAST PRICE')));
-      o[H('CURRENT RRP')] = 'CURRENT RRP: ' + money(sum(all, H('CURRENT RRP')));
-      o[H('NEW RRP')] = 'NEW RRP: ' + money(sum(all, H('NEW RRP')));
+      o[H('CURRENT WSP EXGST')] = 'CURRENT WSP: ' + money(sum(vis, H('CURRENT WSP EXGST')));
+      o[H('NEW WSP EXGST')] = 'NEW WSP: ' + money(sum(vis, H('NEW WSP EXGST')));
+      o[H('CURRENT LAST PRICE')] = 'CURRENT LAST PRICE: ' + money(sum(vis, H('CURRENT LAST PRICE')));
+      o[H('NEW LAST PRICE')] = 'NEW LAST PRICE: ' + money(sum(vis, H('NEW LAST PRICE')));
+      o[H('CURRENT RRP')] = 'CURRENT RRP: ' + money(sum(vis, H('CURRENT RRP')));
+      o[H('NEW RRP')] = 'NEW RRP: ' + money(sum(vis, H('NEW RRP')));
       var types = {}, nt = 0, nd = 0;
-      for (var i = 0; i < all.length; i++) {
-        var note = str(all[i][AF]);
+      for (var i = 0; i < vis.length; i++) {
+        var note = str(vis[i][AF]);
         if (/% \//.test(note)) { nd++; var m = note.match(/^[A-Z +()]+/); if (m && !types[m[0]]) { types[m[0]] = 1; nt++; } }
       }
       o[H('WSP TO RRP MARKUP %')] = 'DISCOUNT TYPES: ' + int(nt);
       o[H('WSP TO RRP MARKUP +6.5%')] = 'DISCOUNTED ROWS: ' + int(nd);
-      o[H('RRP / MARKUP OVERRIDE')] = 'OVERRIDES: ' + int(nonBlank(all, H('RRP / MARKUP OVERRIDE')));
-      o[H('FINAL SHELF RRP')] = 'FINAL SHELF RRP: ' + money(sum(all, H('rrp incgst')));
-      o[H('wsp excgst')] = 'TOTAL WS: $' + plain2(sum(all, H('wsp excgst')));
-      o[H('last price')] = 'TOTAL LAST PRICE: $' + plain2(sum(all, H('last price')));
-      o[H('rrp incgst')] = 'TOTAL RRP: $' + plain2(sum(all, H('rrp incgst')));
+      o[H('RRP / MARKUP OVERRIDE')] = 'OVERRIDES: ' + int(nonBlank(vis, H('RRP / MARKUP OVERRIDE')));
+      o[H('FINAL SHELF RRP')] = 'FINAL SHELF RRP: ' + money(sum(vis, H('rrp incgst')));
+      o[H('wsp excgst')] = 'TOTAL WS: $' + plain2(sum(vis, H('wsp excgst')));
+      o[H('last price')] = 'TOTAL LAST PRICE: $' + plain2(sum(vis, H('last price')));
+      o[H('rrp incgst')] = 'TOTAL RRP: $' + plain2(sum(vis, H('rrp incgst')));
       return o;
     },
     'OUT_POS_INSERT': posTotals, 'OUT_POS_UPDATE': posTotals,
     'SRC_POS_FIND_REPLACE': function (H, all, vis) {
-      var o = {}; o[0] = 'TOTAL ROWS: ' + int(nonBlank(vis, 1)); o[1] = 'TOTAL SUP FIND: ' + int(nonBlank(vis, 1)); o[2] = 'TOTAL POS REPLACE: ' + int(nonBlank(vis, 2)); o[3] = used(all, 3); return o;
+      var o = {}; o[0] = 'TOTAL ROWS: ' + int(nonBlank(vis, 1)); o[1] = 'TOTAL SUP FIND: ' + int(nonBlank(vis, 1)); o[2] = 'TOTAL POS REPLACE: ' + int(nonBlank(vis, 2)); o[3] = used(vis, 3); return o;
     },
     'SRC_POS_ONGOING_DISCOUNTS': function (H, all, vis) {
       var o = {}; o[0] = 'TOTAL ROWS: ' + int(vis.length); o[1] = 'BRANDS: ' + int(uniq(vis, 1)); o[3] = 'SUPPLIERS: ' + int(uniq(vis, 3)); return o;
     },
     'SRC_POS_BRAND_NAME_CHANGES': function (H, all, vis) {
-      var o = {}; o[0] = 'TOTAL ROWS: ' + int(nonBlank(vis, 1)); o[1] = 'TOTAL SUP BRANDS: ' + int(uniq(vis, 1)); o[2] = 'TOTAL POS BRANDS: ' + int(uniq(vis, 2)); o[3] = used(all, 3); return o;
+      var o = {}; o[0] = 'TOTAL ROWS: ' + int(nonBlank(vis, 1)); o[1] = 'TOTAL SUP BRANDS: ' + int(uniq(vis, 1)); o[2] = 'TOTAL POS BRANDS: ' + int(uniq(vis, 2)); o[3] = used(vis, 3); return o;
     },
     'SRC_POS_PRODUCT_PREFIX': function (H, all, vis) {
-      var o = {}; o[0] = 'TOTAL ROWS: ' + int(nonBlank(vis, 1)); o[1] = 'UNIQUE BRANDS: ' + int(uniq(vis, 1)); o[2] = 'UNIQUE PREFIXES: ' + int(uniq(vis, 2)); o[4] = used(all, 4); return o;
+      var o = {}; o[0] = 'TOTAL ROWS: ' + int(nonBlank(vis, 1)); o[1] = 'UNIQUE BRANDS: ' + int(uniq(vis, 1)); o[2] = 'UNIQUE PREFIXES: ' + int(uniq(vis, 2)); o[4] = used(vis, 4); return o;
     },
     'SRC_POS_SUPPLIERS': function (H, all, vis) {
-      var o = {}; o[0] = 'TOTAL ROWS: ' + int(nonBlank(vis, 1)); o[1] = 'POS ACCOUNT NUMBER: ' + int(uniq(vis, 1)); o[2] = 'POS ACCOUNTS NAME: ' + int(uniq(vis, 2)); o[3] = used(all, 3); return o;
+      var o = {}; o[0] = 'TOTAL ROWS: ' + int(nonBlank(vis, 1)); o[1] = 'POS ACCOUNT NUMBER: ' + int(uniq(vis, 1)); o[2] = 'POS ACCOUNTS NAME: ' + int(uniq(vis, 2)); o[3] = used(vis, 3); return o;
     },
     'TMP_MERGED_POS_DATA': function (H, all, vis) {
       var o = {}, soh = H('POS SOH'), wsp = H('POS WSP EXCGST'), last = H('POS LAST PRICE');
       var val = function (c) { var t = 0; for (var i = 0; i < vis.length; i++) { var q = num(vis[i][soh]); if (q > 0) t += num(vis[i][c]) * q; } return t; };
       o[0] = 'TOTAL ROWS: ' + int(nonBlank(vis, 1)); o[1] = 'UNIQUE MASTER BRANDS: ' + int(uniq(vis, 1)); o[H('POS BRAND')] = 'UNIQUE MAPPED BRANDS: ' + int(uniq(vis, H('POS BRAND')));
       o[H('POS DESCR')] = 'TOTAL PRODUCTS: ' + int(nonBlank(vis, H('POS DESCR'))); o[H('POS SUPPLIER')] = 'UNIQUE SUPPLIERS: ' + int(uniq(vis, H('POS SUPPLIER')));
-      o[wsp] = 'TOTAL VALUATION: ' + money(val(wsp)); o[last] = 'TOTAL LAST PRICE: ' + money(val(last));
+      o[wsp] = 'STOCK VALUE @ WSP: ' + money(val(wsp)); o[last] = 'STOCK VALUE @ LAST PRICE: ' + money(val(last));   // price × SOH
       return o;
     }
   };

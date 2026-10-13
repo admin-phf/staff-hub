@@ -577,3 +577,27 @@ All implemented stages keep source business files local to the browser and gener
   Reconcile `.results .kpis` = one navy strip (`.kpi` column-reverse: label over number; good / bad / warn colours).
   Build v21.14.1: `STAGES[].btn` labels ("Build POS database"), "Build all databases" / "Clear session". Merge: "Run all
   stages" / "Clear results".
+
+## Staff Hub v21.19.0 — POS New Product Check Clean v1.9.0: totals follow the filters, required reference tables, ✕ on every rail (13 Oct 2026 16:00 AEDT)
+- sheet-look v1.1.0: every `TOTALS[sheet](all, vis)` counts / sums `vis` (the rows the grid shows after the search and
+  column filters), so row 1 matches the filtered sheet on every tab; each total keeps its kind (`uniq` = different values,
+  `nonBlank` / `vis.length` = rows, `sum` = $, TMP `val` = price × SOH, labelled `STOCK VALUE @ WSP` / `@ LAST PRICE`). The
+  review workbook calls `look.totals(data, data)`, so the download is unchanged.
+- app.js v1.9.0: `outBadge()` (OUT grid `onView` and the review render) = `wb.outGrid.count()` in the Sheet view, else
+  `R.filtered.length`, "N OF M ROWS"; `wbBadge()` (the other tabs' `onView`) = "N OF M ROWS" when a filter is on, else
+  "M ROWS".
+- `fillSupNames()` runs in `runTo` before stage 1 (when stage 1 is not done, or the target is stage 1): a map POS ACCNO →
+  POS ACNAME from `rowsOf('suppliers')`; every supplier row (`supEntries()`) with B blank and C in the map gets the name;
+  `state.rev++`, a title-band note and a session save when any were filled. Rows with a name are left as they are.
+- merge-map v1.2.0: brands, prefix, suppliers and disc are `required: true` (were `recommended`), so `ready()` and the
+  run bar wait for them; Find & Replace stays optional.
+- theme.css v20.1.1: `.btn:not(.primary):not(.is-on):not(.active):hover` = white with a navy edge; `.btn.is-on:hover` =
+  `--phf-navy-hover` with white text (a selected toggle no longer turns white text on white). Shared rail ✕ for
+  `body.phf-page-db` / `.phf-page-reconcile`: `.input-nav-wrap` (relative), `.has-del > .input-nav-item` 32 px right
+  padding, `.input-nav-del` an 18 px red circle at the right edge.
+- Build v21.14.2 (pipeline.js): `renderInputNav` wraps each row in `.input-nav-wrap` with `button.input-nav-del[data-del]`
+  when loaded; `removeInput(id)` (busy check, deletes `state.files[id]`, the Library copy for `LIB_REF` inputs,
+  `invalidate`, re-renders and keeps the open panel). The panel's Remove button uses it too.
+- Reconcile v2.11.2 (ui/workspace.js): the same ✕; `removeInput(id)` clicks the order list's own Remove buttons for order
+  files, or `PHF.referenceStore.clear(refKind)` for a reference (Ongoing Discounts is the shared Library copy; the ✕ title
+  says so), then `loadReferenceStatus()` and `PHFReconcileApp.refreshReferenceStatus()`.

@@ -1,9 +1,10 @@
 /* =====================================================================
-   PHF Staff Hub — unified theme v20.1.0 (13 Oct 2026; v20.0.2 11 Oct 2026; v20.0.1 10 Oct 2026; v20.0.0 06 Oct 2026;
+   PHF Staff Hub — unified theme v20.1.1 (13 Oct 2026; v20.1.0 13 Oct 2026; v20.0.2 11 Oct 2026; v20.0.1 10 Oct 2026; v20.0.0 06 Oct 2026;
    v19.0.0 05 Oct 2026)
    Palette lifted from Reconcile CH2 → POS layout.
    v20.0.1: workspace panel rules also cover panels placed side by side in a .dash-row (compact-layout.css).
    v20.0.2: … and panels stacked in a .dash-stack inside a row.
+   v20.1.1 (Staff Hub v21.19.0): coloured / selected buttons keep their colour on hover (they turned white, hiding their white text).
    v20.1.0 (Staff Hub v21.18.0): Build / Reconcile / POS New Product Check Clean buttons in Sentence case at 32px (no more
             capitals on the stage buttons); a finished step is one line with a green tick (no green box); Reconcile's
             result numbers in one navy strip.
@@ -136,7 +137,10 @@ body.phf-page-reconcile .reference-strip-main strong,
 
 /* ---------- 4. Buttons ---------- */
 body[class*="phf-page-"] .btn{border:1px solid var(--phf-line-strong);border-radius:8px;background:#fff;color:var(--phf-navy);font-weight:700;opacity:1}
-body[class*="phf-page-"] .btn:hover:not(:disabled){border-color:var(--phf-navy);background:#fff}
+/* v20.1.1: only white buttons turn white on hover — a coloured or selected button keeps its colour (it went white with
+   white text before, e.g. "Sheet (all columns, editable)"); each coloured kind has its own darker hover below. */
+body[class*="phf-page-"] .btn:not(.primary):not(.is-on):not(.active):hover:not(:disabled){border-color:var(--phf-navy);background:#fff}
+body[class*="phf-page-"] .btn.is-on:hover:not(:disabled){background:var(--phf-navy-hover);border-color:var(--phf-navy-hover);color:#fff}
 body[class*="phf-page-"] .btn:disabled{opacity:.55;cursor:not-allowed}
 body[class*="phf-page-"] a.btn{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;font-size:13px}
 /* Main action: grey while waiting → blue when ready */
@@ -306,6 +310,12 @@ body.phf-page-db .full-width-wrap{padding-top:16px!important}
 :is(body.phf-page-db,body.phf-page-reconcile) .input-nav-item.drag-target{border-style:solid!important;border-color:var(--phf-blue)!important;background:var(--phf-blue-bg)!important;box-shadow:none!important}
 :is(body.phf-page-db,body.phf-page-reconcile) .input-nav-item.drag-target strong{color:var(--phf-blue-ink)}
 :is(body.phf-page-db,body.phf-page-reconcile) .input-nav-item.drag-target::after{color:#fff!important;background:var(--phf-blue)!important}
+/* v20.1.1: ✕ beside each loaded input row (Build, Reconcile — as POS New Product Check Clean) removes it straight away */
+:is(body.phf-page-db,body.phf-page-reconcile) .input-nav-wrap{position:relative}
+:is(body.phf-page-db,body.phf-page-reconcile) .input-nav-wrap>.input-nav-item{width:100%}
+:is(body.phf-page-db,body.phf-page-reconcile) .input-nav-wrap.has-del>.input-nav-item{padding-right:32px!important}
+:is(body.phf-page-db,body.phf-page-reconcile) .input-nav-del{position:absolute;top:50%;right:8px;transform:translateY(-50%);width:18px;height:18px;padding:0;border-radius:50%;border:1px solid var(--phf-line-strong);background:#fff;color:var(--phf-red);font-size:10px;font-weight:900;line-height:16px;text-align:center;cursor:pointer;z-index:3;opacity:.85}
+:is(body.phf-page-db,body.phf-page-reconcile) .input-nav-del:hover,:is(body.phf-page-db,body.phf-page-reconcile) .input-nav-del:focus-visible{background:var(--phf-red-bg);border-color:var(--phf-red-line);opacity:1;outline:none}
 :is(body.phf-page-db,body.phf-page-reconcile) .input-nav-item.invalid{border-style:solid!important;border-color:var(--phf-red)!important;background:var(--phf-red-bg)!important}
 :is(body.phf-page-db,body.phf-page-reconcile) .input-nav-item strong{font-size:12px!important}
 :is(body.phf-page-db,body.phf-page-reconcile) .input-nav-item small{font-size:10.5px!important;color:var(--phf-muted)}

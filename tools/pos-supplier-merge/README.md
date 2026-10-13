@@ -1,7 +1,22 @@
-# POS New Product Check Clean v1.8.0 (Staff Hub v21.18.0)
+# POS New Product Check Clean v1.9.0 (Staff Hub v21.19.0)
 
-Updated 13 Oct 2026 09:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 13 Oct 2026 16:00 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.9.0 —
+- **Row-1 totals follow the filters** on every tab (OUT_MERGED_DATA, OUT_POS_INSERT, OUT_POS_UPDATE, the SRC_ tabs and
+  TMP_MERGED_POS_DATA), as the supplier sheet already did. Each total keeps its own kind: POS BRANDS is the number of
+  different brands shown (1 when you filter POS BRAND to one brand), TOTAL ROWS the rows shown, the $ totals the sum of the
+  rows shown. TMP_MERGED_POS_DATA's price × SOH totals are now labelled **STOCK VALUE @ WSP** and **STOCK VALUE @ LAST
+  PRICE**. The downloaded review workbook still has the totals for the whole sheet.
+- **The rows badge counts the column filters too** ("55 OF 604 ROWS"), not only the search and drop-downs.
+- **POS SUPPLIER NAME is filled in when stage 1 runs**: any supplier row with B blank and a POS SUPPLIER NUMBER in C gets
+  the name from POS Suppliers (SRC_POS_SUPPLIERS: 134 → OBORNE / CH2). Rows that already have a name are not changed. The
+  title band says how many were filled.
+- **Brand Name Changes, Product Prefixes, POS Suppliers and Ongoing Discounts are required** (they were "recommended"):
+  the stages wait until they are loaded. They stay saved in this browser, so this is once per browser. Find & Replace is
+  still optional.
+- Hovering a selected (navy) button keeps white text on a darker navy; white buttons keep navy text.
 
 v1.8.0: the supplier sheet looks like its Google Sheet tab —
 - **Totals in row 1, above their columns** (navy with gold, as in the Sheet): A total rows · B supplier names · C POS
@@ -166,10 +181,10 @@ Each supplier column that feeds the POS UPDATE file has an **Update in POS** tic
 |---|---|---|---|
 | POS Database (required) | TMP_MERGED_POS_DATA | Build POS Master Databases → full POS set `clean_merged_pos_data_….xlsx` (the Library copy) | Kept with the session (v1.6.0) |
 | Supplier Updates (required, several files allowed) | IN_SUPPLIER_/_PRODUCT_UPDATES | Build POS Master Databases → full set `clean_ch2_data_….xlsx` / `clean_uhp_data_….xlsx` (made into the supplier rows here, v1.7.0) or the `_pos_db` file in the A–P layout | Kept with the session (v1.6.0) |
-| Brand Name Changes (recommended) | SRC_POS_BRAND_NAME_CHANGES | Google Sheet tab | Saved in this browser |
-| Product Prefixes (recommended) | SRC_POS_PRODUCT_PREFIX | Google Sheet tab | Saved in this browser |
-| POS Suppliers (recommended) | SRC_POS_SUPPLIERS | Google Sheet tab | Saved in this browser |
-| Ongoing Discounts (recommended) | SRC_POS_ONGOING_DISCOUNTS | One shared file with Build POS Master Databases and Reconcile CH2 Order — drop it in any of them | Saved in this browser (Library) |
+| Brand Name Changes (required, v1.9.0) | SRC_POS_BRAND_NAME_CHANGES | Google Sheet tab | Saved in this browser |
+| Product Prefixes (required, v1.9.0) | SRC_POS_PRODUCT_PREFIX | Google Sheet tab | Saved in this browser |
+| POS Suppliers (required, v1.9.0) | SRC_POS_SUPPLIERS | Google Sheet tab | Saved in this browser |
+| Ongoing Discounts (required, v1.9.0) | SRC_POS_ONGOING_DISCOUNTS | One shared file with Build POS Master Databases and Reconcile CH2 Order — drop it in any of them | Saved in this browser (Library) |
 | Find & Replace (optional) | SRC_POS_FIND_REPLACE | Google Sheet tab | Saved in this browser |
 
 Files are recognised from their headings (the heading row can be row 1 or row 2). A downloaded copy of the

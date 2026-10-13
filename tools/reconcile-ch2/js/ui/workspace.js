@@ -1,4 +1,5 @@
-/* Reconcile CH2 v2.10.0 (12 Oct 2026) — the discount rules row is the Staff Hub's shared Ongoing Discounts file (Library
+/* Reconcile CH2 v2.11.2 (13 Oct 2026) — ✕ on each loaded rail row removes it straight away.
+   v2.10.0 (12 Oct 2026) — the discount rules row is the Staff Hub's shared Ongoing Discounts file (Library
    kind lib:ref-discounts): loaded from the Library on open, and a file dropped here is saved there for Build POS Master
    Databases and POS New Product Check Clean too. The POS DB & SUPPLIER MERGE workbook is still accepted.
    v2.8.0 — input rail + workspace, laid out like Build Master Databases, with Drop All Input Files Here.
@@ -53,10 +54,11 @@
       const s=info(d);
       const cls=['input-nav-item',s.loaded?'loaded':'missing',d.req?'required':'',selected===d.id?'active':'',s.invalid?'invalid':''].filter(Boolean).join(' ');
       const state=s.busy?'CHECKING':s.loaded?'LOADED':d.req?'REQUIRED':'OPTIONAL';
-      html+=`<button type="button" class="${cls}" data-input="${d.id}" title="Click to open, or drop the ${esc(d.title)} file${d.multiple?'s':''} directly here"><span class="input-dot">${s.loaded?'✓':d.req?'!':'○'}</span><span><strong>${esc(d.title)}</strong><small>${esc(s.sub)}</small></span><span class="input-state">${state}</span></button>`;
+      html+=`<div class="input-nav-wrap${s.loaded?' has-del':''}"><button type="button" class="${cls}" data-input="${d.id}" title="Click to open, or drop the ${esc(d.title)} file${d.multiple?'s':''} directly here"><span class="input-dot">${s.loaded?'✓':d.req?'!':'○'}</span><span><strong>${esc(d.title)}</strong><small>${esc(s.sub)}</small></span><span class="input-state">${state}</span></button>${s.loaded?`<button type="button" class="input-nav-del" data-del="${d.id}" title="Remove ${esc(d.title)}${d.kind==='ref'?(d.id==='supplier'?' from this browser (shared — Build POS Master Databases and POS New Product Check Clean lose it too)':' from this browser'):''}" aria-label="Remove ${esc(d.title)}">✕</button>`:''}</div>`;
     }
     if(last)html+='</div>';
     host.innerHTML=html;
+    host.querySelectorAll('[data-del]').forEach(b=>{b.onclick=e=>{e.preventDefault();e.stopPropagation();removeInput(b.dataset.del);};});
     host.querySelectorAll('[data-input]').forEach(b=>{
       const id=b.dataset.input;
       b.onclick=()=>select(id);
@@ -66,6 +68,18 @@
     });
   }
 
+  // v2.11.2 — the ✕ on a loaded rail row removes that input straight away (as in POS New Product Check Clean): an order file
+  // through app.js's own Remove buttons, a reference file from this browser (Ongoing Discounts is the shared Library copy).
+  async function removeInput(id){
+    const def=INPUTS.find(x=>x.id===id);if(!def)return;
+    if(def.kind==='order'){
+      for(let i=0;i<200;i++){const b=document.querySelector(`${def.list} .file-row button`);if(!b)break;b.click();}
+      schedule();return;
+    }
+    try{if(PHF.referenceStore)await PHF.referenceStore.clear(def.refKind);}catch(err){console.error(err);}
+    ref.message[id]='';ref.invalid[id]=false;
+    await loadReferenceStatus();const app=global.PHFReconcileApp;if(app&&app.refreshReferenceStatus)await app.refreshReferenceStatus();render();
+  }
   /* ---------- selected input (right) ---------- */
   function select(id){
     selected=id;

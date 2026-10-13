@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.8.0 (13 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.9.0 (13 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -66,7 +66,12 @@
  *         Rows pasted or typed here are not amber — amber marks a value changed after it arrived (rows from files: any
  *         change). OUT_MERGED_DATA: the Update in POS tick is under every heading POS can keep (the same setting as the
  *         supplier sheet; it recalculates straight away), no KEPT label; its coloured tiles show only in Review columns (the
- *         Sheet view has the same totals in row 1); toolbar 32 px. Run bar messages wrap to two lines. */
+ *         Sheet view has the same totals in row 1); toolbar 32 px. Run bar messages wrap to two lines.
+ * v1.9.0 (13 Oct 2026): every row-1 total on every tab follows the search and column filters (sheet-look v1.1.0: unique
+ *         brands / suppliers, status counts, $ totals of the rows shown; TMP's price × SOH totals are STOCK VALUE); the
+ *         rows badges say N OF M ROWS for the column filters too. Brand Name Changes, Product Prefixes, POS Suppliers and
+ *         Ongoing Discounts are required (merge-map v1.2.0). Before stage 1, an empty POS SUPPLIER NAME is filled from
+ *         POS Suppliers by its POS SUPPLIER NUMBER (fillSupNames). */
 (function () {
   'use strict';
 
@@ -774,6 +779,7 @@
     if (sessRestoring) { setGlobal('Your last session is still loading — run again in a moment.', 'missing'); return Promise.resolve(); }
     if (!requiredReady()) { setGlobal(readinessText(), 'missing'); return Promise.resolve(); }
     var tIdx = STAGES.map(function (s) { return s.id; }).indexOf(target);
+    if ((state.stage.highlight || {}).status !== 'done' || tIdx === 0) fillSupNames();   // v1.9.0
     state.busy = true;
     // Re-running a stage makes the later stages out of date.
     STAGES.slice(tIdx + 1).forEach(function (s) { if ((state.stage[s.id] || {}).status === 'done' || (state.stage[s.id] || {}).status === 'error') state.stage[s.id] = { status: 'ready' }; });
@@ -814,6 +820,23 @@
       if (state.loadedRev !== state.rev && Object.keys(state.results).length) { invalidateResults('Inputs changed while the stages ran — run the stages again.'); setGlobal('Inputs changed while the stages ran, so those results were not kept — run the stages again.', 'missing'); }
       updateRunButtons(); refreshSupSheet(); renderScopes(); saveSessionSoon();
     });
+  }
+  // v1.9.0 — before stage 1 runs: an empty POS SUPPLIER NAME (B) is filled from its POS SUPPLIER NUMBER (C) with POS Suppliers
+  // (SRC_POS_SUPPLIERS: POS ACCNO → POS ACNAME), so the sheet, its SUPPLIER NAMES total and the review workbook show the
+  // names. A name already there (typed, pasted or from the file) is never changed; the cell is not marked as changed here.
+  function fillSupNames() {
+    var map = {}, n = 0;
+    rowsOf('suppliers').forEach(function (r) { var k = String(r[1] == null ? '' : r[1]).trim().replace(/\.0+$/, ''), v = String(r[2] == null ? '' : r[2]).trim(); if (k && v && !map[k]) map[k] = v; });
+    if (!Object.keys(map).length) return 0;
+    supEntries().forEach(function (e) {
+      e.data.forEach(function (row) {
+        if (String(row[1] == null ? '' : row[1]).trim() !== '') return;
+        var num = String(row[2] == null ? '' : row[2]).trim().replace(/\.0+$/, '');
+        if (num && map[num]) { row[1] = map[num]; n++; }
+      });
+    });
+    if (n) { state.rev++; supView.note = 'POS SUPPLIER NAME filled in for ' + fmtN(n) + ' row' + (n === 1 ? '' : 's') + ' from POS Suppliers (by POS SUPPLIER NUMBER).'; supView.noteType = 'success'; saveSessionSoon(true); }
+    return n;
   }
   // v1.6.0: what stage 3 sends with 'generate' — the OUT_MERGED_DATA rows shown when a filter / search hides some, the
   // columns POS keeps for matched products, and the Discontinue switch.
@@ -1102,7 +1125,7 @@
     $('#reviewTableWrap').hidden = sheetView; $('#reviewPager').hidden = sheetView; $('#reviewGrid').hidden = !sheetView;
     $('#reviewKpis').hidden = sheetView;      // v1.8.0: the Sheet view has the same totals in row 1, above the columns
     document.querySelectorAll('[data-out-view]').forEach(function (x) { x.classList.toggle('is-on', x.dataset.outView === wb.outView); });
-    var badge = $('#reviewCount'); badge.textContent = fmtN(R.filtered.length) + ' OF ' + fmtN(R.rows.length) + ' ROWS'; badge.className = 'result-badge ok';
+    outBadge();
     if (sheetView) { drawOutGrid(keep); return; }
     var pages = Math.max(1, Math.ceil(R.filtered.length / PAGE));
     R.page = Math.max(0, Math.min(R.page, pages - 1));
@@ -1113,10 +1136,16 @@
     $('#reviewPage').textContent = 'Page ' + (R.page + 1) + ' of ' + pages + ' · ' + PAGE + ' rows per page';
     $('#reviewPrev').disabled = R.page <= 0; $('#reviewNext').disabled = R.page >= pages - 1;
   }
+  // v1.9.0: the rows badge counts what the column filters leave too (Sheet view), not only the search / dropdowns above.
+  function outBadge() {
+    var R = state.review, badge = $('#reviewCount'); if (!R || !badge) return;
+    var shown = wb.outView === 'sheet' && wb.outGrid ? wb.outGrid.count() : R.filtered.length;
+    badge.textContent = fmtN(shown) + ' OF ' + fmtN(R.rows.length) + ' ROWS'; badge.className = 'result-badge ok';
+  }
   function drawOutGrid(keep) {
     var R = state.review;
     var cols = R.head.map(function (h, i) { return h === '__EXPORT_VISIBLE__' ? -1 : i; }).filter(function (i) { return i >= 0; });
-    if (!wb.outGrid) wb.outGrid = window.PHFSheetGrid.create($('#reviewGrid'), { search: false, onView: function () { renderScopes(); renderOutActions(); },
+    if (!wb.outGrid) wb.outGrid = window.PHFSheetGrid.create($('#reviewGrid'), { search: false, onView: function () { renderScopes(); renderOutActions(); outBadge(); },
       onTick: function (id, on) { setKeep(id, !on); } });              // v1.8.0: Update in POS ticks in the headings
     var look = keptLook(window.PHFSheetLook.forSheet(SHEETS.OUT, R.head), R.head, 'out', R.idx['ROW STATUS']);
     var marks = state.edits.marks[SHEETS.OUT] || {}, mk = {};
@@ -1284,7 +1313,7 @@
     empty.hidden = !!(rows.length > 2) || !canStart;
     if (!empty.hidden) empty.innerHTML = '<strong>' + esc(inputDef(t.input).title) + ' is not loaded.</strong> Drop the ' + esc(t.sheet) + ' file in Drop All, or click a cell below and type or paste (Ctrl+V) rows to start the table — it is saved in this browser.';
     grid.hidden = false;
-    if (!wb.grid) wb.grid = window.PHFSheetGrid.create(grid, { search: true, onView: function () { var tt = wbTab(wb.active); if (tt.engine) renderWbActions(tt); } });
+    if (!wb.grid) wb.grid = window.PHFSheetGrid.create(grid, { search: true, onView: function () { var tt = wbTab(wb.active); if (tt.engine) renderWbActions(tt); wbBadge(); } });
     var head = rows[1] || [], data = rows.slice(2), look = window.PHFSheetLook.forSheet(t.sheet, head);
     var edit = null, marks = null;
     if (t.input && !t.readOnly) {
@@ -1304,8 +1333,14 @@
       : t.engine ? 'Made by ' + t.by + ' · editable — Export TXT again puts your edits in the POS file'
       : (state.results[t.sheet] ? 'As the merge left it (SRC STATUS filled in by stage 2) · ' : 'Input · ' + inputDef(t.input).title + ' · ') + 'editable — saved in this browser; run the stages again to use changes';
     $('#wbSheetSub').textContent = sub;
-    badge.textContent = fmtN(data.length) + ' ROWS'; badge.className = 'result-badge' + (data.length ? ' ok' : '');
+    wbBadge();
     renderWbActions(t);
+  }
+  // v1.9.0: N OF M ROWS while a search or column filter is on.
+  function wbBadge() {
+    var badge = $('#wbSheetCount'); if (!badge || !wb.grid) return;
+    var all = wb.gridRows || 0, shown = wb.grid.filtered() ? wb.grid.count() : all;
+    badge.textContent = (shown !== all ? fmtN(shown) + ' OF ' : '') + fmtN(all) + ' ROWS'; badge.className = 'result-badge' + (all ? ' ok' : '');
   }
   function renderWbActions(t) {
     var host = $('#wbActions'); if (!host) return;

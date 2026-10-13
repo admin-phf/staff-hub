@@ -1,4 +1,13 @@
-# Prahran Health Foods — CH2 Reconciler v2.11.0
+# Prahran Health Foods — CH2 Reconciler v2.11.2
+
+## v2.11.2 — ✕ on each input row (13 Oct 2026 16:00 AEDT)
+
+- Every loaded row in the Input Files rail has its own ✕, the same as Build POS Master Databases and POS New Product
+  Check Clean. On POS / master or Ongoing Discounts it deletes that saved reference from this browser; on POS back-end
+  order or Supplier invoices it removes those order files. It happens straight away (no confirm). Clear order files and
+  Clear all input files are unchanged.
+- v2.11.1 (Staff Hub v21.18.0): buttons in Sentence case at one height, a finished step is one line with a green tick,
+  the result numbers in one navy strip.
 
 ## v2.11.0 — split invoice lines, Integrity REVIEW, leave prompt (12 Oct 2026 12:05 AEDT)
 
