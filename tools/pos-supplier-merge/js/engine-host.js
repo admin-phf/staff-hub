@@ -1,4 +1,11 @@
-/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.4.0 (13 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.5.0 (14 Oct 2026)
+ * v1.5.0: upload checks on every OUT_POS_INSERT / OUT_POS_UPDATE row after stage 3 (uploadChecks): hold (RRP below WSP,
+ *   last price under half the WSP, barcode check digit, a new product whose barcode or Sub ID POS already has — the page
+ *   unticks these), check (WSP / RRP moves more than 40 %, brand / Sub ID / size differ from POS, a discontinued product
+ *   with stock on hand or a price change) and fixed (box / display WSP ÷ pack count, SELL text and repeated words taken
+ *   out of descr / pos desc, a ZZZZ brand / descr made consistent — ZEN is no longer "EN", ZZEAGLE is EAGLE). The run's
+ *   info.checks = { OUT_POS_INSERT: { sheetRow: { level, notes, fix } }, OUT_POS_UPDATE: {…}, n }. runOpts is set for
+ *   every generate now (checks: false turns the checks off).
  * v1.4.0: OUT_MERGED_DATA's TYPE (AM) goes to packaging (BS) and from there to POS (the INSERT / UPDATE packaging field);
  *   refineTypes() after stage 2 / Refresh: a "STICK" alone is no longer SACHETS (deodorant, zinc, lip, balm sticks →
  *   TOPICAL; smudge / dental sticks → no type), SACH / SACHS / SACHE (also glued to a size, SACH12G; not SACHA INCHI) and
@@ -66,7 +73,7 @@
     return {
       setup: typeof G.SCRIPT_VERSION !== 'undefined' ? G.SCRIPT_VERSION : '',
       merge: (typeof G.M13 !== 'undefined' && G.M13 && G.M13.VERSION) ? G.M13.VERSION : '',
-      host: 'v1.2.1',
+      host: 'v1.5.0',
       worker: isWorker
     };
   }
@@ -376,6 +383,177 @@
     });
     return n;
   }
+  // ------------------------------------------------ v1.5.0 upload checks on OUT_POS_INSERT / OUT_POS_UPDATE
+  /* After the keep / discontinue filter, every POS row is checked before it goes to the TXT files. Three levels:
+   *   hold  — the row would damage POS (RRP below WSP, a last price under half the WSP, a bad barcode, a new product POS
+   *           already has): the page unticks its Upload tick, so it stays out of the TXT until Kenneth ticks it.
+   *   check — plausibly right, worth a look (price moved more than 40 %, brand / Sub ID / size differ from POS, a
+   *           discontinued product with stock on hand or a price change): stays in the TXT, amber on the tab.
+   *   fixed — the row was changed here and says so (box / display WSP divided by the pack count, SELL text or a
+   *           repeated word taken out of the description, a ZZZZ brand / descr made consistent).
+   * The result goes back with the run as info.checks = { OUT_POS_INSERT: { sheetRow: { level, notes, fix } }, … }.
+   * Row fields: 1 barcode / PLU, 2 sub id, 3 brand, 4 descr, 5 pos desc, 8 supplier, 12 wsp, 13 last, 15 rrp, 30 soh. */
+  var SIZE_RE = /(\d+(?:\.\d+)?)\s*(KG|G|GM|GRAMS?|ML|LT|L|MG|MCG)\b/g, COUNT_RE = /\b(\d{1,4})\s*(T|TABS?|TABLETS?|C|CAPS?|CAPSULES?|VC|S|SG|SOFTGELS?|LOZ|SACH\w*|PK|PACK|PADS?|TEABAGS?|TB)\b/g;
+  function num(v) { var t = String(v == null ? '' : v).replace(/[$,%\s]/g, ''); return t !== '' && isFinite(Number(t)) ? Number(t) : 0; }
+  function money(n) { return (Math.round(n * 100) / 100).toFixed(2); }
+  function pct(a, b) { return b > 0 ? Math.abs(a - b) / b : 0; }
+  function gs1Ok(d) {                                         // EAN-8 / UPC-A / EAN-13 / GTIN-14 check digit
+    var s = 0; for (var i = 0; i < d.length - 1; i++) s += Number(d.charAt(d.length - 2 - i)) * (i % 2 === 0 ? 3 : 1);
+    return (10 - (s % 10)) % 10 === Number(d.charAt(d.length - 1));
+  }
+  function up(v) { return String(v == null ? '' : v).toUpperCase().replace(/\s+/g, ' ').trim(); }
+  function stripZ(v) { return up(v).replace(/^(?:Z{2,}\s*)+/, '').trim(); }
+  function uniq(a) { var o = [], m = {}; a.forEach(function (x) { if (!m[x]) { m[x] = 1; o.push(x); } }); return o; }
+  function sizeKey(text) { var m, t = up(text).replace(/\bGM\b|\bGRAMS?\b/g, 'G').replace(/\d+\s*%/g, ' '), out = []; SIZE_RE.lastIndex = 0; while ((m = SIZE_RE.exec(t))) out.push(Number(m[1]) + (m[2] === 'LT' ? 'L' : m[2] === 'GM' ? 'G' : m[2])); return uniq(out); }
+  function countKey(text) { var m, t = up(text), out = []; COUNT_RE.lastIndex = 0; while ((m = COUNT_RE.exec(t))) out.push(m[1]); return uniq(out); }   // the number only: 60C, 60VC and 60SG are one pack
+  function shares(a, b) { return a.some(function (x) { return b.indexOf(x) >= 0; }); }
+  // The pack count in a box / display description: "7G X 20 DISPLAY", "35G 12", "12 X 35G", "20 PK", "X 20 DISPLAY".
+  function packCount(descr) {
+    var t = up(descr), m;
+    if ((m = t.match(/\b(\d+(?:\.\d+)?)\s*(?:G|GM|ML|KG|L|LT|MG)\s*X\s*(\d{1,3})\b/))) return Number(m[2]);
+    if ((m = t.match(/\b(\d{1,3})\s*X\s*\d+(?:\.\d+)?\s*(?:G|GM|ML|KG|L|LT|MG)\b/))) return Number(m[1]);
+    if ((m = t.match(/\bX\s*(\d{1,3})\s*(?:DISPLAY|DISP|PK|PACK|BOX|CTN|CARTON|TRAY)\b/))) return Number(m[1]);
+    if ((m = t.match(/\b(\d{1,3})\s*(?:DISPLAY|DISP|CTN|CARTON|TRAY|BOX)\b/))) return Number(m[1]);
+    if ((m = t.match(/\b\d+(?:\.\d+)?\s*(?:G|GM|ML|KG|L|LT)\s+(\d{1,3})$/))) return Number(m[1]);   // "35G 12"
+    return 0;
+  }
+  // Description clean-up: "SELL" left from SELL THROUGH, a word repeated straight after itself (210G 210G, CREAT CREAT), the
+  // brand prefix repeated later (CABOT DR CABOT …) and 210GM 210G. Returns '' when nothing changed.
+  var DOUBLED = { PAW: 1, YLANG: 1, AGAR: 1, BYE: 1, CHA: 1, BON: 1, PIRI: 1, TUK: 1, MAHI: 1, COUS: 1, GOJI: 0, NIGHT: 0 };   // real doubled words (PAW PAW)
+  function cleanDescr(descr) {
+    var s = up(descr); if (!s) return '';
+    var t = s.replace(/\bSELL\s*(?:THROUGH|THRU)\b/g, ' ').replace(/\bSELLTHRU\b/g, ' ').replace(/\bSELL\b/g, ' ').replace(/\s+/g, ' ').trim();
+    var w = t.split(' '), out = [], norm = function (x) { return x.replace(/^(\d+(?:\.\d+)?)GM$/, '$1G'); };
+    for (var i = 0; i < w.length; i++) {
+      if (i > 0 && w[i].length > 1 && !DOUBLED[w[i]] && norm(w[i]) === norm(w[i - 1])) continue;   // 210G 210G, K2 K2, CREAT CREAT (not MP T T …, PAW PAW)
+      if (i > 1 && i <= 3 && w[i] === w[0] && w[0].length >= 5 && !/^\d/.test(w[0])) continue;   // CABOT DR CABOT …, PRANA SPORT PRANA … (not PROT SUPP … PROT)
+      out.push(w[i]);
+    }
+    t = out.join(' ');
+    return t !== s ? t : '';
+  }
+  // MELROSE ORGANIC / MELROSE, ENDURA SPORT / ENDURA, BOOKS CABOT HEALTH / CABOT HEALTH: the same brand family, not a wrong match.
+  function sameFamily(a, b) { var wa = a.split(' ')[0], wb = b.split(' ')[0]; return wa === wb || a.indexOf(b) >= 0 || b.indexOf(a) >= 0; }
+  function posDescOf(descr) { return typeof G.m13PosDesc_ === 'function' ? G.m13PosDesc_(descr) : up(descr); }
+  // POS lookups for the checks: by barcode, by supplier + sub id, the live brand names and the prefix words.
+  function posIndex(pos) {
+    var t = shim.ss._find('TMP_MERGED_POS_DATA'), ix = { bc: {}, sub: {}, brands: {}, words: {} }; if (!t || !pos) return ix;
+    var c = pos.col, cB = c['POS MASTER BARCODE'], cM = c['POS MAIN ID'], cS = c['POS SUPPLIER'], cI = c['POS SUB ID'], cBr = c['POS BRAND'], cP = c['POS PLU'];
+    for (var r = 2; r < t.cells.length; r++) {
+      var row = t.cells[r]; if (!row) continue;
+      var plu = pluKey(row[cP]);
+      [cB, cM].forEach(function (ci) { if (ci === undefined) return; var k = bcKey(row[ci]); if (k && !ix.bc[k]) ix.bc[k] = plu; });
+      if (cS !== undefined && cI !== undefined) { var sk = pluKey(row[cS]) + '|' + up(row[cI]); if (up(row[cI]) && !ix.sub[sk]) ix.sub[sk] = plu; }
+      if (cBr !== undefined) { var b = up(row[cBr]); if (b && !/^Z{2,}/.test(b)) ix.brands[b] = 1; }
+    }
+    var pf = shim.ss._find('SRC_POS_PRODUCT_PREFIX');
+    if (pf) for (var q = 2; q < pf.cells.length; q++) { var pr = pf.cells[q]; if (!pr) continue; if (up(pr[0])) ix.brands[up(pr[0])] = 1; if (up(pr[1])) ix.words[up(pr[1])] = 1; }
+    ix.renamed = {};                                                                       // SUP BRAND → POS BRAND (Brand Name Changes): an expected brand change
+    var bn = shim.ss._find('SRC_POS_BRAND_NAME_CHANGES');
+    if (bn) for (var z = 2; z < bn.cells.length; z++) { var br = bn.cells[z]; if (!br) continue; var a = up(br[1]), b = up(br[2]); if (a && b) { ix.renamed[a + '>' + b] = 1; ix.renamed[b + '>' + a] = 1; } }
+    return ix;
+  }
+  // "ZZZZ " + the brand / descr with every ZZZ… marker gone. A ZZ glued to a known brand or prefix word (ZZEAGLE, ZZWELEDA)
+  // is a marker too; a real word starting with Z (ZEN, ZINC) is not.
+  function zzzzBrand(v, ix) {
+    var rest = up(v).replace(/^(?:Z{3,}\s*)+/, '').trim(), m = rest.match(/^ZZ([A-Z].*)$/);
+    if (m && (ix.brands[m[1]] || ix.words[m[1].split(' ')[0]])) rest = m[1];
+    return rest ? 'ZZZZ ' + rest : '';
+  }
+  function zzzzDescr(engineDescr, posDescr, ix) {
+    var cur = up(engineDescr); if (!/^ZZZZ /.test(cur) || !up(posDescr)) return '';
+    var right = up(posDescr).replace(/^(?:Z{3,}\s*)+/, '').trim(), m = right.match(/^ZZ([A-Z]\S*)(.*)$/);
+    if (m && (ix.brands[m[1]] || ix.words[m[1]])) right = (m[1] + m[2]).trim();         // ZZWELEDA … → WELEDA …
+    var buggy = up(posDescr).replace(/^Z+\s*/, '').replace(/^Z+\s*/, '').trim();          // what the script starts from (every leading Z gone)
+    if (buggy === right || cur.indexOf('ZZZZ ' + buggy) !== 0) return '';
+    return 'ZZZZ ' + right + cur.slice(('ZZZZ ' + buggy).length);                           // the script's own suffix (60TABS 60T) stays
+  }
+  function uploadChecks(built, pos, opts) {
+    var ix = posIndex(pos), col = pos ? pos.col : {}, keep = {}, out = { OUT_POS_INSERT: {}, OUT_POS_UPDATE: {}, n: { hold: 0, check: 0, fixed: 0, rows: 0 } };
+    (opts && opts.keep || []).forEach(function (g) { keep[g] = 1; });
+    var P = function (p, name) { var ci = col[name]; return p && ci !== undefined ? p[ci] : ''; };
+    var seen = { bc: {}, sub: {} };
+    function one(row, sheet, status, i) {
+      var notes = [], fix = {}, level = '';
+      var hold = function (t) { notes.push({ k: 'hold', t: t }); level = 'hold'; };
+      var check = function (t) { notes.push({ k: 'check', t: t }); if (!level) level = 'check'; };
+      var fixed = function (t, c, old) { notes.push({ k: 'fixed', t: t }); if (c !== undefined) fix[c] = String(old == null ? '' : old); if (!level) level = 'fixed'; };
+      var isNew = sheet === 'OUT_POS_INSERT', disc = status === 'DISCONTINUED';
+      var p = !isNew && pos ? pos.map[String(row[1] == null ? '' : row[1]).trim()] : null;
+      var wsp = num(row[12]), last = num(row[13]), rrp = num(row[15]);
+      // A ZZZZ row: discontinued now, or matched to a product POS already holds as ZZZZ (the supplier still lists it).
+      var zRow = /^Z{3,}/i.test(String(row[3] == null ? '' : row[3])) || /^Z{3,}/i.test(String(row[4] == null ? '' : row[4]));
+      if (p && (disc || zRow)) {
+        var cb = zzzzBrand(row[3], ix), cd = zzzzDescr(row[4], P(p, 'POS DESCR'), ix);
+        if (cb && cb !== up(row[3])) { fixed('Brand made ' + cb + ' (was ' + up(row[3]) + ')', 3, row[3]); row[3] = cb; }
+        cd = cd || up(row[4]);
+        if (/^ZZZZ /.test(cd)) {                                                             // a ZZZZ left inside (ZZZZ PRANA SPORT ZZZZPRANA 40G …), then the usual clean-up
+          var inner = cd.slice(5).replace(/(^|\s)Z{3,}\s*(?=[A-Z])/g, '$1').replace(/(^|\s)Z{3,}(?=\s|$)/g, '$1').replace(/\s+/g, ' ').trim();
+          inner = cleanDescr(inner) || inner;
+          cd = 'ZZZZ ' + inner;
+        }
+        if (cd && cd !== up(row[4])) { fixed('Descr made ' + cd + ' (was ' + up(row[4]) + ')', 4, row[4]); row[4] = cd; var pdn = posDescOf(cd); if (pdn !== up(row[5])) { fix[5] = row[5]; row[5] = pdn; } }
+      }
+      if (disc) {
+        if (p) {
+          var soh = num(P(p, 'POS SOH')); if (soh > 0) check('Still has ' + soh + ' on hand in POS');
+          [[12, 'POS WSP EXCGST', 'WSP'], [13, 'POS LAST PRICE', 'last price'], [15, 'POS RRP INCGST', 'RRP']].forEach(function (f) {
+            var pv = P(p, f[1]); if (String(pv).trim() !== '' && !sameVal(row[f[0]], pv)) check('Discontinuing changes the ' + f[2] + ' ' + money(num(pv)) + ' → ' + money(num(row[f[0]])) + ' (a discontinued product keeps its POS prices)');
+          });
+        } else if (pos) check('PLU ' + row[1] + ' is not in the POS Database');
+        return finish();
+      }
+      // Box / display prices: WSP per display, RRP per item (Melrose). Divide by the pack count when that gives a sensible
+      // margin (new product) or lands near POS's own WSP (matched); keep it when POS sells the box; otherwise hold.
+      var n = packCount(row[4]);
+      if (n >= 2 && wsp > 0) {
+        var per = wsp / n, posW = p ? num(P(p, 'POS WSP EXCGST')) : 0, divide = false;
+        if (posW > 0) { if (pct(per, posW) <= 0.25) divide = true; else if (pct(wsp, posW) > 0.25) hold('Box / display price? WSP ' + money(wsp) + ' for ' + n + ' — POS WSP is ' + money(posW) + ' (÷' + n + ' = ' + money(per) + ')'); }
+        else if (rrp > 0 && wsp > rrp) { if (per <= rrp * 0.85 && per >= rrp * 0.25) divide = true; else hold('Box / display price? WSP ' + money(wsp) + ' for ' + n + ' but RRP ' + money(rrp) + ' per item (÷' + n + ' = ' + money(per) + ')'); }
+        if (divide && !(keep.ws && !isNew)) {
+          fixed('WSP ' + money(wsp) + ' ÷ ' + n + ' = ' + money(per) + ' per item (box / display price)', 12, row[12]); row[12] = money(per); wsp = per;
+          if (last > 0 && last > per * 1.5) { fix[13] = row[13]; row[13] = money(last / n); last = last / n; }
+        }
+      }
+      if (wsp > 0 && rrp > 0 && rrp < wsp) hold('RRP ' + money(rrp) + ' is below the WSP ' + money(wsp));
+      if (wsp > 0 && last > 0 && last < wsp * 0.5) hold('Last price ' + money(last) + ' is under half the WSP ' + money(wsp));
+      if (wsp > 0 && last > 0 && last > wsp * 2) hold('Last price ' + money(last) + ' is more than double the WSP ' + money(wsp));
+      else if (wsp > 0 && last > 0 && last > wsp * 1.5) check('Last price ' + money(last) + ' is well above the WSP ' + money(wsp));
+      if (isNew) {
+        var d = String(row[1] == null ? '' : row[1]).replace(/\D/g, ''), k = bcKey(row[1]);
+        if (!d || String(row[1]).replace(/\s/g, '') !== d) hold('Barcode "' + row[1] + '" is not a number');
+        else if ([8, 12, 13, 14].indexOf(d.length) < 0) check('Barcode ' + d + ' is ' + d.length + ' digits (not EAN-8 / UPC / EAN-13)');
+        else if (!gs1Ok(d)) hold('Barcode ' + d + ' fails its check digit');
+        if (k && ix.bc[k]) hold('POS already has this barcode — PLU ' + ix.bc[k]);
+        if (k) { if (seen.bc[k]) hold('Barcode is on INSERT row ' + seen.bc[k] + ' too'); else seen.bc[k] = i + 3; }
+        var sk = pluKey(row[8]) + '|' + up(row[2]);
+        if (up(row[2]) && ix.sub[sk]) hold('POS already has Sub ID ' + up(row[2]) + ' for supplier ' + pluKey(row[8]) + ' — PLU ' + ix.sub[sk]);
+      } else if (p) {
+        if (!keep.ws) { var pw = num(P(p, 'POS WSP EXCGST')); if (pw > 0 && wsp > 0 && pct(wsp, pw) > 0.4) check('WSP moves ' + (wsp > pw ? 'up' : 'down') + ' ' + Math.round(pct(wsp, pw) * 100) + '% (' + money(pw) + ' → ' + money(wsp) + ')'); }
+        if (!keep.rrp) { var pr = num(P(p, 'POS RRP INCGST')); if (pr > 0 && rrp > 0 && pct(rrp, pr) > 0.4) check('RRP moves ' + (rrp > pr ? 'up' : 'down') + ' ' + Math.round(pct(rrp, pr) * 100) + '% (' + money(pr) + ' → ' + money(rrp) + ')'); }
+        // POS keeps 20 characters of a brand; a pair in Brand Name Changes is an expected change (sub-brand → POS brand).
+        if (!keep.brand) { var pb = stripZ(P(p, 'POS BRAND')), nb = stripZ(row[3]); if (pb && nb && pb.slice(0, 20) !== nb.slice(0, 20) && !ix.renamed[pb + '>' + nb] && !sameFamily(pb, nb)) check('Brand ' + pb + ' → ' + nb); }
+      }
+      if ((isNew || !keep.product) && !zRow) {
+        var cl = cleanDescr(row[4]);
+        if (cl) { fixed('Descr "' + up(row[4]) + '" → "' + cl + '"', 4, row[4]); row[4] = cl; var pd2 = posDescOf(cl); if (pd2 !== up(row[5])) { fix[5] = row[5]; row[5] = pd2; } }
+      }
+      if (p && !keep.product) {                                                            // size / pack after the clean-up: no size in common = look again
+        var pd = P(p, 'POS DESCR'), sz = sizeKey(pd), nz = sizeKey(row[4]), ck = countKey(pd), nk = countKey(row[4]);
+        if (sz.length && nz.length && !shares(sz, nz)) check('Size ' + sz.join('/') + ' → ' + nz.join('/') + ' (POS: ' + up(pd) + ')');
+        else if (ck.length && nk.length && !shares(ck, nk)) check('Pack ' + ck.join('/') + ' → ' + nk.join('/') + ' (POS: ' + up(pd) + ')');
+      }
+      return finish();
+      function finish() {
+        if (!notes.length) return null;
+        out.n[level]++; out.n.rows++;
+        return { level: level, notes: notes, fix: Object.keys(fix).length ? fix : null };
+      }
+    }
+    (built.insertRows || []).forEach(function (row, i) { var r = one(row, 'OUT_POS_INSERT', 'NEW', i); if (r) out.OUT_POS_INSERT[i + 3] = r; });
+    (built.updateRows || []).forEach(function (row, i) { var r = one(row, 'OUT_POS_UPDATE', row.__status || 'MATCHED', i); if (r) out.OUT_POS_UPDATE[i + 3] = r; });
+    return out;
+  }
   // Fields POS cannot take blank: when POS itself has no value there, the merge's value stays.
   var NEED_VALUE = { 10: 1, 11: 1, 15: 1, 16: 1, 17: 1, 18: 1, 19: 1, 20: 1, 21: 1, 22: 1, 23: 1, 24: 1, 25: 1 };
   function installRunHooks() {
@@ -389,9 +567,10 @@
     };
     if (typeof origBuilt === 'function') G.m13BuildPosOutputRowsFromOut_ = function () {
       var built = origBuilt.apply(this, arguments);
-      var minFixed = fixMinOrder(built, posByPlu());                   // v1.3.0: "N/A" min order → 1 / POS's
+      var posAll = posByPlu();
+      var minFixed = fixMinOrder(built, posAll);                       // v1.3.0: "N/A" min order → 1 / POS's
       if (!runOpts) { runInfo = minFixed ? { kept: 0, same: 0, disc: 0, notFound: 0, stock: 0, minOrder: minFixed } : null; return built; }
-      var keep = (runOpts.keep || []).filter(function (g) { return KEEP_COLS[g]; }), noDisc = runOpts.discontinue === false, pos = keep.length ? posByPlu() : null;
+      var keep = (runOpts.keep || []).filter(function (g) { return KEEP_COLS[g]; }), noDisc = runOpts.discontinue === false, pos = keep.length ? posAll : null;
       var info = { kept: 0, same: 0, disc: 0, notFound: 0, stock: 0, minOrder: minFixed };
       // v1.3.0: SUP STOCK IN (M) → a new product's stock on hand (pos soh, the last INSERT field).
       if (runOpts.stock) {
@@ -416,6 +595,7 @@
         if (same) { info.same++; info.kept--; return false; }
         return true;
       });
+      if (runOpts.checks !== false) { try { info.checks = uploadChecks(built, posAll, runOpts); } catch (e) { info.checksError = String(e && e.message ? e.message : e); } }   // v1.5.0
       built.updateRows.forEach(function (row, i) { row[0] = i + 1; delete row.__status; });
       runInfo = info;
       return built;
@@ -510,8 +690,8 @@
         var t0 = Date.now();
         installRunHooks();
         runInfo = null;
-        runOpts = (step === 'generate' && (msg.visible || (msg.keep && msg.keep.length) || msg.discontinue === false || msg.stock))
-          ? { visible: msg.visible || null, keep: msg.keep || [], discontinue: msg.discontinue !== false, stock: !!msg.stock } : null;
+        runOpts = step === 'generate'                                  // v1.5.0: always on for generate (the upload checks run every time)
+          ? { visible: msg.visible || null, keep: msg.keep || [], discontinue: msg.discontinue !== false, stock: !!msg.stock, checks: msg.checks !== false } : null;
         if (step === 'generate' && msg.visible) fnName = 'generateInsertUpdateSheetsFromFilteredData';
         var ret;
         try { ret = step === 'export' && msg.only ? withOnlyRows(msg.only, function () { return G[fnName](); }) : G[fnName](); }

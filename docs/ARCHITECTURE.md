@@ -669,3 +669,60 @@ All implemented stages keep source business files local to the browser and gener
   the edited rows. `KEEP_COLS.product` adds [29, 'POS PACKAGING'].
 - app.js v1.12.0: KEEP_GROUPS.product `upd` / `out` + 'packaging', KEEP_SHOW.product + ['packaging', 'POS PACKAGING'].
   The script files are unchanged (m13StrictTypeFromText_ still decides first).
+
+## Staff Hub v21.23.0 — POS New Product Check Clean v1.13.0: upload checks before the POS files (14 Oct 2026 07:30 AEDT)
+- engine-host v1.5.0 (engine-worker v1.5.0, engine-frame): `uploadChecks(built, posByPlu(), runOpts)` runs inside the
+  `m13BuildPosOutputRowsFromOut_` wrapper after the keep / discontinue filter and before the rows are re-indexed (the
+  rows' `__status` is still there), on every generate — `runOpts` is now set for every generate (`checks: false` turns
+  the checks off). Result: `info.checks = { OUT_POS_INSERT: { sheetRow: { level: 'hold'|'check'|'fixed', notes:
+  [{ k, t }], fix: { col: oldValue } | null } }, OUT_POS_UPDATE: {…}, n: { hold, check, fixed, rows } }`, sheetRow =
+  position + 3. Row fields are the built POS row (0 index, 1 barcode / PLU, 2 sub id, 3 brand, 4 descr, 5 pos desc,
+  8 supplier, 12 wsp, 13 last, 15 rrp, 30 soh). `posIndex(pos)` reads TMP_MERGED_POS_DATA once per generate: barcode →
+  PLU (POS MASTER BARCODE and POS MAIN ID, `bcKey`), supplier|sub id → PLU, the live brand names, the prefix words
+  (SRC_POS_PRODUCT_PREFIX B) and the Brand Name Changes pairs (SRC_POS_BRAND_NAME_CHANGES B ↔ C, `renamed`).
+  - hold: `rrp < wsp`; `last < wsp / 2` or `last > 2 × wsp`; INSERT barcode not a number / `gs1Ok` (EAN-8 / UPC-A /
+    EAN-13 / GTIN-14 check digit) fails / already in POS / twice in the INSERT; INSERT `supplier|sub id` already in POS;
+    a box / display price that does not resolve (`packCount`: "7G X 20 DISPLAY", "12 X 35G", "X 20 PK", "20 DISPLAY",
+    "35G 12" → divide when `wsp / n` is within 25 % of POS's WSP, or for a new product gives 25–85 % of the RRP; keep
+    when the WSP itself is within 25 % of POS's; otherwise hold). Other barcode lengths are a check only.
+  - check: matched WSP / RRP moved > 40 % against POS (skipped when that column is kept); brand differs on the first 20
+    characters (POS's width), not a `renamed` pair and not `sameFamily` (same first word or one contains the other);
+    `sizeKey` (nnG / ML / KG / L / MG, `%` removed) or `countKey` (the number before T / C / VC / S / SG / SACH / PK …)
+    with no value in common; DISCONTINUED with POS SOH > 0; DISCONTINUED wsp / last / rrp ≠ POS (`sameVal`); PLU not in
+    POS. Sub ID changes are not flagged (POS holds old in-house codes; suppliers now use CH2 codes).
+  - fixed: `cleanDescr` — SELL / SELL THROUGH / SELL THRU out; a token repeated straight after itself (210G 210G, K2 K2,
+    CREAT CREAT; 210GM ≡ 210G; 1-letter tokens and `DOUBLED` words such as PAW PAW left alone); the first word (5+
+    letters) repeated at position 2–3 (CABOT DR CABOT, PRANA SPORT PRANA — not PROT SUPP … PROT). pos desc is remade
+    with the script's `m13PosDesc_`. Not applied when SUP PRODUCT is kept (the descr is POS's).
+  - ZZZZ (`zRow`: a DISCONTINUED row, or a matched row whose brand / descr starts with Z{3,} — POS already holds it as
+    ZZZZ): `zzzzBrand` strips Z{3,} runs and a ZZ glued to a known brand / prefix word (ZZEAGLE); `zzzzDescr` mends the
+    script's `m13DiscontinuedDescr_` (it strips every leading Z: ZEN → EN) by rebuilding the start from POS DESCR and
+    keeping the script's own suffix (60TABS 60T); then Z{3,} runs inside the descr go (ZZZZ PRANA SPORT ZZZZPRANA 40G)
+    and `cleanDescr` runs on the rest. `fix` lists the columns changed (3, 4, 5, 12, 13) with the old values.
+  - Only `uploadChecks` touches the rows; the script files are unchanged. A thrown error is reported as
+    `info.checksError` and the run goes on.
+- sheet-grid v1.6.0: `set({ rowFlags: { sourceRow: { level, title, on, cells } }, rowFilter })` and `opts.onRowTick(sourceRow,
+  on)`: with `rowFlags` every row-number cell (70 px) gets `<input data-rtick>`; `tr.wbg-row-hold / -check / -fixed`,
+  `tr.wbg-skip` (unticked), `td.wbg-rn.wbg-rf-*` with the reason as its title, `td.is-fixed` from `cells`. `rowFilter`
+  hides rows on screen only: `st.visAll` (search + column filters) feeds `visible()` / `filtered()`, `st.vis` (with the
+  row filter) the drawing and `count()`; `g.rowFilter(fn)` redraws. A mousedown on the tick never selects the row.
+- app.js v1.13.0: `state.results.checks_generate` (the engine's `info.checks`) and `state.results.upload[sheet][sheetRow]
+  = false` (unticked rows; `setUploadDefaults` unticks every `hold` row after generate) — both are non-array results, so
+  the session keeps them. `rowFlagsFor(sheet)` → the grid's `rowFlags` (title = LEVEL — notes), `uploadRowFilter(sheet,
+  level)` for the Show buttons (`wb.uploadView = { sheet, level }`), `setUploadTick` / `setUploadAll` → `afterTickChange`
+  (`state.edits.ticks`, the stage-3 "Upload ticks changed" message, the TXT download warning, save). `uploadOnly(sheet)`
+  = the ticked Sheet rows (null when all are ticked); `exportOptions(pv)` = `{ only: { sheet: rows } }` for the engine's
+  `withOnlyRows` — stage 3's export step (`runTo`) and Export TXT again (`runExtra`, ∩ the filtered view) both use it.
+  `uploadSummaryText()` joins the stage-3 / export messages; `uploadCounts(sheet)` the badge (N ROWS · M HELD, `warn`)
+  and the "N rows are unticked" pill in `renderWbActions`. `renderUploadPanel(t)` fills `#uploadPanel` (index.html, inside
+  the sheet panel after `#wbActions`): counts, Show held / To check / Fixed / All rows, Tick all held / Untick all held
+  (hold rows only; `holdOn` decides the buttons), the list (hold, check, fixed, then unticked-by-you; `UP_LIST_MAX` 400)
+  with its own ticks and a row-number link (`wb.grid.select(r - 3, 4)` after clearing the row filter).
+  `uploadChecksRows()` → the review workbook's OUT_UPLOAD_CHECKS sheet (after OUT_POS_UPDATE: SHEET, ROW, UPLOAD,
+  LEVEL, BARCODE / PLU, SUB ID, BRAND, DESCR, WSP, LAST, RRP, WHY). Column ticks still apply to OUT_POS_UPDATE only.
+- merge.css v1.13.0: `.wbg-rtick`, the row edges / `.wbg-skip` / `td.is-fixed`, `.result-badge.warn`, `.upload-panel`
+  (`.up-head`, `.up-tools`, `.up-list`, `.up-chip-*`, `.up-note-*`).
+- Testing (14 Oct files, headless Chromium on 8748119 and on this change): the 8748119 run reproduces Kenneth's INSERT
+  (193) and UPDATE (1,918 / 3,100) TXT byte for byte; with the change INSERT 158 (35 held, 4 descr fixed), UPDATE 2,991
+  (109 held, 42 changed: descr / pos desc / brand / wsp / last price only), every other field identical; Discontinue off
+  1,809; Tick all held + Export TXT again puts the 193 back; ticks survive a reload. Details in GITHUB-RELEASE-v21.23.0.md.

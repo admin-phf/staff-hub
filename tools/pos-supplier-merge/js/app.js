@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.12.0 (13 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.13.0 (14 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -85,11 +85,21 @@
  *         pasted at B–D) and with the Paste button; a row-shaped block with no barcode column is flagged at once.
  * v1.12.0 (13 Oct 2026): OUT_MERGED_DATA's TYPE (AM) is the packaging (BS) POS gets (engine-host v1.4.0, which also
  *         fixes SACHETS: STICK alone is not a sachet; SACH abbreviations and single-serve packs are). SUP PRODUCT's
- *         Update in POS tick covers packaging too (unticked = POS keeps its packaging). */
+ *         Update in POS tick covers packaging too (unticked = POS keeps its packaging).
+ * v1.13.0 (14 Oct 2026): upload checks before the TXT files (engine-host v1.5.0 uploadChecks). Every OUT_POS_INSERT /
+ *         OUT_POS_UPDATE row has an Upload tick in its row number (sheet-grid v1.6.0): a row the checks HOLD (RRP below
+ *         WSP, last price under half the WSP, barcode check digit, a new product POS already has by barcode or Sub ID)
+ *         starts unticked and stays out of the TXT until it is ticked; CHECK rows (price moved more than 40 %, brand /
+ *         Sub ID / size differ from POS, a discontinued product with stock on hand or a price change) and FIXED rows
+ *         (box / display WSP ÷ pack count, SELL text or a repeated word taken out of the description, ZZZZ brand / descr
+ *         made consistent) stay ticked and are coloured. The "Upload checks" list above the tab shows every flagged row
+ *         with its reason, Show held / to check / fixed / all buttons, Tick all / Untick all held. Stage 3 and Export TXT
+ *         again write only the ticked rows (uploadOnly → the engine's `only`); the ticks are kept with the session and
+ *         the review workbook has an OUT_UPLOAD_CHECKS sheet. Column ticks (Update in POS) never apply to INSERT rows. */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.12.0';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.13.0';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -127,7 +137,7 @@
     storage: 'indexeddb',
     // v1.5.0 sheet edits: engine sheets (OUT / OUT_POS_*) — cells changed here (marks), undo depth kept by the engine,
     // OUT edited after stage 3, OUT_POS_* edited after the last export, UPDATED SUPPLIER changes waiting for Refresh.
-    edits: { marks: {}, undo: {}, outAfter3: false, pos: {}, busy: false, optsAfter3: false },
+    edits: { marks: {}, undo: {}, outAfter3: false, pos: {}, busy: false, optsAfter3: false, ticks: false },   // v1.13.0 ticks: Upload ticks changed since the last export
     pendingSup: 0,
     // v1.6.0: POS update options (keep[group] = POS keeps its value for matched products), the SUP BRAND scope the engine
     // was loaded with, and the scope the results were made with.
@@ -320,12 +330,12 @@
       kind = 'in-page';
       frame = document.createElement('iframe');
       frame.hidden = true; frame.title = 'POS New Product Check Clean engine';
-      frame.src = './engine-frame.html?v=1.2.1';
+      frame.src = './engine-frame.html?v=1.5.0';
       window.addEventListener('message', frameListener);
       document.body.appendChild(frame);
     }
     try {
-      worker = new Worker('./js/engine-worker.js?v=1.4.0');
+      worker = new Worker('./js/engine-worker.js?v=1.5.0');
       kind = 'worker';
       worker.onmessage = function (ev) { onMsg(ev.data); };
       worker.onerror = function (ev) {
@@ -770,7 +780,8 @@
     return state.engine.send(Object.assign({ cmd: 'run', step: step }, extra || {})).then(function (res) {
       if (alertFailed(res)) { var e = new Error(alertsText(res)); e.detail = res; throw e; }
       if (step === 'highlight') state.resultScope = state.loadedScope ? JSON.parse(state.loadedScope) : null;
-      if (step === 'generate') { state.results.info_generate = res.info || null; state.results.keep_generate = (extra && extra.keep) || []; state.results.scope_generate = (extra && extra.visible) ? { rows: extra.visible.length, of: (state.results[SHEETS.OUT] || []).length - 2 } : null; state.edits.optsAfter3 = false; }
+      if (step === 'generate') { state.results.info_generate = res.info || null; state.results.keep_generate = (extra && extra.keep) || []; state.results.scope_generate = (extra && extra.visible) ? { rows: extra.visible.length, of: (state.results[SHEETS.OUT] || []).length - 2 } : null; state.edits.optsAfter3 = false; setUploadDefaults(res.info && res.info.checks); }   // v1.13.0
+      if (step === 'export') state.edits.ticks = false;
       Object.keys(res.sheets || {}).forEach(function (n) { state.results[n] = res.sheets[n]; delete state.edits.marks[n]; });
       if (step === 'export') state.results.files = res.files || [];
       state.pendingSup = res.pending || 0;
@@ -802,6 +813,7 @@
     if (inf && (inf.kept || inf.same)) extra += ' POS kept its ' + keptGroups(state.results.keep_generate || []).filter(function (g) { return !g.use; }).map(function (g) { return g.what; }).join(', ') + ' for ' + fmtN(inf.kept) + ' matched product' + (inf.kept === 1 ? '' : 's') + (inf.same ? '; ' + fmtN(inf.same) + ' left out (same as POS)' : '') + '.';
     if (inf && inf.disc) extra += ' ' + fmtN(inf.disc) + ' discontinued product' + (inf.disc === 1 ? '' : 's') + ' left out (Discontinue is off).';
     if (sc) extra += ' Made from the ' + fmtN(sc.rows) + ' OUT_MERGED_DATA rows shown (filtered, of ' + fmtN(sc.of) + ').';
+    extra += uploadSummaryText();   // v1.13.0
     return 'Complete — ' + (g ? String(g.msg || '').split('\n')[0] : '') + ' · ' + files.length + ' TXT file' + (files.length === 1 ? '' : 's') + ' ready.' + extra +
       (left ? ' ' + fmtN(left) + ' OUT row' + (left === 1 ? ' is' : 's are') + ' still SUP OVERRIDE PENDING (supplier in G not found).' : '');
   }
@@ -828,7 +840,7 @@
           var steps = Promise.resolve();
           // v1.5.0: UPDATED SUPPLIER changes still waiting are refreshed first, so stage 3 uses them.
           var list = s.id === 'export' && state.pendingSup > 0 ? ['refresh'].concat(s.steps) : s.steps;
-          list.forEach(function (step) { steps = steps.then(function () { return runStep(step, step === 'generate' ? generateOptions() : null); }); });
+          list.forEach(function (step) { steps = steps.then(function () { return runStep(step, step === 'generate' ? generateOptions() : step === 'export' ? exportOptions(null) : null); }); });   // v1.13.0 exportOptions
           return steps.then(function () {
             stageSet(s.id, 'done', stageSummary(s.id));
             gpct(Math.round(((i + 1) / (tIdx + 1)) * 100));
@@ -893,6 +905,128 @@
     if (!t.engine || !wb.grid || !wb.grid.filtered()) return null;
     return { sheet: t.sheet, rows: wb.grid.visible().map(function (i) { return i + 3; }), total: Math.max(0, (state.results[t.sheet] || []).length - 2) };
   }
+  // ------------------------------------------------- v1.13.0 upload checks (hold / check / fixed) and Upload ticks
+  /* Stage 3 (engine-host v1.5.0 uploadChecks) sends back info.checks = { OUT_POS_INSERT: { sheetRow: { level, notes, fix } },
+     OUT_POS_UPDATE: {…} }. state.results.checks_generate keeps it; state.results.upload[sheet][sheetRow] = false is an
+     unticked row (held rows start unticked). Both come back with the session. The TXT files are made from the ticked rows
+     only (exportOptions → the engine's `only`, through withOnlyRows), on stage 3 and on Export TXT again. */
+  var LEVEL_NAME = { hold: 'Held', check: 'Check', fixed: 'Fixed', '': 'Unticked' };
+  function checksFor(sheet) { var c = state.results.checks_generate; return c && c[sheet] ? c[sheet] : {}; }
+  function uploadOff(sheet) { var u = state.results.upload; return u && u[sheet] ? u[sheet] : {}; }
+  function setUploadDefaults(checks) {
+    state.results.checks_generate = checks || null;
+    var u = {};
+    [SHEETS.INS, SHEETS.UPD].forEach(function (n) { u[n] = {}; var c = (checks && checks[n]) || {}; Object.keys(c).forEach(function (r) { if (c[r].level === 'hold') u[n][r] = false; }); });
+    state.results.upload = u; state.edits.ticks = false; wb.uploadView = null;
+  }
+  function uploadCounts(sheet) {
+    var c = checksFor(sheet), off = uploadOff(sheet), n = { hold: 0, holdOn: 0, check: 0, fixed: 0, off: 0, rows: Math.max(0, (state.results[sheet] || []).length - 2) };
+    Object.keys(c).forEach(function (r) { if (n[c[r].level] !== undefined) n[c[r].level]++; if (c[r].level === 'hold' && off[r] !== false) n.holdOn++; });
+    Object.keys(off).forEach(function (r) { if (off[r] === false) n.off++; });
+    return n;
+  }
+  function noteText(ch) { return (ch.notes || []).map(function (x) { return x.t; }).join(' · '); }
+  function rowFlagsFor(sheet) {
+    var c = checksFor(sheet), off = uploadOff(sheet), f = {};
+    Object.keys(c).forEach(function (r) { var ch = c[r], i = Number(r) - 3; f[i] = { level: ch.level, title: LEVEL_NAME[ch.level].toUpperCase() + ' — ' + noteText(ch) + (off[r] === false ? ' · Unticked: not in the POS TXT until ticked.' : ''), on: off[r] !== false, cells: ch.fix || null }; });
+    Object.keys(off).forEach(function (r) { var i = Number(r) - 3; if (off[r] === false && !f[i]) f[i] = { level: '', title: 'Unticked — this row stays out of the POS TXT file until it is ticked.', on: false }; });
+    return f;
+  }
+  function uploadRowFilter(sheet, level) {
+    var c = checksFor(sheet), off = uploadOff(sheet);
+    if (!level) return null;
+    if (level === 'off') return function (i) { return off[i + 3] === false; };
+    return function (i) { var ch = c[i + 3]; return !!ch && ch.level === level; };
+  }
+  function afterTickChange(t, redraw) {
+    if ((state.stage.export || {}).status === 'done') { state.edits.ticks = true; stageMsg('export', 'Upload ticks changed — use Export TXT again (on the tab) to make the POS files from the ticked rows.', 'ready'); }
+    if (redraw) wbShow(wb.active, true); else { wbBadge(); renderWbActions(t); renderUploadPanel(t); }
+    renderOutputs(); saveSessionSoon();
+  }
+  function setUploadTick(sheet, row, on) {
+    var u = state.results.upload || (state.results.upload = {}); u[sheet] = u[sheet] || {};
+    if (on) delete u[sheet][row]; else u[sheet][row] = false;
+    afterTickChange(wbTab(wb.active), false);
+  }
+  function setUploadAll(sheet, level, on) {
+    var c = checksFor(sheet), u = state.results.upload || (state.results.upload = {}); u[sheet] = u[sheet] || {};
+    Object.keys(c).forEach(function (r) { if (level && c[r].level !== level) return; if (on) delete u[sheet][r]; else u[sheet][r] = false; });
+    if (on && !level) u[sheet] = {};
+    afterTickChange(wbTab(wb.active), true);
+  }
+  // The ticked rows of a POS sheet as Sheet rows, or null when every row is ticked.
+  function uploadOnly(sheet) {
+    var off = uploadOff(sheet), n = Math.max(0, (state.results[sheet] || []).length - 2), any = false, rows = [];
+    for (var r = 3; r < n + 3; r++) { if (off[r] === false) any = true; else rows.push(r); }
+    return any ? rows : null;
+  }
+  // What 'export' gets: the ticked rows, narrowed to the filtered view of the tab on screen (pv) when there is one.
+  function exportOptions(pv) {
+    var only = {}, any = false;
+    [SHEETS.INS, SHEETS.UPD].forEach(function (n) {
+      var t = uploadOnly(n), v = pv && pv.sheet === n ? pv.rows : null;
+      if (!t && !v) return;
+      if (t && v) { var m = {}; t.forEach(function (r) { m[r] = 1; }); t = v.filter(function (r) { return m[r]; }); }
+      only[n] = t || v; any = true;
+    });
+    return any ? { only: only } : null;
+  }
+  function uploadSummaryText() {
+    var parts = [];
+    [SHEETS.INS, SHEETS.UPD].forEach(function (n) {
+      if (!state.results[n]) return;
+      var c = uploadCounts(n); if (!(c.hold || c.check || c.fixed || c.off)) return;
+      parts.push(n.replace('OUT_POS_', 'POS ') + ': ' + [c.off ? fmtN(c.off) + ' held (unticked, not in the TXT)' : '', c.check ? fmtN(c.check) + ' to check' : '', c.fixed ? fmtN(c.fixed) + ' fixed' : ''].filter(Boolean).join(', '));
+    });
+    var err = state.results.info_generate && state.results.info_generate.checksError;
+    return (parts.length ? ' Upload checks — ' + parts.join('; ') + '. See the OUT_POS_INSERT / UPDATE tabs.' : '') + (err ? ' Upload checks did not run: ' + err : '');
+  }
+  function levelOrder(l) { return l === 'hold' ? 0 : l === 'check' ? 1 : l === 'fixed' ? 2 : 3; }
+  // The rows for the review workbook's OUT_UPLOAD_CHECKS sheet (row 1 totals, row 2 headings, then the flagged rows).
+  function uploadChecksRows() {
+    var head = ['SHEET', 'ROW', 'UPLOAD', 'LEVEL', 'BARCODE / PLU', 'SUB ID', 'BRAND', 'DESCR', 'WSP EXCGST', 'LAST PRICE', 'RRP INCGST', 'WHY'], data = [], tot = { hold: 0, check: 0, fixed: 0, off: 0 };
+    [SHEETS.INS, SHEETS.UPD].forEach(function (n) {
+      var c = checksFor(n), off = uploadOff(n), rows = state.results[n] || [];
+      var keys = Object.keys(c); Object.keys(off).forEach(function (r) { if (off[r] === false && !c[r]) keys.push(r); });
+      keys.map(Number).sort(function (a, b) { var la = c[a] ? c[a].level : '', lb = c[b] ? c[b].level : ''; return levelOrder(la) - levelOrder(lb) || a - b; }).forEach(function (r) {
+        var row = rows[r - 1] || [], ch = c[r], lv = ch ? ch.level : '';
+        if (tot[lv] !== undefined) tot[lv]++; if (off[r] === false) tot.off++;
+        data.push([n, r, off[r] === false ? 'NO' : 'YES', LEVEL_NAME[lv].toUpperCase(), row[1] || '', row[2] || '', row[3] || '', row[4] || '', row[12] || '', row[13] || '', row[15] || '', ch ? noteText(ch) : '']);
+      });
+    });
+    if (!data.length) return null;
+    var t = new Array(head.length).fill(''); t[0] = fmtN(data.length) + ' ROWS'; t[2] = fmtN(tot.off) + ' UNTICKED'; t[3] = 'HELD ' + fmtN(tot.hold) + ' · CHECK ' + fmtN(tot.check) + ' · FIXED ' + fmtN(tot.fixed);
+    return [t, head].concat(data);
+  }
+  // The "Upload checks" list above an OUT_POS_INSERT / UPDATE tab: counts, Show buttons (a view of the tab, never the export),
+  // Tick / Untick all held, and every flagged row with its reason and its own Upload tick.
+  var UP_LIST_MAX = 400;
+  function renderUploadPanel(t) {
+    var host = $('#uploadPanel'); if (!host) return;
+    if (!t || !t.engine || !state.results[t.sheet]) { host.hidden = true; host.innerHTML = ''; return; }
+    var sheet = t.sheet, c = checksFor(sheet), off = uploadOff(sheet), n = uploadCounts(sheet), rows = state.results[sheet] || [];
+    var view = wb.uploadView && wb.uploadView.sheet === sheet ? wb.uploadView.level : '';
+    var keys = Object.keys(c); Object.keys(off).forEach(function (r) { if (off[r] === false && !c[r]) keys.push(r); });
+    keys = keys.map(Number).sort(function (a, b) { var la = c[a] ? c[a].level : '', lb = c[b] ? c[b].level : ''; return levelOrder(la) - levelOrder(lb) || a - b; });
+    var busy = state.busy || state.edits.busy, file = t.id === 'upd' ? 'POS UPDATE' : 'POS INSERT';
+    var btn = function (lv, label, count) { return '<button type="button" class="btn small' + (view === lv ? ' is-on' : '') + '" data-upview="' + lv + '"' + (lv && !count ? ' disabled' : '') + '>' + label + (lv ? ' (' + fmtN(count) + ')' : '') + '</button>'; };
+    host.hidden = false;
+    host.innerHTML =
+      '<div class="up-head"><div class="up-title"><strong>Upload checks</strong><span class="up-sub">' + (keys.length ? fmtN(keys.length) + ' of ' + fmtN(n.rows) + ' rows flagged · ' + (n.off ? '<b class="up-held">' + fmtN(n.off) + ' held</b> (unticked — not in the ' + file + ' TXT until ticked)' : 'nothing held') + ' · ' + fmtN(n.check) + ' to check · ' + fmtN(n.fixed) + ' fixed' : 'Nothing flagged — every row is ticked for the ' + file + ' TXT.') + '</span></div>' +
+      '<div class="up-tools" role="group" aria-label="Show rows">' + btn('off', 'Show held', n.off) + btn('check', 'To check', n.check) + btn('fixed', 'Fixed', n.fixed) + btn('', 'All rows', 0) +
+      (n.hold ? '<span class="up-gap"></span><button type="button" class="btn small" data-upall="on"' + (busy || n.holdOn >= n.hold ? ' disabled' : '') + ' title="Tick every held row — they go into the TXT">Tick all held</button><button type="button" class="btn small" data-upall="off"' + (busy || !n.holdOn ? ' disabled' : '') + ' title="Untick every held row again">Untick all held</button>' : '') + '</div></div>' +
+      (keys.length ? '<div class="up-list-wrap"><table class="up-list"><thead><tr><th>Upload</th><th>Row</th><th>What</th><th>' + (t.id === 'upd' ? 'PLU' : 'Barcode') + '</th><th>Brand</th><th>Descr</th><th>Why</th></tr></thead><tbody>' +
+        keys.slice(0, UP_LIST_MAX).map(function (r) {
+          var row = rows[r - 1] || [], ch = c[r], lv = ch ? ch.level : '', on = off[r] !== false;
+          return '<tr class="up-' + (lv || 'off') + (on ? '' : ' is-off') + '" data-uprow="' + r + '"><td class="up-tick"><input type="checkbox" data-uptick="' + r + '"' + (on ? ' checked' : '') + (busy ? ' disabled' : '') + ' aria-label="Upload row ' + r + '"></td>' +
+            '<td><button type="button" class="up-go" data-upgo="' + r + '" title="Show this row on the sheet">' + r + '</button></td><td><span class="up-chip up-chip-' + (lv || 'off') + '">' + esc(LEVEL_NAME[lv]) + '</span></td>' +
+            '<td class="up-key">' + esc(row[1] == null ? '' : row[1]) + '</td><td>' + esc(row[3] == null ? '' : row[3]) + '</td><td class="up-descr">' + esc(row[4] == null ? '' : row[4]) + '</td><td class="up-why">' + (ch ? ch.notes.map(function (x) { return '<span class="up-note up-note-' + x.k + '">' + esc(x.t) + '</span>'; }).join('') : '<span class="up-note">Unticked by you</span>') + '</td></tr>';
+        }).join('') + '</tbody></table>' + (keys.length > UP_LIST_MAX ? '<div class="up-more">' + fmtN(keys.length - UP_LIST_MAX) + ' more flagged rows — use the Show buttons to see them on the sheet.</div>' : '') + '</div>' : '');
+    host.querySelectorAll('[data-upview]').forEach(function (b) { b.onclick = function () { var lv = b.dataset.upview; wb.uploadView = lv ? { sheet: sheet, level: lv } : null; if (wb.grid) wb.grid.rowFilter(uploadRowFilter(sheet, lv)); renderUploadPanel(t); wbBadge(); }; });
+    host.querySelectorAll('[data-upall]').forEach(function (b) { b.onclick = function () { if (state.busy || state.edits.busy) return; setUploadAll(sheet, 'hold', b.dataset.upall === 'on'); }; });
+    host.querySelectorAll('[data-upgo]').forEach(function (b) { b.onclick = function () { var r = Number(b.dataset.upgo); wb.uploadView = null; if (wb.grid) { wb.grid.rowFilter(null); wb.grid.select(r - 3, 4); } renderUploadPanel(t); wbBadge(); var g = $('#wbGrid'); if (g) g.scrollIntoView({ block: 'nearest' }); }; });
+    host.querySelectorAll('input[data-uptick]').forEach(function (cb) { cb.onchange = function () { if (state.busy || state.edits.busy) { cb.checked = !cb.checked; return; } var u = state.results.upload || (state.results.upload = {}); u[sheet] = u[sheet] || {}; if (cb.checked) delete u[sheet][Number(cb.dataset.uptick)]; else u[sheet][Number(cb.dataset.uptick)] = false; afterTickChange(t, true); }; });
+  }
   // Notes on the stage cards: what the next run will cover.
   function renderScopes() {
     var set = function (id, html) { var el = document.querySelector('[data-stage-scope="' + id + '"]'); if (!el) return; el.innerHTML = html; el.hidden = !html; };
@@ -947,7 +1081,8 @@
       if (!/^txt-/.test(o.key)) return;
       o.warn = state.edits.outAfter3 ? 'Made before your OUT_MERGED_DATA edits — run stage 3 again to include them.'
         : state.edits.optsAfter3 ? 'Made before the Update in POS / Discontinue options changed — run stage 3 again.'
-        : posEd.length ? 'Made before your ' + posEd.join(' / ') + ' edits — use Export TXT again on that tab.' : '';
+        : posEd.length ? 'Made before your ' + posEd.join(' / ') + ' edits — use Export TXT again on that tab.'
+        : state.edits.ticks ? 'Made before your Upload tick changes — use Export TXT again on the OUT_POS_INSERT / UPDATE tab.' : '';   // v1.13.0
     });
     var c = $('#outputCount'); c.textContent = arr.length + ' OUTPUT' + (arr.length === 1 ? '' : 'S'); c.className = 'result-badge' + (arr.length ? ' ok' : '');
     $('#allOutputs').innerHTML = arr.length ? outputRows(arr) : '<div class="empty-output">Run a stage to create its download files.</div>';
@@ -1045,6 +1180,8 @@
     };
     var names = [SHEETS.OUT, SHEETS.INS, SHEETS.UPD, SHEETS.SUP, 'SRC_POS_BRAND_NAME_CHANGES', 'SRC_POS_PRODUCT_PREFIX', 'SRC_POS_SUPPLIERS', 'SRC_POS_ONGOING_DISCOUNTS', 'SRC_POS_FIND_REPLACE'];
     var sheets = names.filter(function (n) { return state.results[n] && state.results[n].length >= 2; }).map(function (n) { return buildXlsxSheet(st, styles, n, n === SHEETS.OUT ? keptRows(state.results[n]) : state.results[n]); });
+    var chk = uploadChecksRows();                                                   // v1.13.0: OUT_UPLOAD_CHECKS after the POS sheets
+    if (chk) sheets.splice(Math.min(3, sheets.length), 0, buildXlsxSheet(st, styles, 'OUT_UPLOAD_CHECKS', chk));
     return X.writeWorkbook(sheets, st, {});
   }
   function brandSummary() {
@@ -1286,7 +1423,7 @@
     { id: 'suppliers', sheet: 'SRC_POS_SUPPLIERS', color: '6d9eeb', input: 'suppliers' },
     { id: 'tmp', sheet: 'TMP_MERGED_POS_DATA', color: '', input: 'pos', readOnly: true }
   ];
-  var wb = { active: 'sup', grid: null, outGrid: null, outView: 'sheet' };
+  var wb = { active: 'sup', grid: null, outGrid: null, outView: 'sheet', uploadView: null };   // v1.13.0 uploadView: { sheet, level } = Show held / to check / fixed on that tab
   function wbTab(id) { return WB_TABS.filter(function (t) { return t.id === id; })[0] || WB_TABS[0]; }
   function wbCount(t) {
     if (t.id === 'sup') return rowsOf('sup').length;
@@ -1340,13 +1477,15 @@
       $('#wbSheetSub').textContent = t.input ? 'Input · ' + inputDef(t.input).title : 'Output sheet';
       badge.textContent = '0 ROWS'; badge.className = 'result-badge';
       actions.innerHTML = '';
+      renderUploadPanel(null);
       return;
     }
     if (!rows) rows = M.sheetRows(t.sheet, []);
     empty.hidden = !!(rows.length > 2) || !canStart;
     if (!empty.hidden) empty.innerHTML = '<strong>' + esc(inputDef(t.input).title) + ' is not loaded.</strong> Drop the ' + esc(t.sheet) + ' file in Drop All, or click a cell below and type or paste (Ctrl+V) rows to start the table — it is saved in this browser.';
     grid.hidden = false;
-    if (!wb.grid) wb.grid = window.PHFSheetGrid.create(grid, { search: true, onView: function () { var tt = wbTab(wb.active); if (tt.engine) renderWbActions(tt); wbBadge(); } });
+    if (!wb.grid) wb.grid = window.PHFSheetGrid.create(grid, { search: true, onView: function () { var tt = wbTab(wb.active); if (tt.engine) renderWbActions(tt); wbBadge(); },
+      onRowTick: function (i, on) { var tt = wbTab(wb.active); if (tt.engine) setUploadTick(tt.sheet, i + 3, on); } });   // v1.13.0
     var head = rows[1] || [], data = rows.slice(2), look = window.PHFSheetLook.forSheet(t.sheet, head);
     var edit = null, marks = null;
     if (t.input && !t.readOnly) {
@@ -1357,9 +1496,12 @@
       var m = state.edits.marks[t.sheet] || {}; marks = {}; Object.keys(m).forEach(function (r) { marks[Number(r) - 3] = m[r]; });
     }
     var key = t.id + ':' + state.rev + ':' + (state.results[t.sheet] ? 'r' : 'i');
+    var rf = t.engine && state.results[t.sheet] ? rowFlagsFor(t.sheet) : null;   // v1.13.0
     wb.grid.set({ head: head, rows: data, look: look, marks: marks, edit: edit, keepView: !!(keep && wb.gridFor === key) || !!keep,
       flags: t.id === 'upd' && state.results[t.sheet] && state.results.keep_generate && state.results.keep_generate.length ? keptFlags(head, 'upd', state.results.keep_generate) : null,
+      rowFlags: rf, rowFilter: rf && wb.uploadView && wb.uploadView.sheet === t.sheet ? uploadRowFilter(t.sheet, wb.uploadView.level) : null,
       totals: function (vis) { return look.totals(data, vis); } });
+    renderUploadPanel(t);
     wb.grid.busy(state.busy || state.edits.busy);
     wb.gridFor = key; wb.gridRows = data.length;
     var sub = t.readOnly ? 'The POS Database · read-only (it comes from Build POS Master Databases)'
@@ -1372,8 +1514,9 @@
   // v1.9.0: N OF M ROWS while a search or column filter is on.
   function wbBadge() {
     var badge = $('#wbSheetCount'); if (!badge || !wb.grid) return;
-    var all = wb.gridRows || 0, shown = wb.grid.filtered() ? wb.grid.count() : all;
-    badge.textContent = (shown !== all ? fmtN(shown) + ' OF ' : '') + fmtN(all) + ' ROWS'; badge.className = 'result-badge' + (all ? ' ok' : '');
+    var all = wb.gridRows || 0, shown = wb.grid.filtered() || (wb.uploadView && wb.uploadView.level) ? wb.grid.count() : all;
+    var t = wbTab(wb.active), held = t.engine ? uploadCounts(t.sheet).off : 0;   // v1.13.0
+    badge.textContent = (shown !== all ? fmtN(shown) + ' OF ' : '') + fmtN(all) + ' ROWS' + (held ? ' · ' + fmtN(held) + ' HELD' : ''); badge.className = 'result-badge' + (all ? (held ? ' warn' : ' ok') : '');
   }
   function renderWbActions(t) {
     var host = $('#wbActions'); if (!host) return;
@@ -1383,7 +1526,8 @@
       var pv = posTabView();
       html = '<button type="button" class="btn small' + (edited || pv ? ' primary' : '') + '" data-act="reexport"' + (busy || !state.results.files ? ' disabled' : '') + ' title="Make the two POS TXT files again from OUT_POS_INSERT / OUT_POS_UPDATE as they are now (stage 3 export only — the sheets are not generated again)">Export TXT again</button>' +
         '<span class="out-actions-note">' + esc(edited ? t.sheet + ' was edited — Export TXT again to put the edits in the POS file. (Running stage 3 again makes this sheet again from OUT_MERGED_DATA.)' : 'Edits here go into the POS file with Export TXT again.') + '</span>' +
-        (pv ? '<span class="out-actions-filter">Filtered — the ' + esc(t.id === 'upd' ? 'POS UPDATE' : 'POS INSERT') + ' TXT will have only the ' + fmtN(pv.rows.length) + ' of ' + fmtN(pv.total) + ' rows shown.</span>' : '');
+        (pv ? '<span class="out-actions-filter">Filtered — the ' + esc(t.id === 'upd' ? 'POS UPDATE' : 'POS INSERT') + ' TXT will have only the ' + fmtN(pv.rows.length) + ' of ' + fmtN(pv.total) + ' rows shown.</span>' : '') +
+        (function () { var c = uploadCounts(t.sheet); return c.off ? '<span class="out-actions-filter">' + fmtN(c.off) + ' row' + (c.off === 1 ? ' is' : 's are') + ' unticked (held) — not in the TXT until ticked.</span>' : ''; })();   // v1.13.0
     } else if (t.input && !t.readOnly && loaded(t.input)) {
       html = '<button type="button" class="btn small" data-act="rerun"' + (busy || !requiredReady() ? ' disabled' : '') + ' title="Run stages 1 → 3 with this table as it is now">Run all stages</button><span class="out-actions-note">Changes here are saved in this browser straight away. Run the stages again to use them.</span>';
     }
@@ -1509,7 +1653,7 @@
     setGlobal(label + '…', 'running');
     var t0 = Date.now(), chain = Promise.resolve();
     var pv = steps.indexOf('export') >= 0 ? posTabView() : null;
-    steps.forEach(function (st) { chain = chain.then(function () { var only = {}; if (st === 'export' && pv) only[pv.sheet] = pv.rows; return runStep(st, st === 'export' && pv ? { only: only } : null); }); });
+    steps.forEach(function (st) { chain = chain.then(function () { return runStep(st, st === 'export' ? exportOptions(pv) : null); }); });   // v1.13.0: ticked rows only (∩ the filtered view)
     return chain.then(function () {
       if (steps.indexOf('refresh') >= 0) {
         renderReview(true);
@@ -1519,7 +1663,7 @@
       }
       if (steps.indexOf('export') >= 0) {
         addTxtOutputs();
-        stageSet('export', 'done', 'Exported again ' + melb() + ' — ' + (state.results.files || []).length + ' TXT files with the OUT_POS_INSERT / UPDATE edits.' + (pv ? ' The ' + pv.sheet + ' TXT has only the ' + fmtN(pv.rows.length) + ' of ' + fmtN(pv.total) + ' rows shown (filtered).' : ''));
+        stageSet('export', 'done', 'Exported again ' + melb() + ' — ' + (state.results.files || []).length + ' TXT files with the OUT_POS_INSERT / UPDATE edits.' + (pv ? ' The ' + pv.sheet + ' TXT has only the ' + fmtN(pv.rows.length) + ' of ' + fmtN(pv.total) + ' rows shown (filtered).' : '') + uploadSummaryText());
         setGlobal('Export TXT again — ' + (state.results.files || []).length + ' TXT files ready below (' + ((Date.now() - t0) / 1000).toFixed(1) + 's).', 'success');
       }
       return addWorkbookOutput();
@@ -2749,7 +2893,7 @@
       var keep = has && dump;
       var rst = { id: SESSION_ST, savedAt: melb(), opts: state.opts, outView: wb.outView, sig: sig,
         stage: keep ? state.stage : null, results: keep ? res : null, sheetKeys: keep ? sheetKeys : null, dump: keep ? dump : null,
-        edits: keep ? { marks: state.edits.marks, outAfter3: state.edits.outAfter3, pos: state.edits.pos, optsAfter3: state.edits.optsAfter3 } : null,
+        edits: keep ? { marks: state.edits.marks, outAfter3: state.edits.outAfter3, pos: state.edits.pos, optsAfter3: state.edits.optsAfter3, ticks: state.edits.ticks } : null,
         pendingSup: keep ? state.pendingSup : 0, resultScope: keep ? state.resultScope : null, loadedScope: keep ? state.loadedScope : '' };
       return dbTx('readwrite', function (st) { st.put(rst); });
     }));
@@ -2794,7 +2938,7 @@
         state.results = rec.results; state.stage = rec.stage;
         Object.keys((res && res.sheets) || {}).forEach(function (n) { state.results[n] = res.sheets[n]; });
         STAGES.forEach(function (x) { var st = state.stage[x.id]; if (!st || st.status === 'running') state.stage[x.id] = { status: 'ready' }; });
-        state.edits = Object.assign({ marks: {}, undo: {}, outAfter3: false, pos: {}, busy: false, optsAfter3: false }, rec.edits || {});
+        state.edits = Object.assign({ marks: {}, undo: {}, outAfter3: false, pos: {}, busy: false, optsAfter3: false, ticks: false }, rec.edits || {});
         state.edits.undo = {}; state.edits.busy = false;
         state.pendingSup = res && res.pending !== undefined ? res.pending : (rec.pendingSup || 0);
         state.resultScope = rec.resultScope || null;

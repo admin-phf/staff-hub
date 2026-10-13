@@ -1,4 +1,5 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.11.0 (13 Oct 2026; v1.10.0 / v1.8.0 13 Oct; v1.7.2 12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean v1.13.0 (14 Oct 2026; v1.11.0 / v1.10.0 / v1.8.0 13 Oct; v1.7.2 12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
+   v1.13.0: upload checks — Upload ticks in the row numbers, held / check / fixed row edges, the Upload checks list (end of file).
    v1.11.0: no lines between the supplier sheet's bands; the search / add bar; M, N, O ticks; the fill handle (end of file).
    v1.10.0: no inner lines in the heading block of any sheet (end of file).
    v1.7.2: supplier sheet clean-up — compact head strip, one scope line, options in the toolbar, two heading rows as the
@@ -422,3 +423,57 @@ body.phf-page-merge .sup-table.keep-c12 td.sup-c12,body.phf-page-merge .sup-tabl
 /* Fill down: the small square at the corner of the selection; cells being filled get a dashed edge. */
 body.phf-page-merge .sup-table td .sup-fill{position:absolute;right:0;bottom:0;width:7px;height:7px;background:#1A73E8;border:1px solid #fff;cursor:crosshair;z-index:2}
 body.phf-page-merge .sup-table tbody tr td.is-fill{box-shadow:inset 0 0 0 1px #1A73E8;background-image:repeating-linear-gradient(45deg,rgba(26,115,232,.06) 0 4px,transparent 4px 8px)}
+
+/* v1.13.0 (Staff Hub v21.23.0) — upload checks on OUT_POS_INSERT / OUT_POS_UPDATE.
+   Every row has an Upload tick in its row number; held rows (unticked) have a red edge and grey text, check rows an
+   amber edge, fixed rows a green edge; a cell the checks changed gets a green corner. The list above the tab explains. */
+body.phf-page-merge .wbg-table tbody td.wbg-rn{white-space:nowrap}
+body.phf-page-merge .wbg-table tbody td.wbg-rn .wbg-rtick{display:inline-flex;align-items:center;vertical-align:middle;margin:0 4px 0 0;cursor:pointer}
+body.phf-page-merge .wbg-table tbody td.wbg-rn .wbg-rtick input{width:12px;height:12px;margin:0;accent-color:#2E7D32;cursor:pointer}
+body.phf-page-merge .wbg-table tbody td.wbg-rn .wbg-rtick input:disabled{cursor:not-allowed}
+body.phf-page-merge .wbg-table tbody td.wbg-rn>span{vertical-align:middle}
+body.phf-page-merge .wbg-table tbody tr.wbg-row-hold td.wbg-rn{box-shadow:inset 4px 0 0 #D93025}
+body.phf-page-merge .wbg-table tbody tr.wbg-row-check td.wbg-rn{box-shadow:inset 4px 0 0 #F29900}
+body.phf-page-merge .wbg-table tbody tr.wbg-row-fixed td.wbg-rn{box-shadow:inset 4px 0 0 #1E8E3E}
+body.phf-page-merge .wbg-table tbody tr.wbg-row-hold td:not(.wbg-rn){background-image:linear-gradient(rgba(217,48,37,.07),rgba(217,48,37,.07))}
+body.phf-page-merge .wbg-table tbody tr.wbg-row-check td:not(.wbg-rn){background-image:linear-gradient(rgba(242,153,0,.09),rgba(242,153,0,.09))}
+body.phf-page-merge .wbg-table tbody tr.wbg-skip td:not(.wbg-rn){color:#9E9E9E!important;text-decoration:line-through;text-decoration-color:rgba(158,158,158,.6)}
+body.phf-page-merge .wbg-table tbody tr.wbg-skip td.wbg-rn{color:#D93025;font-weight:700}
+body.phf-page-merge .wbg-table tbody td.is-fixed{position:relative}
+body.phf-page-merge .wbg-table tbody td.is-fixed::after{content:"";position:absolute;top:0;right:0;border-style:solid;border-width:0 7px 7px 0;border-color:transparent #1E8E3E transparent transparent}
+body.phf-page-merge .result-badge.warn{background:#FCE8E6;color:#A50E0E;border-color:#F4B4AE}
+/* The Upload checks list above the tab. */
+body.phf-page-merge .upload-panel{margin:0 0 10px;border:1px solid var(--phf-line-strong);border-radius:10px;background:#fff;overflow:hidden}
+body.phf-page-merge .upload-panel[hidden]{display:none}
+body.phf-page-merge .up-head{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;padding:8px 12px;background:#F8F9FB;border-bottom:1px solid var(--phf-line)}
+body.phf-page-merge .up-title{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;min-width:0}
+body.phf-page-merge .up-title strong{font-size:13px;color:var(--phf-navy);letter-spacing:.02em}
+body.phf-page-merge .up-sub{font-size:12px;color:var(--phf-muted)}
+body.phf-page-merge .up-held{color:#A50E0E}
+body.phf-page-merge .up-tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+body.phf-page-merge .up-tools .btn.is-on{background:var(--phf-navy);color:#fff;border-color:var(--phf-navy)}
+body.phf-page-merge .up-gap{width:10px}
+body.phf-page-merge .up-list-wrap{max-height:280px;overflow:auto}
+body.phf-page-merge .up-list{width:100%;border-collapse:collapse;font-size:12px}
+body.phf-page-merge .up-list th{position:sticky;top:0;z-index:1;background:#fff;text-align:left;padding:5px 8px;border-bottom:1px solid var(--phf-line);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--phf-muted)}
+body.phf-page-merge .up-list td{padding:4px 8px;border-bottom:1px solid #EEF1F4;vertical-align:top}
+body.phf-page-merge .up-list tr.is-off td:not(.up-tick){color:#9E9E9E}
+body.phf-page-merge .up-list tr.up-hold td:first-child{box-shadow:inset 4px 0 0 #D93025}
+body.phf-page-merge .up-list tr.up-check td:first-child{box-shadow:inset 4px 0 0 #F29900}
+body.phf-page-merge .up-list tr.up-fixed td:first-child{box-shadow:inset 4px 0 0 #1E8E3E}
+body.phf-page-merge .up-list td.up-tick{width:44px;text-align:center}
+body.phf-page-merge .up-list td.up-tick input{width:14px;height:14px;margin:0;accent-color:#2E7D32;cursor:pointer}
+body.phf-page-merge .up-go{border:0;background:none;padding:0;font:inherit;color:#0B57D0;cursor:pointer;text-decoration:underline}
+body.phf-page-merge .up-chip{display:inline-block;padding:1px 7px;border-radius:999px;font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+body.phf-page-merge .up-chip-hold{background:#FCE8E6;color:#A50E0E}
+body.phf-page-merge .up-chip-check{background:#FEF3E2;color:#B06000}
+body.phf-page-merge .up-chip-fixed{background:#E6F4EA;color:#137333}
+body.phf-page-merge .up-chip-off{background:#F1F3F4;color:#5F6368}
+body.phf-page-merge .up-key{font-family:ui-monospace,Menlo,Consolas,monospace;white-space:nowrap}
+body.phf-page-merge .up-descr{white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis}
+body.phf-page-merge .up-why{min-width:260px}
+body.phf-page-merge .up-note{display:inline-block;margin:0 6px 2px 0;padding:0 0 0 8px;border-left:3px solid #C4C7C5;line-height:1.3}
+body.phf-page-merge .up-note-hold{border-left-color:#D93025}
+body.phf-page-merge .up-note-check{border-left-color:#F29900}
+body.phf-page-merge .up-note-fixed{border-left-color:#1E8E3E}
+body.phf-page-merge .up-more{padding:6px 12px;font-size:11.5px;color:var(--phf-muted);background:#F8F9FB}

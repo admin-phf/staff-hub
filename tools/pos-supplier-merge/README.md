@@ -1,7 +1,43 @@
-# POS New Product Check Clean v1.12.0 (Staff Hub v21.22.0)
+# POS New Product Check Clean v1.13.0 (Staff Hub v21.23.0)
 
-Updated 13 Oct 2026 22:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 14 Oct 2026 07:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.13.0 — **Upload checks before the POS files.**
+- After stage 3, every row of OUT_POS_INSERT and OUT_POS_UPDATE is checked before it goes into the TXT files. There are
+  three kinds of flag:
+  - **Held** — the row would damage POS, so it starts **unticked** and stays out of the TXT until you tick it: the RRP is
+    below the WSP; the last price is under half, or more than double, the WSP (the PRANA 15.00 paste); the barcode fails
+    its check digit; POS already has the new product (same barcode, or the same Sub ID for that supplier); a box /
+    display price that cannot be worked out.
+  - **Check** — stays in the TXT, amber, worth a look: the WSP or RRP moves more than 40 %; the brand is not the one POS
+    has (a Brand Name Changes pair, or MELROSE ORGANIC → MELROSE, is not flagged); the size or pack count in the
+    description has nothing in common with POS's; a product being discontinued still has stock on hand, or its
+    discontinue row changes a price.
+  - **Fixed** — stays in, green, and the change is shown: a box / display WSP divided by the pack count (MEL VIT C 125G
+    8: 105.52 ÷ 8 = 13.19, POS has 13.13; MEL BALL 35G 12: 12.00 ÷ 12 = 1.00, RRP 1.90) — divided when that lands near
+    POS's own WSP or gives a sensible margin, kept when POS sells the box, held otherwise; SELL text and repeated words
+    taken out of descr / pos desc (ANIPAL STICKS 210GM 210G 210G → ANIPAL STICKS 210GM, CABOT DR CABOT CLEANSE → CABOT
+    DR CLEANSE, PRANA SPORT PRANA 500G … → PRANA SPORT 500G …; PAW PAW and MP T T are left alone); ZZZZ brands and
+    descriptions made consistent — always `ZZZZ ` and the name once (ZZZZ EN JOINT → ZZZZ ZEN JOINT, ZZZZ ZZEAGLE →
+    ZZZZ EAGLE, ZZZZ PRANA SPORT ZZZZPRANA 400G → ZZZZ PRANA SPORT 400G), for discontinued products and for matched
+    products POS already holds as ZZZZ.
+- **Upload tick on every row** of the two POS tabs, in the row number. Ticked = in the TXT, unticked = left out. Held rows
+  start unticked (red edge, grey text); check rows have an amber edge, fixed rows a green one; hover the row number for
+  the reason; a cell the checks changed has a green corner. The badge says `193 ROWS · 35 HELD`.
+- **Upload checks list** above each POS tab: every flagged row with its reason and its own tick; **Show held / To check /
+  Fixed / All rows** (a view of the sheet — it never changes what is exported); **Tick all held / Untick all held**; the
+  row number jumps to the row on the sheet.
+- Stage 3 and **Export TXT again** write the ticked rows only, and say so: "POS INSERT: 35 held (unticked, not in the
+  TXT), 4 fixed". Changing a tick after an export marks the TXT downloads "Made before your Upload tick changes" — use
+  Export TXT again. The ticks come back with the session, and the review workbook has an **OUT_UPLOAD_CHECKS** sheet.
+- The Update in POS column ticks never apply to INSERT rows (a new product has no POS value to keep); the Upload tick
+  covers both files. Sub ID changes on matched products are not flagged — POS holds old in-house codes and the suppliers
+  now use CH2 codes, so nearly every row would be.
+- Discontinued products that are already ZZZZ in POS stay in the UPDATE file; their brand / descr are made consistent.
+- 14 Oct test on Kenneth's files (details in docs/GITHUB-RELEASE-v21.23.0.md): INSERT 193 → 158 in the TXT (21 PRANA, 11
+  barcodes, 4 duplicates held), UPDATE 3,100 → 2,991 (109 PRANA 15.00 rows and one Melrose held); nothing else in either
+  file changed except the fixed rows.
 
 v1.12.0 — **TYPE is the packaging POS gets.**
 - OUT_MERGED_DATA's packaging (BS) is its TYPE (AM) — CAPSULES, TABLETS, OIL, TOPICAL, LIQUID, POWDER, TEA, SACHETS,
@@ -378,9 +414,11 @@ restarts the engine, so every run starts from a clean workbook.
 
 ## Outputs
 
-- `POS INSERT yyyy-MM-dd BRANDS.txt` and `POS UPDATE yyyy-MM-dd BRANDS.txt` — exactly what EXPORT POS FILES makes.
+- `POS INSERT yyyy-MM-dd BRANDS.txt` and `POS UPDATE yyyy-MM-dd BRANDS.txt` — what EXPORT POS FILES makes, from the
+  rows whose Upload tick is on (v1.13.0: held rows start unticked).
 - `POS SUPPLIER MERGE yyyy-MM-dd BRANDS.xlsx` — review workbook: OUT_MERGED_DATA, OUT_POS_INSERT,
-  OUT_POS_UPDATE, the supplier STATUS and the reference tabs, with the Sheet's banding and status colours.
+  OUT_POS_UPDATE, OUT_UPLOAD_CHECKS (v1.13.0), the supplier STATUS and the reference tabs, with the Sheet's banding and
+  status colours.
 - The OUT_MERGED_DATA review table on the page (search, row / price status and brand filters).
 
 ## How it runs

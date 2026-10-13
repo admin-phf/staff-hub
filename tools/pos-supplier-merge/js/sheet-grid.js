@@ -1,4 +1,9 @@
-/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.5.0 (13 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.6.0 (14 Oct 2026)
+ * v1.6.0: set({ rowFlags: { sourceRow: { level: 'hold'|'check'|'fixed', title, on, cells: { col: 1 } } }, rowFilter: fn | null })
+ * puts an Upload tick in every row-number cell (unticked = the row stays out of the POS TXT; the page keeps the setting
+ * and calls opts.onRowTick(sourceRow, on)), colours the flagged rows' left edge (red hold, amber check, green fixed)
+ * with the reason on hover, and marks the cells the checks changed. rowFilter(sourceRow) → false hides a row on screen
+ * only: g.visible() and g.filtered() ignore it, so a "held only" view never narrows the export.
  * v1.5.0: Ctrl+C / ⌘C copies the selection by writing the clipboard itself (some browsers send no copy event when no text
  * is selected); typing in a cell with nothing highlighted, Ctrl+C copies the whole cell.
  * v1.4.0: set({ dim: { col: title } }) greys that heading's text without a tick (OUT_MERGED_DATA: the columns POS keeps;
@@ -75,7 +80,7 @@
     var count = host.querySelector('.wbg-count'), tools = host.querySelector('.wbg-edit-tools'), noteEl = host.querySelector('.wbg-note');
     var filtInfo = host.querySelector('.wbg-filters'), selInfo = host.querySelector('.wbg-sel');
     var st = { head: [], rows: [], cols: [], vis: [], q: '', hay: null, look: null, totals: null, firstRow: 3, nums: null, rowH: 25, win: { start: 0, end: 0 },
-      raf: 0, edit: null, sel: null, editing: null, busy: false, filters: {}, marks: null, flags: null, ticks: null, dim: null };
+      raf: 0, edit: null, sel: null, editing: null, busy: false, filters: {}, marks: null, flags: null, ticks: null, dim: null, rowFlags: null, rowFilter: null, visAll: [] };
     function viewChanged() { if (opts.onView) { try { opts.onView(); } catch (e) { if (G.console) console.error(e); } } }
 
     // ------------------------------------------------------------------ layout
@@ -97,9 +102,10 @@
       var t = st.totals ? st.totals(st.vis.map(function (e) { return e.r; })) : {};
       return '<tr class="wbg-tot"><th class="wbg-rn">1</th>' + st.cols.map(function (c) { var s = t[c] || ''; return '<th>' + (s ? '<div>' + esc(s) + '</div>' : '') + '</th>'; }).join('') + '</tr>';
     }
+    function rnW() { return st.rowFlags ? 70 : 46; }
     function drawHead() {
-      var w = widths(), total = 46;
-      table.querySelector('colgroup').innerHTML = '<col style="width:46px">' + w.map(function (x) { total += x; return '<col style="width:' + x + 'px">'; }).join('');
+      var w = widths(), total = rnW();
+      table.querySelector('colgroup').innerHTML = '<col style="width:' + rnW() + 'px">' + w.map(function (x) { total += x; return '<col style="width:' + x + 'px">'; }).join('');
       table.style.width = total + 'px';
       var ro = st.edit ? st.edit.readOnly || {} : {};
       table.querySelector('thead').innerHTML =
@@ -132,7 +138,10 @@
         return '<tr class="wbg-new">' + blank + '</tr>';
       }
       var r = e.r, look = st.look, ro = st.edit ? st.edit.readOnly || {} : {}, marks = st.marks && st.marks[e.n];
-      var cells = '<td class="wbg-rn" data-r="' + i + '" data-c="-1">' + (st.nums ? st.nums[e.n] : e.n + st.firstRow) + '</td>';
+      var rf = st.rowFlags ? st.rowFlags[e.n] || null : null, off = !!(rf && rf.on === false);   // v1.6.0
+      var cells = '<td class="wbg-rn' + (rf ? ' wbg-rf-' + rf.level : '') + '" data-r="' + i + '" data-c="-1"' + (rf && rf.title ? ' title="' + esc(rf.title) + '"' : '') + '>' +
+        (st.rowFlags ? '<label class="wbg-rtick" title="' + esc(rf && rf.title ? rf.title : 'Upload — ticked: this row goes into the POS TXT file. Untick to leave it out.') + '"><input type="checkbox" data-rtick="' + e.n + '"' + (off ? '' : ' checked') + (st.busy ? ' disabled' : '') + ' aria-label="Upload row ' + (st.nums ? st.nums[e.n] : e.n + st.firstRow) + '"></label>' : '') +
+        '<span>' + (st.nums ? st.nums[e.n] : e.n + st.firstRow) + '</span></td>';
       for (var k = 0; k < st.cols.length; k++) {
         var c = st.cols[k], raw = r[c], shown = cellDisplay(raw, c), s = String(shown == null ? '' : shown);
         var a = look && look.style && s !== '' ? look.style(r, c) : null;
@@ -140,11 +149,12 @@
         if (look && look.centre[c]) cls.push('wbg-c');
         if (st.edit && ro[c]) cls.push('wbg-ro');
         if (marks && marks[c]) cls.push('is-edited');
+        if (rf && rf.cells && rf.cells[c]) cls.push('is-fixed');                                   // v1.6.0
         if (/\n/.test(s)) cls.push('wbg-2l');
         var style = a ? ' style="' + (a.bg ? 'background-color:#' + a.bg + ';' : '') + (a.fg ? 'color:#' + a.fg + ';' : '') + (a.b ? 'font-weight:700' : '') + '"' : '';
         cells += '<td data-r="' + i + '" data-c="' + k + '"' + (cls.length ? ' class="' + cls.join(' ') + '"' : '') + style + (s.length > 16 ? ' title="' + esc(s) + '"' : '') + '>' + esc(s) + '</td>';
       }
-      return '<tr class="wbg-b' + (e.n % 2) + '">' + cells + '</tr>';
+      return '<tr class="wbg-b' + (e.n % 2) + (rf ? ' wbg-row-' + rf.level : '') + (off ? ' wbg-skip' : '') + '">' + cells + '</tr>';
     }
     function drawRows() {
       var body = table.querySelector('tbody'), w = windowOf(), html = [gap(w.start * st.rowH)];
@@ -160,15 +170,15 @@
     function filter() {
       var q = st.q.trim().toUpperCase(), fk = Object.keys(st.filters);
       if (q && !st.hay) st.hay = st.rows.map(function (r) { return st.cols.map(function (c) { return oneLine(cellDisplay(r[c], c)); }).join(' ').toUpperCase(); });
-      st.vis = [];
+      st.vis = []; st.visAll = [];
       var allow = fk.map(function (c) { var m = {}; st.filters[c].forEach(function (v) { m[v] = 1; }); return { c: +c, m: m }; });
       for (var i = 0; i < st.rows.length; i++) {
         if (q && st.hay[i].indexOf(q) < 0) continue;
         var ok = true;
         for (var f = 0; f < allow.length; f++) { if (!allow[f].m[oneLine(cellDisplay(st.rows[i][allow[f].c], allow[f].c)).trim()]) { ok = false; break; } }
-        if (ok) st.vis.push({ r: st.rows[i], n: i });
+        if (ok) { st.visAll.push({ r: st.rows[i], n: i }); if (!st.rowFilter || st.rowFilter(i)) st.vis.push({ r: st.rows[i], n: i }); }
       }
-      if (count) count.textContent = (q || fk.length ? st.vis.length.toLocaleString('en-AU') + ' of ' : '') + st.rows.length.toLocaleString('en-AU') + ' rows';
+      if (count) count.textContent = (q || fk.length || st.rowFilter ? st.vis.length.toLocaleString('en-AU') + ' of ' : '') + st.rows.length.toLocaleString('en-AU') + ' rows';
       if (filtInfo) {
         filtInfo.hidden = !fk.length;
         filtInfo.innerHTML = fk.map(function (c) {
@@ -364,6 +374,7 @@
     table.addEventListener('mousedown', function (ev) {
       var fb = ev.target.closest('.wbg-filt');
       if (fb) { ev.preventDefault(); ev.stopPropagation(); if (openCol === +fb.dataset.fc && pickerOpen()) closeFilter(); else openFilter(+fb.dataset.fc, fb); return; }
+      if (ev.target.closest('.wbg-rtick')) return;                                                  // v1.6.0: the Upload tick
       var td = ev.target.closest('tbody td[data-r]'); if (!td || ev.target.classList.contains('wbg-input')) return;
       if (st.editing) commitEdit();
       var r = +td.dataset.r, k = +td.dataset.c;
@@ -381,7 +392,16 @@
       paintSel();
     });
     document.addEventListener('mouseup', function () { dragging = false; });
-    table.addEventListener('change', function (ev) {                     // v1.3.0: a heading tick
+    table.addEventListener('change', function (ev) {                     // v1.3.0: a heading tick · v1.6.0: a row's Upload tick
+      var rt = ev.target.closest('input[data-rtick]');
+      if (rt) {
+        if (st.busy || !opts.onRowTick) { rt.checked = !rt.checked; return; }
+        var n = +rt.dataset.rtick, f = st.rowFlags && st.rowFlags[n];
+        if (f) f.on = rt.checked; else if (st.rowFlags) st.rowFlags[n] = { level: '', on: rt.checked };
+        var tr = rt.closest('tr'); if (tr) tr.classList.toggle('wbg-skip', !rt.checked);
+        opts.onRowTick(n, rt.checked);
+        return;
+      }
       var cb = ev.target.closest('input[data-tick]'); if (!cb) return;
       if (st.busy || !opts.onTick) { cb.checked = !cb.checked; return; }
       opts.onTick(cb.dataset.tick, cb.checked);
@@ -433,6 +453,7 @@
         st.head = (d.head || []).map(function (h) { return String(h == null ? '' : h); });
         st.rows = d.rows || []; st.hay = null; st.look = d.look || null; st.totals = d.totals || null;
         st.firstRow = d.firstRow || 3; st.nums = d.rowNumbers || null; st.edit = d.edit || null; st.marks = d.marks || null; st.flags = d.flags || null; st.ticks = d.ticks || null; st.dim = d.dim || null;
+        st.rowFlags = d.rowFlags || null; st.rowFilter = d.rowFilter || null;                      // v1.6.0
         st.cols = d.cols || st.head.map(function (h, i) { return i; });
         host.classList.toggle('wbg-two', !!(st.look && st.look.twoLine));
         host.classList.toggle('wbg-grey', !!(st.look && st.look.grey));
@@ -452,12 +473,13 @@
       },
       refresh: function () { drawRows(); },
       count: function () { return st.vis.length; },
-      visible: function () { return st.vis.map(function (e) { return e.n; }); },
-      filtered: function () { return !!(st.q.trim() || Object.keys(st.filters).length) && st.vis.length < st.rows.length; },
+      visible: function () { return st.visAll.map(function (e) { return e.n; }); },             // v1.6.0: without rowFilter
+      rowFilter: function (fn) { st.rowFilter = fn || null; st.sel = null; wrap.scrollTop = 0; redraw(); },
+      filtered: function () { return !!(st.q.trim() || Object.keys(st.filters).length) && st.visAll.length < st.rows.length; },
       clearFilters: function () { if (!st.q && !Object.keys(st.filters).length) return; st.q = ''; if (search) search.value = ''; st.filters = {}; redraw(); },
       busy: function (b) {
         st.busy = !!b; host.classList.toggle('is-busy', st.busy); updateTools();
-        table.querySelectorAll('input[data-tick]').forEach(function (cb) { cb.disabled = st.busy; });
+        table.querySelectorAll('input[data-tick],input[data-rtick]').forEach(function (cb) { cb.disabled = st.busy; });
       },
       note: say,
       select: function (srcRow, srcCol) {
@@ -513,5 +535,5 @@
     document.addEventListener('mousedown', away, true);
     ps.focus();
   }
-  G.PHFSheetGrid = { create: create, parseTsv: parseTsv, picker: picker, closePicker: closePicker, VERSION: 'v1.2.1' };
+  G.PHFSheetGrid = { create: create, parseTsv: parseTsv, picker: picker, closePicker: closePicker, VERSION: 'v1.6.0' };
 })(window);
