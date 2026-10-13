@@ -1,4 +1,5 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.7.2 (12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean v1.10.0 (13 Oct 2026; v1.8.0 13 Oct; v1.7.2 12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
+   v1.10.0: no inner lines in the heading block of any sheet (end of file).
    v1.7.2: supplier sheet clean-up — compact head strip, one scope line, options in the toolbar, two heading rows as the
    sheet grid (letters row, headings + ticks), grid font / lines, the sheet fills the window under the run bar.
    v1.7.1: supplier headings in three aligned bands; the run bar (.wb-runbar) sticky above the workbook.
@@ -381,7 +382,8 @@ body.phf-page-merge .wb-runbar+.wb-pages .sup-sheet,body.phf-page-merge .wb-runb
 
 /* v1.8.0 — OUT_MERGED_DATA: the Update in POS tick under every heading POS can keep (sheet-grid v1.3.0 ticks); an
    unticked heading's text is grey, as on the supplier sheet. No KEPT label here. The coloured tiles show only with the
-   Review columns (the Sheet view has the same totals in row 1). One button height (32 px) on both sheets' toolbars. */
+   Review columns (the Sheet view has the same totals in row 1). One button height (32 px) on both sheets' toolbars.
+   v1.10.0: OUT has no ticks again; th.wbg-off now comes from sheet-grid's `dim` (the columns POS keeps). */
 body.phf-page-merge .wbg-table tr.wbg-headrow.wbg-has-ticks th{height:50px}
 body.phf-page-merge .wbg-tick{display:flex;justify-content:center;margin:3px 0 0;cursor:pointer}
 body.phf-page-merge .wbg-tick input{width:13px;height:13px;margin:0;accent-color:#2E7D32;cursor:pointer}
@@ -393,3 +395,12 @@ body.phf-page-merge :is(.review-filters,.out-actions,.wb-view) .btn{min-height:3
 body.phf-page-merge .wb-view .btn{border-radius:0}
 /* Run bar: a long message wraps to two lines (the full text is on hover) instead of being cut off. */
 body.phf-page-merge .wb-runbar-status{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:1.3}
+
+/* v1.10.0 (Staff Hub v21.20.0): no inner lines in the heading block of any sheet — the row-1 totals and the headings read
+   as one band: no vertical lines between the columns and no line between row 1 and the headings. The borders stay 1 px
+   but take the cell's colour, so the column widths do not move. The grey letters row (A, B, C…) and the data rows keep
+   their grid lines, the row numbers keep their edge, and the line under the headings still closes the block. */
+body.phf-page-merge .sup-table tr.sup-tot th,body.phf-page-merge .sup-table tr.sup-heads th{border-right-color:transparent}
+body.phf-page-merge .sup-table tr.sup-tot th{border-bottom-color:transparent}
+body.phf-page-merge .wbg-table tr.wbg-tot th:not(.wbg-rn),body.phf-page-merge .wbg-table tr.wbg-headrow th:not(.wbg-rn){border-right-color:transparent}
+body.phf-page-merge .wbg-table tr.wbg-tot th:not(.wbg-rn){border-bottom-color:transparent}

@@ -1,4 +1,6 @@
-/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.3.0 (13 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.4.0 (13 Oct 2026)
+ * v1.4.0: set({ dim: { col: title } }) greys that heading's text without a tick (OUT_MERGED_DATA: the columns POS keeps;
+ * the ticks are on the supplier sheet only again); the title is added to the heading's hover.
  * v1.3.0: set({ ticks: { col: { id, on, title } } }) puts a tick under that heading (an unticked heading's text is grey);
  * ticking calls opts.onTick(id, on) — the page changes the setting and sets the grid again.
  * v1.2.1: edit.cellLock(row, col) → message — that cell is not edited (typing, Delete or paste skip it) and the message
@@ -71,7 +73,7 @@
     var count = host.querySelector('.wbg-count'), tools = host.querySelector('.wbg-edit-tools'), noteEl = host.querySelector('.wbg-note');
     var filtInfo = host.querySelector('.wbg-filters'), selInfo = host.querySelector('.wbg-sel');
     var st = { head: [], rows: [], cols: [], vis: [], q: '', hay: null, look: null, totals: null, firstRow: 3, nums: null, rowH: 25, win: { start: 0, end: 0 },
-      raf: 0, edit: null, sel: null, editing: null, busy: false, filters: {}, marks: null, flags: null, ticks: null };
+      raf: 0, edit: null, sel: null, editing: null, busy: false, filters: {}, marks: null, flags: null, ticks: null, dim: null };
     function viewChanged() { if (opts.onView) { try { opts.onView(); } catch (e) { if (G.console) console.error(e); } } }
 
     // ------------------------------------------------------------------ layout
@@ -102,9 +104,9 @@
         '<tr class="wbg-letters"><th class="wbg-rn wbg-corner"></th>' + st.cols.map(function (c) { return '<th>' + colLetter(c + 1) + '</th>'; }).join('') + '</tr>' +
         totalsHtml() +
         '<tr class="wbg-headrow' + (st.ticks ? ' wbg-has-ticks' : '') + '"><th class="wbg-rn">' + (st.firstRow - 1) + '</th>' + st.cols.map(function (c, k) {
-          var flag = st.flags && st.flags[c], tick = st.ticks && st.ticks[c];
-          var cls = (st.edit && ro[c] ? 'wbg-ro-head' : '') + (flag ? ' wbg-flagged' : '') + (tick && !tick.on ? ' wbg-off' : '');
-          return '<th data-hc="' + k + '"' + (cls.trim() ? ' class="' + cls.trim() + '"' : '') + (st.edit && ro[c] ? ' title="' + esc(st.head[c]) + ' — worked out by the merge (read-only here)"' : ' title="' + esc(st.head[c]) + (flag ? ' — ' + esc(flag) : '') + '"') + '>' + esc(st.head[c]) +
+          var flag = st.flags && st.flags[c], tick = st.ticks && st.ticks[c], dim = st.dim && st.dim[c];   // v1.4.0 dim
+          var cls = (st.edit && ro[c] ? 'wbg-ro-head' : '') + (flag ? ' wbg-flagged' : '') + ((tick && !tick.on) || dim ? ' wbg-off' : '');
+          return '<th data-hc="' + k + '"' + (cls.trim() ? ' class="' + cls.trim() + '"' : '') + (st.edit && ro[c] ? ' title="' + esc(st.head[c]) + ' — worked out by the merge (read-only here)"' : ' title="' + esc(st.head[c]) + (flag ? ' — ' + esc(flag) : '') + (dim ? ' — ' + esc(dim) : '') + '"') + '>' + esc(st.head[c]) +
             (flag ? '<span class="wbg-flag">' + esc(String(flag).split(' — ')[0]) + '</span>' : '') +
             (tick ? '<label class="wbg-tick" title="' + esc(tick.title || '') + '"><input type="checkbox" data-tick="' + esc(tick.id) + '"' + (tick.on ? ' checked' : '') + (st.busy ? ' disabled' : '') + ' aria-label="Update in POS: ' + esc(st.head[c]) + '"></label>' : '') +
             '<button type="button" class="wbg-filt' + (st.filters[c] !== undefined ? ' is-on' : '') + '" data-fc="' + c + '" aria-label="Filter ' + esc(st.head[c]) + '">' + FILTER_SVG + '</button></th>';
@@ -416,7 +418,7 @@
         var keep = d.keepView === true;
         st.head = (d.head || []).map(function (h) { return String(h == null ? '' : h); });
         st.rows = d.rows || []; st.hay = null; st.look = d.look || null; st.totals = d.totals || null;
-        st.firstRow = d.firstRow || 3; st.nums = d.rowNumbers || null; st.edit = d.edit || null; st.marks = d.marks || null; st.flags = d.flags || null; st.ticks = d.ticks || null;
+        st.firstRow = d.firstRow || 3; st.nums = d.rowNumbers || null; st.edit = d.edit || null; st.marks = d.marks || null; st.flags = d.flags || null; st.ticks = d.ticks || null; st.dim = d.dim || null;
         st.cols = d.cols || st.head.map(function (h, i) { return i; });
         host.classList.toggle('wbg-two', !!(st.look && st.look.twoLine));
         host.classList.toggle('wbg-grey', !!(st.look && st.look.grey));

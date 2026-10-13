@@ -1,7 +1,16 @@
-# POS New Product Check Clean v1.9.0 (Staff Hub v21.19.0)
+# POS New Product Check Clean v1.10.0 (Staff Hub v21.20.0)
 
-Updated 13 Oct 2026 16:00 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 13 Oct 2026 18:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.10.0 —
+- **No inner lines in the heading block of any sheet** (IN_SUPPLIER and every workbook tab): the row-1 totals and the
+  headings read as one band, with no vertical lines between the columns and no line between row 1 and the headings. The
+  grey letters row (A, B, C…), the row numbers and the data rows keep their grid lines; column widths are unchanged.
+- **The Update in POS ticks are on the supplier sheet only again** (C, E, F, G, H, I, J, K, L — the same columns since v1.6.0).
+  OUT_MERGED_DATA has no ticks; it still recalculates from the supplier sheet's ticks, and the headings of the columns POS
+  keeps have grey text (hover says why). No KEPT label.
+- The review workbook's stamp gives the tool's own version (it still said v1.7.2).
 
 v1.9.0 —
 - **Row-1 totals follow the filters** on every tab (OUT_MERGED_DATA, OUT_POS_INSERT, OUT_POS_UPDATE, the SRC_ tabs and
@@ -170,7 +179,7 @@ Each supplier column that feeds the POS UPDATE file has an **Update in POS** tic
   - SUP BRAND: POS BRAND and brand = POS's, OLD BRAND empty. SUP PRODUCT: POS DESCR, descr and pos desc = POS's. The other
     ticks: their final-block column (sub id, units, min order qty, gst tax pc, supplier) = POS's.
 - Kept cells of matched products are in the Sheet's "no change" grey text (#9E9E9E) on the row colours, and cannot be
-  edited (clicking one says why); their headings say KEPT. The unticked supplier columns are in the same grey.
+  edited (clicking one says why); their headings have grey text (v1.10.0; KEPT up to v1.7.2, ticks in v1.8.0 – v1.9.0). The unticked supplier columns are in the same grey.
   OUT_POS_UPDATE marks the kept columns. Stage 3 says how many products kept POS values and how many were left out.
 - The ticks are this tool's own (the Google Sheet does not have them); the script files are unchanged — engine-host
   v1.2.0 applies them around `m13BuildPosOutputRowsFromOut_`.

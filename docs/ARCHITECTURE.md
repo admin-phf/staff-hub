@@ -601,3 +601,16 @@ All implemented stages keep source business files local to the browser and gener
 - Reconcile v2.11.2 (ui/workspace.js): the same ✕; `removeInput(id)` clicks the order list's own Remove buttons for order
   files, or `PHF.referenceStore.clear(refKind)` for a reference (Ongoing Discounts is the shared Library copy; the ✕ title
   says so), then `loadReferenceStatus()` and `PHFReconcileApp.refreshReferenceStatus()`.
+
+## Staff Hub v21.20.0 — POS New Product Check Clean v1.10.0: heading blocks without inner lines, ticks on the supplier sheet only (13 Oct 2026 18:30 AEDT)
+- merge.css v1.10.0 (end of file): `.sup-table tr.sup-tot th`, `tr.sup-heads th` and `.wbg-table tr.wbg-tot th`,
+  `tr.wbg-headrow th` (not `.wbg-rn`) have `border-right-color: transparent`; `tr.sup-tot th` and `tr.wbg-tot th` (not
+  `.wbg-rn`) `border-bottom-color: transparent`. The borders stay 1 px (painted in the cell colour), so `supFit` and the
+  grid widths are unchanged. Letters row, row numbers, data cells, the gold line under `sup-heads` and the 3 px line under
+  `wbg-headrow` are unchanged.
+- sheet-grid v1.4.0: `set({ dim: { col: title } })` → `th.wbg-off` (grey heading text) without a checkbox; the title is
+  added to the heading's hover. `ticks` (v1.3.0) stays available.
+- app.js v1.10.0: `drawOutGrid` passes `dim: keptDim(R.head)` instead of `ticks: keepTicks(R.head)`; `keptDim` = every
+  column in the `out` list of a group POS keeps (`state.opts.keep[g.id]`). The supplier sheet's `data-keep` ticks and
+  `optsChanged()` are unchanged, so OUT still recalculates when one changes. `TOOL_VERSION` = 'v1.10.0' (the review
+  workbook stamp; it was left at v1.7.2).

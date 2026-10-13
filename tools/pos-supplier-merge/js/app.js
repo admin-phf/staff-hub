@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.9.0 (13 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.10.0 (13 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -71,11 +71,14 @@
  *         brands / suppliers, status counts, $ totals of the rows shown; TMP's price × SOH totals are STOCK VALUE); the
  *         rows badges say N OF M ROWS for the column filters too. Brand Name Changes, Product Prefixes, POS Suppliers and
  *         Ongoing Discounts are required (merge-map v1.2.0). Before stage 1, an empty POS SUPPLIER NAME is filled from
- *         POS Suppliers by its POS SUPPLIER NUMBER (fillSupNames). */
+ *         POS Suppliers by its POS SUPPLIER NUMBER (fillSupNames).
+ * v1.10.0 (13 Oct 2026): the Update in POS ticks are on the supplier sheet only again — OUT_MERGED_DATA's headings have
+ *         none (keptDim: a column POS keeps has grey heading text, sheet-grid v1.4.0 `dim`). No inner lines in the
+ *         heading block of any sheet (merge.css). The review workbook's stamp gives this version (it said v1.7.2). */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.7.2';
+  var TOOL_VERSION = 'v1.10.0';   // v1.10.0: was left at v1.7.2 in v1.8.0 / v1.9.0
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -1146,12 +1149,12 @@
     var R = state.review;
     var cols = R.head.map(function (h, i) { return h === '__EXPORT_VISIBLE__' ? -1 : i; }).filter(function (i) { return i >= 0; });
     if (!wb.outGrid) wb.outGrid = window.PHFSheetGrid.create($('#reviewGrid'), { search: false, onView: function () { renderScopes(); renderOutActions(); outBadge(); },
-      onTick: function (id, on) { setKeep(id, !on); } });              // v1.8.0: Update in POS ticks in the headings
+      onTick: function (id, on) { setKeep(id, !on); } });              // v1.8.0 ticks (v1.10.0: none on OUT — onTick unused)
     var look = keptLook(window.PHFSheetLook.forSheet(SHEETS.OUT, R.head), R.head, 'out', R.idx['ROW STATUS']);
     var marks = state.edits.marks[SHEETS.OUT] || {}, mk = {};
     R.fidx.forEach(function (sheetRow, i) { if (marks[sheetRow]) mk[i] = marks[sheetRow]; });
     wb.outGrid.set({
-      head: R.head, rows: R.filtered, cols: cols, rowNumbers: R.fidx, look: look, marks: mk, keepView: !!keep, ticks: keepTicks(R.head),
+      head: R.head, rows: R.filtered, cols: cols, rowNumbers: R.fidx, look: look, marks: mk, keepView: !!keep, dim: keptDim(R.head),
       totals: function (vis) { return look.totals(R.rows, vis); },
       edit: {
         readOnly: look.readOnly, cellLock: keptLock(R.head, 'out', R.idx['ROW STATUS']), rows: false, canUndo: (state.edits.undo[SHEETS.OUT] || 0) > 0,
@@ -1161,15 +1164,14 @@
     });
     wb.outGrid.busy(state.busy || state.edits.busy);
   }
-  // v1.8.0: OUT_MERGED_DATA — the Update in POS tick under every heading POS can keep (the group's `out` columns), the same
-  // setting as the supplier sheet's ticks; unticked = POS keeps its value (grey heading text, grey cells for matched rows).
-  function keepTicks(head) {
+  // v1.10.0: OUT_MERGED_DATA has no Update in POS ticks again (v1.8.0 put one under every heading POS can keep) — they are
+  // on the supplier sheet only. A column POS keeps (its supplier sheet tick unticked) has grey heading text, as there.
+  function keptDim(head) {
     var t = null;
     head.forEach(function (h, i) {
-      var g = KEEP_GROUPS.filter(function (x) { return x.out.indexOf(h) >= 0; })[0]; if (!g) return;
-      var on = !state.opts.keep[g.id];
+      var g = KEEP_GROUPS.filter(function (x) { return x.out.indexOf(h) >= 0; })[0]; if (!g || !state.opts.keep[g.id]) return;
       t = t || {};
-      t[i] = { id: g.id, on: on, title: 'Update in POS (' + g.what + ') — ' + (on ? 'ticked: POS ' + g.what + ' is updated from the merge. Untick to keep POS’s current value for matched products.' : 'unticked: POS keeps its current ' + g.what + ' for matched products. Tick to update it.') + ' Same tick as the supplier sheet heading.' };
+      t[i] = 'POS keeps its current ' + g.what + ' for matched products (Update in POS is unticked on IN_SUPPLIER_/_PRODUCT_UPDATES)';
     });
     return t;
   }
