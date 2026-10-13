@@ -1,7 +1,23 @@
-# POS New Product Check Clean v1.11.1 (Staff Hub v21.21.1)
+# POS New Product Check Clean v1.12.0 (Staff Hub v21.22.0)
 
-Updated 13 Oct 2026 21:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 13 Oct 2026 22:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.12.0 — **TYPE is the packaging POS gets.**
+- OUT_MERGED_DATA's packaging (BS) is its TYPE (AM) — CAPSULES, TABLETS, OIL, TOPICAL, LIQUID, POWDER, TEA, SACHETS,
+  LOZENGES, SOFTGELS — and goes to POS in the INSERT / UPDATE packaging field (new and matched products). Where no TYPE
+  is found, BS stays as before (POS's own packaging for a matched product, blank for a new one). A TYPE you type in AM goes
+  to BS as well. SUP PRODUCT's Update in POS tick covers packaging: unticked, POS keeps its packaging.
+- TYPE review (13 Oct full CH2 set, 15,224 OUT rows: 207 TYPEs changed, nothing else in OUT changed):
+  - **Sachets that were missed** (42): SACH / SACHS / SACHE abbreviations (AMAZONIA PROT ISO SACH 30G, LOCAKO … SACH12G
+    X 8 PACK — not SACHA INCHI) and single-serve packs in SUP PRODUCT, 15 g or less (BEFORE YOU SPEAK … COFFEE 4.5G X
+    30 PACK). A refill satchel (90G) is not a sachet.
+  - **STICK alone is no longer SACHETS** (45 were): deodorant / zinc / sunscreen / lip / balm / skin sticks are TOPICAL
+    (34), smudge / dental / palo santo sticks and a whiz-stick mixer have no type (11). STICK PACK is still SACHETS.
+  - **TEA only when it is tea** (120 were wrong): TEA TREE / TTREE and TEA LIGHT are not tea (tea tree oils → OIL,
+    creams / gels / balms → TOPICAL, shampoos / soaps → no type), and an ingredient tea gives way to the product's form
+    (SOAP LIQUID … GREEN TEA → LIQUID, GREEN TEA 30T → TABLETS, LIP BALM GREEN TEA → TOPICAL).
+  - LIQUID from ML / LT is unchanged.
 
 v1.11.1 — **pasted rows line up by their barcodes.** A block copied from POS SUPPLIER NUMBER onwards (no name column) and
 pasted at B3 used to go one column to the left — supplier number in B, barcode in C — so nothing could match (every row

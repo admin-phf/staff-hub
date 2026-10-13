@@ -658,3 +658,14 @@ All implemented stages keep source business files local to the browser and gener
   9.3E+12. `pasteAtCell`: a block of 6+ columns pasted at B–D moves so that column lands in D (`c0 = 3 - k`; k = 3 →
   INDEX first: skip it, start at B); no barcode column in 3+ rows → a warning in the message. `mapPasted` (Paste with no
   cell selected): `start = 3 - k` when it differs from the width rule.
+
+## Staff Hub v21.22.0 — POS New Product Check Clean v1.12.0: TYPE → packaging, TYPE review (13 Oct 2026 22:30 AEDT)
+- engine-host v1.4.0 (engine-worker v1.4.0, engine-frame): `refineTypes()` after 'build' / 'refresh' (after
+  `noteSellThru`) walks OUT_MERGED_DATA (only when headings 39 / 71 are TYPE / PACKAGING): `refineType(row)` from Q (else
+  O + P) and AL — STICK-only sachets re-typed (`strictType` on the text without STICK; deodorant / zinc / lip … →
+  TOPICAL), TEA re-typed when the tea is TEA TREE / TTREE / TEA LIGHT or GREEN / WHITE / BLACK / ICED / PEACH TEA with
+  another form, then blank → SACHETS for `\bSACH(ETS?|S|E)?(?![A-Z])` or a Q single-serve pack (≤ 15 g, not DISPLAY).
+  Writes AM and sets BS (index 70) = AM when AM is filled. OUT edits: `refineTypes(rows, syncOnly)` copies AM to BS for
+  the edited rows. `KEEP_COLS.product` adds [29, 'POS PACKAGING'].
+- app.js v1.12.0: KEEP_GROUPS.product `upd` / `out` + 'packaging', KEEP_SHOW.product + ['packaging', 'POS PACKAGING'].
+  The script files are unchanged (m13StrictTypeFromText_ still decides first).

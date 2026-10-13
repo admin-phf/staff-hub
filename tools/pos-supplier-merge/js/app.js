@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.11.1 (13 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.12.0 (13 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -82,11 +82,14 @@
  *         in column order, barcode first then brand / Sub ID / product / WS); Add 5 rows; Clear empty rows; fill down
  *         (the corner square, Ctrl+D); Ctrl+C writes the clipboard itself. No lines between the sheet's bands.
  * v1.11.1 (13 Oct 2026): a pasted block lines up so its barcodes land in D (barcodeCol) — at a selected cell (6+ columns,
- *         pasted at B–D) and with the Paste button; a row-shaped block with no barcode column is flagged at once. */
+ *         pasted at B–D) and with the Paste button; a row-shaped block with no barcode column is flagged at once.
+ * v1.12.0 (13 Oct 2026): OUT_MERGED_DATA's TYPE (AM) is the packaging (BS) POS gets (engine-host v1.4.0, which also
+ *         fixes SACHETS: STICK alone is not a sachet; SACH abbreviations and single-serve packs are). SUP PRODUCT's
+ *         Update in POS tick covers packaging too (unticked = POS keeps its packaging). */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.11.1';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.12.0';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -138,7 +141,7 @@
     { id: 'supplier', col: 2, what: 'supplier number', upd: ['supplier'], out: ['supplier'] },
     { id: 'brand', col: 4, what: 'brand', upd: ['brand'], out: ['brand', 'POS BRAND', 'OLD BRAND'] },
     { id: 'sub', col: 5, what: 'Sub ID', upd: ['sub id'], out: ['sub id'] },
-    { id: 'product', col: 6, what: 'description (descr / pos desc)', upd: ['descr', 'pos desc'], out: ['POS DESCR', 'descr', 'pos desc'] },
+    { id: 'product', col: 6, what: 'description (descr / pos desc) and packaging', upd: ['descr', 'pos desc', 'packaging'], out: ['POS DESCR', 'descr', 'pos desc', 'packaging'] },   // v1.12.0 packaging
     { id: 'units', col: 7, what: 'units', upd: ['units'], out: ['units'] },
     { id: 'minorder', col: 8, what: 'min order qty (box lot)', upd: ['min order qty'], out: ['min order qty'] },
     { id: 'ws', col: 9, what: 'wholesale and last price', upd: ['wsp excgst', 'last price'],
@@ -170,7 +173,7 @@
     supplier: [['supplier', 'POS SUPPLIER']],
     brand: [['POS BRAND', 'POS BRAND'], ['brand', 'POS BRAND']],
     sub: [['sub id', 'POS SUB ID']],
-    product: [['POS DESCR', 'POS DESCR'], ['descr', 'POS DESCR'], ['pos desc', 'POS POS DESC']],
+    product: [['POS DESCR', 'POS DESCR'], ['descr', 'POS DESCR'], ['pos desc', 'POS POS DESC'], ['packaging', 'POS PACKAGING']],
     units: [['units', 'POS UNITS', 1]],
     minorder: [['min order qty', 'POS MIN ORDER QTY', 1]],
     ws: [['NEW WSP EXGST', 'POS WSP EXCGST'], ['wsp excgst', 'POS WSP EXCGST'], ['NEW LAST PRICE', 'POS LAST PRICE'], ['last price', 'POS LAST PRICE']],
@@ -322,7 +325,7 @@
       document.body.appendChild(frame);
     }
     try {
-      worker = new Worker('./js/engine-worker.js?v=1.3.0');
+      worker = new Worker('./js/engine-worker.js?v=1.4.0');
       kind = 'worker';
       worker.onmessage = function (ev) { onMsg(ev.data); };
       worker.onerror = function (ev) {

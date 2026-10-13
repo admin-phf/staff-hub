@@ -1,4 +1,11 @@
-/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.3.0 (13 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.4.0 (13 Oct 2026)
+ * v1.4.0: OUT_MERGED_DATA's TYPE (AM) goes to packaging (BS) and from there to POS (the INSERT / UPDATE packaging field);
+ *   refineTypes() after stage 2 / Refresh: a "STICK" alone is no longer SACHETS (deodorant, zinc, lip, balm sticks →
+ *   TOPICAL; smudge / dental sticks → no type), SACH / SACHS / SACHE (also glued to a size, SACH12G; not SACHA INCHI) and
+ *   single-serve packs in SUP PRODUCT (4.5G X 30 PACK, 30 X 6.5G — 15 g or less, not DISPLAY) are SACHETS. A TYPE typed
+ *   in AM goes to BS too. KEEP_COLS.product keeps POS's packaging with the description (SUP PRODUCT unticked).
+ *   TEA only when the product is tea: TEA TREE / TTREE and TEA LIGHT are not tea (→ OIL, TOPICAL … or no type), and an
+ *   ingredient tea (GREEN / WHITE / BLACK / ICED TEA) gives way to another form in the text (SOAP LIQUID, CREAM, 30T).
  * v1.3.0 (still outside the Apps Script files):
  *   keep:['member'] → matched products keep POS's price levels 1–5 (the POS MEMBER tick, column O);
  *   generate + stock:true → a NEW product's pos soh (OUT_POS_INSERT) = its SUP STOCK IN (column M) when that is a number;
@@ -166,6 +173,7 @@
       var nr2 = (msg.values || []).length, nc2 = Math.max.apply(null, (msg.values || []).map(function (v) { return v.length; }).concat([1]));
       if (nr2) fireOnEdit(sh, start, 1, nr2, nc2);
     } else throw new Error('Unknown edit ' + op);
+    if (sh.name === 'OUT_MERGED_DATA') refineTypes(full ? null : rowsTouched, true);   // v1.4.0: a TYPE typed in AM → BS
     if (stack.length > UNDO_MAX) stack.shift();
     return reply(sh, full ? null : rowsTouched);
   }
@@ -187,7 +195,7 @@
     ws: [[12, 'POS WSP EXCGST'], [13, 'POS LAST PRICE']],
     rrp: [[15, 'POS RRP INCGST'], [16, 'POS PR 1 PC'], [17, 'POS PR 2 PC'], [18, 'POS PR 3 PC'], [19, 'POS PR 4 PC'], [20, 'POS PR 5 PC'],
       [21, 'POS PR 6 PC'], [22, 'POS PR 7 PC'], [23, 'POS PR 8 PC'], [24, 'POS PR 9 PC'], [25, 'POS RET PRICE']],
-    sub: [[2, 'POS SUB ID']], brand: [[3, 'POS BRAND']], product: [[4, 'POS DESCR'], [5, 'POS POS DESC']],
+    sub: [[2, 'POS SUB ID']], brand: [[3, 'POS BRAND']], product: [[4, 'POS DESCR'], [5, 'POS POS DESC'], [29, 'POS PACKAGING']],   // v1.4.0 packaging
     units: [[10, 'POS UNITS']], minorder: [[11, 'POS MIN ORDER QTY']], gst: [[14, 'POS GST TAX PC']], supplier: [[8, 'POS SUPPLIER']],
     member: [[16, 'POS PR 1 PC'], [17, 'POS PR 2 PC'], [18, 'POS PR 3 PC'], [19, 'POS PR 4 PC'], [20, 'POS PR 5 PC']]   // v1.3.0
   };
@@ -308,6 +316,51 @@
       var orow = out.cells[o], q = orow && orow[16] != null ? String(orow[16]).trim() : '';
       if (q && !/\*SELL THRU\*/i.test(q) && noted[q.toUpperCase()]) { orow[16] = q + ' *SELL THRU*'; n++; }
     }
+    return n;
+  }
+  // v1.4.0 — TYPE (AM, index 38) → packaging (BS, index 70). Q = 16, O = 14, P = 15.
+  var T_SACH_WORD = /\bSACH(?:ETS?|S|E)?(?![A-Z])/, T_REAL_SACH = /SACHET|\bSACH(?:S|E)?(?![A-Z])|PACKETS?\b|STICK\s*PACKS?/;
+  var T_STICK_TOPICAL = /\b(DEOD\w*|SUNSCREEN|SPF\d*|ZINC|LIP|BALM|SKIN|BLEMISH|CREAM|CRM)\b/;
+  function singleServe(q) {
+    var m = q.match(/\b(\d+(?:\.\d+)?)\s*G\s*X\s*\d{1,3}\s*(?:PACK|PK|BOX)\b/) || q.match(/\b\d{1,3}\s*X\s*(\d+(?:\.\d+)?)\s*G\b/);
+    return !!m && Number(m[1]) > 0 && Number(m[1]) <= 15 && !/\bDISPLAY\b/.test(q);
+  }
+  function strictType(text, size) {
+    var t = typeof G.m13StrictTypeFromText_ === 'function' ? G.m13StrictTypeFromText_(text) : '';
+    if (!t && size && typeof G.m13StrictTypeFromSizeSuffix_ === 'function') t = G.m13StrictTypeFromSizeSuffix_(size);
+    return t || '';
+  }
+  function refineType(row) {
+    var up = function (v) { return String(v == null ? '' : v).toUpperCase(); };
+    var q = up(row[16]).replace(SELL_THRU, ' ').trim(), src = q || (up(row[14]) + ' ' + up(row[15])), t = String(row[38] == null ? '' : row[38]).trim().toUpperCase();
+    var size = up(row[37]);
+    var stickOnly = !T_REAL_SACH.test(src) && /\bSTICKS?\b/.test(src), ev = stickOnly ? src.replace(/\bSTICKS?\b/g, ' ') : src;
+    if (t === 'SACHETS' && stickOnly) t = strictType(ev, '');        // the only sachet evidence was STICK(S)
+    if (t === 'TEA') {                                               // tea tree, tea lights and ingredient teas
+      var m = ev.replace(/\bTEA\s*-?\s*TREE\b|\bTTREE\b|\bTEA\s*LIGHTS?\b/g, ' ');
+      if (!/\bTEA\b/.test(m)) t = strictType(m, size);
+      else if (/\b(GREEN|WHITE|BLACK|ICED|PEACH)\s+TEA\b/.test(m)) {
+        var alt = strictType(m.replace(/\b(GREEN|WHITE|BLACK|ICED|PEACH)\s+TEA\b/g, ' '), size);
+        if (alt && alt !== 'TEA') t = alt;
+      }
+    }
+    if (!t && stickOnly && T_STICK_TOPICAL.test(src)) t = 'TOPICAL';  // deodorant, zinc, lip, balm, skin sticks
+    if (!t && T_SACH_WORD.test(src)) t = 'SACHETS';
+    if (!t && q && singleServe(q)) t = 'SACHETS';
+    return t;
+  }
+  function refineTypes(rowsOnly, syncOnly) {          // syncOnly: after an edit, AM as typed → BS (no refining)
+    var out = shim && shim.ss._find('OUT_MERGED_DATA'); if (!out) return 0;
+    var head = (out.cells[1] || []).map(function (h) { return String(h == null ? '' : h).trim().toUpperCase(); });
+    if (head[38] !== 'TYPE' || head[70] !== 'PACKAGING') return 0;   // not the layout this was written for
+    var n = 0, list = rowsOnly || null;
+    var one = function (i) {
+      var row = out.cells[i]; if (!row || String(row[0] == null ? '' : row[0]).trim() === '') return;
+      var was = String(row[38] == null ? '' : row[38]), t = syncOnly ? was.trim().toUpperCase() : refineType(row);
+      if (!syncOnly && t !== was) { row[38] = t; n++; }
+      if (t && String(row[70] == null ? '' : row[70]) !== t) row[70] = t;
+    };
+    if (list) list.forEach(function (r) { if (r >= 3) one(r - 1); }); else for (var i = 2; i < out.cells.length; i++) one(i);
     return n;
   }
   // OUT_POS_INSERT / OUT_POS_UPDATE: min order qty (field 11) must be a number for POS.
@@ -463,7 +516,7 @@
         var ret;
         try { ret = step === 'export' && msg.only ? withOnlyRows(msg.only, function () { return G[fnName](); }) : G[fnName](); }
         finally { runOpts = null; }
-        if (step === 'build' || step === 'refresh') noteSellThru();       // v1.3.0
+        if (step === 'build' || step === 'refresh') { noteSellThru(); refineTypes(); }   // v1.3.0 / v1.4.0
         var files = [];
         if (step === 'export' && ret && ret.length) {
           files = ret.map(function (f) { return { label: f.label, filename: f.filename, rowCount: f.rowCount, base64: f.base64 }; });
