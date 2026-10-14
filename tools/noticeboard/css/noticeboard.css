@@ -1,5 +1,6 @@
-/* PHF Staff Hub — Staff Noticeboard · noticeboard.css v1.0.0 (14 Oct 2026). Navy / gold theme tokens from theme.css. */
-body.phf-page-notices{font-family:var(--phf-font);color:var(--phf-ink)}
+/* PHF Staff Hub — Staff Noticeboard · noticeboard.css v1.0.1 (14 Oct 2026). Navy / gold theme tokens from theme.css. v1.0.1: border-box sizing — the page no longer scrolls sideways (the 20 px side padding was added to 100 % width). */
+body.phf-page-notices,body.phf-page-notices *{box-sizing:border-box}
+body.phf-page-notices{font-family:var(--phf-font);color:var(--phf-ink);margin:0;overflow-x:hidden}
 .ntc-main{padding-top:14px;padding-bottom:40px;display:grid;gap:12px}
 .ntc-card{background:#fff;border:1px solid var(--phf-line);border-radius:12px;box-shadow:0 1px 2px rgba(30,58,95,.04);padding:18px 20px}
 .ntc-card h2{margin:0 0 8px;font:800 17px/1.25 var(--phf-font);color:var(--phf-navy)}

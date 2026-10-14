@@ -1,4 +1,5 @@
-/* PHF Staff Hub · hub-nav.js v1.1.1 (14 Oct 2026)
+/* PHF Staff Hub · hub-nav.js v1.1.2 (14 Oct 2026)
+ * v1.1.2: a notice on the home page opens in place (full content, action, links) and closes again — no page change.
  * v1.1.1: no In development badge on the tabs (the hover panel still shows it); Supplier Contacts v1.2.0, Reconcile v2.11.3.
  * v1.1.0: tabs are links — click opens the tool straight away, the description panel shows on hover / focus; Kenneth's
  *         order (Customer Special Orders … POS New Product Check Clean) with Bread Orders as a placeholder; search on its own
@@ -101,10 +102,22 @@
     var drafts = N.draftCount();
     host.innerHTML = (list.length ? list.map(function (n) {
       var p = N.priority(n.priority);
-      return '<a class="np-item np-' + n.priority + '" href="./tools/noticeboard/index.html#' + esc(n.id) + '"><span class="np-top"><span class="phf-pill ' + p.cls + '">' + esc(p.short) + '</span><span class="np-cat">' + esc(n.category) + '</span><span class="np-date">' + esc(N.fmtDate(n.updated || n.date)) + '</span>' + (n._draft ? '<span class="phf-pill is-amber" title="Saved in this browser only — not published">Draft</span>' : '') + '</span>' +
-        '<span class="np-title">' + esc(n.title) + '</span><span class="np-sum">' + esc(n.summary || '') + '</span></a>';
+      // v1.1.2: a notice opens in place (click again to close) — the page link is for editing and the full board
+      return '<article class="np-item np-' + n.priority + '" data-id="' + esc(n.id) + '"><button type="button" class="np-toggle" aria-expanded="false" aria-controls="np-full-' + esc(n.id) + '">' +
+        '<span class="np-top"><span class="phf-pill ' + p.cls + '">' + esc(p.short) + '</span><span class="np-cat">' + esc(n.category) + '</span><span class="np-date">' + esc(N.fmtDate(n.updated || n.date)) + '</span></span>' +
+        '<span class="np-title">' + esc(n.title) + '</span><span class="np-sum">' + esc(n.summary || '') + '</span><span class="np-more">Show</span></button>' +
+        '<div class="np-full" id="np-full-' + esc(n.id) + '" hidden>' + N.render(n) + '<div class="np-full-foot"><a class="btn small" href="./tools/noticeboard/index.html#' + esc(n.id) + '">Open on the noticeboard</a><button type="button" class="btn small np-close">Close</button></div></div></article>';
     }).join('') : '<div class="np-empty">No active notices.</div>') +
       '<div class="np-foot">' + link + (drafts ? '<span class="np-drafts">' + drafts + ' draft' + (drafts === 1 ? '' : 's') + ' in this browser, not yet published</span>' : '') + '</div>';
+    function setOpen(item, on) {
+      item.classList.toggle('is-open', on); var b = item.querySelector('.np-toggle'); b.setAttribute('aria-expanded', on ? 'true' : 'false');
+      item.querySelector('.np-full').hidden = !on; item.querySelector('.np-more').textContent = on ? 'Hide' : 'Show';
+      if (on) item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+    host.querySelectorAll('.np-item').forEach(function (item) {
+      item.querySelector('.np-toggle').onclick = function () { setOpen(item, !item.classList.contains('is-open')); };
+      item.querySelector('.np-close').onclick = function () { setOpen(item, false); item.querySelector('.np-toggle').focus(); };
+    });
   }
 
   // ---------------------------------------------------------------- search
@@ -164,5 +177,5 @@
     var lib = $('#libList'); if (lib && G.MutationObserver) new MutationObserver(refresh).observe(lib, { childList: true, subtree: true });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
-  G.PHFHubNav = { VERSION: 'v1.1.1', TOOLS: TOOLS, GROUPS: GROUPS, refresh: refresh, setNotices: setNotices };
+  G.PHFHubNav = { VERSION: 'v1.1.2', TOOLS: TOOLS, GROUPS: GROUPS, refresh: refresh, setNotices: setNotices };
 })(window);

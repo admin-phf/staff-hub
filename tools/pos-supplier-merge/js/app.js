@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.14.0 (14 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.14.1 (14 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -101,11 +101,15 @@
  *         internal columns (CHANGE %, MARKUP, FINAL SHELF RRP) and the POS block have none. Last price has its own tick
  *         (KEEP_GROUPS `last`, split from `ws`); item size (`size`) goes to POS from SIZE as written (engine-host v1.6.0
  *         refineSizes fills the SIZE gaps: 60S, 60TB, 50 GUMMIES, 90 VEGIECAPS, 70MLS, 5LB, 3PK, 30 X SACH, 20X5G).
- *         Ctrl + arrow jumps to the edge of the data on every sheet (sheet-grid v1.7.0 jump; the supplier sheet too). */
+ *         Ctrl + arrow jumps to the edge of the data on every sheet (sheet-grid v1.7.0 jump; the supplier sheet too).
+ * v1.14.1 (14 Oct 2026): a Combined Master (Full_Data, from Build POS Master Databases) dropped on an input is named as
+ *         such — it is not the POS Database (its POS block has blank rows for CH2 / Unique-only products) and it is not a
+ *         supplier set — instead of "Missing columns: POS MASTER BRAND …" after supplier-layout turned its CH2 columns
+ *         into supplier rows. A Library file that cannot be read says so on the page instead of only in the console. */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.14.0';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.14.1';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -410,16 +414,31 @@
     return p.then(function (wb) {
       return wb.SheetNames.map(function (name) {
         var rows = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '', raw: true, blankrows: false });
+        // v1.14.1: the Combined Master's Full_Data has the POS block and the CH2 / Unique blocks side by side — it is
+        // neither input, so it is named rather than mistaken for a full CH2 set.
+        if (isCombinedMaster(rows)) return { name: name, rows: rows, master: true };
         // v1.7.0: a full CH2 / Unique set (clean_ch2_data / clean_uhp_data) → the supplier rows A–P, as its _pos_db file.
         var full = window.PHFSupplierLayout ? window.PHFSupplierLayout.fromFullSheet(rows) : null;
         return full ? { name: name, rows: full.rows, from: full.label } : { name: name, rows: rows };
       });
     });
   }
+  function isCombinedMaster(rows) {
+    for (var i = 0; i < Math.min(8, (rows || []).length); i++) {
+      var h = (rows[i] || []).map(function (x) { return String(x == null ? '' : x).trim().toUpperCase(); });
+      if (h.indexOf('POS_PLU') >= 0 && h.indexOf('MATCH_STATUS') >= 0 && (h.indexOf('CH2_MASTER_BARCODE') >= 0 || h.indexOf('UHP_MASTER_BARCODE') >= 0)) return true;
+    }
+    return false;
+  }
+  var MASTER_MSG = 'this is the Combined Master from Build POS Master Databases (Full_Data — POS, CH2 and Unique side by side), not an input here. ' +
+    'POS Database is the full POS set clean_merged_pos_data_… (saved in the Library by Build POS Master Databases and loaded here automatically); ' +
+    'Supplier Updates is a full CH2 / Unique set (clean_ch2_data_… / clean_uhp_data_…) or a _pos_db file.';
   // Best tab of a workbook for one input: a tab recognised as that input, else
   // the tab whose headings map best. Returns { tab, mapped } or throws.
   function mapForInput(id, sheets) {
     var def = inputDef(id), errs = [], best = null;
+    if ((id === 'pos' || id === 'sup') && sheets.some(function (s) { return s.master; })) throw new Error(MASTER_MSG);   // v1.14.1
+    sheets = sheets.filter(function (s) { return !s.master; });
     var order = sheets.filter(function (s) { return M.identifyRows(s.rows).indexOf(id) >= 0; }).concat(sheets);
     for (var i = 0; i < order.length; i++) {
       try {
@@ -519,6 +538,7 @@
       return readWorkbook(file).then(function (sheets) {
         var recognised = 0, notes = [];
         sheets.forEach(function (sh) {
+          if (sh.master) { notes.push(sh.name + ': ' + MASTER_MSG); return; }   // v1.14.1
           var ids = M.identifyRows(sh.rows);
           if (ids.length !== 1) { if (ids.length > 1) notes.push(sh.name + ': could be ' + ids.map(function (i) { return inputDef(i).title; }).join(' or ')); return; }
           var id = ids[0];
@@ -2866,7 +2886,7 @@
             addToInput(j.id, entry);
             got.push(LIB.info(j.kind).label + ' (' + LIB.when(rec) + ')');
           });
-        }).catch(function (e) { console.warn('Library load failed', j.kind, e); });
+        }).catch(function (e) { console.warn('Library load failed', j.kind, e); setGlobal(LIB.info(j.kind).label + ' from the Library could not be used: ' + e.message + ' Drop the right file on its row, or run Build POS Master Databases again.', 'error'); });
       });
     }, Promise.resolve()).then(function () { return got; });
   }

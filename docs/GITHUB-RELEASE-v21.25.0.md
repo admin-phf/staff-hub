@@ -70,12 +70,26 @@ icon tags in their `<head>`.
 - Files: tools/reconcile-ch2/{index.html, js/app.js v2.11.3, css/app.css, README.md}. Nothing in the reconciliation
   itself changed (same run: 104/106 matched, Integrity PASS on the 74147128 test order).
 
+## Home page notices open in place, noticeboard width
+- On the home page a notice opens where it is (full content, Action required, links) and closes again with Hide / Close
+  — no page change; "Open the noticeboard" is still the way to the full board and editing (hub-nav.js v1.1.2).
+- The noticeboard page no longer scrolls sideways (noticeboard.css v1.0.1: border-box sizing — the side padding was
+  being added to 100 % width).
+
+## POS New Product Check Clean v1.14.1 — Combined Master named, Library problems shown
+- Dropping the Combined Master (merged_alligned_pos_supplier_uhp_full_…, Full_Data) on POS Database or Supplier Updates
+  now says what it is and which file each input wants, instead of "Missing columns: POS MASTER BRAND, POS PLU, POS SUB
+  ID, POS DESCR" (supplier-layout saw its CH2 columns and turned the sheet into supplier rows). POS Database is the full
+  POS set clean_merged_pos_data_… — saved in the Library by Build POS Master Databases and loaded automatically; nothing
+  about the master's layout changed (same headings on the 13.10 and 14.10 files). A Library file that cannot be used is
+  reported on the page (it was only in the console).
+
 ## Navigation
 - The **In development** badge no longer sits on a tab (it took a whole extra line); the hover panel and the search
   results still show it (hub-nav.js v1.1.1, hub.css v21.25.6).
 
 ## Files
-- Changed: index.html, assets/css/hub.css, assets/css/library.css, tools/supplier-contacts/{index.html, js/contacts.js, css/contacts.css, README.md}, tools/reconcile-ch2/{index.html, js/app.js, css/app.css, README.md}, assets/js/phf-lock.js, docs/ARCHITECTURE.md, tools/{database-build,
+- Changed: index.html, assets/css/hub.css, assets/css/library.css, tools/supplier-contacts/{index.html, js/contacts.js, css/contacts.css, README.md}, tools/reconcile-ch2/{index.html, js/app.js, css/app.css, README.md}, tools/pos-supplier-merge/{index.html, js/app.js}, tools/noticeboard/css/noticeboard.css, assets/js/phf-lock.js, docs/ARCHITECTURE.md, tools/{database-build,
   pos-supplier-merge, reconcile-ch2, supplier-contacts, update-specials}/index.html (icon tags only)
 - New: site.webmanifest, assets/icons/*, assets/js/hub-nav.js, assets/js/phf-notices.js, data/notices.enc.json,
   tools/noticeboard/{index.html, README.md, js/noticeboard.js, css/noticeboard.css}, docs/GITHUB-RELEASE-v21.25.0.md
@@ -87,6 +101,8 @@ icon tags in their `<head>`.
   unticking Alpha hides it ("Showing 2 of 3", funnel on the heading); Phone Numbers menu search "0390000001" finds
   "03 9000 0001"; the ✕ clears filter and sort and the file order returns; .csv and .xlsx downloads carry Status (Archived last); reload from
   the Library keeps the archive; dialog button reads Restore and restores; Undo re-archives.
+- Home page: a notice opens in place (Hide / Close / click again), the noticeboard page has no sideways scroll at 1600 px.
+- Merge: the Combined Master dropped on POS Database gives the new message; the real clean_merged_pos_data then loads.
 - Reconcile (real 74147128 order + invoice, master and Ongoing Discounts): run unchanged (104/106 matched, Integrity
   PASS, 6 exceptions); search "pukka" → "1 of 109" rows with the section rows kept; Exceptions view "0 of 8"; Esc clears.
 - Hub: title and favicon tags resolve; ten tabs in one row at 1920 / 1440 / 1366 px, search row beneath; hovering a tab

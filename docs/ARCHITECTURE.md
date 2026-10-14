@@ -748,7 +748,7 @@ All implemented stages keep source business files local to the browser and gener
 - Testing: see GITHUB-RELEASE-v21.24.0.md (item size the only TXT difference against v21.23.0; CURRENT last price and
   SIZE-off runs change only their own field).
 
-## Staff Hub v21.25.0 — site icon, development wording, navigation + search, Staff Noticeboard (14 Oct 2026 16:45 AEDT)
+## Staff Hub v21.25.0 — site icon, development wording, navigation + search, Staff Noticeboard (14 Oct 2026 18:30 AEDT)
 - Icons: `assets/icons/` (favicon.ico 16/32/48, icon-16…512, icon-180 opaque for iOS, icon-192/512-maskable with 50 %
   padding) cut from the apple in `assets/img/phf-logo.png`; `site.webmanifest` at the root with relative `start_url` /
   icon paths (works under the `/staff-hub/` Pages prefix); the `<link rel=icon|apple-touch-icon|manifest>` + theme-color
@@ -797,3 +797,9 @@ All implemented stages keep source business files local to the browser and gener
 - Reconcile CH2 v2.11.3 (`tools/reconcile-ch2/js/app.js`): `applyTableSearch()` runs after `renderPreview()` and on
   `#tableSearch` input; it toggles `is-searching` on `#resultTable` and `search-miss` on data rows (section / total /
   colspan rows are skipped), using the row text plus input values and titles. Pure display — no state change.
+- hub-nav.js v1.1.2 `renderNoticePreview`: each notice is an `article.np-item` with a `.np-toggle` button (summary) and
+  a `.np-full` block (`PHFNotices.render(n)`), opened / closed in place (`is-open` spans the grid). noticeboard.css v1.0.1
+  sets border-box on the page.
+- POS New Product Check Clean v1.14.1 (`js/app.js`): `isCombinedMaster(rows)` (POS_PLU + MATCH_STATUS + CH2_/UHP_MASTER_
+  BARCODE) marks a sheet `master` in `readWorkbook` before supplier-layout's `fromFullSheet` can convert it; `mapForInput`
+  throws `MASTER_MSG` for pos / sup, `bulkAccept` notes it; Library load errors call `setGlobal(..., 'error')`.
