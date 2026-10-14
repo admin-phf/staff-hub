@@ -20,8 +20,8 @@
 <body class="phf-page-hub">
   <header class="phf-shell-header header-container">
   <a class="phf-shell-logo logo-section" href="./index.html" aria-label="Return to Staff Hub"><img src="./assets/img/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
-  <div class="phf-shell-title center-section"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></span><div class="phf-shell-copy title-row"><h1>Staff Hub</h1><p class="phf-shell-version version-text">v21.25.1</p></div></div>
-  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><span aria-current="page">Staff Hub</span></nav><p class="phf-shell-updated build-details">Updated 15 Oct 2026 10:30 AEDT</p></div>
+  <div class="phf-shell-title center-section"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></span><div class="phf-shell-copy title-row"><h1>Staff Hub</h1><p class="phf-shell-version version-text">v21.25.2</p></div></div>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><span aria-current="page">Staff Hub</span></nav><p class="phf-shell-updated build-details">Updated 15 Oct 2026 11:00 AEDT</p></div>
 </header>
   <!-- v21.25.0: horizontal navigation (one dropdown per group) with the global search — assets/js/hub-nav.js -->
   <nav class="hub-nav" id="hubNav" aria-label="Staff Hub navigation"></nav>
@@ -40,16 +40,16 @@
     <section class="hub-card phf-lib" id="libraryPanel" aria-labelledby="libHeading">
       <div class="phf-band"><h2 id="libHeading">Library · saved in this browser</h2><small id="libSummary">Checking…</small></div>
       <div class="phf-lib-body">
-        <details class="phf-lib-help"><summary>What is this?</summary><p class="phf-lib-intro">Files the tools save for each other, so you don't drag them in again: Build POS Master Databases saves the POS Database, the supplier imports and the merged masters when a build finishes; reference files you load once are kept here too (Ongoing Discounts is one file for Build POS Master Databases, Reconcile CH2 Order and POS New Product Check Clean). Reconcile CH2 Order and POS New Product Check Clean load the POS files automatically; the CH2 / Unique supplier imports go into a merge only when you press Add there, so each merge covers just the brands you choose. Supplier Contacts keeps its list here — Delete all leaves it in place (use its own ✕), so download it from Supplier Contacts to share or back it up. Everything stays in this browser on this computer — nothing is uploaded, and another browser or PC has its own Library.</p></details>
+        <details class="phf-lib-help"><summary>What is this?</summary><p class="phf-lib-intro">Files the tools save for each other, so you don't drag them in again: Build POS Master Databases saves the POS Database, the supplier imports and the merged masters when a build finishes; reference files you load once are kept here too (Ongoing Discounts is one file for Build POS Master Databases, Reconcile CH2 Order and POS New Product Check Clean). Reconcile CH2 Order and POS New Product Check Clean load the POS files automatically; the CH2 / Unique supplier imports go into a merge only when you press Add there, so each merge covers just the brands you choose. Supplier Contacts keeps its list here — Delete all leaves it in place (use its own ✕), so download it from Supplier Contacts to share or back it up. POS New Product Check Clean keeps its reference tables and session in its own store, not here; Delete all clears that too. Everything stays in this browser on this computer — nothing is uploaded, and another browser or PC has its own Library.</p></details>
         <div class="phf-lib-list" id="libList"></div>
-        <div class="phf-lib-foot"><span id="libUsage"></span><button type="button" class="phf-lib-btn danger" id="libClearAll" title="Delete every saved file except the Supplier Contacts list">Delete all</button></div>
+        <div class="phf-lib-foot"><span id="libUsage"></span><button type="button" class="phf-lib-btn danger" id="libClearAll" title="Delete every saved file except the Supplier Contacts list — the Library here, and POS New Product Check Clean's own saved reference tables and session">Delete all</button></div>
       </div>
     </section>
 
     <div class="note"><span class="note-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span><span><strong>Privacy:</strong> do not commit customer, invoice, order or other business data to this repository. The reconciliation tool is intended to process files locally in the staff member's browser. Notices are published encrypted (data/notices.enc.json) and read with the staff passphrase.</span></div>
   </main>
   <script src="./assets/js/phf-library.js?v=1.1.2"></script>
-  <script src="./assets/js/hub-library.js?v=1.0.3"></script>
+  <script src="./assets/js/hub-library.js?v=1.0.4"></script>
   <script src="./assets/js/phf-lock-config.js?v=20261012"></script>
   <script src="./assets/js/phf-lock.js?v=1.2.0"></script>
   <script src="./assets/js/phf-notices.js?v=1.0.0"></script>

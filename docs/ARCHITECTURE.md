@@ -823,3 +823,9 @@ All implemented stages keep source business files local to the browser and gener
 - merge-map v1.2.1: `fr` (SRC_POS_FIND_REPLACE) is `required: true`.
 - Rule from here: every release bumps the hub badge (`index.html` `.phf-shell-version`) and gets its own
   docs/GITHUB-RELEASE-vX.Y.Z.md.
+- Merge app.js v1.14.8 `LIB.onChange`: a `put` of a `LIB_LOAD` kind (POS Database) with the slot empty, or holding a
+  Library copy with a different `savedAt`, invalidates results (if any) and calls `libLoad()`; otherwise the reload note.
+
+## Staff Hub v21.25.2 — Delete all clears the merge's own store (15 Oct 2026 11:00 AEDT)
+- hub-library v1.0.4: `OTHER_STORES = ['phf-pos-supplier-merge']`; Delete all = `L.clearAll()` then `deleteDatabase` of each
+  (blocked / error resolve too). The merge's `dbTx` closes the connection per transaction, so no `onblocked` wait.

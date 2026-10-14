@@ -1,4 +1,4 @@
-/* PHF Staff Hub — Library panel on the home page v1.0.3 (15 Oct 2026: storage protected / not protected line; v1.0.0 10 Oct 2026; v1.0.1 shows the renamed tools; v1.0.2 mentions the Supplier Contacts list): lists the files the tools saved in this
+/* PHF Staff Hub — Library panel on the home page v1.0.4 (15 Oct 2026: Delete all also clears POS New Product Check Clean's own store; v1.0.3 storage protected / not protected line; v1.0.0 10 Oct 2026; v1.0.1 shows the renamed tools; v1.0.2 mentions the Supplier Contacts list): lists the files the tools saved in this
    browser (assets/js/phf-library.js), with Download, ✕ (delete straight away) and Delete all. */
 (function () {
   'use strict';
@@ -47,7 +47,13 @@
       $('#libList').innerHTML = '<div class="phf-lib-empty">The Library is not available in this browser (' + esc(e.message) + '). The tools still work with drag and drop.</div>';
     });
   }
-  $('#libClearAll').onclick = function () { $('#libClearAll').disabled = true; L.clearAll().then(render); };
+  // v1.0.4: Delete all also empties POS New Product Check Clean's own store (its saved reference tables and session), which is
+  // not part of the Library — so "delete everything saved" means everything. Supplier Contacts stays, as before.
+  var OTHER_STORES = ['phf-pos-supplier-merge'];
+  function clearOtherStores() {
+    return Promise.all(OTHER_STORES.map(function (name) { return new Promise(function (res) { try { var r = indexedDB.deleteDatabase(name); r.onsuccess = r.onerror = r.onblocked = function () { res(); }; } catch (e) { res(); } }); }));
+  }
+  $('#libClearAll').onclick = function () { $('#libClearAll').disabled = true; L.clearAll().then(clearOtherStores).then(render); };
   L.onChange(function () { render(); });
   render();
 })();

@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.14.7 (15 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.14.8 (15 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -121,11 +121,14 @@
  *         master and OLD BRAND shows what POS had; tick CURRENT, or change the cell, to keep POS's.
  * v1.14.7 (15 Oct 2026): Find & Replace is a required reference table (merge-map v1.2.1); the rail says whether this
  *         browser's storage is protected from automatic clearing (PHFLibrary.persisted) — saved reference tables and the
- *         session disappear when the browser clears the site's storage. */
+ *         session disappear when the browser clears the site's storage.
+ * v1.14.8 (15 Oct 2026): a POS Database that Build saves while this page is open is loaded at once when the slot is empty
+ *         or holds an older Library copy (it said "reload this page"); the session's own copy of a Library file that was
+ *         ✕-ed is not brought back by a newer build being dismissed — dismissal is per saved copy, as before. */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.14.7';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.14.8';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -3108,7 +3111,14 @@
     if (LIB) LIB.onChange(function (msg) {
       if (msg.action === 'clear' || LIB_SUP.indexOf(msg.kind) >= 0) { libSupRefresh(); return; }
       var use = LIB_LOAD.filter(function (j) { return j.kind === msg.kind; })[0];
-      if (msg.action === 'put' && use && !LIB_SHARED[use.id]) setGlobal('A newer ' + LIB.info(msg.kind).label + ' was saved to the Library (' + LIB.when(msg.record) + '). Reload this page to use it, or keep working with the files loaded now.', 'info');
+      if (msg.action !== 'put' || !use || LIB_SHARED[use.id]) return;
+      // v1.14.8: a POS Database saved to the Library while this page is open (Build finished) is loaded straight away when
+      // the slot is empty or holds an older Library copy — no reload. A file dropped this session is left alone.
+      var cur = state.inputs[use.id], files = (cur && cur.files) || [], f0 = files[0];
+      var take = !files.length || (f0.libKind === use.kind && f0.libSavedAt !== (msg.record && msg.record.savedAt));
+      if (!take || state.busy || state.edits.busy) { setGlobal('A newer ' + LIB.info(msg.kind).label + ' was saved to the Library (' + LIB.when(msg.record) + '). Reload this page to use it, or keep working with the files loaded now.', 'info'); return; }
+      if (files.length) invalidateResults(LIB.info(msg.kind).label + ' replaced by the newer Library copy — run the stages again.');
+      libLoad().then(function (got) { renderAll(); if (got && got.length) setGlobal('From the Library: ' + got.join(' · ') + '. ' + readinessText(), 'success'); });
     });
     startEngine().then(function () { updateRunButtons(); }).catch(function (e) { setGlobal('The merge engine could not start: ' + e.message, 'error'); });
   }
