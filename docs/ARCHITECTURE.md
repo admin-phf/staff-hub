@@ -814,3 +814,12 @@ All implemented stages keep source business files local to the browser and gener
   the Upload tick differs from the checks' default (hold = off); sheet-grid v1.7.1 renders `wbg-row-changed` and keeps
   it live on a tick click. merge.css v1.13.2: `td.is-edited` orange band + text, `tr.wbg-row-changed td.wbg-rn` orange.
   hub.css v21.25.8: `.np-full` max-height min(60vh, 520px), overflow auto.
+
+## Staff Hub v21.25.1 — storage protection shown, Find & Replace required (15 Oct 2026 10:30 AEDT)
+- phf-library v1.1.2 `persisted()` wraps `navigator.storage.persisted()` (null when unsupported); `askPersist()` on every
+  put is unchanged. hub-library v1.0.3 `usageLine()` (both the empty and the listed branch) prints the usage and a green
+  "Storage protected" / amber "Storage not protected" pill with the install-as-app advice. Merge app.js v1.14.7 fills
+  `#storageNote` in the rail the same way at boot (`.sidebar-footer.is-ok / .is-warn`, merge.css v1.13.3).
+- merge-map v1.2.1: `fr` (SRC_POS_FIND_REPLACE) is `required: true`.
+- Rule from here: every release bumps the hub badge (`index.html` `.phf-shell-version`) and gets its own
+  docs/GITHUB-RELEASE-vX.Y.Z.md.

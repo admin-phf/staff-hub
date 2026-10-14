@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.14.6 (15 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.14.7 (15 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -118,11 +118,14 @@
  *         on an orange band (as on the supplier sheet); an UPDATED SUPPLIER typed in is approved against POS Suppliers
  *         (→ "NAME (NUMBER)") or refused and put back; an Upload tick changed from the checks' default shows orange.
  * v1.14.6 (15 Oct 2026): the brand pair starts on NEW again — the supplier's brand (after Brand Name Changes) is the
- *         master and OLD BRAND shows what POS had; tick CURRENT, or change the cell, to keep POS's. */
+ *         master and OLD BRAND shows what POS had; tick CURRENT, or change the cell, to keep POS's.
+ * v1.14.7 (15 Oct 2026): Find & Replace is a required reference table (merge-map v1.2.1); the rail says whether this
+ *         browser's storage is protected from automatic clearing (PHFLibrary.persisted) — saved reference tables and the
+ *         session disappear when the browser clears the site's storage. */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.14.6';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.14.7';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -3077,6 +3080,13 @@
       removeInputs(M.INPUTS.filter(function (d) { return d.stored; }).map(function (d) { return d.id; }), 'Saved reference data removed from this browser.');
     };
     renderAll();
+    // v1.14.7: say whether the browser protects this site's storage (saved reference tables, the session, the Library)
+    if (LIB && LIB.persisted) LIB.persisted().then(function (p) {
+      var el = $('#storageNote'); if (!el || p === null) return; el.hidden = false;
+      el.innerHTML = p ? '<strong>Storage protected</strong><span>The browser will not clear this site\'s saved files by itself.</span>'
+        : '<strong>Storage not protected</strong><span>The browser may clear this site\'s saved files (reference tables, the Library, the session) when disk space is short. To protect them, install the Staff Hub as an app (Chrome menu ⋮ → Cast, save and share → Install page as app) or bookmark it, then reload.</span>';
+      el.className = 'sidebar-footer' + (p ? ' is-ok' : ' is-warn');
+    });
     var hadInputs = false;
     refLoadAll().then(restoreInputs).then(function (had) { hadInputs = had; renderAll(); return libLoad(); }).then(function (got) {
       renderAll();

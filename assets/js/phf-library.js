@@ -1,4 +1,5 @@
-/* PHF Staff Hub — Library v1.1.1 (12 Oct 2026)
+/* PHF Staff Hub — Library v1.1.2 (15 Oct 2026: persisted() — is the site's storage protected from automatic clearing)
+ * v1.1.1 (12 Oct 2026)
  * v1.1.1: the POS, CH2 and Unique entries are the full sets from Build POS Master Databases v21.14.0 (clean_merged_pos_data,
  *         clean_ch2_data, clean_uhp_data); POS New Product Check Clean makes its supplier rows from the CH2 / Unique ones.
  * v1.1.0: Supplier Contacts list ("lib:contacts") — the only copy of edits made there, so Delete all keeps it (its own ✕
@@ -145,6 +146,12 @@
   var RENAMED = { 'Build Master Databases': 'Build POS Master Databases', 'POS Supplier Merge': MERGE, 'POS Supplier New Product Check and Clean Merge': MERGE };
   function displayName(name) { return RENAMED[name] || name || ''; }
   function onChange(fn) { if (typeof fn === 'function') listeners.push(fn); }
+  // v1.1.2: is this site's storage protected from the browser's automatic clearing? (Chrome grants it once the site is
+  // installed as an app, bookmarked or used a lot; persist() is asked on every save.)
+  function persisted() {
+    try { if (navigator.storage && navigator.storage.persisted) return navigator.storage.persisted().catch(function () { return null; }); } catch (e) {}
+    return Promise.resolve(null);
+  }
   function estimate() {
     try { if (navigator.storage && navigator.storage.estimate) return navigator.storage.estimate(); } catch (e) {}
     return Promise.resolve(null);
@@ -156,7 +163,7 @@
   function isDismissed(tool, rec) { try { return !!rec && localStorage.getItem(dismissKey(tool, rec.kind)) === (rec.savedAt || ''); } catch (e) { return false; } }
 
   g.PHFLibrary = {
-    VERSION: 'v1.1.0', KINDS: KINDS, ORDER: ORDER,
+    VERSION: 'v1.1.2', KINDS: KINDS, ORDER: ORDER, persisted: persisted,
     put: put, get: get, list: list, remove: remove, clearAll: clearAll,
     toFile: toFile, isStale: isStale, when: when, ago: ago, info: info, displayName: displayName, onChange: onChange, estimate: estimate,
     dismiss: dismiss, isDismissed: isDismissed

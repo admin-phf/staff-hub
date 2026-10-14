@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean · merge-map v1.2.0 (13 Oct 2026: Brand Name Changes, Product Prefixes, POS Suppliers and Ongoing Discounts are required (were recommended); v1.1.0 12 Oct 2026: the full sets from Build POS Master Databases v21.14.0 — POS MAIN ID is POS MASTER BARCODE when a file has both, as the merge has always used; v1.0.4: POS Database file name in the help text; v1.0.3: TABs in cells become spaces; v1.0.2: Ongoing Discounts is shared with Reconcile CH2 Order; v1.0.1 11 Oct 2026: renamed tools in the input descriptions)
+/* PHF Staff Hub — POS New Product Check Clean · merge-map v1.2.1 (15 Oct 2026: Find & Replace is required; v1.2.0 13 Oct 2026: Brand Name Changes, Product Prefixes, POS Suppliers and Ongoing Discounts are required (were recommended); v1.1.0 12 Oct 2026: the full sets from Build POS Master Databases v21.14.0 — POS MAIN ID is POS MASTER BARCODE when a file has both, as the merge has always used; v1.0.4: POS Database file name in the help text; v1.0.3: TABs in cells become spaces; v1.0.2: Ongoing Discounts is shared with Reconcile CH2 Order; v1.0.1 11 Oct 2026: renamed tools in the input descriptions)
  * merge-map.js — input definitions, file recognition and column mapping.
  * Shared by the page (to check dropped files) and the engine (to build the
  * in-memory workbook). Sheet names, headings and text columns are the ones in
@@ -39,7 +39,7 @@
       desc: 'SRC_POS_SUPPLIERS — POS supplier account numbers and names.', need: ['POS ACCNO', 'POS ACNAME'] },
     { id: 'disc', sheet: 'SRC_POS_ONGOING_DISCOUNTS', title: 'Ongoing Discounts', group: 'Reference data', required: true, stored: true,
       desc: 'SRC_POS_ONGOING_DISCOUNTS — one shared file with Build POS Master Databases and Reconcile CH2 Order.', need: ['POS DISCOUNT%'] },
-    { id: 'fr', sheet: 'SRC_POS_FIND_REPLACE', title: 'Find & Replace', group: 'Reference data', recommended: false, stored: true,
+    { id: 'fr', sheet: 'SRC_POS_FIND_REPLACE', title: 'Find & Replace', group: 'Reference data', required: true, stored: true,   // v1.2.1: required (was optional)
       desc: 'SRC_POS_FIND_REPLACE — supplier wording → POS wording for descriptions.', need: ['SUP FIND', 'POS REPLACE'] }
   ];
 
