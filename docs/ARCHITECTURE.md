@@ -747,3 +747,32 @@ All implemented stages keep source business files local to the browser and gener
   the supplier sheet's keydown calls it with `supShown`.
 - Testing: see GITHUB-RELEASE-v21.24.0.md (item size the only TXT difference against v21.23.0; CURRENT last price and
   SIZE-off runs change only their own field).
+
+## Staff Hub v21.25.0 — site icon, development wording, navigation + search, Staff Noticeboard (14 Oct 2026 13:00 AEDT)
+- Icons: `assets/icons/` (favicon.ico 16/32/48, icon-16…512, icon-180 opaque for iOS, icon-192/512-maskable with 50 %
+  padding) cut from the apple in `assets/img/phf-logo.png`; `site.webmanifest` at the root with relative `start_url` /
+  icon paths (works under the `/staff-hub/` Pages prefix); the `<link rel=icon|apple-touch-icon|manifest>` + theme-color
+  tags on the hub and every tool page.
+- phf-lock.js v1.2.0: wording only (ask / setDialog / finish / remove), `markTiles` also marks `[data-tool]` elements
+  (navigation items, tool list, search results) and is exposed as `PHFLock.mark`, with `devLabel` / `devNote`.
+- hub-nav.js v1.0.0: `GROUPS` is the single registry (tool id, name, href, status, desc, version). `renderNav` builds the
+  menubar (`.hn-head` buttons, `.hn-dd` panels; open/close/swap/outside/Escape/arrow keys; `#hubMenuBtn` under 760 px),
+  `renderQuick` the compact list, `renderNoticePreview` the top four active notices by priority then date. Search: a
+  lazily built `index` of groups, tools, Library rows (`#libList .phf-lib-what`, rebuilt on a MutationObserver) and notices
+  (`PHFNotices.searchText`), all-words match, title hits first, 12 results, keyboard selection; `PHFHubNav.refresh()`.
+- phf-notices.js v1.0.0: `data/notices.enc.json` = `{ version, kdf: PBKDF2-SHA256, iter 150000, salt, cipher: AES-GCM, iv,
+  data (base64), updatedAt, count }` around `{ notices: [...] }`. The derived key (hex) is kept in localStorage
+  `phf-notices:key`; drafts in `phf-notices:drafts` as `{ items: { id: notice }, removed: [id] }`; the GitHub token in
+  `phf-notices:token`. `all()` = published overlaid with drafts (`_draft: new | edited | removed`); `exportFile()` encrypts
+  the merged list with the current key and salt; `publish(token)` GETs the file's sha then PUTs `data/notices.enc.json`
+  on `main` through api.github.com and clears the drafts; `setPassphrase(pw)` derives a new key with a new salt and
+  re-encrypts. `render(n)` is the light-markdown renderer (## / ### / - / 1. / **bold** / [text](url)), plus the
+  action box and links. Notice fields: id, title, category, priority (urgent | important | info | pending), date,
+  updated, summary, body, action, links [{label,url}], archived.
+- tools/noticeboard (v1.0.0): `noticeboard.js` — passphrase gate (`unlock`), status strip (published / drafts / keys),
+  filters (search, category, priority, active / archived / all, sort), the expandable list, the editor (saves drafts),
+  Download / Publish / Discard, Passphrase… (re-encrypt + download), Forget on this browser, GitHub token dialog.
+  `reconcileDrafts()` drops a draft that now equals the published notice (the file was committed). Deep link
+  `#<id>` opens that notice. `noticeboard.css` uses the theme tokens.
+- index.html: `#hubNav`, `.hub-grid` (noticeboard preview + tool list), the Library panel and privacy note; the tile
+  markup is gone (its CSS stays in hub.css for the lock script's legacy `a.tile` path).

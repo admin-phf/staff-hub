@@ -1,4 +1,9 @@
-/* PHF Staff Hub · phf-lock.js v1.1.0 (12 Oct 2026)
+/* PHF Staff Hub · phf-lock.js v1.2.0 (14 Oct 2026)
+ * v1.2.0: development wording throughout — the prompt is "Tool under development" (being developed, tested and debugged;
+ *         password access for testing), the downloaded file is the "Lock configuration file", the set / reset / remove
+ *         messages say the change takes effect once the file is committed and published to GitHub, and the steps say so
+ *         too. The In development status is also put on the Staff Hub navigation items (data-tool) and search results.
+ *         PHFLock.devLabel / devNote give the status text to the hub.
  * v1.1.0: the prompt reads "Still under development" (with the password box) so a locked tool does not look locked down;
  *         the Lock / Password buttons appear only once the tool is open; the Staff Hub tile of a locked tool says
  *         "In development" instead of Locked.
@@ -70,8 +75,9 @@
   function ask(tool, r, label) {
     return new Promise(function (resolve) {
       document.documentElement.classList.add('phf-locked');
-      var o = overlay('<div class="phf-lock-ico is-dev">' + DEV_SVG + '</div><h2>Still under development</h2>' +
-        '<p>' + esc(label || 'This tool') + ' is still being built and tested, so it is not open to everyone yet. It will be ready for all staff soon.</p>' +
+      var o = overlay('<div class="phf-lock-ico is-dev">' + DEV_SVG + '</div><h2>Tool under development</h2>' +
+        '<p>' + esc(label || 'This tool') + ' is currently being developed, tested and debugged. It may not yet be stable or ready for general use.</p>' +
+        '<p>Password access is available for testing and development purposes.</p>' +
         '<form class="phf-lock-pw"><label>Password<input type="password" name="pw" autocomplete="current-password" required></label><div class="phf-lock-err" role="alert"></div>' +
         '<div class="phf-lock-actions"><button type="submit" class="btn">Open</button><a class="btn primary" href="' + esc(homeHref()) + '">Back to Staff Hub</a></div></form>');
       var form = o.querySelector('form'), err = o.querySelector('.phf-lock-err'), btn = o.querySelector('button[type=submit]');
@@ -95,7 +101,7 @@
   function setDialog(tool, label, done) {
     var r = rec(tool);
     var o = overlay('<div class="phf-lock-ico">' + LOCK_SVG + '</div><h2>' + (r ? 'Change the password' : 'Set a password') + ' for ' + esc(label) + '</h2>' +
-      '<p>This makes a new <code>phf-lock-config.js</code> file. Put it in <code>assets/js/</code> of the Staff Hub (replace the old one) with GitHub Desktop and commit — the lock starts once it is on GitHub. The file keeps only a scrambled hash of the password, never the password.</p>' +
+      '<p>This makes a new lock configuration file, <code>phf-lock-config.js</code>. Replace the one in <code>assets/js/</code> of the Staff Hub repository and commit — the live site changes only once the new file has been published to GitHub. The file keeps only a scrambled hash of the development password, never the password.</p>' +
       '<form><label>New password<input type="password" name="a" autocomplete="new-password" required></label>' +
       '<label>Type it again<input type="password" name="b" autocomplete="new-password" required></label><div class="phf-lock-err" role="alert"></div>' +
       '<div class="phf-lock-actions">' + (r ? '<button type="button" class="btn" data-x="remove" title="Make a lock file without this tool, so it opens without a password">Remove the password</button>' : '') +
@@ -112,14 +118,15 @@
       var a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([text], { type: 'text/javascript' })); a.download = 'phf-lock-config.js';
       document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
-      o.querySelector('.phf-lock-card').innerHTML = '<div class="phf-lock-ico is-ok">' + LOCK_SVG + '</div><h2>Lock file downloaded</h2>' +
-        '<p>' + esc(what) + '</p><ol class="phf-lock-steps"><li>Open the Staff Hub folder in GitHub Desktop (or File Explorer) and go to <code>assets/js/</code>.</li><li>Replace <code>phf-lock-config.js</code> with the file just downloaded (rename it if your browser added "(1)").</li><li>Commit and push. Pages update within a few minutes; this browser stays open until Lock is pressed.</li></ol>' +
+      o.querySelector('.phf-lock-card').innerHTML = '<div class="phf-lock-ico is-ok">' + LOCK_SVG + '</div><h2>Lock configuration file downloaded</h2>' +
+        '<p>Your updated tool access configuration has been downloaded. Changes will take effect once the new configuration file has been committed and published to GitHub — the downloaded file does not change the live site by itself.</p>' +
+        '<p>' + esc(what) + '</p><ol class="phf-lock-steps"><li>Open the Staff Hub repository in GitHub Desktop or File Explorer.</li><li>Navigate to <code>assets/js/</code>.</li><li>Replace the existing <code>phf-lock-config.js</code> with the newly downloaded file. Rename it if the browser has appended a suffix such as "(1)".</li><li>Commit and push the changes to GitHub.</li><li>Once GitHub Pages has published the updated files, refresh Staff Hub to apply the changes. This browser stays open until Lock is pressed.</li></ol>' +
         '<div class="phf-lock-actions"><button type="button" class="btn primary" data-x="cancel">Done</button></div>';
       o.querySelector('[data-x="cancel"]').onclick = close;
     };
     var others = function () { var t = Object.assign({}, cfg()); delete t[tool]; return t; };
     var rm = o.querySelector('[data-x="remove"]');
-    if (rm) rm.onclick = function () { finish(others(), label + ' will open without a password once the new file is on GitHub. Other locked tools stay locked.'); };
+    if (rm) rm.onclick = function () { finish(others(), label + ' will become available without a password once the updated configuration file has been published to GitHub. Other development tools will retain their existing password requirements.'); };
     form.onsubmit = function (e) {
       e.preventDefault();
       var a = form.a.value, b = form.b.value;
@@ -131,7 +138,7 @@
       err.textContent = 'Making the lock file…'; err.className = 'phf-lock-err is-info';
       derive(a, saltHex, ROUNDS).then(function (h) {
         var t = others(); t[tool] = { label: label, salt: saltHex, hash: h, iter: ROUNDS, setAt: melb() };
-        finish(t, label + ' will ask for this password once the new file is on GitHub.');
+        finish(t, 'The updated development password for ' + label + ' will take effect once the new configuration file has been published to GitHub.');
       }).catch(function (x) { err.textContent = 'Could not make the hash: ' + x.message; err.className = 'phf-lock-err'; });
     };
   }
@@ -155,17 +162,25 @@
     return open.then(function () { drawCtl(tool, label, opts.ctl); });
   }
 
-  // Staff Hub home page: the tile of every locked tool (tile href …/tools/<tool>/…) says In development.
+  // Staff Hub home page: every locked tool — a tile (href …/tools/<tool>/…) or a navigation / search item (data-tool) —
+  // shows the In development status while it is protected.
+  var DEV_LABEL = 'In development', DEV_NOTE = 'Currently undergoing development and testing. Password required for early access.';
   function markTiles() {
     if (typeof document === 'undefined') return;
     document.querySelectorAll('a.tile[href*="/tools/"]').forEach(function (a) {
       var m = a.getAttribute('href').match(/tools\/([^/]+)\//); if (!m || !rec(m[1])) return;
       var top = a.querySelector('.tile-top') || a, b = top.querySelector('.badge');
       if (!b) { b = document.createElement('span'); top.appendChild(b); }
-      b.className = 'badge dev'; b.textContent = 'In development'; b.title = 'Still being built and tested';
+      b.className = 'badge dev'; b.textContent = DEV_LABEL; b.title = DEV_NOTE;
+    });
+    document.querySelectorAll('[data-tool]').forEach(function (el) {
+      if (!rec(el.getAttribute('data-tool'))) return;
+      var b = el.querySelector('.badge');
+      if (!b) { b = document.createElement('span'); el.appendChild(b); }
+      b.className = 'badge dev'; b.textContent = DEV_LABEL; b.title = DEV_NOTE;
     });
   }
   if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', markTiles); else markTiles(); }
 
-  G.PHFLock = { VERSION: 'v1.1.0', guard: guard, locked: function (tool) { return !!rec(tool); } };
+  G.PHFLock = { VERSION: 'v1.2.0', guard: guard, locked: function (tool) { return !!rec(tool); }, mark: markTiles, devLabel: DEV_LABEL, devNote: DEV_NOTE };
 })(window);

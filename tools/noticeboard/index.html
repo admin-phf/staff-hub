@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+  <!-- v21.25.0: site icon (the apple from the Prahran Health Foods logo) for tabs, bookmarks and home-screen shortcuts -->
+  <link rel="icon" href="../../assets/icons/favicon.ico?v=21.25.0" sizes="16x16 32x32 48x48">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../assets/icons/icon-32.png?v=21.25.0">
+  <link rel="icon" type="image/png" sizes="192x192" href="../../assets/icons/icon-192.png?v=21.25.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="../../assets/icons/icon-180.png?v=21.25.0">
+  <link rel="manifest" href="../../site.webmanifest?v=21.25.0">
+  <meta name="theme-color" content="#1E3A5F">
+  <meta name="apple-mobile-web-app-title" content="PHF Staff Hub">
+<title>Staff Noticeboard | Prahran Health Foods</title>
+<link rel="stylesheet" href="../../assets/css/shell.css?v=21.6.0">
+<link rel="stylesheet" href="../../assets/css/theme.css?v=20.1.1">
+<link rel="stylesheet" href="./css/noticeboard.css?v=1.0.0">
+</head>
+<body class="phf-page-notices">
+<header class="phf-shell-header header-container">
+  <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="../../assets/img/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
+  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="Staff Noticeboard — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg></span><div class="phf-shell-copy title-row"><h1>Staff Noticeboard</h1><p class="phf-shell-version version-text">v1.0.0</p></div></a>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Staff Noticeboard</span></nav><p class="phf-shell-updated build-details">Updated 14 Oct 2026 13:00 AEDT</p></div>
+</header>
+<main class="phf-full ntc-main">
+  <section class="ntc-gate" id="ntcGate" hidden></section>
+  <section class="ntc-status" id="ntcStatus" hidden></section>
+  <section class="ntc-tools" id="ntcTools" hidden>
+    <input type="search" id="ntcSearch" placeholder="Search notices by title, summary or content…" aria-label="Search notices">
+    <select id="ntcCategory" aria-label="Category"><option value="">All categories</option></select>
+    <select id="ntcPriority" aria-label="Priority"><option value="">All priorities</option></select>
+    <div class="ntc-seg" role="group" aria-label="Active or archived"><button type="button" class="btn small is-on" data-show="active">Active</button><button type="button" class="btn small" data-show="archived">Archived</button><button type="button" class="btn small" data-show="all">All</button></div>
+    <select id="ntcSort" aria-label="Sort"><option value="recent">Most recent first</option><option value="priority">Priority, then recent</option><option value="title">Title A–Z</option></select>
+    <button type="button" class="btn small primary" id="ntcAdd">Add notice</button>
+  </section>
+  <section class="ntc-list" id="ntcList" aria-live="polite"></section>
+  <section class="ntc-editor" id="ntcEditor" hidden></section>
+</main>
+<script src="../../assets/js/phf-lock-config.js?v=20261012"></script>
+<script src="../../assets/js/phf-lock.js?v=1.2.0"></script>
+<script src="../../assets/js/phf-notices.js?v=1.0.0"></script>
+<script src="./js/noticeboard.js?v=1.0.0"></script>
+</body>
+</html>
