@@ -1,4 +1,7 @@
-/* PHF Staff Hub · hub-nav.js v1.0.4 (14 Oct 2026)
+/* PHF Staff Hub · hub-nav.js v1.1.0 (14 Oct 2026)
+ * v1.1.0: tabs are links — click opens the tool straight away, the description panel shows on hover / focus; Kenneth's
+ *         order (Customer Special Orders … POS New Product Check Clean) with Bread Orders as a placeholder; search on its own
+ *         row under the tabs at every size; preview shows six notices.
  * v1.0.4: the bar is a navy band under the page header — eight equal tabs (icon + name) with the search at its right end.
  * v1.0.3: the search box moved into the page header beside the title (undone in v1.0.4: it crowded the title and the date).
  * v1.0.2: one dense row — each heading is the tool's board icon + name; the row scrolls sideways instead of wrapping.
@@ -20,15 +23,16 @@
   // One heading per tool — the eight from the Staff tools board (plus the Staff Noticeboard). Each opens a small panel with
   // the description, status, version and Open. Order = the board's order.
   var TOOLS = [
-    { tool: 'database-build', name: 'Build POS Master Databases', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>', href: './tools/database-build/index.html', status: 'build', desc: 'Cleaning and Merging and Appending CH2 and Unique DB to POS.', version: 'POS v5.2.0 · CH2 v1.2.0 · Unique v1.2.0 · Master v2.4.0' },
-    { tool: 'reconcile-ch2', name: 'Reconcile CH2 Order', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg>', href: './tools/reconcile-ch2/index.html', status: 'build', desc: 'Drop in the POS back-end order and supplier invoices, reconcile the order and export an exception report.', version: 'v2.11.2' },
-    { tool: 'supplier-contacts', name: 'Supplier Contacts', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M8 17c.8-1.8 2.2-2.6 4-2.6s3.2.8 4 2.6"/></svg>', href: './tools/supplier-contacts/index.html', status: 'build', desc: 'Reps, phone numbers, emails and account numbers for every supplier and utility — search, add and edit.', version: 'Tool v1.1.0' },
-    { tool: 'update-specials', name: 'Update Specials', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>', href: './tools/update-specials/index.html', status: 'live', desc: 'Build checkout, email and website promotional artwork. This is now isolated from every other Staff Hub tool.' },
     { tool: 'special-orders', name: 'Customer Special Orders', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>', status: 'soon', desc: 'Track and look up customer special orders.' },
-    { tool: 'resources', name: 'Resources', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z"/><path d="M4 19a2 2 0 0 0 2 2h14"/></svg>', status: 'soon', desc: 'Store procedures, guides and reference documents.' },
+    { tool: 'bread-orders', name: 'Bread Orders', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4 3 3 0 0 0-2 3v6H6v-6a3 3 0 0 0-2-3Z"/><path d="M9 12v4M15 12v4"/></svg>', status: 'soon', desc: 'Daily bread orders — what is on order and what has come in.' },
+    { tool: 'supplier-contacts', name: 'Supplier Contacts', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M8 17c.8-1.8 2.2-2.6 4-2.6s3.2.8 4 2.6"/></svg>', href: './tools/supplier-contacts/index.html', status: 'build', desc: 'Reps, phone numbers, emails and account numbers for every supplier and utility — search, add and edit.', version: 'Tool v1.1.0' },
     { tool: 'new-products', name: 'New Products', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>', status: 'soon', desc: 'What has landed recently and what is coming in.' },
+    { tool: 'resources', name: 'Resources', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z"/><path d="M4 19a2 2 0 0 0 2 2h14"/></svg>', status: 'soon', desc: 'Store procedures, guides and reference documents.' },
+    { tool: 'noticeboard', name: 'Staff Noticeboard', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg>', href: './tools/noticeboard/index.html', status: 'live', desc: 'Recalls, supplier updates, store operations and announcements — read, search and (with the passphrase) add notices.', version: 'v1.0.0' },
+    { tool: 'reconcile-ch2', name: 'Reconcile CH2 Order', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg>', href: './tools/reconcile-ch2/index.html', status: 'build', desc: 'Drop in the POS back-end order and supplier invoices, reconcile the order and export an exception report.', version: 'v2.11.2' },
+    { tool: 'database-build', name: 'Build POS Master Databases', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>', href: './tools/database-build/index.html', status: 'build', desc: 'Cleaning and Merging and Appending CH2 and Unique DB to POS.', version: 'POS v5.2.0 · CH2 v1.2.0 · Unique v1.2.0 · Master v2.4.0' },
+    { tool: 'update-specials', name: 'Update Specials', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>', href: './tools/update-specials/index.html', status: 'live', desc: 'Build checkout, email and website promotional artwork. This is now isolated from every other Staff Hub tool.' },
     { tool: 'pos-supplier-merge', name: 'POS New Product Check Clean', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>', href: './tools/pos-supplier-merge/index.html', status: 'dev', desc: 'Import, Update, Discontinue and Clean Products and/or Supplier information against current POS Database.', version: 'Tool v1.14.0 · Engine v6.3.89' },
-    { tool: 'noticeboard', name: 'Staff Noticeboard', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg>', href: './tools/noticeboard/index.html', status: 'live', desc: 'Recalls, supplier updates, store operations and announcements — read, search and (with the passphrase) add notices.', version: 'v1.0.0' }
   ];
   var LIBRARY = { tool: 'library', name: 'Shared File Library', href: '#libraryPanel', status: 'live', desc: 'Files the tools save for each other in this browser: the POS Database, supplier imports, Ongoing Discounts.' };
   var GROUPS = TOOLS.map(function (t) { return { id: t.tool, title: t.name, blurb: '', items: [t], single: true }; });
@@ -49,41 +53,31 @@
   // ---------------------------------------------------------------- navigation
   function renderNav(host) {
     host.innerHTML = '<button type="button" class="hn-menu" id="hubMenuBtn" aria-expanded="false" aria-controls="hubNavList">Menu</button>' +
-      '<ul class="hn-list" id="hubNavList" role="menubar" aria-label="Staff Hub tools">' + GROUPS.map(function (g) {
-        return '<li class="hn-group" data-group="' + g.id + '"><button type="button" class="hn-head" aria-haspopup="true" aria-expanded="false" aria-controls="hn-dd-' + g.id + '" role="menuitem">' + (g.items[0].icon ? '<span class="hn-ico" aria-hidden="true">' + g.items[0].icon + '</span>' : '') + '<span class="hn-lbl"><span>' + esc(g.title) + '</span><svg class="hn-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></button>' +
-          '<div class="hn-dd" id="hn-dd-' + g.id + '" role="menu" aria-label="' + esc(g.title) + '" hidden>' + (g.blurb ? '<div class="hn-dd-blurb">' + esc(g.blurb) + '</div>' : '') + g.items.map(function (t) { return itemHtml(t, 'hn-item'); }).join('') + '</div></li>';
+      '<ul class="hn-list" id="hubNavList" aria-label="Staff Hub tools">' + GROUPS.map(function (g) {
+        var t = g.items[0], open = t.href && t.status !== 'soon';
+        var inner = (t.icon ? '<span class="hn-ico" aria-hidden="true">' + t.icon + '</span>' : '') + '<span class="hn-lbl"><span>' + esc(g.title) + '</span></span>';
+        return '<li class="hn-group' + (open ? '' : ' is-soon') + '" data-group="' + g.id + '">' +
+          (open ? '<a class="hn-head" href="' + esc(t.href) + '" data-tool="' + esc(t.tool) + '" aria-describedby="hn-dd-' + g.id + '">' + inner + '</a>'
+                : '<span class="hn-head" tabindex="0" data-tool="' + esc(t.tool) + '" aria-describedby="hn-dd-' + g.id + '">' + inner + '</span>') +
+          '<div class="hn-dd" id="hn-dd-' + g.id + '" role="tooltip">' + (g.blurb ? '<div class="hn-dd-blurb">' + esc(g.blurb) + '</div>' : '') + g.items.map(function (t) { return itemHtml(t, 'hn-item'); }).join('') + '</div></li>';
       }).join('') + '</ul>';
-    // v1.0.4: the search box is the last cell of the band (full width on narrow screens, see hub.css).
+    // v1.1.0: the search box is its own row under the tabs (hub.css).
     var sh = document.createElement('div'); sh.className = 'hn-search'; sh.setAttribute('role', 'search');
     sh.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>' +
       '<input type="search" id="hubSearch" placeholder="Search Staff Hub tools, resources and notices…" aria-label="Search Staff Hub" autocomplete="off" aria-controls="hubResults" aria-expanded="false">' +
       '<button type="button" class="hn-clear" id="hubSearchClear" aria-label="Clear search" hidden>✕</button><div class="hn-results" id="hubResults" role="listbox" hidden></div>';
     host.appendChild(sh);
     var heads = Array.prototype.slice.call(host.querySelectorAll('.hn-head'));
-    function closeAll(except) { heads.forEach(function (h) { if (h !== except) { h.setAttribute('aria-expanded', 'false'); h.parentNode.classList.remove('is-open'); $('.hn-dd', h.parentNode).hidden = true; } }); }
-    function toggle(h) {
-      var on = h.getAttribute('aria-expanded') === 'true'; closeAll(h);
-      h.setAttribute('aria-expanded', on ? 'false' : 'true'); h.parentNode.classList.toggle('is-open', !on);
-      var dd = $('.hn-dd', h.parentNode); dd.hidden = on;
-      if (!on) { var nr = host.getBoundingClientRect(), hr = h.getBoundingClientRect(); dd.style.setProperty('--dd-left', Math.max(4, Math.min(hr.left - nr.left, nr.width - dd.offsetWidth - 8)) + 'px'); }   // under its heading, inside the bar
-    }
-    heads.forEach(function (h, i) {
-      h.addEventListener('click', function () { toggle(h); });
+    heads.forEach(function (h, i) {   // Left / Right move along the tabs; the panel follows focus through CSS (:focus-within)
       h.addEventListener('keydown', function (e) {
-        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); var n = heads[(i + (e.key === 'ArrowRight' ? 1 : heads.length - 1)) % heads.length]; n.focus(); if (h.getAttribute('aria-expanded') === 'true') toggle(n); }
-        if (e.key === 'ArrowDown') { e.preventDefault(); if (h.getAttribute('aria-expanded') !== 'true') toggle(h); var f = $('.hn-item', h.parentNode); if (f) f.focus(); }
-        if (e.key === 'Escape') { closeAll(); h.focus(); }
-      });
-      $('.hn-dd', h.parentNode).addEventListener('keydown', function (e) {
-        var items = Array.prototype.slice.call(this.querySelectorAll('.hn-item')), k = items.indexOf(document.activeElement);
-        if (e.key === 'ArrowDown') { e.preventDefault(); (items[k + 1] || items[0]).focus(); }
-        if (e.key === 'ArrowUp') { e.preventDefault(); (items[k - 1] || h).focus(); }
-        if (e.key === 'Escape') { e.preventDefault(); closeAll(); h.focus(); }
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { e.preventDefault(); heads[(i + (e.key === 'ArrowRight' ? 1 : heads.length - 1)) % heads.length].focus(); }
+        if (e.key === 'Escape') h.blur();
       });
     });
-    document.addEventListener('click', function (e) { if (!host.contains(e.target) && !sh.contains(e.target)) { closeAll(); hideResults(); } });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeAll(); hideResults(); } });
-    var mb = $('#hubMenuBtn'); mb.onclick = function () { var on = mb.getAttribute('aria-expanded') === 'true'; mb.setAttribute('aria-expanded', on ? 'false' : 'true'); host.classList.toggle('is-menu-open', !on); if (on) closeAll(); };
+    function closeAll() { host.classList.remove('is-menu-open'); var mb = $('#hubMenuBtn'); if (mb) mb.setAttribute('aria-expanded', 'false'); }
+    document.addEventListener('click', function (e) { if (!host.contains(e.target) && !sh.contains(e.target)) hideResults(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hideResults(); });
+    var mb = $('#hubMenuBtn'); mb.onclick = function () { var on = mb.getAttribute('aria-expanded') === 'true'; if (on) closeAll(); else { mb.setAttribute('aria-expanded', 'true'); host.classList.add('is-menu-open'); } };
     wireSearch();
     if (G.PHFLock && G.PHFLock.mark) G.PHFLock.mark();
   }
@@ -102,7 +96,7 @@
     if (res.state === 'empty') { host.innerHTML = '<div class="np-empty">No notices have been published yet. ' + link + '</div>'; return; }
     if (res.state === 'error') { host.innerHTML = '<div class="np-empty">The notices could not be loaded (' + esc(res.error) + '). ' + link + '</div>'; return; }
     var order = { urgent: 0, important: 1, pending: 2, info: 3 };
-    var list = res.notices.filter(function (n) { return !n.archived && n._draft !== 'removed'; }).sort(function (a, b) { return (order[a.priority] - order[b.priority]) || String(b.updated || b.date).localeCompare(String(a.updated || a.date)); }).slice(0, 4);
+    var list = res.notices.filter(function (n) { return !n.archived && n._draft !== 'removed'; }).sort(function (a, b) { return (order[a.priority] - order[b.priority]) || String(b.updated || b.date).localeCompare(String(a.updated || a.date)); }).slice(0, 6);
     var drafts = N.draftCount();
     host.innerHTML = (list.length ? list.map(function (n) {
       var p = N.priority(n.priority);
@@ -143,7 +137,7 @@
       }).join('') : '<div class="hn-res-none">No matching results.</div>';
       res.hidden = false; inp.setAttribute('aria-expanded', 'true');
       if (G.PHFLock && G.PHFLock.mark) G.PHFLock.mark();
-      res.querySelectorAll('[data-open-group]').forEach(function (d) { d.onclick = function () { var h = $('.hn-group[data-group="' + d.dataset.openGroup + '"] .hn-head'); hideResults(); if (h) h.click(); }; });
+      res.querySelectorAll('[data-open-group]').forEach(function (d) { d.onclick = function () { var h = $('.hn-group[data-group="' + d.dataset.openGroup + '"] .hn-head'); hideResults(); if (h) h.focus(); }; });
     }
     inp.addEventListener('input', function () { clearTimeout(t); t = setTimeout(run, 120); });
     inp.addEventListener('focus', function () { if (inp.value.trim()) run(); });
@@ -169,5 +163,5 @@
     var lib = $('#libList'); if (lib && G.MutationObserver) new MutationObserver(refresh).observe(lib, { childList: true, subtree: true });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
-  G.PHFHubNav = { VERSION: 'v1.0.4', TOOLS: TOOLS, GROUPS: GROUPS, refresh: refresh, setNotices: setNotices };
+  G.PHFHubNav = { VERSION: 'v1.1.0', TOOLS: TOOLS, GROUPS: GROUPS, refresh: refresh, setNotices: setNotices };
 })(window);

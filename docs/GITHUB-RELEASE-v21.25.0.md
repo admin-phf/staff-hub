@@ -13,13 +13,17 @@ icon tags in their `<head>`.
 - **Password wording:** "Tool under development" prompt (being developed, tested and debugged; password access for
   testing); "Lock configuration file downloaded" with the commit-and-publish steps; set / reset / remove messages say the
   change takes effect once the file is published to GitHub. Hashing, per-tool locks and Lock are unchanged.
-- **Compact landing page:** a navy navigation band under the page header — one tab per tool, the eight from the former
-  Staff tools board plus the Staff Noticeboard, each the tool's board icon over its name, all the same width so the band is
-  one tidy row at any desktop size — each opening a panel with the description, status, version and Open; then the
-  noticeboard preview and the Library. The tile board is replaced by the band. Stacks into a Menu button on phones.
-- **Global search** at the right end of the navigation band (its own row under 1250 px): tools, descriptions, statuses,
-  Library file names and the noticeboard (titles, summaries, content once the passphrase is in). Runs in the browser only;
-  protected tools still ask for their password.
+- **Compact landing page:** a navy navigation band under the page header — ten equal-width tabs (the tool's board icon
+  over its name) in Kenneth's order: Customer Special Orders, Bread Orders (new placeholder), Supplier Contacts, New
+  Products, Resources, Staff Noticeboard, Reconcile CH2 Order, Build POS Master Databases, Update Specials, POS New
+  Product Check Clean. A tab is a link: click opens the tool straight away (a locked tool still asks for its password on
+  its own page); hovering or tabbing to it shows a panel with the description, status and version. "Coming soon" tabs are
+  dimmed and do nothing. The tile board is gone. Below: the noticeboard preview (up to six notices, three across on wide
+  screens), two placeholder cards (New products, Upcoming events) and the Library as a compact table with its explanation
+  behind "What is this?". Stacks into a Menu button on phones.
+- **Global search** on its own row under the tabs: tools, descriptions, statuses, Library file names and the noticeboard
+  (titles, summaries, content once the passphrase is in). Runs in the browser only; protected tools still ask for their
+  password.
 - **Staff Noticeboard** (`tools/noticeboard/`): title, dates, category, priority (Urgent / Important / Information /
   Pending), summary, full content, action required, links; search, category / priority filters, active / archived, sort.
   Notices live in ONE encrypted file, `data/notices.enc.json` (AES-GCM, key from a staff passphrase) — readable only in a
@@ -32,10 +36,10 @@ icon tags in their `<head>`.
    results (`PHFLock.mark`, `data-tool`), with the supporting description on hover; 1.3 / 1.4 download message and the five
    steps; 1.5 nothing functional changed (phf-lock.js v1.2.0).
 2. **Landing page** — 2.1 the board is replaced by the navigation band (one tab per tool, as Kenneth asked — not the
-   four category groups first suggested; equal-width tabs after the two-row and scrolling versions looked unbalanced), the noticeboard preview, the Library and the privacy note; 2.2 dropdowns: click opens, click again closes, another heading swaps, outside click
-   and Escape close, arrow keys move, `aria-expanded` / `role=menu`; 2.3 every existing tool and the three "Soon" placeholders are headings (POS Supplier Merge is the former name of POS New Product Check Clean, not a separate tool);
-   2.4 name, status, description, version, Open; 2.5 theme tokens only (navy band, gold open tab); 2.6 Menu button under 760 px.
-3. **Search** — 3.1 at the right end of the navigation band; 3.2 groups, tools, descriptions, status, versions, Library rows, notices;
+   four category groups first suggested; equal-width tabs after the two-row and scrolling versions looked unbalanced), the noticeboard preview, the placeholders, the Library and the privacy note; 2.2 click opens the tool, the panel shows on
+   hover / focus (`role=tooltip`), Left / Right move between tabs, Escape drops focus; 2.3 every existing tool and the three "Soon" placeholders are headings (POS Supplier Merge is the former name of POS New Product Check Clean, not a separate tool);
+   2.4 name, status, description, version, Open; 2.5 theme tokens only (navy band, gold icons); 2.6 Menu button under 760 px.
+3. **Search** — 3.1 its own row under the tabs; 3.2 groups, tools, descriptions, status, versions, Library rows, notices;
    3.3 results as you type, Enter / arrows, clear button, "No matching results", index rebuilt when the Library or the
    notices change; 3.4 local only, nothing uploaded, no tool runs; 3.5 protected tools show In development and go through
    the password prompt.
@@ -48,16 +52,17 @@ icon tags in their `<head>`.
    processing engines; the Library panel and lock behaviour are as before.
 
 ## Files
-- Changed: index.html, assets/css/hub.css, assets/js/phf-lock.js, docs/ARCHITECTURE.md, tools/{database-build,
+- Changed: index.html, assets/css/hub.css, assets/css/library.css, assets/js/phf-lock.js, docs/ARCHITECTURE.md, tools/{database-build,
   pos-supplier-merge, reconcile-ch2, supplier-contacts, update-specials}/index.html (icon tags only)
 - New: site.webmanifest, assets/icons/*, assets/js/hub-nav.js, assets/js/phf-notices.js, data/notices.enc.json,
   tools/noticeboard/{index.html, README.md, js/noticeboard.js, css/noticeboard.css}, docs/GITHUB-RELEASE-v21.25.0.md
 - Delete by hand (still in the repo): tools/database-build/js/size-worker.js
 
 ## Testing done (14 Oct, headless Chromium against a local copy of the repo)
-- Hub: title and favicon tags resolve; nine tabs in one row at 1920 / 1440 / 1366 px (search drops to its own row at
-  1100 px); dropdown opens under its tab, swaps, closes on outside click; search results open under the box, right-aligned,
-  over the page; search "reconcile" → Reconcile CH2 Order; search "armaforce" → "No matching results" while the notices
+- Hub: title and favicon tags resolve; ten tabs in one row at 1920 / 1440 / 1366 px, search row beneath; hovering a tab
+  shows its panel, moving away hides it; clicking Supplier Contacts opens the tool, clicking Bread Orders stays on the hub;
+  the Library renders three seeded files as table rows; search "bread" → Bread Orders (Soon); search "reconcile" →
+  Reconcile CH2 Order; search "armaforce" → "No matching results" while the notices
   are locked, the Andrographis notice once the passphrase is in; In development on both POS New Product Check Clean
   entries; no horizontal overflow at 400 px; Menu button stacks the groups.
 - Noticeboard: wrong passphrase → "That passphrase is not right."; right one opens; status strip shows Published 1 /

@@ -12,16 +12,16 @@
   <meta name="theme-color" content="#1E3A5F">
   <meta name="apple-mobile-web-app-title" content="PHF Staff Hub">
   <title>Prahran Health Foods — Staff Hub</title>
-  <link rel="stylesheet" href="./assets/css/hub.css?v=21.25.4">
+  <link rel="stylesheet" href="./assets/css/hub.css?v=21.25.5">
   <link rel="stylesheet" href="./assets/css/shell.css?v=21.6.0">
   <link rel="stylesheet" href="./assets/css/theme.css?v=20.0.0">
-  <link rel="stylesheet" href="./assets/css/library.css?v=1.0.0">
+  <link rel="stylesheet" href="./assets/css/library.css?v=1.1.0">
 </head>
 <body class="phf-page-hub">
   <header class="phf-shell-header header-container">
   <a class="phf-shell-logo logo-section" href="./index.html" aria-label="Return to Staff Hub"><img src="./assets/img/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
   <div class="phf-shell-title center-section"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg></span><div class="phf-shell-copy title-row"><h1>Staff Hub</h1><p class="phf-shell-version version-text">v21.25.0</p></div></div>
-  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><span aria-current="page">Staff Hub</span></nav><p class="phf-shell-updated build-details">Updated 14 Oct 2026 15:30 AEDT</p></div>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><span aria-current="page">Staff Hub</span></nav><p class="phf-shell-updated build-details">Updated 14 Oct 2026 16:20 AEDT</p></div>
 </header>
   <!-- v21.25.0: horizontal navigation (one dropdown per group) with the global search — assets/js/hub-nav.js -->
   <nav class="hub-nav" id="hubNav" aria-label="Staff Hub navigation"></nav>
@@ -31,10 +31,16 @@
       <div class="np-list" id="noticePreview"><div class="np-empty">Loading notices…</div></div>
     </section>
 
+    <!-- v21.25.0: placeholders for the next two landing-page sections -->
+    <div class="hub-two">
+      <section class="hub-card" aria-labelledby="newHeading"><div class="phf-band"><h2 id="newHeading">New products</h2><small>What has landed recently and what is coming in</small></div><div class="hub-soon"><span class="phf-pill is-grey">Coming soon</span><span>This section will list new lines as they arrive, with the supplier and the date.</span></div></section>
+      <section class="hub-card" aria-labelledby="eventsHeading"><div class="phf-band"><h2 id="eventsHeading">Upcoming events</h2><small>Promotions, rep visits, stocktakes and deadlines</small></div><div class="hub-soon"><span class="phf-pill is-grey">Coming soon</span><span>A short calendar of what is coming up in the store.</span></div></section>
+    </div>
+
     <section class="hub-card phf-lib" id="libraryPanel" aria-labelledby="libHeading">
       <div class="phf-band"><h2 id="libHeading">Library · saved in this browser</h2><small id="libSummary">Checking…</small></div>
       <div class="phf-lib-body">
-        <p class="phf-lib-intro">Files the tools save for each other, so you don't drag them in again: Build POS Master Databases saves the POS Database, the supplier imports and the merged masters when a build finishes; reference files you load once are kept here too (Ongoing Discounts is one file for Build POS Master Databases, Reconcile CH2 Order and POS New Product Check Clean). Reconcile CH2 Order and POS New Product Check Clean load the POS files automatically; the CH2 / Unique supplier imports go into a merge only when you press Add there, so each merge covers just the brands you choose. Supplier Contacts keeps its list here — Delete all leaves it in place (use its own ✕), so download it from Supplier Contacts to share or back it up. Everything stays in this browser on this computer — nothing is uploaded, and another browser or PC has its own Library.</p>
+        <details class="phf-lib-help"><summary>What is this?</summary><p class="phf-lib-intro">Files the tools save for each other, so you don't drag them in again: Build POS Master Databases saves the POS Database, the supplier imports and the merged masters when a build finishes; reference files you load once are kept here too (Ongoing Discounts is one file for Build POS Master Databases, Reconcile CH2 Order and POS New Product Check Clean). Reconcile CH2 Order and POS New Product Check Clean load the POS files automatically; the CH2 / Unique supplier imports go into a merge only when you press Add there, so each merge covers just the brands you choose. Supplier Contacts keeps its list here — Delete all leaves it in place (use its own ✕), so download it from Supplier Contacts to share or back it up. Everything stays in this browser on this computer — nothing is uploaded, and another browser or PC has its own Library.</p></details>
         <div class="phf-lib-list" id="libList"></div>
         <div class="phf-lib-foot"><span id="libUsage"></span><button type="button" class="phf-lib-btn danger" id="libClearAll" title="Delete every saved file except the Supplier Contacts list">Delete all</button></div>
       </div>
@@ -47,6 +53,6 @@
   <script src="./assets/js/phf-lock-config.js?v=20261012"></script>
   <script src="./assets/js/phf-lock.js?v=1.2.0"></script>
   <script src="./assets/js/phf-notices.js?v=1.0.0"></script>
-  <script src="./assets/js/hub-nav.js?v=1.0.4"></script>
+  <script src="./assets/js/hub-nav.js?v=1.1.0"></script>
 </body>
 </html>
