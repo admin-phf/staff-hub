@@ -802,4 +802,6 @@ All implemented stages keep source business files local to the browser and gener
   sets border-box on the page.
 - POS New Product Check Clean v1.14.1 (`js/app.js`): `isCombinedMaster(rows)` (POS_PLU + MATCH_STATUS + CH2_/UHP_MASTER_
   BARCODE) marks a sheet `master` in `readWorkbook` before supplier-layout's `fromFullSheet` can convert it; `mapForInput`
-  throws `MASTER_MSG` for pos / sup, `bulkAccept` notes it; Library load errors call `setGlobal(..., 'error')`.
+  throws `MASTER_MSG` for pos / sup, `bulkAccept` notes it; Library load errors call `setGlobal(..., 'error')`. v1.14.2 `libLoad`: for `pos`, a file already
+  present is kept only if it is this Library copy (`libSavedAt === rec.savedAt`) or was dropped this session (`loadedIso`
+  ≥ `rec.savedAt`, or not `sessRestoring`); otherwise the Library copy replaces it (`fileEntry` now records `loadedIso`).

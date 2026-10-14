@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.14.1 (14 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.14.2 (14 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -105,11 +105,13 @@
  * v1.14.1 (14 Oct 2026): a Combined Master (Full_Data, from Build POS Master Databases) dropped on an input is named as
  *         such — it is not the POS Database (its POS block has blank rows for CH2 / Unique-only products) and it is not a
  *         supplier set — instead of "Missing columns: POS MASTER BRAND …" after supplier-layout turned its CH2 columns
- *         into supplier rows. A Library file that cannot be read says so on the page instead of only in the console. */
+ *         into supplier rows. A Library file that cannot be read says so on the page instead of only in the console.
+ * v1.14.2 (14 Oct 2026): a newer POS Database in the Library (a new Build) replaces the one brought back from last
+ *         session instead of being skipped; a file dropped in this session still wins. */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.14.1';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.14.2';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -453,7 +455,7 @@
     return best;
   }
   function fileEntry(file, tab, mapped) {
-    return { name: file.name, size: file.size, tab: tab, data: mapped.data, report: mapped.report, loadedAt: melb() };
+    return { name: file.name, size: file.size, tab: tab, data: mapped.data, report: mapped.report, loadedAt: melb(), loadedIso: new Date().toISOString() };
   }
   function addToInput(id, entry) {
     var def = inputDef(id), cur = state.inputs[id] || { files: [] };
@@ -2875,16 +2877,25 @@
           if (LIB_SHARED[j.id]) { if (files.length && files[0].libSavedAt === rec.savedAt) return; }
           else {
             if (LIB.isDismissed(LIB_TOOL, rec)) return;
-            if (j.id === 'pos' && files.length) return;                                  // a file dropped here wins
-            if (files.some(function (f) { return f.libKind === j.kind || f.name === rec.name; })) return;
+            // v1.14.2: a POS Database already here wins only while it is as new as the Library's — a file dropped this
+            // session, or the same Library copy. One brought back from last session is replaced by a newer build
+            // (it used to win every time, so a new Build never reached this page without Clear session files).
+            var replace = false;
+            if (j.id === 'pos' && files.length) {
+              var f0 = files[0];
+              if (f0.libKind === j.kind) replace = f0.libSavedAt !== rec.savedAt;
+              else replace = sessRestoring && (!f0.loadedIso || f0.loadedIso < rec.savedAt);
+              if (!replace) return;
+            }
+            if (!replace && files.some(function (f) { return f.libKind === j.kind || f.name === rec.name; })) return;
           }
           var file = LIB.toFile(rec);
           return readWorkbook(file).then(function (sheets) {
             var best = mapForInput(j.id, sheets), entry = fileEntry(file, best.tab, best.mapped);
             entry.libKind = j.kind; entry.libSavedAt = rec.savedAt; entry.libWhen = LIB.when(rec);
-            if (LIB_SHARED[j.id] && state.inputs[j.id]) state.inputs[j.id].files = [];
+            if ((LIB_SHARED[j.id] || replace) && state.inputs[j.id]) state.inputs[j.id].files = [];
             addToInput(j.id, entry);
-            got.push(LIB.info(j.kind).label + ' (' + LIB.when(rec) + ')');
+            got.push(LIB.info(j.kind).label + ' (' + LIB.when(rec) + ')' + (replace ? ' — newer than the one from last session, which it replaces' : ''));
           });
         }).catch(function (e) { console.warn('Library load failed', j.kind, e); setGlobal(LIB.info(j.kind).label + ' from the Library could not be used: ' + e.message + ' Drop the right file on its row, or run Build POS Master Databases again.', 'error'); });
       });
@@ -3022,7 +3033,7 @@
     refLoadAll().then(restoreInputs).then(function (had) { hadInputs = had; renderAll(); return libLoad(); }).then(function (got) {
       renderAll();
       var saved = M.INPUTS.filter(function (d) { return d.stored && loaded(d.id); }).length;
-      setGlobal((got && got.length ? 'From the Library: ' + got.join(' · ') + '. ' : '') + (hadInputs ? 'Your POS Database and Supplier Updates from last time are back. ' : '') + (saved ? saved + ' saved reference table' + (saved === 1 ? '' : 's') + ' loaded from this browser. ' : '') + readinessText(), requiredReady() ? 'ready' : 'missing');
+      setGlobal((got && got.length ? 'From the Library: ' + got.join(' · ') + '. ' : '') + (hadInputs ? (got && got.some(function (g) { return g.indexOf('replaces') >= 0; }) ? 'Your Supplier Updates from last time are back. ' : 'Your POS Database and Supplier Updates from last time are back. ') : '') + (saved ? saved + ' saved reference table' + (saved === 1 ? '' : 's') + ' loaded from this browser. ' : '') + readinessText(), requiredReady() ? 'ready' : 'missing');
       if (state.activeInput) showInput(state.activeInput);
       return restoreState();
     }).then(function (r) {

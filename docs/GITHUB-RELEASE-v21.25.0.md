@@ -76,7 +76,12 @@ icon tags in their `<head>`.
 - The noticeboard page no longer scrolls sideways (noticeboard.css v1.0.1: border-box sizing — the side padding was
   being added to 100 % width).
 
-## POS New Product Check Clean v1.14.1 — Combined Master named, Library problems shown
+## POS New Product Check Clean v1.14.2 — a new Build reaches the page; Combined Master named
+- The POS Database brought back from the last session used to win over the Library every time, so a new Build never
+  reached this page (the "reload to use it" note led to the same rule). Now a newer Library copy replaces a restored
+  POS Database (message: "newer than the one from last session, which it replaces"); a file dropped in this session
+  still wins, and a Library copy that is the same one is left alone. Results are not restored over different inputs,
+  as before.
 - Dropping the Combined Master (merged_alligned_pos_supplier_uhp_full_…, Full_Data) on POS Database or Supplier Updates
   now says what it is and which file each input wants, instead of "Missing columns: POS MASTER BRAND, POS PLU, POS SUB
   ID, POS DESCR" (supplier-layout saw its CH2 columns and turned the sheet into supplier rows). POS Database is the full
@@ -89,7 +94,7 @@ icon tags in their `<head>`.
   results still show it (hub-nav.js v1.1.1, hub.css v21.25.6).
 
 ## Files
-- Changed: index.html, assets/css/hub.css, assets/css/library.css, tools/supplier-contacts/{index.html, js/contacts.js, css/contacts.css, README.md}, tools/reconcile-ch2/{index.html, js/app.js, css/app.css, README.md}, tools/pos-supplier-merge/{index.html, js/app.js}, tools/noticeboard/css/noticeboard.css, assets/js/phf-lock.js, docs/ARCHITECTURE.md, tools/{database-build,
+- Changed: index.html, assets/css/hub.css, assets/css/library.css, tools/supplier-contacts/{index.html, js/contacts.js, css/contacts.css, README.md}, tools/reconcile-ch2/{index.html, js/app.js, css/app.css, README.md}, tools/pos-supplier-merge/{index.html, js/app.js v1.14.2}, tools/noticeboard/css/noticeboard.css, assets/js/phf-lock.js, docs/ARCHITECTURE.md, tools/{database-build,
   pos-supplier-merge, reconcile-ch2, supplier-contacts, update-specials}/index.html (icon tags only)
 - New: site.webmanifest, assets/icons/*, assets/js/hub-nav.js, assets/js/phf-notices.js, data/notices.enc.json,
   tools/noticeboard/{index.html, README.md, js/noticeboard.js, css/noticeboard.css}, docs/GITHUB-RELEASE-v21.25.0.md
@@ -103,6 +108,9 @@ icon tags in their `<head>`.
   the Library keeps the archive; dialog button reads Restore and restores; Undo re-archives.
 - Home page: a notice opens in place (Hide / Close / click again), the noticeboard page has no sideways scroll at 1600 px.
 - Merge: the Combined Master dropped on POS Database gives the new message; the real clean_merged_pos_data then loads.
+  Library POS Database A → open (loaded, session saved) → newer copy B in the Library → reopen: B is loaded and named as
+  replacing A.
+- Reconcile: the new 14.10 master put in the Library the way Build does → POS / master LOADED, Reference data Ready.
 - Reconcile (real 74147128 order + invoice, master and Ongoing Discounts): run unchanged (104/106 matched, Integrity
   PASS, 6 exceptions); search "pukka" → "1 of 109" rows with the section rows kept; Exceptions view "0 of 8"; Esc clears.
 - Hub: title and favicon tags resolve; ten tabs in one row at 1920 / 1440 / 1366 px, search row beneath; hovering a tab
