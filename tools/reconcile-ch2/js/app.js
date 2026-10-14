@@ -1,3 +1,5 @@
+// v2.11.3 (14 Oct 2026): a search box over the result table hides the rows that do not match (section and total rows stay;
+// counts, ticks and downloads are unchanged — it is only what is shown). Esc clears it. Re-applied after every redraw.
 // v2.11.0 (12 Oct 2026): Integrity shows REVIEW (amber) when the invoice footer total or line arithmetic did not check out
 // (downloads stay available); the browser asks before leaving the page while receiving counts are entered (every Run still
 // starts a fresh receiving session, as since v2.6.9); one product billed on several lines of an invoice is one TXT line.
@@ -1211,7 +1213,24 @@
     }
     ensurePosResizeObserver();schedulePosColumnSizing();updateStickyOffsets();ensureStickyTracking();
   }
-  function renderPreview(r){if(state.previewView==='pos')renderPosTable();else renderReconTable(r);setViewButtons();}
+  function renderPreview(r){if(state.previewView==='pos')renderPosTable();else renderReconTable(r);setViewButtons();applyTableSearch();}
+  // v2.11.3 — search over the rows on the page: every word must appear in the row's text (cells, inputs, pills)
+  function rowSearchText(tr){const parts=[tr.textContent||''];tr.querySelectorAll('input,textarea,select').forEach(i=>{parts.push(i.value||'');});tr.querySelectorAll('[title]').forEach(e=>{parts.push(e.getAttribute('title')||'');});return parts.join(' ').toLowerCase().replace(/\s+/g,' ');}
+  function applyTableSearch(){
+    const box=document.querySelector('#tableSearch'),count=document.querySelector('#tableSearchCount');if(!box||!els.tableBody)return;
+    const words=String(box.value||'').toLowerCase().split(/\s+/).filter(Boolean),on=words.length>0;
+    els.table.classList.toggle('is-searching',on);
+    let shown=0,total=0;
+    for(const tr of els.tableBody.querySelectorAll('tr')){
+      const dataRow=!tr.classList.contains('pos-section-row')&&!tr.classList.contains('pos-total-row')&&!tr.querySelector('td[colspan]');
+      if(!dataRow){tr.classList.remove('search-miss');continue;}
+      total++;
+      const hit=!on||(()=>{const t=rowSearchText(tr);return words.every(w=>t.indexOf(w)>=0);})();
+      tr.classList.toggle('search-miss',!hit);if(hit)shown++;
+    }
+    if(count)count.textContent=on?`${shown} of ${total}`:'';
+  }
+  {const box=document.querySelector('#tableSearch');if(box){let t=0;box.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(applyTableSearch,80);});box.addEventListener('keydown',e=>{if(e.key==='Escape'){box.value='';applyTableSearch();}});}}
 
   function renderResults(){
     const r=state.result;if(!r)return;const t=r.totals,integ=state.runIntegrity||{ok:false,errors:['Integrity not run'],warnings:[]};els.results.classList.remove('hidden');const pf=state.posParsed||{},ioN=invoiceOnlyEntries().length;els.resultSub.textContent=`${r.orderNumber?`Order ${r.orderNumber} · `:''}${t.matchedInvoiceLines}/${t.invoiceLines} supplier lines matched to the POS order · order file ${pf.sourceFile||'?'} (${((pf.rows)||[]).length} product rows)${ioN?` · ${ioN} billed product${ioN===1?'':'s'} not on the POS order (INV rows — see Not on POS order)`:''}.`;

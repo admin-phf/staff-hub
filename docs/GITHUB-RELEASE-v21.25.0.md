@@ -1,11 +1,11 @@
-# Staff Hub v21.25.0 — site icon, development wording, horizontal navigation, global search, Staff Noticeboard 
+# Staff Hub v21.25.0 — site icon, development wording, navigation band, global search, Staff Noticeboard, Supplier Contacts v1.2.0, Reconcile v2.11.3
 
 Released 14 Oct 2026 13:00 AEDT. Based on v21.24.0 (commit 4b1e7ef). The tools themselves are untouched apart from the
 icon tags in their `<head>`.
 
 ## Commit notes
 
-**Summary:** v21.25.0 — site icon, development wording, horizontal navigation with search, Staff Noticeboard (encrypted, drafts vs published)
+**Summary:** v21.25.0 — site icon, navigation band with search, Staff Noticeboard, Supplier Contacts archive + column filters, Reconcile search
 
 **Description:**
 - **Site icon:** the apple from the PHF logo as favicon (16 / 32 / 48), apple-touch-icon 180 and 192 / 512 app icons with a
@@ -51,14 +51,42 @@ icon tags in their `<head>`.
 6. **Integration** — no tool code changed; `hub-nav.js`, `phf-notices.js`, `tools/noticeboard/` are separate from the
    processing engines; the Library panel and lock behaviour are as before.
 
+## Supplier Contacts v1.2.0 — archive instead of delete, column filters
+- Nothing is deleted any more. The row button (and the Archive button in the edit dialog) archives the contact: it is
+  struck through, grey, and moves to an **Archived** section at the bottom of the list, which stays visible whatever the
+  search or column filters say. **Restore** (row button or dialog) brings it back to its section; **Undo** reverses either.
+- The downloaded .xlsx / .csv gains a **Status** column (`Active` / `Archived`); archived rows sit last, struck through and
+  grey in Excel, so another computer loads the same list. A file without a Status column loads with everything active.
+- A filter box under every column heading narrows that column — words all match, digits match phone numbers
+  (`0400000002` finds 0400 000 002) — together with the search box. The ✕ at the left of the filter row clears them all.
+  The heading and filter rows both stay in view when the list scrolls.
+- Files: tools/supplier-contacts/{index.html, js/contacts.js v1.2.0, css/contacts.css v1.1.0, README.md}.
+
+## Reconcile CH2 Order v2.11.3 — search box over the result table
+- A search box beside the View buttons hides the rows that do not contain every word typed, in POS layout, Exceptions
+  and All lines. Section headings and the totals row stay; counts, ticks, Found quantities and every download are
+  unchanged — it only changes what is on screen. Esc clears it; it is re-applied after each redraw.
+- Files: tools/reconcile-ch2/{index.html, js/app.js v2.11.3, css/app.css, README.md}. Nothing in the reconciliation
+  itself changed (same run: 104/106 matched, Integrity PASS on the 74147128 test order).
+
+## Navigation
+- The **In development** badge no longer sits on a tab (it took a whole extra line); the hover panel and the search
+  results still show it (hub-nav.js v1.1.1, hub.css v21.25.6).
+
 ## Files
-- Changed: index.html, assets/css/hub.css, assets/css/library.css, assets/js/phf-lock.js, docs/ARCHITECTURE.md, tools/{database-build,
+- Changed: index.html, assets/css/hub.css, assets/css/library.css, tools/supplier-contacts/{index.html, js/contacts.js, css/contacts.css, README.md}, tools/reconcile-ch2/{index.html, js/app.js, css/app.css, README.md}, assets/js/phf-lock.js, docs/ARCHITECTURE.md, tools/{database-build,
   pos-supplier-merge, reconcile-ch2, supplier-contacts, update-specials}/index.html (icon tags only)
 - New: site.webmanifest, assets/icons/*, assets/js/hub-nav.js, assets/js/phf-notices.js, data/notices.enc.json,
   tools/noticeboard/{index.html, README.md, js/noticeboard.js, css/noticeboard.css}, docs/GITHUB-RELEASE-v21.25.0.md
 - Delete by hand (still in the repo): tools/database-build/js/size-worker.js
 
 ## Testing done (14 Oct, headless Chromium against a local copy of the repo)
+- Supplier Contacts (made-up 4-row file): archive → row struck through under the Archived divider, count "1 archived";
+  Supplier filter "gam" shows Gamma only with the archived row still at the bottom ("Showing 1 of 3"); Phone filter
+  "0390000001" finds "03 9000 0001"; clear-filters ✕; .csv and .xlsx downloads carry Status (Archived last); reload from
+  the Library keeps the archive; dialog button reads Restore and restores; Undo re-archives.
+- Reconcile (real 74147128 order + invoice, master and Ongoing Discounts): run unchanged (104/106 matched, Integrity
+  PASS, 6 exceptions); search "pukka" → "1 of 109" rows with the section rows kept; Exceptions view "0 of 8"; Esc clears.
 - Hub: title and favicon tags resolve; ten tabs in one row at 1920 / 1440 / 1366 px, search row beneath; hovering a tab
   shows its panel, moving away hides it; clicking Supplier Contacts opens the tool, clicking Bread Orders stays on the hub;
   the Library renders three seeded files as table rows; search "bread" → Bread Orders (Soon); search "reconcile" →

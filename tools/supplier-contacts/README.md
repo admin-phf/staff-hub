@@ -28,7 +28,12 @@ The hub's Library panel shows the saved list. Library **Delete all** leaves it i
 - **Add contact** — every field, and Section (Supplier / Utility). A new contact goes at the end of its section. A name
   that is already in the list is not added twice — open the existing contact instead.
 - **Edit** — double-click a row or press ✎. Changing Section moves the contact to the end of the other section.
-- **Delete** — ✕ deletes straight away; **Undo** (up to 50 steps) brings it back.
+- **Filter a column** — the boxes under the headings narrow that column (`vic` under Supplier, `03` under Phone Numbers);
+  every box with text and the search must all match. The ✕ on the filter row clears every box.
+- **Archive** (v1.2.0) — nothing is deleted. The archive button (or Archive in the edit dialog) strikes the contact
+  through and moves it to the Archived section at the bottom, which stays visible whatever the search or filters say;
+  **Restore** brings it back to its section. **Undo** (up to 50 steps) reverses either. Archived contacts stay in the
+  downloaded file (Status column = Archived, struck through, grey) so another computer sees the same list.
 - Suppliers come first (rows #E9F0F5 / #F5F5F5), the utilities after the orange Utilities divider (#FDEADA / #FCD5B4).
   Rows turn pale yellow under the mouse, as in Reconcile CH2 Order.
 
@@ -36,11 +41,12 @@ The hub's Library panel shows the saved list. Library **Delete all** leaves it i
 
 Sheet `Supplier Contacts`, heading row 1:
 
-| Supplier | Code / Product Group | Account # / Notes | Phone Numbers | Fax Number | Email | Accts Email | Section |
-|---|---|---|---|---|---|---|---|
+| Supplier | Code / Product Group | Account # / Notes | Phone Numbers | Fax Number | Email | Accts Email | Section | Status |
+|---|---|---|---|---|---|---|---|---|
 
-All columns are Text. Multi-line cells keep their line breaks. Section is `Supplier` or `Utility`. The download's row colours are conditional
-formats on Section, so they stay right after sorting or filtering in Excel.
+All columns are Text. Multi-line cells keep their line breaks. Section is `Supplier` or `Utility`; Status is `Active` or
+`Archived` (a file without a Status column loads with every contact active). The download's row colours are conditional
+formats on Section and Status, so they stay right after sorting or filtering in Excel.
 
 Other files load too: the heading row can be in the first 15 rows, columns can be in any order, `*ContactName` is read as
 Supplier, and columns the tool does not know are kept as extra fields (Index, 100% GST and Min Order are left out). A file with no Section column (the Monday Orders

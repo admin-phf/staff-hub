@@ -1,4 +1,7 @@
-/* PHF Staff Hub — Supplier Contacts v1.1.0 (12 Oct 2026)
+/* PHF Staff Hub — Supplier Contacts v1.2.0 (14 Oct 2026)
+ * v1.2.0: contacts are archived, not deleted — an archived contact is struck through at the bottom of the list (shown
+ *         there whatever the search or filters say) and can be restored; a filter box under every column heading narrows
+ *         that column (all boxes and the search must match); the file gains a Status column (Active / Archived).
  * v1.1.0: no Index, 100% GST or Min Order columns (a file that has them loads without them); everything is text — numbers
  *         are read exactly as stored (no $ or thousands commas from a cell's number format) and the .xlsx columns are Text.
  * One list of supplier and utility contacts: search every field, add / edit / delete, download (.xlsx / .csv).
@@ -14,7 +17,7 @@
 (function () {
   'use strict';
 
-  var VERSION = 'v1.1.0', KIND = 'lib:contacts', TOOL = 'Supplier Contacts', SAVE_NAME = 'Supplier_Contacts.xlsx';
+  var VERSION = 'v1.2.0', KIND = 'lib:contacts', TOOL = 'Supplier Contacts', SAVE_NAME = 'Supplier_Contacts.xlsx';
   var L = window.PHFLibrary || null;
   var FIELDS = [
     { key: 'Supplier', alias: ['supplier', 'contactname', 'contact', 'name', 'suppliername'], w: 215, xw: 34 },
@@ -27,11 +30,12 @@
   ];
   var DROPPED = ['index', '100gst', 'gst', 'minorder', 'minimumorder']; // columns no longer kept (v1.1.0)
   var SECTION = { key: 'Section', alias: ['section', 'type', 'group'] };
+  var STATUS = { key: 'Status', alias: ['status', 'archived', 'state'] };   // v1.2.0: Active / Archived
   var LAST_SUPPLIER = 'totallyworkwearmoorabbin';
   var BANDS = { sup: ['E9F0F5', 'F5F5F5'], util: ['FDEADA', 'FCD5B4'] };
 
   var $ = function (s) { return document.querySelector(s); };
-  var state = { heads: FIELDS.map(function (f) { return f.key; }), extras: [], rows: [], query: '', undo: [], saved: null, dirty: false, saving: false, nextId: 1, editing: null, rev: 0 };
+  var state = { heads: FIELDS.map(function (f) { return f.key; }), extras: [], rows: [], query: '', colq: {}, undo: [], saved: null, dirty: false, saving: false, nextId: 1, editing: null, rev: 0 };
 
   // ---------- helpers ----------
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -49,10 +53,9 @@
     return p;
   }
   function stamp() { var p = melbParts(); return p.day + '.' + p.month + '.' + p.year + '_' + p.hour + p.minute; }
-  function clone(rows) { return rows.map(function (r) { return { id: r.id, util: r.util, f: Object.assign({}, r.f) }; }); }
-  function newRow(f, util) { var r = { id: state.nextId++, util: !!util, f: {} }; state.heads.forEach(function (h) { r.f[h] = clean(f[h]); }); return r; }
-  function supCount() { var n = 0; state.rows.forEach(function (r) { if (!r.util) n++; }); return n; }
-  function counts() { var s = supCount(); return { all: state.rows.length, sup: s, util: state.rows.length - s }; }
+  function clone(rows) { return rows.map(function (r) { return { id: r.id, util: r.util, arch: !!r.arch, f: Object.assign({}, r.f) }; }); }
+  function newRow(f, util, arch) { var r = { id: state.nextId++, util: !!util, arch: !!arch, f: {} }; state.heads.forEach(function (h) { r.f[h] = clean(f[h]); }); return r; }
+  function counts() { var c = { all: state.rows.length, sup: 0, util: 0, arch: 0 }; state.rows.forEach(function (r) { if (r.arch) c.arch++; else if (r.util) c.util++; else c.sup++; }); return c; }
   function plural(n, w) { return n.toLocaleString() + ' ' + w + (n === 1 ? '' : 's'); }
 
   // ---------- search ----------
@@ -74,6 +77,18 @@
       return /^\d{3,}$/.test(d) && h.dig.indexOf(d) >= 0;
     });
   }
+  // v1.2.0: one filter box per column — every box with text must match its column (words all match; digits match phone numbers)
+  function colMatch(r) {
+    var keys = Object.keys(state.colq);
+    for (var i = 0; i < keys.length; i++) {
+      var toks = tokens(state.colq[keys[i]]); if (!toks.length) continue;
+      var v = String(r.f[keys[i]] || '').toLowerCase(), dig = v.split('\n').map(function (l) { return l.replace(/\D+/g, ''); }).join(' ');
+      var ok = toks.every(function (t) { if (v.indexOf(t) >= 0) return true; var d = t.replace(/[\s()+-]/g, ''); return /^\d{3,}$/.test(d) && dig.indexOf(d) >= 0; });
+      if (!ok) return false;
+    }
+    return true;
+  }
+  function filtering() { return !!tokens(state.query).length || Object.keys(state.colq).some(function (k) { return tokens(state.colq[k]).length; }); }
   function markRe(toks) {
     if (!toks.length) return null;
     return new RegExp('(' + toks.map(function (t) { return t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).sort(function (a, b) { return b.length - a.length; }).join('|') + ')', 'gi');
@@ -96,45 +111,62 @@
   // ---------- table ----------
   var EDIT_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>';
   var DEL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+  var ARCH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg>';
+  var REST_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>';
   function renderHead() {
     var cols = '<col class="sc-col-act">' + state.heads.map(function (h) { return '<col style="width:' + field(h).w + 'px">'; }).join('');
     $('#scCols').innerHTML = cols;
-    $('#scHead').innerHTML = '<tr><th class="sc-act" scope="col"><span class="sc-sr">Edit or delete</span></th>' + state.heads.map(function (h, i) {
+    $('#scHead').innerHTML = '<tr><th class="sc-act" scope="col"><span class="sc-sr">Edit, archive or restore</span></th>' + state.heads.map(function (h, i) {
       return '<th scope="col" class="' + (i === 0 ? 'sc-name' : '') + (field(h).centre ? ' sc-c' : '') + '">' + esc(h) + '</th>';
-    }).join('') + '</tr>';
+    }).join('') + '</tr>' +
+      // v1.2.0: filter row
+      '<tr class="sc-filters"><th class="sc-act"><button type="button" class="sc-ibtn" id="scFilterClear" title="Clear every column filter" aria-label="Clear every column filter" hidden>' + DEL_SVG + '</button></th>' + state.heads.map(function (h, i) {
+        return '<th class="' + (i === 0 ? 'sc-name' : '') + '"><input type="search" class="sc-colq" data-col="' + esc(h) + '" value="' + esc(state.colq[h] || '') + '" placeholder="Filter" aria-label="Filter ' + esc(h) + '" autocomplete="off" spellcheck="false"></th>';
+      }).join('') + '</tr>';
+    var head = $('#scHead');
+    head.querySelectorAll('.sc-colq').forEach(function (inp) {
+      inp.addEventListener('input', function () { state.colq[inp.dataset.col] = inp.value; clearTimeout(searchTimer); searchTimer = setTimeout(render, 70); });
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { inp.value = ''; state.colq[inp.dataset.col] = ''; render(); } });
+    });
+    $('#scFilterClear').onclick = function () { state.colq = {}; head.querySelectorAll('.sc-colq').forEach(function (i) { i.value = ''; }); render(); $('#scSearch').focus(); };
   }
   function rowHtml(r, k, re) {
-    var band = (r.util ? BANDS.util : BANDS.sup), cls = 'sc-row' + (r.util ? ' is-util' : '') + (k % 2 ? ' is-b' : ' is-a');
+    var band = (r.util ? BANDS.util : BANDS.sup), cls = 'sc-row' + (r.util ? ' is-util' : '') + (r.arch ? ' is-arch' : '') + (k % 2 ? ' is-b' : ' is-a');
     var name = r.f.Supplier || '(no name)';
     var cells = state.heads.map(function (h, i) {
       var f = field(h), v = r.f[h] || '';
       var html = f.mail ? mailCell(v, re) : marked(v, re);
       return '<td class="' + (i === 0 ? 'sc-name' : '') + (f.centre ? ' sc-c' : '') + '">' + html + '</td>';
     }).join('');
-    return '<tr class="' + cls + '" data-id="' + r.id + '" style="--sc-bg:#' + band[k % 2] + '"><td class="sc-act"><button type="button" class="sc-ibtn" data-act="edit" title="Edit ' + esc(name) + '" aria-label="Edit ' + esc(name) + '">' + EDIT_SVG + '</button><button type="button" class="sc-ibtn del" data-act="del" title="Delete ' + esc(name) + ' (Undo brings it back)" aria-label="Delete ' + esc(name) + '">' + DEL_SVG + '</button></td>' + cells + '</tr>';
+    return '<tr class="' + cls + '" data-id="' + r.id + '" style="--sc-bg:#' + band[k % 2] + '"><td class="sc-act"><button type="button" class="sc-ibtn" data-act="edit" title="Edit ' + esc(name) + '" aria-label="Edit ' + esc(name) + '">' + EDIT_SVG + '</button>' + (r.arch ? '<button type="button" class="sc-ibtn rest" data-act="restore" title="Restore ' + esc(name) + ' to the list" aria-label="Restore ' + esc(name) + '">' + REST_SVG + '</button>' : '<button type="button" class="sc-ibtn del" data-act="arch" title="Archive ' + esc(name) + ' — struck through at the bottom of the list, Restore brings it back" aria-label="Archive ' + esc(name) + '">' + ARCH_SVG + '</button>') + '</td>' + cells + '</tr>';
   }
   function render() {
     var c = counts(), toks = tokens(state.query), re = markRe(toks);
     var has = c.all > 0;
     $('#scEmpty').hidden = has; $('#scTableWrap').hidden = !has;
-    $('#scCount').textContent = has ? plural(c.all, 'contact') + ' · ' + plural(c.sup, 'supplier') + ' · ' + c.util.toLocaleString() + ' utilit' + (c.util === 1 ? 'y' : 'ies') : 'No contacts loaded';
+    $('#scCount').textContent = has ? plural(c.all, 'contact') + ' · ' + plural(c.sup, 'supplier') + ' · ' + c.util.toLocaleString() + ' utilit' + (c.util === 1 ? 'y' : 'ies') + (c.arch ? ' · ' + c.arch.toLocaleString() + ' archived' : '') : 'No contacts loaded';
     ['#scDownXlsx', '#scDownCsv', '#scSearch'].forEach(function (s) { $(s).disabled = !has; });
     $('#scUndo').disabled = !state.undo.length;
     $('#scUndo').title = state.undo.length ? 'Undo: ' + state.undo[state.undo.length - 1].msg : 'Nothing to undo';
     $('#scLoadBtn').textContent = has ? 'Replace from file…' : 'Load contacts file…';
     if (!has) { $('#scShown').textContent = ''; $('#scBody').innerHTML = ''; return; }
-    var sup = [], ut = [];
-    state.rows.forEach(function (r) { if (matches(r, toks)) (r.util ? ut : sup).push(r); });
+    var sup = [], ut = [], ar = [], narrowing = filtering();
+    state.rows.forEach(function (r) { if (r.arch) ar.push(r); else if (matches(r, toks) && colMatch(r)) (r.util ? ut : sup).push(r); });   // archived rows always show, at the bottom
     var n = state.heads.length + 1, html = [];
     sup.forEach(function (r, k) { html.push(rowHtml(r, k, re)); });
     if (ut.length) {
-      html.push('<tr class="sc-div"><td colspan="' + n + '"><div><span>Utilities</span> ' + (toks.length ? ut.length.toLocaleString() + ' of ' + c.util.toLocaleString() : c.util.toLocaleString()) + '</div></td></tr>');
+      html.push('<tr class="sc-div"><td colspan="' + n + '"><div><span>Utilities</span> ' + (narrowing ? ut.length.toLocaleString() + ' of ' + c.util.toLocaleString() : c.util.toLocaleString()) + '</div></td></tr>');
       ut.forEach(function (r, k) { html.push(rowHtml(r, sup.length + k, re)); });
     }
-    if (!sup.length && !ut.length) html.push('<tr class="sc-none"><td colspan="' + n + '">No contact matches “' + esc(state.query.trim()) + '”. Try fewer words, or part of a name, phone number or email.</td></tr>');
+    if (!sup.length && !ut.length) html.push('<tr class="sc-none"><td colspan="' + n + '">No contact matches ' + (state.query.trim() ? '“' + esc(state.query.trim()) + '”' : 'the column filters') + '. Try fewer words, or part of a name, phone number or email.</td></tr>');
+    if (ar.length) {
+      html.push('<tr class="sc-div is-arch"><td colspan="' + n + '"><div><span>Archived</span> ' + ar.length.toLocaleString() + ' — struck through, kept in the file, Restore brings one back</div></td></tr>');
+      ar.forEach(function (r, k) { html.push(rowHtml(r, sup.length + ut.length + k, re)); });
+    }
     $('#scBody').innerHTML = html.join('');
-    var shown = sup.length + ut.length;
-    $('#scShown').textContent = toks.length ? 'Showing ' + shown.toLocaleString() + ' of ' + c.all.toLocaleString() : '';
+    var shown = sup.length + ut.length, fc = $('#scFilterClear');
+    if (fc) fc.hidden = !Object.keys(state.colq).some(function (k) { return tokens(state.colq[k]).length; });
+    $('#scShown').textContent = narrowing ? 'Showing ' + shown.toLocaleString() + ' of ' + (c.all - c.arch).toLocaleString() : '';
   }
   var searchTimer = 0;
   function onSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(function () { state.query = $('#scSearch').value; $('#scClear').hidden = !state.query; render(); }, 70); }
@@ -243,10 +275,11 @@
     }
     if (hr < 0) return null;
     var head = m[hr].map(function (v) { return clean(v).replace(/\s*\n\s*/g, ' ').replace(/\s{2,}/g, ' ').replace(/^\*/, ''); });
-    var map = {}, used = {}, sec = -1, extras = [], dropped = [];
+    var map = {}, used = {}, sec = -1, st = -1, extras = [], dropped = [];
     head.forEach(function (h, c) {
       var n = norm(h); if (!n) return;
       if (sec < 0 && SECTION.alias.indexOf(n) >= 0) { sec = c; return; }
+      if (st < 0 && STATUS.alias.indexOf(n) >= 0) { st = c; return; }
       if (DROPPED.indexOf(n) >= 0) { dropped.push(h); return; }
       for (var i = 0; i < FIELDS.length; i++) {
         if (!used[FIELDS[i].key] && FIELDS[i].alias.indexOf(n) >= 0) { map[c] = FIELDS[i].key; used[FIELDS[i].key] = true; return; }
@@ -261,7 +294,7 @@
       Object.keys(map).forEach(function (c) { var v = clean(row[c]); f[map[c]] = v; if (v) any = true; });
       if (!any) continue;
       var util = sec >= 0 ? isUtil(row[sec]) : afterLast;
-      rows.push({ f: f, util: util });
+      rows.push({ f: f, util: util, arch: st >= 0 && /^arch/i.test(String(row[st] || '').trim()) });
       if (sec < 0 && norm(f.Supplier) === LAST_SUPPLIER) afterLast = true;
     }
     return { extras: extras, rows: rows, dropped: dropped };
@@ -269,9 +302,9 @@
   function loadTable(t, label, keepUndo) {
     var apply = function () {
       setHeads(t.extras);
-      var sup = [], ut = [];
-      t.rows.forEach(function (x) { (x.util ? ut : sup).push(newRow(x.f, x.util)); });
-      state.rows = sup.concat(ut);
+      var sup = [], ut = [], ar = [];
+      t.rows.forEach(function (x) { (x.arch ? ar : x.util ? ut : sup).push(newRow(x.f, x.util, x.arch)); });
+      state.rows = sup.concat(ut, ar);
     };
     if (keepUndo) change(apply, label); else { apply(); render(); }
     renderHead(); render();
@@ -288,9 +321,9 @@
   }
 
   // ---------- writing ----------
-  function displayRows() { return state.rows.filter(function (r) { return !r.util; }).concat(state.rows.filter(function (r) { return r.util; })); }
-  function outHeads() { return state.heads.concat([SECTION.key]); }
-  function outValue(h, r) { return h === SECTION.key ? (r.util ? 'Utility' : 'Supplier') : (r.f[h] || ''); }
+  function displayRows() { var live = state.rows.filter(function (r) { return !r.arch; }); return live.filter(function (r) { return !r.util; }).concat(live.filter(function (r) { return r.util; }), state.rows.filter(function (r) { return r.arch; })); }
+  function outHeads() { return state.heads.concat([SECTION.key, STATUS.key]); }
+  function outValue(h, r) { return h === SECTION.key ? (r.util ? 'Utility' : 'Supplier') : h === STATUS.key ? (r.arch ? 'Archived' : 'Active') : (r.f[h] || ''); }
   function colLetter(n) { var s = ''; while (n > 0) { var m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; }
   function buildXlsx() {
     var E = window.ExcelJS;
@@ -298,7 +331,7 @@
     var wb = new E.Workbook(); wb.creator = 'PHF Staff Hub — ' + TOOL + ' ' + VERSION;
     var ws = wb.addWorksheet('Supplier Contacts', { views: [{ state: 'frozen', xSplit: 1, ySplit: 1 }] });
     var heads = outHeads(), rows = displayRows();
-    ws.columns = heads.map(function (h) { return { header: h, key: h, width: h === SECTION.key ? 10 : field(h).xw, style: { numFmt: '@' } }; });
+    ws.columns = heads.map(function (h) { return { header: h, key: h, width: (h === SECTION.key || h === STATUS.key) ? 10 : field(h).xw, style: { numFmt: '@' } }; });
     rows.forEach(function (r) {
       ws.addRow(heads.map(function (h) { return outValue(h, r); })); // text only
     });
@@ -312,16 +345,18 @@
     for (var r = 2; r <= rows.length + 1; r++) {
       ws.getRow(r).eachCell({ includeEmpty: true }, function (c, col) {
         var h = heads[col - 1];
-        c.font = { name: 'Arial', size: 10, bold: col === 1, color: { argb: 'FF1F2937' } };
-        c.alignment = { vertical: 'top', wrapText: true, horizontal: (field(h).centre || h === SECTION.key) ? 'center' : 'left' };
+        var arch = rows[r - 2].arch;
+        c.font = { name: 'Arial', size: 10, bold: col === 1 && !arch, strike: arch, color: { argb: arch ? 'FF8A949E' : 'FF1F2937' } };
+        c.alignment = { vertical: 'top', wrapText: true, horizontal: (field(h).centre || h === SECTION.key || h === STATUS.key) ? 'center' : 'left' };
         c.border = { bottom: { style: 'thin', color: { argb: 'FFD6DEE6' } } };
         c.numFmt = '@';
       });
     }
-    var last = colLetter(heads.length), end = rows.length + 1, sec = colLetter(ci[SECTION.key]);
+    var last = colLetter(heads.length), end = rows.length + 1, sec = colLetter(ci[SECTION.key]), stc = colLetter(ci[STATUS.key]);
     ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: end, column: heads.length } };
     var fill = function (hex) { return { fill: { type: 'pattern', pattern: 'solid', bgColor: { argb: 'FF' + hex } } }; };
     if (rows.length) ws.addConditionalFormatting({ ref: 'A2:' + last + end, rules: [
+      { type: 'expression', priority: 0, formulae: ['$' + stc + '2="Archived"'], style: fill('EEF1F3') },
       { type: 'expression', priority: 1, formulae: ['AND($' + sec + '2="Utility",MOD(ROW(),2)=0)'], style: fill(BANDS.util[0]) },
       { type: 'expression', priority: 2, formulae: ['$' + sec + '2="Utility"'], style: fill(BANDS.util[1]) },
       { type: 'expression', priority: 3, formulae: ['MOD(ROW(),2)=0'], style: fill(BANDS.sup[0]) },
@@ -358,7 +393,7 @@
     var r = id ? rowById(id) : null, d = $('#scDialog');
     state.editing = r ? r.id : null;
     $('#scDlgTitle').textContent = r ? 'Edit contact' : 'Add contact';
-    $('#scDlgDel').hidden = !r;
+    $('#scDlgDel').hidden = !r; $('#scDlgDel').textContent = r && r.arch ? 'Restore' : 'Archive';
     $('#scDlgErr').textContent = '';
     var f = r ? r.f : {};
     var one = '<label class="sc-f sc-f-wide"><span>Supplier <b aria-hidden="true">*</b></span><input name="Supplier" required autocomplete="off" value="' + esc(f.Supplier || '') + '"></label>' +
@@ -399,7 +434,7 @@
       change(function () { place(r); }, 'Added ' + f.Supplier + (util ? ' to the utilities' : ' to the suppliers'));
     }
     closeDialog();
-    if (state.query && !matches(r, tokens(state.query))) msg((id ? 'Saved ' : 'Added ') + f.Supplier + ' — the search is hiding it; clear the search to see it.', 'ok', true);
+    if (!r.arch && !(matches(r, tokens(state.query)) && colMatch(r))) msg((id ? 'Saved ' : 'Added ') + f.Supplier + ' — the search or a column filter is hiding it; clear them to see it.', 'ok', true);
     else flash(r.id);
   }
   function flash(id) {
@@ -407,14 +442,17 @@
     tr.classList.add('is-flash'); tr.scrollIntoView({ block: 'nearest' });
     setTimeout(function () { tr.classList.remove('is-flash'); }, 1600);
   }
-  function place(r) { // end of its section
-    if (r.util) { state.rows.push(r); return; }
-    var i = 0; while (i < state.rows.length && !state.rows[i].util) i++;
+  function place(r) { // end of its section: suppliers, then utilities, then the archived
+    var i = 0;
+    if (r.arch) { state.rows.push(r); return; }
+    if (r.util) { while (i < state.rows.length && !state.rows[i].arch) i++; state.rows.splice(i, 0, r); return; }
+    while (i < state.rows.length && !state.rows[i].util && !state.rows[i].arch) i++;
     state.rows.splice(i, 0, r);
   }
-  function del(id) {
-    var r = rowById(id); if (!r) return;
-    change(function () { state.rows.splice(state.rows.indexOf(r), 1); }, 'Deleted ' + (r.f.Supplier || 'a contact'));
+  function archive(id, on) { // v1.2.0: archive instead of delete — the row stays in the list and the file, struck through at the bottom
+    var r = rowById(id); if (!r || !!r.arch === on) return;
+    change(function () { state.rows.splice(state.rows.indexOf(r), 1); r.arch = on; place(r); }, (on ? 'Archived ' : 'Restored ') + (r.f.Supplier || 'a contact'));
+    flash(r.id);
   }
 
   // ---------- page wiring ----------
@@ -433,7 +471,7 @@
     $('#scBody').addEventListener('click', function (e) {
       var b = e.target.closest('[data-act]'); if (!b) return;
       var id = +b.closest('tr').dataset.id;
-      if (b.dataset.act === 'edit') openDialog(id); else del(id);
+      if (b.dataset.act === 'edit') openDialog(id); else archive(id, b.dataset.act === 'arch');
     });
     $('#scBody').addEventListener('dblclick', function (e) {
       if (e.target.closest('a,button')) return;
@@ -441,7 +479,7 @@
     });
     $('#scDlgForm').addEventListener('submit', submitDialog);
     $('#scDlgCancel').onclick = closeDialog;
-    $('#scDlgDel').onclick = function () { var id = state.editing; closeDialog(); del(id); };
+    $('#scDlgDel').onclick = function () { var id = state.editing, r = rowById(id); closeDialog(); if (r) archive(id, !r.arch); };
     $('#scDialog').addEventListener('cancel', function () { state.editing = null; });
     // drop a contacts file anywhere on the page
     var card = $('#scCard'), depth = 0;

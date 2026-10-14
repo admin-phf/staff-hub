@@ -748,7 +748,7 @@ All implemented stages keep source business files local to the browser and gener
 - Testing: see GITHUB-RELEASE-v21.24.0.md (item size the only TXT difference against v21.23.0; CURRENT last price and
   SIZE-off runs change only their own field).
 
-## Staff Hub v21.25.0 — site icon, development wording, navigation + search, Staff Noticeboard (14 Oct 2026 16:20 AEDT)
+## Staff Hub v21.25.0 — site icon, development wording, navigation + search, Staff Noticeboard (14 Oct 2026 16:45 AEDT)
 - Icons: `assets/icons/` (favicon.ico 16/32/48, icon-16…512, icon-180 opaque for iOS, icon-192/512-maskable with 50 %
   padding) cut from the apple in `assets/img/phf-logo.png`; `site.webmanifest` at the root with relative `start_url` /
   icon paths (works under the `/staff-hub/` Pages prefix); the `<link rel=icon|apple-touch-icon|manifest>` + theme-color
@@ -786,3 +786,12 @@ All implemented stages keep source business files local to the browser and gener
 - index.html: `#hubNav`, the noticeboard preview (`#noticePreview`, two columns), the Library panel and privacy note; the
   tile board is gone (its CSS stays in hub.css for the lock script's legacy `a.tile` path; `renderQuick` / `#hubQuick`
   stay available but are not on the page).
+- Supplier Contacts v1.2.0 (`tools/supplier-contacts/js/contacts.js`): rows carry `arch`; `counts()` returns
+  sup / util / arch; `render()` lists suppliers, utilities (both narrowed by `matches()` + `colMatch()`), then every
+  archived row under a `.sc-div.is-arch` divider; `archive(id, on)` replaces `del()` and `place()` keeps the order
+  suppliers → utilities → archived; `state.colq[column]` holds the filter-row text (`renderHead()` builds the
+  `.sc-filters` row); the file has a `Status` column (`STATUS` alias status / archived / state) read in `fromMatrix()`
+  and written by `outHeads()` / `outValue()` with a strike font and a conditional fill for Archived.
+- Reconcile CH2 v2.11.3 (`tools/reconcile-ch2/js/app.js`): `applyTableSearch()` runs after `renderPreview()` and on
+  `#tableSearch` input; it toggles `is-searching` on `#resultTable` and `search-miss` on data rows (section / total /
+  colspan rows are skipped), using the row text plus input values and titles. Pure display — no state change.

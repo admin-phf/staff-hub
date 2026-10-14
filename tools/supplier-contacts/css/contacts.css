@@ -1,4 +1,4 @@
-/* PHF Staff Hub — Supplier Contacts v1.0.0 (12 Oct 2026).
+/* PHF Staff Hub — Supplier Contacts v1.1.0 (14 Oct 2026). v1.1.0: column filter row, archived rows.
    Navy / gold bands from theme.css. Rows: E9F0F5 / F5F5F5 for suppliers, FDEADA / FCD5B4 (light orange) for the
    utilities, and the pale yellow row hover of Reconcile CH2 Order. */
 body.phf-page-contacts{margin:0;font-family:var(--phf-font);color:var(--phf-ink);-webkit-font-smoothing:antialiased}
@@ -48,7 +48,7 @@ body.phf-page-contacts .btn.danger:hover{border-color:var(--phf-red);background:
 .sc-table-wrap{overflow:auto;max-height:calc(100vh - 230px);min-height:260px;border-top:1px solid var(--phf-line);border-radius:0 0 var(--phf-radius) var(--phf-radius)}
 .sc-table{border-collapse:separate;border-spacing:0;table-layout:fixed;width:max-content;min-width:100%;font-size:12px;line-height:1.4}
 .sc-col-act{width:64px}
-.sc-table thead th{position:sticky;top:0;z-index:3;background:var(--phf-navy);color:var(--phf-gold);font:800 10.5px/1.25 var(--phf-font);letter-spacing:.07em;text-transform:uppercase;text-align:left;padding:9px 8px;border-right:1px solid #2F4E75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc-table thead th{position:sticky;top:0;z-index:3;height:36px;box-sizing:border-box;background:var(--phf-navy);color:var(--phf-gold);font:800 10.5px/1.25 var(--phf-font);letter-spacing:.07em;text-transform:uppercase;text-align:left;padding:9px 8px;border-right:1px solid #2F4E75;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sc-table thead th.sc-c{text-align:center}
 .sc-table td{padding:6px 8px;vertical-align:top;white-space:pre-line;overflow-wrap:break-word;border-bottom:1px solid #DDE4EA;border-right:1px solid #E3E8ED;background-color:var(--sc-bg,#fff);color:var(--phf-ink)}
 .sc-table td.sc-c{text-align:center}
@@ -97,3 +97,16 @@ body.phf-page-contacts .btn.danger:hover{border-color:var(--phf-red);background:
 .sc-dlg-actions{display:flex;align-items:center;gap:8px;padding:12px 16px;border-top:1px solid var(--phf-line);background:var(--phf-soft)}
 .sc-grow{flex:1}
 @media (max-width:700px){.sc-dlg-grid,.sc-dlg-multi{grid-template-columns:1fr}.sc-f-wide{grid-column:auto}.sc-actions{margin-left:0}.sc-wrap{padding:12px}}
+
+/* v1.1.0 — column filters (second heading row) and archived contacts */
+.sc-table thead tr.sc-filters th{top:36px;height:32px;padding:3px 4px;background:#2B4A72;border-bottom:2px solid var(--phf-gold)}
+.sc-colq{width:100%;box-sizing:border-box;min-height:24px;border:1px solid #4A6690;border-radius:5px;padding:2px 7px;font:11.5px/1.3 var(--phf-font);color:var(--phf-ink);background:#fff}
+.sc-colq::placeholder{color:#9AA6B4;font-weight:400;letter-spacing:0;text-transform:none}
+.sc-colq:focus{outline:2px solid var(--phf-gold);outline-offset:0;border-color:#fff}
+.sc-filters .sc-ibtn{color:var(--phf-gold)}.sc-filters .sc-ibtn:hover{background:rgba(255,255,255,.15);border-color:transparent;color:#fff}
+.sc-table tbody tr.is-arch td{background-color:#F1F3F5!important;color:#8A949E;text-decoration:line-through;text-decoration-color:#A8B1BA}
+.sc-table tbody tr.is-arch td.sc-name{color:#8A949E;font-weight:600}
+.sc-table tbody tr.is-arch td a{color:#8A949E}
+.sc-table tbody tr.is-arch td mark{text-decoration:line-through}
+.sc-table tr.sc-div.is-arch td{background:#5B6672}
+.sc-ibtn.rest:hover{border-color:var(--phf-green-line,#9CCFAA);background:var(--phf-green-bg,#E6F4EA);color:var(--phf-green,#2E7D32)}

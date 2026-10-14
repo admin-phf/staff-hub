@@ -1,4 +1,11 @@
-# Prahran Health Foods — CH2 Reconciler v2.11.2
+# Prahran Health Foods — CH2 Reconciler v2.11.3
+
+## v2.11.3 — search box over the result table (14 Oct 2026 16:45 AEDT)
+
+- A search box sits beside the View buttons above the result table. Type any words (product, PLU, Sub ID, status, an
+  invoice number) and only the rows containing all of them stay on screen, in every view — POS layout, Exceptions, All
+  lines. Section headings and the totals row stay. It only changes what is shown: counts, ticks, Found quantities and the
+  downloads are exactly as before. Esc or clearing the box shows every row again; the search is kept across redraws.
 
 ## v2.11.2 — ✕ on each input row (13 Oct 2026 16:00 AEDT)
 

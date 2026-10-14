@@ -14,15 +14,15 @@
   <title>Supplier Contacts | Prahran Health Foods</title>
   <link rel="stylesheet" href="../../assets/css/shell.css?v=21.6.0">
   <link rel="stylesheet" href="../../assets/css/theme.css?v=20.0.2">
-  <link rel="stylesheet" href="./css/contacts.css?v=1.0.0">
+  <link rel="stylesheet" href="./css/contacts.css?v=1.1.0">
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 </head>
 <body class="phf-page-contacts">
   <header class="phf-shell-header header-container">
     <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="../../assets/img/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
-    <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="Supplier Contacts — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M8 17c.8-1.8 2.2-2.6 4-2.6s3.2.8 4 2.6"/></svg></span><div class="phf-shell-copy title-row"><h1>Supplier Contacts</h1><p class="phf-shell-version version-text">v1.1.0</p></div></a>
-    <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Supplier Contacts</span></nav><p class="phf-shell-updated build-details">Updated 12 Oct 2026 07:45 AEDT</p></div>
+    <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="Supplier Contacts — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M8 17c.8-1.8 2.2-2.6 4-2.6s3.2.8 4 2.6"/></svg></span><div class="phf-shell-copy title-row"><h1>Supplier Contacts</h1><p class="phf-shell-version version-text">v1.2.0</p></div></a>
+    <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Supplier Contacts</span></nav><p class="phf-shell-updated build-details">Updated 14 Oct 2026 16:45 AEDT</p></div>
   </header>
 
   <main class="sc-wrap">
@@ -69,7 +69,7 @@
       <div class="sc-drop-cover" aria-hidden="true"><span>Drop the contacts file to load it</span></div>
     </section>
 
-    <div class="sc-note"><span aria-hidden="true">🔒</span><span><strong>Privacy:</strong> supplier contacts stay in this browser on this computer (Staff Hub Library). Do not commit the contacts file to the GitHub repository. Double-click a row, or press ✎, to edit it; ✕ deletes straight away and Undo brings it back.</span></div>
+    <div class="sc-note"><span aria-hidden="true">🔒</span><span><strong>Privacy:</strong> supplier contacts stay in this browser on this computer (Staff Hub Library). Do not commit the contacts file to the GitHub repository. Double-click a row, or press ✎, to edit it; the archive button strikes a contact through and moves it to the bottom (Restore or Undo brings it back) — nothing is deleted.</span></div>
   </main>
 
   <dialog class="sc-dialog" id="scDialog" aria-labelledby="scDlgTitle">
@@ -81,7 +81,7 @@
         <div class="sc-dlg-err" id="scDlgErr" role="alert"></div>
       </div>
       <div class="sc-dlg-actions">
-        <button type="button" class="btn danger" id="scDlgDel" hidden>Delete</button>
+        <button type="button" class="btn danger" id="scDlgDel" hidden>Archive</button>
         <span class="sc-grow"></span>
         <button type="button" class="btn" id="scDlgCancel">Cancel</button>
         <button type="submit" class="btn primary">Save</button>
@@ -90,6 +90,6 @@
   </dialog>
 
   <script src="../../assets/js/phf-library.js?v=1.1.0"></script>
-  <script src="./js/contacts.js?v=1.1.0"></script>
+  <script src="./js/contacts.js?v=1.2.0"></script>
 </body>
 </html>
