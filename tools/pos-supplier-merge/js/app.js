@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.14.5 (15 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.14.6 (15 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -116,11 +116,13 @@
  * v1.14.5 (15 Oct 2026): the brand pair starts on CURRENT (POS's brand is the master; tick NEW to take the supplier's)
  *         — engine-host v1.6.3 no longer keeps it by itself; a cell changed by hand on OUT_MERGED_DATA shows orange text
  *         on an orange band (as on the supplier sheet); an UPDATED SUPPLIER typed in is approved against POS Suppliers
- *         (→ "NAME (NUMBER)") or refused and put back; an Upload tick changed from the checks' default shows orange. */
+ *         (→ "NAME (NUMBER)") or refused and put back; an Upload tick changed from the checks' default shows orange.
+ * v1.14.6 (15 Oct 2026): the brand pair starts on NEW again — the supplier's brand (after Brand Name Changes) is the
+ *         master and OLD BRAND shows what POS had; tick CURRENT, or change the cell, to keep POS's. */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.14.5';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.14.6';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -162,7 +164,7 @@
     pendingSup: 0,
     // v1.6.0: POS update options (keep[group] = POS keeps its value for matched products), the SUP BRAND scope the engine
     // was loaded with, and the scope the results were made with.
-    opts: { keep: { brand: true }, discontinue: true },   // v1.14.5: the brand pair starts on CURRENT — POS's brand is the master
+    opts: { keep: {}, discontinue: true },   // v1.14.6: every pair starts on NEW — SUP BRAND is the master, OLD BRAND shows what POS had (tick CURRENT to keep POS's)
     loadedScope: '', resultScope: null
   };
   // v1.6.0 — "Update in POS" ticks on the supplier sheet headings. col = IN_SUPPLIER column (0-based); upd = OUT_POS_UPDATE

@@ -1,6 +1,5 @@
 /* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.6.3 (15 Oct 2026)
- * v1.6.3: the brand's CURRENT / NEW tick decides again (v1.6.2 kept POS's brand on every differing row by itself); the
- *   page's default for the brand pair is CURRENT, so POS's brand is the master until NEW is ticked.
+ * v1.6.3: the brand's CURRENT / NEW tick decides again (v1.6.2 kept POS's brand on every differing row by itself).
  * v1.6.1: hold every product of a brand that shares one last price while the WSPs differ (a discount % typed into N).
  * v1.6.0: SIZE (AL) gaps filled after stage 2 / Refresh (refineSizes): count × size (30X4.5G, 20X5G), weights and volumes
  *   (G / GM / ML / MLS / KG / L / LT / OZ / LB), counts (60S, 60TB, 60CHEW, 50 GUMMIES, 90 VEGIECAPS, 30CA, 3PK, 1PC,
@@ -582,8 +581,8 @@
         if (!keep.ws) { var pw = num(P(p, 'POS WSP EXCGST')); if (pw > 0 && wsp > 0 && pct(wsp, pw) > 0.4) check('WSP moves ' + (wsp > pw ? 'up' : 'down') + ' ' + Math.round(pct(wsp, pw) * 100) + '% (' + money(pw) + ' → ' + money(wsp) + ')'); }
         if (!keep.rrp) { var pr = num(P(p, 'POS RRP INCGST')); if (pr > 0 && rrp > 0 && pct(rrp, pr) > 0.4) check('RRP moves ' + (rrp > pr ? 'up' : 'down') + ' ' + Math.round(pct(rrp, pr) * 100) + '% (' + money(pr) + ' → ' + money(rrp) + ')'); }
         // POS keeps 20 characters of a brand; a pair in Brand Name Changes is an expected change (sub-brand → POS brand).
-        // v1.6.3: the brand's CURRENT / NEW tick decides (CURRENT by default — POS brand is the master); this note only
-        // shows when NEW brand is ticked and the supplier's brand is a different name (not the family name).
+        // v1.6.3: the brand's CURRENT / NEW tick decides (NEW by default — the supplier's brand is the master, OLD BRAND shows
+        // what POS had); this note only shows when NEW is ticked and the supplier's brand is a different name (not the family).
         if (!keep.brand) { var pb = stripZ(P(p, 'POS BRAND')), nb = stripZ(row[3]); if (pb && nb && pb.slice(0, 20) !== nb.slice(0, 20) && !ix.renamed[pb + '>' + nb] && !sameFamily(pb, nb)) check('Brand ' + pb + ' → ' + nb + ' (NEW brand is ticked)'); }
       }
       if ((isNew || !keep.product) && !zRow) {

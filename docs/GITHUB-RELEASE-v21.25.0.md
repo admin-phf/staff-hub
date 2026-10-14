@@ -76,10 +76,11 @@ icon tags in their `<head>`.
 - The noticeboard page no longer scrolls sideways (noticeboard.css v1.0.1: border-box sizing — the side padding was
   being added to 100 % width).
 
-## POS New Product Check Clean v1.14.5 — POS brand by tick, your changes in orange, supplier approval
+## POS New Product Check Clean v1.14.6 — brand by tick (NEW), your changes in orange, supplier approval
 - The brand's CURRENT / NEW tick pair decides (engine-host v1.6.3 — the automatic "POS keeps its brand" of v1.6.2 is
-  gone); the brand pair now starts on **CURRENT**, so POS's brand is the master until NEW is ticked. Supplier and
-  description pairs are unchanged (NEW). "Brand A → B" is only noted when NEW brand is ticked and the names differ.
+  gone). Every pair starts on **NEW** (v1.14.6; v1.14.5 had the brand on CURRENT for a few hours): the supplier's brand
+  after Brand Name Changes is the master, OLD BRAND shows what POS had, and CURRENT — or a changed cell — keeps POS's.
+  "Brand A → B" is only noted when the names differ (not the family name).
 - A cell changed by hand on OUT_MERGED_DATA shows orange text on an orange band, as on the supplier sheet (merge.css
   v1.13.2); a row whose Upload tick you set the other way from the checks' default has an orange row number
   (sheet-grid v1.7.1 `wbg-row-changed`).
@@ -96,7 +97,7 @@ icon tags in their `<head>`.
   results still show it (hub-nav.js v1.1.1, hub.css v21.25.6).
 
 ## Files
-- Changed: index.html, assets/css/hub.css, assets/css/library.css, tools/supplier-contacts/{index.html, js/contacts.js, css/contacts.css, README.md}, tools/reconcile-ch2/{index.html, js/app.js, css/app.css, README.md}, tools/pos-supplier-merge/{index.html, engine-frame.html, js/app.js v1.14.5, js/engine-host.js v1.6.3, js/sheet-grid.js v1.7.1, js/engine-worker.js, css/merge.css}, tools/noticeboard/css/noticeboard.css, assets/js/phf-lock.js, docs/ARCHITECTURE.md, tools/{database-build,
+- Changed: index.html, assets/css/hub.css, assets/css/library.css, tools/supplier-contacts/{index.html, js/contacts.js, css/contacts.css, README.md}, tools/reconcile-ch2/{index.html, js/app.js, css/app.css, README.md}, tools/pos-supplier-merge/{index.html, engine-frame.html, js/app.js v1.14.6, js/engine-host.js v1.6.3, js/sheet-grid.js v1.7.1, js/engine-worker.js, css/merge.css}, tools/noticeboard/css/noticeboard.css, assets/js/phf-lock.js, docs/ARCHITECTURE.md, tools/{database-build,
   pos-supplier-merge, reconcile-ch2, supplier-contacts, update-specials}/index.html (icon tags only)
 - New: site.webmanifest, assets/icons/*, assets/js/hub-nav.js, assets/js/phf-notices.js, data/notices.enc.json,
   tools/noticeboard/{index.html, README.md, js/noticeboard.js, css/noticeboard.css}, docs/GITHUB-RELEASE-v21.25.0.md

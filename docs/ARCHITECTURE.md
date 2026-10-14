@@ -807,8 +807,8 @@ All implemented stages keep source business files local to the browser and gener
   ≥ `rec.savedAt`, or not `sessRestoring`); otherwise the Library copy replaces it (`fileEntry` now records `loadedIso`).
 - engine-host v1.6.1 `uploadChecks`: after the per-row pass, rows are grouped by brand + last price (live rows with WSP and
   last price > 0); a group of ≥ 3 whose WSP max ≥ 1.5 × min is held (level upgraded, counts adjusted, one shared note).
-- engine-host v1.6.3: the brand note is back to a `check` behind `!keep.brand`; app.js `state.opts.keep` starts as
-  `{ brand: true }` (brand pair CURRENT). app.js v1.14.5 `checkSupplierCells` runs in `engineSheetEdit` for
+- engine-host v1.6.3: the brand note is back to a `check` behind `!keep.brand`; app.js v1.14.6 `state.opts.keep` starts empty
+  again (every pair NEW; v1.14.5 had brand CURRENT). app.js v1.14.5 `checkSupplierCells` runs in `engineSheetEdit` for
   OUT_MERGED_DATA: cells in UPDATED SUPPLIER go through `approveSupplier` (POS Suppliers rows: number, name or
   "NAME (NUMBER)") → "NAME (NUMBER)", refused cells are dropped and the grid redrawn. `rowFlagsFor` sets `changed` when
   the Upload tick differs from the checks' default (hold = off); sheet-grid v1.7.1 renders `wbg-row-changed` and keeps
