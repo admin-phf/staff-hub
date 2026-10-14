@@ -1,4 +1,4 @@
-# Staff Hub v21.25.0 — site icon, development wording, horizontal navigation, global search, Staff Noticeboard
+# Staff Hub v21.25.0 — site icon, development wording, horizontal navigation, global search, Staff Noticeboard (tile board kept)
 
 Released 14 Oct 2026 13:00 AEDT. Based on v21.24.0 (commit 4b1e7ef). The tools themselves are untouched apart from the
 icon tags in their `<head>`.
@@ -13,9 +13,9 @@ icon tags in their `<head>`.
 - **Password wording:** "Tool under development" prompt (being developed, tested and debugged; password access for
   testing); "Lock configuration file downloaded" with the commit-and-publish steps; set / reset / remove messages say the
   change takes effect once the file is published to GitHub. Hashing, per-tool locks and Lock are unchanged.
-- **Compact landing page:** the tile board is replaced by a horizontal navigation bar (POS & Database · Orders &
+- **Landing page:** a horizontal navigation bar above the page (POS & Database · Orders &
   Reconciliation · Suppliers & Pricing · Resources & Information) with click-to-open dropdowns (name, status, one-line
-  description, Open), a compact tool list, the noticeboard preview and the Library. Stacks into a Menu button on phones.
+  description, Open), the noticeboard preview, then the existing Staff tools board (kept at Kenneth's request) and the Library. Stacks into a Menu button on phones.
 - **Global search** in the navigation bar: groups, tools, descriptions, statuses, Library file names and the noticeboard
   (titles, summaries, content once the passphrase is in). Runs in the browser only; protected tools still ask for their
   password.
@@ -30,8 +30,8 @@ icon tags in their `<head>`.
 1. **Password protection** — 1.1 prompt wording; 1.2 "In development" status on the navigation items, tool list and search
    results (`PHFLock.mark`, `data-tool`), with the supporting description on hover; 1.3 / 1.4 download message and the five
    steps; 1.5 nothing functional changed (phf-lock.js v1.2.0).
-2. **Landing page** — 2.1 the board is gone; the page is the navigation bar, noticeboard preview + tool list side by side,
-   the Library and the privacy note; 2.2 dropdowns: click opens, click again closes, another heading swaps, outside click
+2. **Landing page** — 2.1 the navigation bar and the noticeboard preview sit above the Staff tools board, which stays as it
+   was (Kenneth asked for the tiles to remain); then the Library and the privacy note; 2.2 dropdowns: click opens, click again closes, another heading swaps, outside click
    and Escape close, arrow keys move, `aria-expanded` / `role=menu`; 2.3 the four groups hold every existing tool and the
    three "Soon" placeholders (POS Supplier Merge is the former name of POS New Product Check Clean, not a separate tool);
    2.4 name, status, description, version, Open; 2.5 theme tokens only; 2.6 Menu button under 760 px.

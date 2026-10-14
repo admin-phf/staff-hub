@@ -774,5 +774,5 @@ All implemented stages keep source business files local to the browser and gener
   Download / Publish / Discard, Passphrase… (re-encrypt + download), Forget on this browser, GitHub token dialog.
   `reconcileDrafts()` drops a draft that now equals the published notice (the file was committed). Deep link
   `#<id>` opens that notice. `noticeboard.css` uses the theme tokens.
-- index.html: `#hubNav`, `.hub-grid` (noticeboard preview + tool list), the Library panel and privacy note; the tile
-  markup is gone (its CSS stays in hub.css for the lock script's legacy `a.tile` path).
+- index.html: `#hubNav`, the noticeboard preview (`#noticePreview`, two columns), the unchanged Staff tools tile board,
+  the Library panel and privacy note. (`renderQuick` / `#hubQuick` in hub-nav.js stay available but are not on the page.)
