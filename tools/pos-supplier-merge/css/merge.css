@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.13.0 (14 Oct 2026; v1.11.0 / v1.10.0 / v1.8.0 13 Oct; v1.7.2 12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean v1.13.2 (15 Oct 2026: edited cells and changed Upload ticks orange; v1.13.1 supplier search bar with icon and ×; v1.13.0 14 Oct; v1.11.0 / v1.10.0 / v1.8.0 13 Oct; v1.7.2 12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
    v1.13.0: upload checks — Upload ticks in the row numbers, held / check / fixed row edges, the Upload checks list (end of file).
    v1.11.0: no lines between the supplier sheet's bands; the search / add bar; M, N, O ticks; the fill handle (end of file).
    v1.10.0: no inner lines in the heading block of any sheet (end of file).
@@ -287,7 +287,9 @@ body.phf-page-merge .wbg-table td.wbg-empty{text-align:center;padding:26px;color
 body.phf-page-merge .wbg-table tbody{user-select:none}
 body.phf-page-merge .wbg-table tbody td.is-sel{background-color:#D3E3FD!important;background-image:none!important}
 body.phf-page-merge .wbg-table tbody td.is-anchor{box-shadow:inset 0 0 0 2px #1A73E8;background-color:#E8F0FE!important}
+body.phf-page-merge .wbg-table tbody td.is-edited{background-color:#FFF7E0!important;color:#7A4F00!important;font-weight:600}   /* v1.13.2: your change — orange text on an orange band, as on the supplier sheet */
 body.phf-page-merge .wbg-table tbody td.is-edited::after{content:"";position:absolute;top:0;right:0;border-style:solid;border-width:0 7px 7px 0;border-color:transparent #F29900 transparent transparent}
+body.phf-page-merge .wbg-table tbody tr.wbg-row-changed td.wbg-rn{background-color:#FFF7E0!important;color:#7A4F00!important;font-weight:700}
 body.phf-page-merge .wbg-table tbody td.is-editing{padding:0;overflow:visible;z-index:6}
 body.phf-page-merge .wbg-input{position:absolute;left:0;top:0;width:100%;min-width:160px;height:100%;min-height:100%;box-sizing:border-box;border:2px solid #1A73E8;border-radius:0;padding:3px 6px;font:inherit;color:#1C2833;background:#fff;outline:none;box-shadow:0 2px 6px rgba(26,115,232,.3);resize:none}
 body.phf-page-merge textarea.wbg-input{height:auto;min-height:48px}
@@ -412,7 +414,13 @@ body.phf-page-merge .wbg-table tr.wbg-tot th:not(.wbg-rn){border-bottom-color:tr
 body.phf-page-merge .sup-scope,body.phf-page-merge .sup-tools{border-bottom-color:transparent}
 /* The search / add bar takes the toolbar's first line; the slot under the cursor and what the search found show in it. */
 body.phf-page-merge .sup-find{flex:1 1 100%;display:flex;align-items:center;gap:8px;min-width:0;position:relative}
-body.phf-page-merge .sup-find input{flex:1 1 auto;min-width:0;min-height:32px;border:1px solid var(--phf-line-strong);border-radius:8px;padding:4px 10px;font:13px/1.3 var(--phf-font);letter-spacing:.01em}
+body.phf-page-merge .sup-find-box{flex:1 1 auto;min-width:0;position:relative;display:flex;align-items:center}
+body.phf-page-merge .sup-find-box>svg{position:absolute;left:10px;width:15px;height:15px;color:var(--phf-muted);pointer-events:none}
+body.phf-page-merge .sup-find input{flex:1 1 auto;width:100%;min-width:0;min-height:34px;border:1px solid var(--phf-line-strong);border-radius:9px;padding:4px 32px 4px 32px;font:13px/1.3 var(--phf-font);letter-spacing:.01em;background:var(--phf-soft,#F5F7F9)}
+body.phf-page-merge .sup-find input:focus{background:#fff}
+body.phf-page-merge .sup-find-clear{position:absolute;right:6px;width:24px;height:24px;border:0;border-radius:50%;background:none;color:var(--phf-muted);font-size:12px;cursor:pointer}
+body.phf-page-merge .sup-find-clear:hover{background:var(--phf-alt,#E9F0F5)}
+body.phf-page-merge .sup-find-clear[hidden]{display:none}
 body.phf-page-merge .sup-find input:focus{outline:2px solid var(--phf-blue-line);border-color:var(--phf-blue)}
 body.phf-page-merge .sup-find-hint{flex:0 1 auto;max-width:42%;font-size:11.5px;color:var(--phf-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 body.phf-page-merge .sup-find-hint[hidden]{display:none}

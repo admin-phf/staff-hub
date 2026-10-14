@@ -1,4 +1,5 @@
-/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.7.0 (14 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.7.1 (15 Oct 2026)
+ * v1.7.1: rowFlags[n].changed → tr.wbg-row-changed (an Upload tick the user set the other way from the checks).
  * v1.7.0: Ctrl + arrow (⌘ + arrow) jumps to the edge of the filled cells like Excel — the end of the run when the next cell is
  * filled, else the next filled cell, else the sheet's edge; Ctrl + Shift + arrow extends the selection there.
  * PHFSheetGrid.jump(get, r, c, dr, dc, rMax, cMax) is the shared rule (the supplier sheet uses it too).
@@ -157,7 +158,7 @@
         var style = a ? ' style="' + (a.bg ? 'background-color:#' + a.bg + ';' : '') + (a.fg ? 'color:#' + a.fg + ';' : '') + (a.b ? 'font-weight:700' : '') + '"' : '';
         cells += '<td data-r="' + i + '" data-c="' + k + '"' + (cls.length ? ' class="' + cls.join(' ') + '"' : '') + style + (s.length > 16 ? ' title="' + esc(s) + '"' : '') + '>' + esc(s) + '</td>';
       }
-      return '<tr class="wbg-b' + (e.n % 2) + (rf ? ' wbg-row-' + rf.level : '') + (off ? ' wbg-skip' : '') + '">' + cells + '</tr>';
+      return '<tr class="wbg-b' + (e.n % 2) + (rf ? ' wbg-row-' + rf.level : '') + (off ? ' wbg-skip' : '') + (rf && rf.changed ? ' wbg-row-changed' : '') + '">' + cells + '</tr>';   // v1.7.1 changed: the Upload tick differs from the checks' default
     }
     function drawRows() {
       var body = table.querySelector('tbody'), w = windowOf(), html = [gap(w.start * st.rowH)];
@@ -400,8 +401,9 @@
       if (rt) {
         if (st.busy || !opts.onRowTick) { rt.checked = !rt.checked; return; }
         var n = +rt.dataset.rtick, f = st.rowFlags && st.rowFlags[n];
-        if (f) f.on = rt.checked; else if (st.rowFlags) st.rowFlags[n] = { level: '', on: rt.checked };
-        var tr = rt.closest('tr'); if (tr) tr.classList.toggle('wbg-skip', !rt.checked);
+        if (f) { f.on = rt.checked; f.changed = (f.level === 'hold') === rt.checked; }                       // v1.7.1: ticked the other way from the checks
+        else if (st.rowFlags) st.rowFlags[n] = f = { level: '', on: rt.checked, changed: !rt.checked };
+        var tr = rt.closest('tr'); if (tr) { tr.classList.toggle('wbg-skip', !rt.checked); tr.classList.toggle('wbg-row-changed', !!(f && f.changed)); }
         opts.onRowTick(n, rt.checked);
         return;
       }

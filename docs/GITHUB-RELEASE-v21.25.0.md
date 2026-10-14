@@ -76,28 +76,27 @@ icon tags in their `<head>`.
 - The noticeboard page no longer scrolls sideways (noticeboard.css v1.0.1: border-box sizing — the side padding was
   being added to 100 % width).
 
-## POS New Product Check Clean v1.14.3 — a new Build reaches the page; Combined Master named; percent-as-price hold
-- engine-host v1.6.1 upload check: one last price on three or more products of a brand whose WSPs differ by 1.5× or
-  more holds every one of them ("a discount percentage typed as the price? (SUP DISCOUNT PRICE, column N)"). Kenneth's
-  15 Oct run had 15.00 on all 21 PRANAON rows (WSP 22.70–85.20); only the 14 under half the WSP were held before.
-- The POS Database brought back from the last session used to win over the Library every time, so a new Build never
-  reached this page (the "reload to use it" note led to the same rule). Now a newer Library copy replaces a restored
-  POS Database (message: "newer than the one from last session, which it replaces"); a file dropped in this session
-  still wins, and a Library copy that is the same one is left alone. Results are not restored over different inputs,
-  as before.
-- Dropping the Combined Master (merged_alligned_pos_supplier_uhp_full_…, Full_Data) on POS Database or Supplier Updates
-  now says what it is and which file each input wants, instead of "Missing columns: POS MASTER BRAND, POS PLU, POS SUB
-  ID, POS DESCR" (supplier-layout saw its CH2 columns and turned the sheet into supplier rows). POS Database is the full
-  POS set clean_merged_pos_data_… — saved in the Library by Build POS Master Databases and loaded automatically; nothing
-  about the master's layout changed (same headings on the 13.10 and 14.10 files). A Library file that cannot be used is
-  reported on the page (it was only in the console).
+## POS New Product Check Clean v1.14.5 — POS brand by tick, your changes in orange, supplier approval
+- The brand's CURRENT / NEW tick pair decides (engine-host v1.6.3 — the automatic "POS keeps its brand" of v1.6.2 is
+  gone); the brand pair now starts on **CURRENT**, so POS's brand is the master until NEW is ticked. Supplier and
+  description pairs are unchanged (NEW). "Brand A → B" is only noted when NEW brand is ticked and the names differ.
+- A cell changed by hand on OUT_MERGED_DATA shows orange text on an orange band, as on the supplier sheet (merge.css
+  v1.13.2); a row whose Upload tick you set the other way from the checks' default has an orange row number
+  (sheet-grid v1.7.1 `wbg-row-changed`).
+- UPDATED SUPPLIER typed in is checked against POS Suppliers: a number or a name becomes "NAME (NUMBER)" and the note says
+  "supplier approved"; anything else is refused ("Not approved — … is not in POS Suppliers") and the cell goes back.
+- The supplier-sheet search bar has the icon and × of the other search bars (merge.css v1.13.1).
+- 15 Oct run: INSERT 35 held / 4 fixed, UPDATE 1 held / 18 check / 11 fixed; edit test: "NOT A SUPPLIER" refused and
+  reverted, "82" → HEALTH WORLD (82) (orange, approved), a held INSERT row ticked on shows the orange row number.
+- Also in this release: a new Build's POS Database replaces the one restored from last session; a Combined Master
+  dropped on an input is named; a discount % typed as the price holds every row of the brand (engine-host v1.6.1).
 
 ## Navigation
 - The **In development** badge no longer sits on a tab (it took a whole extra line); the hover panel and the search
   results still show it (hub-nav.js v1.1.1, hub.css v21.25.6).
 
 ## Files
-- Changed: index.html, assets/css/hub.css, assets/css/library.css, tools/supplier-contacts/{index.html, js/contacts.js, css/contacts.css, README.md}, tools/reconcile-ch2/{index.html, js/app.js, css/app.css, README.md}, tools/pos-supplier-merge/{index.html, engine-frame.html, js/app.js v1.14.3, js/engine-host.js v1.6.1, js/engine-worker.js}, tools/noticeboard/css/noticeboard.css, assets/js/phf-lock.js, docs/ARCHITECTURE.md, tools/{database-build,
+- Changed: index.html, assets/css/hub.css, assets/css/library.css, tools/supplier-contacts/{index.html, js/contacts.js, css/contacts.css, README.md}, tools/reconcile-ch2/{index.html, js/app.js, css/app.css, README.md}, tools/pos-supplier-merge/{index.html, engine-frame.html, js/app.js v1.14.5, js/engine-host.js v1.6.3, js/sheet-grid.js v1.7.1, js/engine-worker.js, css/merge.css}, tools/noticeboard/css/noticeboard.css, assets/js/phf-lock.js, docs/ARCHITECTURE.md, tools/{database-build,
   pos-supplier-merge, reconcile-ch2, supplier-contacts, update-specials}/index.html (icon tags only)
 - New: site.webmanifest, assets/icons/*, assets/js/hub-nav.js, assets/js/phf-notices.js, data/notices.enc.json,
   tools/noticeboard/{index.html, README.md, js/noticeboard.js, css/noticeboard.css}, docs/GITHUB-RELEASE-v21.25.0.md

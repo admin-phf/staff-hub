@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.14.3 (15 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.14.5 (15 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -109,11 +109,18 @@
  * v1.14.2 (14 Oct 2026): a newer POS Database in the Library (a new Build) replaces the one brought back from last
  *         session instead of being skipped; a file dropped in this session still wins.
  * v1.14.3 (15 Oct 2026): engine-host v1.6.1 — one last price on three or more products of a brand whose WSPs differ
- *         (a discount % typed into SUP DISCOUNT PRICE) holds every one of them. */
+ *         (a discount % typed into SUP DISCOUNT PRICE) holds every one of them.
+ * v1.14.4 (15 Oct 2026): engine-host v1.6.2 — the POS brand is the master for matched products (POS keeps brand, descr
+ *         and pos desc when the supplier's brand differs: MELROSE for MELROSE PEAK, MARTIN & PLEASANCE for RESTQ); the
+ *         supplier-sheet search bar looks like the other search bars (icon, ×).
+ * v1.14.5 (15 Oct 2026): the brand pair starts on CURRENT (POS's brand is the master; tick NEW to take the supplier's)
+ *         — engine-host v1.6.3 no longer keeps it by itself; a cell changed by hand on OUT_MERGED_DATA shows orange text
+ *         on an orange band (as on the supplier sheet); an UPDATED SUPPLIER typed in is approved against POS Suppliers
+ *         (→ "NAME (NUMBER)") or refused and put back; an Upload tick changed from the checks' default shows orange. */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.14.3';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.14.5';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -155,7 +162,7 @@
     pendingSup: 0,
     // v1.6.0: POS update options (keep[group] = POS keeps its value for matched products), the SUP BRAND scope the engine
     // was loaded with, and the scope the results were made with.
-    opts: { keep: {}, discontinue: true },
+    opts: { keep: { brand: true }, discontinue: true },   // v1.14.5: the brand pair starts on CURRENT — POS's brand is the master
     loadedScope: '', resultScope: null
   };
   // v1.6.0 — "Update in POS" ticks on the supplier sheet headings. col = IN_SUPPLIER column (0-based); upd = OUT_POS_UPDATE
@@ -351,12 +358,12 @@
       kind = 'in-page';
       frame = document.createElement('iframe');
       frame.hidden = true; frame.title = 'POS New Product Check Clean engine';
-      frame.src = './engine-frame.html?v=1.6.1';
+      frame.src = './engine-frame.html?v=1.6.3';
       window.addEventListener('message', frameListener);
       document.body.appendChild(frame);
     }
     try {
-      worker = new Worker('./js/engine-worker.js?v=1.6.1');
+      worker = new Worker('./js/engine-worker.js?v=1.6.3');
       kind = 'worker';
       worker.onmessage = function (ev) { onMsg(ev.data); };
       worker.onerror = function (ev) {
@@ -965,8 +972,8 @@
   function noteText(ch) { return (ch.notes || []).map(function (x) { return x.t; }).join(' · '); }
   function rowFlagsFor(sheet) {
     var c = checksFor(sheet), off = uploadOff(sheet), f = {};
-    Object.keys(c).forEach(function (r) { var ch = c[r], i = Number(r) - 3; f[i] = { level: ch.level, title: LEVEL_NAME[ch.level].toUpperCase() + ' — ' + noteText(ch) + (off[r] === false ? ' · Unticked: not in the POS TXT until ticked.' : ''), on: off[r] !== false, cells: ch.fix || null }; });
-    Object.keys(off).forEach(function (r) { var i = Number(r) - 3; if (off[r] === false && !f[i]) f[i] = { level: '', title: 'Unticked — this row stays out of the POS TXT file until it is ticked.', on: false }; });
+    Object.keys(c).forEach(function (r) { var ch = c[r], i = Number(r) - 3; f[i] = { level: ch.level, changed: (off[r] === false) !== (ch.level === 'hold'), title: LEVEL_NAME[ch.level].toUpperCase() + ' — ' + noteText(ch) + (off[r] === false ? ' · Unticked: not in the POS TXT until ticked.' : '') + ((off[r] === false) !== (ch.level === 'hold') ? ' · Your change (the checks had it the other way).' : ''), on: off[r] !== false, cells: ch.fix || null }; });
+    Object.keys(off).forEach(function (r) { var i = Number(r) - 3; if (off[r] === false && !f[i]) f[i] = { level: '', changed: true, title: 'Unticked by you — this row stays out of the POS TXT file until it is ticked.', on: false }; });
     return f;
   }
   function uploadRowFilter(sheet, level) {
@@ -1586,9 +1593,43 @@
      does. The changed rows come back as the Sheet shows them. One edit (a cell, a paste, a row) = one undo step. */
   function gridFor(sheet) { return sheet === SHEETS.OUT ? wb.outGrid : wb.grid; }
   function colName(sheet, c) { var r = state.results[sheet]; return (r && r[1] && r[1][c]) || ''; }
+  // v1.14.5: a supplier typed into UPDATED SUPPLIER (OUT_MERGED_DATA) or POS SUPPLIER NAME / NUMBER (the supplier sheet) must
+  // be in POS Suppliers (SRC_POS_SUPPLIERS): a number or a name (or "NAME (NUMBER)") becomes "NAME (NUMBER)" — approved; anything
+  // else is refused and the cell goes back to what it was.
+  function supplierLookup() {
+    var byNo = {}, byName = {};
+    rowsOf('suppliers').forEach(function (r) { var k = String(r[1] == null ? '' : r[1]).trim().replace(/\.0+$/, ''), v = String(r[2] == null ? '' : r[2]).trim(); if (k && v) { if (!byNo[k]) byNo[k] = v; byName[v.toUpperCase()] = k; } });
+    return { byNo: byNo, byName: byName, any: Object.keys(byNo).length > 0 };
+  }
+  function approveSupplier(v, L) {   // → { name, no } or null
+    var t = String(v == null ? '' : v).trim(); if (!t) return null;
+    var m = t.match(/^(.*?)\s*\((\d+)\)\s*$/), no = m ? m[2] : (/^\d+$/.test(t) ? t : ''), name = m ? m[1].trim().toUpperCase() : t.toUpperCase();
+    if (no && L.byNo[no]) return { name: L.byNo[no], no: no };
+    if (!no && L.byName[name]) return { name: L.byNo[L.byName[name]], no: L.byName[name] };
+    return null;
+  }
+  function checkSupplierCells(sheet, ch, g) {
+    if (!ch.cells || !ch.cells.length) return ch;
+    var head = state.results[sheet] && state.results[sheet][1] || [], cols = {};
+    head.forEach(function (h, c) { if (h === 'UPDATED SUPPLIER') cols[c] = 'full'; });
+    var touched = ch.cells.filter(function (cell) { return cols[cell.c]; }); if (!touched.length) return ch;
+    var L = supplierLookup(); if (!L.any) { if (g) g.note('POS Suppliers is not loaded — the supplier cannot be checked; load it under Reference data.', 'warn'); return ch; }
+    var ok = [], bad = [];
+    ch.cells = ch.cells.filter(function (cell) {
+      if (!cols[cell.c]) return true;
+      var a = approveSupplier(cell.v, L);
+      if (!a) { bad.push(String(cell.v)); return false; }
+      cell.v = a.name + ' (' + a.no + ')';
+      ok.push(cell.v); return true;
+    });
+    if (bad.length && g) { g.note('Not approved — "' + bad.join('", "') + '" is not in POS Suppliers (account number or name); the cell is back as it was.' + (ok.length ? ' Approved: ' + ok.join(', ') + '.' : ''), 'error'); if (!ch.cells.length) drawOutGrid(!!wb.outView); }
+    if (ok.length) ch.approved = ok;
+    return ch;
+  }
   function engineSheetEdit(sheet, ch, sheetRowOf, nRows) {
     var g = gridFor(sheet);
     if (state.busy || state.edits.busy) { if (g) g.note('A stage is running — edit again when it finishes.', 'warn'); return; }
+    if (sheet === SHEETS.OUT && ch.type !== 'deleteRows') { ch = checkSupplierCells(sheet, ch, g); if (ch.cells && !ch.cells.length) return; }
     var msg = null, newVals = [];
     if (ch.type === 'deleteRows') {
       msg = { cmd: 'edit', sheet: sheet, op: 'deleteRows', rows: ch.rows.map(sheetRowOf) };
@@ -1619,6 +1660,7 @@
     var what = ch.type === 'deleteRows' ? fmtN(ch.rows.length) + ' row' + (ch.rows.length === 1 ? '' : 's') + ' deleted'
       : msg.op === 'appendRows' ? fmtN(newVals.length) + ' row' + (newVals.length === 1 ? '' : 's') + ' added'
       : one ? 'Changed ' + ch.where + ' (' + colName(sheet, one.c) + ')' : (ch.paste ? 'Pasted at ' + ch.where + ': ' : '') + fmtN(cells.length) + ' cells changed' + (ch.skipped ? ' (' + fmtN(ch.skipped) + ' read-only cells left as they were)' : '');
+    if (ch.approved) what += ' — supplier approved: ' + ch.approved.join(', ') + ' (in POS Suppliers)';   // v1.14.5
     engineSend(sheet, msg, cells, sheetRowOf, what);
   }
   function engineSheetUndo(sheet) {
@@ -2325,7 +2367,7 @@
       '<div class="sup-scope"><div class="sup-scope-brands" id="supScope"></div><div class="sup-scope-lib" data-lib-sup-host hidden></div></div>' +
       // v1.11.0: one wide search / add bar, started with the supplier (name | number | ) — type over it; Add 5 rows,
       // Clear empty rows.
-      '<div class="sup-tools"><div class="sup-find"><input type="text" id="supSearch" spellcheck="false" autocomplete="off" placeholder="Search every column — or type a row: ' + esc(SUP_HEADS.slice(1, 15).join(' | ')) + '" aria-label="Search the supplier rows, or type a new row and Add it">' +
+      '<div class="sup-tools"><div class="sup-find"><span class="sup-find-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="text" id="supSearch" spellcheck="false" autocomplete="off" placeholder="Search every column — or type a row: ' + esc(SUP_HEADS.slice(1, 15).join(' | ')) + '" aria-label="Search the supplier rows, or type a new row and Add it"><button type="button" class="sup-find-clear" id="supSearchClear" aria-label="Clear" hidden>✕</button></span>' +
       '<span class="sup-find-hint" id="supFindHint" aria-live="polite"></span>' +
       '<button type="button" class="btn small primary" id="supAddBtn" title="Add the row typed in the bar (Enter). The barcode is checked first: already on the sheet = shown, not added; same brand and Sub ID or WS = added with a warning.">Add</button></div>' +
       '<button type="button" class="btn small primary" id="supPasteBtn" title="Paste the clipboard at the selected cell (or add the rows at the end when no cell is selected)">Paste</button>' +
@@ -2352,6 +2394,8 @@
   function drawSup() {
     var host = $('#supSheet'); if (!host) return;
     var finp = $('#supSearch');                                        // v1.11.0: the bar starts with the supplier
+    var fclr = $('#supSearchClear');                                   // v1.14.4: the × as on the other search bars
+    if (fclr && finp) { fclr.onclick = function () { finp.value = ''; finp.dispatchEvent(new Event('input', { bubbles: true })); finp.focus(); }; finp.addEventListener('input', function () { fclr.hidden = !finp.value; }); fclr.hidden = !finp.value; }
     if (finp && !finp.value && document.activeElement !== finp) { var pf = supPrefill(); if (pf) { finp.value = pf; supView.q = pf; } }
     var model = supModel(), bsel = null, spec = supFindSpec(supView.q);
     if (supView.brands) { bsel = {}; supView.brands.forEach(function (b) { bsel[b] = 1; }); }
