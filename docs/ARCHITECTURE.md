@@ -755,8 +755,10 @@ All implemented stages keep source business files local to the browser and gener
   tags on the hub and every tool page.
 - phf-lock.js v1.2.0: wording only (ask / setDialog / finish / remove), `markTiles` also marks `[data-tool]` elements
   (navigation items, tool list, search results) and is exposed as `PHFLock.mark`, with `devLabel` / `devNote`.
-- hub-nav.js v1.0.0: `GROUPS` is the single registry (tool id, name, href, status, desc, version). `renderNav` builds the
-  menubar (`.hn-head` buttons, `.hn-dd` panels; open/close/swap/outside/Escape/arrow keys; `#hubMenuBtn` under 760 px),
+- hub-nav.js v1.0.1: `TOOLS` is the single registry (tool id, name, href, status, desc, version) — the eight board tools
+  plus the noticeboard; `GROUPS` = one single-item group per tool (`single: true`), so the menubar has one heading per
+  tool (v1.0.0 had four category groups). `renderNav` builds the menubar (`.hn-head` buttons wrap to a second row when
+  needed, `.hn-dd` panels; open/close/swap/outside/Escape/arrow keys; `#hubMenuBtn` under 760 px),
   `renderQuick` the compact list, `renderNoticePreview` the top four active notices by priority then date. Search: a
   lazily built `index` of groups, tools, Library rows (`#libList .phf-lib-what`, rebuilt on a MutationObserver) and notices
   (`PHFNotices.searchText`), all-words match, title hits first, 12 results, keyboard selection; `PHFHubNav.refresh()`.
@@ -774,5 +776,6 @@ All implemented stages keep source business files local to the browser and gener
   Download / Publish / Discard, Passphrase… (re-encrypt + download), Forget on this browser, GitHub token dialog.
   `reconcileDrafts()` drops a draft that now equals the published notice (the file was committed). Deep link
   `#<id>` opens that notice. `noticeboard.css` uses the theme tokens.
-- index.html: `#hubNav`, the noticeboard preview (`#noticePreview`, two columns), the unchanged Staff tools tile board,
-  the Library panel and privacy note. (`renderQuick` / `#hubQuick` in hub-nav.js stay available but are not on the page.)
+- index.html: `#hubNav`, the noticeboard preview (`#noticePreview`, two columns), the Library panel and privacy note; the
+  tile board is gone (its CSS stays in hub.css for the lock script's legacy `a.tile` path; `renderQuick` / `#hubQuick`
+  stay available but are not on the page).
