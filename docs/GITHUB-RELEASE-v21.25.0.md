@@ -76,7 +76,10 @@ icon tags in their `<head>`.
 - The noticeboard page no longer scrolls sideways (noticeboard.css v1.0.1: border-box sizing — the side padding was
   being added to 100 % width).
 
-## POS New Product Check Clean v1.14.2 — a new Build reaches the page; Combined Master named
+## POS New Product Check Clean v1.14.3 — a new Build reaches the page; Combined Master named; percent-as-price hold
+- engine-host v1.6.1 upload check: one last price on three or more products of a brand whose WSPs differ by 1.5× or
+  more holds every one of them ("a discount percentage typed as the price? (SUP DISCOUNT PRICE, column N)"). Kenneth's
+  15 Oct run had 15.00 on all 21 PRANAON rows (WSP 22.70–85.20); only the 14 under half the WSP were held before.
 - The POS Database brought back from the last session used to win over the Library every time, so a new Build never
   reached this page (the "reload to use it" note led to the same rule). Now a newer Library copy replaces a restored
   POS Database (message: "newer than the one from last session, which it replaces"); a file dropped in this session
@@ -94,7 +97,7 @@ icon tags in their `<head>`.
   results still show it (hub-nav.js v1.1.1, hub.css v21.25.6).
 
 ## Files
-- Changed: index.html, assets/css/hub.css, assets/css/library.css, tools/supplier-contacts/{index.html, js/contacts.js, css/contacts.css, README.md}, tools/reconcile-ch2/{index.html, js/app.js, css/app.css, README.md}, tools/pos-supplier-merge/{index.html, js/app.js v1.14.2}, tools/noticeboard/css/noticeboard.css, assets/js/phf-lock.js, docs/ARCHITECTURE.md, tools/{database-build,
+- Changed: index.html, assets/css/hub.css, assets/css/library.css, tools/supplier-contacts/{index.html, js/contacts.js, css/contacts.css, README.md}, tools/reconcile-ch2/{index.html, js/app.js, css/app.css, README.md}, tools/pos-supplier-merge/{index.html, engine-frame.html, js/app.js v1.14.3, js/engine-host.js v1.6.1, js/engine-worker.js}, tools/noticeboard/css/noticeboard.css, assets/js/phf-lock.js, docs/ARCHITECTURE.md, tools/{database-build,
   pos-supplier-merge, reconcile-ch2, supplier-contacts, update-specials}/index.html (icon tags only)
 - New: site.webmanifest, assets/icons/*, assets/js/hub-nav.js, assets/js/phf-notices.js, data/notices.enc.json,
   tools/noticeboard/{index.html, README.md, js/noticeboard.js, css/noticeboard.css}, docs/GITHUB-RELEASE-v21.25.0.md
@@ -110,6 +113,8 @@ icon tags in their `<head>`.
 - Merge: the Combined Master dropped on POS Database gives the new message; the real clean_merged_pos_data then loads.
   Library POS Database A → open (loaded, session saved) → newer copy B in the Library → reopen: B is loaded and named as
   replacing A.
+- Merge (15 Oct review workbook as input, POS set 13.10): INSERT 35 held = the 28 before + the 7 PRANAON 440 g rows,
+  all 21 PRANAON rows out of the TXT; UPDATE 1 held / 66 check / 11 fixed, unchanged otherwise.
 - Reconcile: the new 14.10 master put in the Library the way Build does → POS / master LOADED, Reference data Ready.
 - Reconcile (real 74147128 order + invoice, master and Ongoing Discounts): run unchanged (104/106 matched, Integrity
   PASS, 6 exceptions); search "pukka" → "1 of 109" rows with the section rows kept; Exceptions view "0 of 8"; Esc clears.

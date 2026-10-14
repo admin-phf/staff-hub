@@ -1,4 +1,5 @@
-/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.6.0 (14 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.6.1 (15 Oct 2026)
+ * v1.6.1: hold every product of a brand that shares one last price while the WSPs differ (a discount % typed into N).
  * v1.6.0: SIZE (AL) gaps filled after stage 2 / Refresh (refineSizes): count × size (30X4.5G, 20X5G), weights and volumes
  *   (G / GM / ML / MLS / KG / L / LT / OZ / LB), counts (60S, 60TB, 60CHEW, 50 GUMMIES, 90 VEGIECAPS, 30CA, 3PK, 1PC,
  *   SACH) and doses (MG / MCG / IU) read from SUP PRODUCT first, then POS DESCR; a SIZE that is not a size (1000MG
@@ -79,7 +80,7 @@
     return {
       setup: typeof G.SCRIPT_VERSION !== 'undefined' ? G.SCRIPT_VERSION : '',
       merge: (typeof G.M13 !== 'undefined' && G.M13 && G.M13.VERSION) ? G.M13.VERSION : '',
-      host: 'v1.6.0',
+      host: 'v1.6.1',
       worker: isWorker
     };
   }
@@ -599,6 +600,30 @@
     }
     (built.insertRows || []).forEach(function (row, i) { var r = one(row, 'OUT_POS_INSERT', 'NEW', i); if (r) out.OUT_POS_INSERT[i + 3] = r; });
     (built.updateRows || []).forEach(function (row, i) { var r = one(row, 'OUT_POS_UPDATE', row.__status || 'MATCHED', i); if (r) out.OUT_POS_UPDATE[i + 3] = r; });
+    // v1.6.1: one last price on three or more products of a brand whose WSPs differ — a discount percentage typed into
+    // SUP DISCOUNT PRICE (15 on every PRANAON row, 440 g to 2.2 kg) rather than a price. Every one of them is held, not
+    // only the ones that happen to fall under half the WSP.
+    var byBrand = {};
+    function gather(rows, sheet) {
+      (rows || []).forEach(function (row, i) {
+        if ((sheet === 'OUT_POS_UPDATE' && row.__status === 'DISCONTINUED') || /^Z{3,}/i.test(String(row[3] == null ? '' : row[3]))) return;
+        var w = num(row[12]), l = num(row[13]); if (!(w > 0 && l > 0)) return;
+        var k = up(row[3]) + '|' + money(l); (byBrand[k] = byBrand[k] || []).push({ sheet: sheet, r: i + 3, w: w, l: l });
+      });
+    }
+    gather(built.insertRows, 'OUT_POS_INSERT'); gather(built.updateRows, 'OUT_POS_UPDATE');
+    Object.keys(byBrand).forEach(function (k) {
+      var g = byBrand[k]; if (g.length < 3) return;
+      var lo = Math.min.apply(null, g.map(function (x) { return x.w; })), hi = Math.max.apply(null, g.map(function (x) { return x.w; }));
+      if (hi < lo * 1.5) return;
+      var t = 'Last price ' + money(g[0].l) + ' is the same on ' + g.length + ' ' + k.split('|')[0] + ' products whose WSP runs ' + money(lo) + ' to ' + money(hi) + ' — a discount percentage typed as the price? (SUP DISCOUNT PRICE, column N)';
+      g.forEach(function (x) {
+        var cur = out[x.sheet][x.r];
+        if (!cur) { cur = out[x.sheet][x.r] = { level: 'hold', notes: [], fix: null }; out.n.hold++; out.n.rows++; }
+        else if (cur.level !== 'hold') { out.n[cur.level]--; out.n.hold++; cur.level = 'hold'; }
+        if (!cur.notes.some(function (n) { return n.t === t; })) cur.notes.push({ k: 'hold', t: t });
+      });
+    });
     return out;
   }
   // Fields POS cannot take blank: when POS itself has no value there, the merge's value stays.

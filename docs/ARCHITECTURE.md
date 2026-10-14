@@ -805,3 +805,5 @@ All implemented stages keep source business files local to the browser and gener
   throws `MASTER_MSG` for pos / sup, `bulkAccept` notes it; Library load errors call `setGlobal(..., 'error')`. v1.14.2 `libLoad`: for `pos`, a file already
   present is kept only if it is this Library copy (`libSavedAt === rec.savedAt`) or was dropped this session (`loadedIso`
   ≥ `rec.savedAt`, or not `sessRestoring`); otherwise the Library copy replaces it (`fileEntry` now records `loadedIso`).
+- engine-host v1.6.1 `uploadChecks`: after the per-row pass, rows are grouped by brand + last price (live rows with WSP and
+  last price > 0); a group of ≥ 3 whose WSP max ≥ 1.5 × min is held (level upgraded, counts adjusted, one shared note).

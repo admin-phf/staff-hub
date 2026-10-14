@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.14.2 (14 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.14.3 (15 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -107,11 +107,13 @@
  *         supplier set — instead of "Missing columns: POS MASTER BRAND …" after supplier-layout turned its CH2 columns
  *         into supplier rows. A Library file that cannot be read says so on the page instead of only in the console.
  * v1.14.2 (14 Oct 2026): a newer POS Database in the Library (a new Build) replaces the one brought back from last
- *         session instead of being skipped; a file dropped in this session still wins. */
+ *         session instead of being skipped; a file dropped in this session still wins.
+ * v1.14.3 (15 Oct 2026): engine-host v1.6.1 — one last price on three or more products of a brand whose WSPs differ
+ *         (a discount % typed into SUP DISCOUNT PRICE) holds every one of them. */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.14.2';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.14.3';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -349,12 +351,12 @@
       kind = 'in-page';
       frame = document.createElement('iframe');
       frame.hidden = true; frame.title = 'POS New Product Check Clean engine';
-      frame.src = './engine-frame.html?v=1.6.0';
+      frame.src = './engine-frame.html?v=1.6.1';
       window.addEventListener('message', frameListener);
       document.body.appendChild(frame);
     }
     try {
-      worker = new Worker('./js/engine-worker.js?v=1.6.0');
+      worker = new Worker('./js/engine-worker.js?v=1.6.1');
       kind = 'worker';
       worker.onmessage = function (ev) { onMsg(ev.data); };
       worker.onerror = function (ev) {
