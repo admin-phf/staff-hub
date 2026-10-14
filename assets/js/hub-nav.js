@@ -1,4 +1,7 @@
-/* PHF Staff Hub · hub-nav.js v1.0.1 (14 Oct 2026)
+/* PHF Staff Hub · hub-nav.js v1.0.4 (14 Oct 2026)
+ * v1.0.4: the bar is a navy band under the page header — eight equal tabs (icon + name) with the search at its right end.
+ * v1.0.3: the search box moved into the page header beside the title (undone in v1.0.4: it crowded the title and the date).
+ * v1.0.2: one dense row — each heading is the tool's board icon + name; the row scrolls sideways instead of wrapping.
  * v1.0.1: one heading per tool — the eight from the Staff tools board plus the Staff Noticeboard — instead of four groups.
  * The hub's navigation, search and compact landing page (Staff Hub v21.25.0).
  *  - TOOLS below is the one list of everything the hub offers: group, name, folder, description, status. The horizontal
@@ -17,15 +20,15 @@
   // One heading per tool — the eight from the Staff tools board (plus the Staff Noticeboard). Each opens a small panel with
   // the description, status, version and Open. Order = the board's order.
   var TOOLS = [
-    { tool: 'database-build', name: 'Build POS Master Databases', href: './tools/database-build/index.html', status: 'build', desc: 'Cleaning and Merging and Appending CH2 and Unique DB to POS.', version: 'POS v5.2.0 · CH2 v1.2.0 · Unique v1.2.0 · Master v2.4.0' },
-    { tool: 'reconcile-ch2', name: 'Reconcile CH2 Order', href: './tools/reconcile-ch2/index.html', status: 'build', desc: 'Drop in the POS back-end order and supplier invoices, reconcile the order and export an exception report.', version: 'v2.11.2' },
-    { tool: 'supplier-contacts', name: 'Supplier Contacts', href: './tools/supplier-contacts/index.html', status: 'build', desc: 'Reps, phone numbers, emails and account numbers for every supplier and utility — search, add and edit.', version: 'Tool v1.1.0' },
-    { tool: 'update-specials', name: 'Update Specials', href: './tools/update-specials/index.html', status: 'live', desc: 'Build checkout, email and website promotional artwork. This is now isolated from every other Staff Hub tool.' },
-    { tool: 'special-orders', name: 'Customer Special Orders', status: 'soon', desc: 'Track and look up customer special orders.' },
-    { tool: 'resources', name: 'Resources', status: 'soon', desc: 'Store procedures, guides and reference documents.' },
-    { tool: 'new-products', name: 'New Products', status: 'soon', desc: 'What has landed recently and what is coming in.' },
-    { tool: 'pos-supplier-merge', name: 'POS New Product Check Clean', href: './tools/pos-supplier-merge/index.html', status: 'dev', desc: 'Import, Update, Discontinue and Clean Products and/or Supplier information against current POS Database.', version: 'Tool v1.14.0 · Engine v6.3.89' },
-    { tool: 'noticeboard', name: 'Staff Noticeboard', href: './tools/noticeboard/index.html', status: 'live', desc: 'Recalls, supplier updates, store operations and announcements — read, search and (with the passphrase) add notices.', version: 'v1.0.0' }
+    { tool: 'database-build', name: 'Build POS Master Databases', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>', href: './tools/database-build/index.html', status: 'build', desc: 'Cleaning and Merging and Appending CH2 and Unique DB to POS.', version: 'POS v5.2.0 · CH2 v1.2.0 · Unique v1.2.0 · Master v2.4.0' },
+    { tool: 'reconcile-ch2', name: 'Reconcile CH2 Order', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg>', href: './tools/reconcile-ch2/index.html', status: 'build', desc: 'Drop in the POS back-end order and supplier invoices, reconcile the order and export an exception report.', version: 'v2.11.2' },
+    { tool: 'supplier-contacts', name: 'Supplier Contacts', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M8 17c.8-1.8 2.2-2.6 4-2.6s3.2.8 4 2.6"/></svg>', href: './tools/supplier-contacts/index.html', status: 'build', desc: 'Reps, phone numbers, emails and account numbers for every supplier and utility — search, add and edit.', version: 'Tool v1.1.0' },
+    { tool: 'update-specials', name: 'Update Specials', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>', href: './tools/update-specials/index.html', status: 'live', desc: 'Build checkout, email and website promotional artwork. This is now isolated from every other Staff Hub tool.' },
+    { tool: 'special-orders', name: 'Customer Special Orders', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5V8z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>', status: 'soon', desc: 'Track and look up customer special orders.' },
+    { tool: 'resources', name: 'Resources', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h14v16H6a2 2 0 0 0-2 2z"/><path d="M4 19a2 2 0 0 0 2 2h14"/></svg>', status: 'soon', desc: 'Store procedures, guides and reference documents.' },
+    { tool: 'new-products', name: 'New Products', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>', status: 'soon', desc: 'What has landed recently and what is coming in.' },
+    { tool: 'pos-supplier-merge', name: 'POS New Product Check Clean', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg>', href: './tools/pos-supplier-merge/index.html', status: 'dev', desc: 'Import, Update, Discontinue and Clean Products and/or Supplier information against current POS Database.', version: 'Tool v1.14.0 · Engine v6.3.89' },
+    { tool: 'noticeboard', name: 'Staff Noticeboard', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg>', href: './tools/noticeboard/index.html', status: 'live', desc: 'Recalls, supplier updates, store operations and announcements — read, search and (with the passphrase) add notices.', version: 'v1.0.0' }
   ];
   var LIBRARY = { tool: 'library', name: 'Shared File Library', href: '#libraryPanel', status: 'live', desc: 'Files the tools save for each other in this browser: the POS Database, supplier imports, Ongoing Discounts.' };
   var GROUPS = TOOLS.map(function (t) { return { id: t.tool, title: t.name, blurb: '', items: [t], single: true }; });
@@ -47,15 +50,23 @@
   function renderNav(host) {
     host.innerHTML = '<button type="button" class="hn-menu" id="hubMenuBtn" aria-expanded="false" aria-controls="hubNavList">Menu</button>' +
       '<ul class="hn-list" id="hubNavList" role="menubar" aria-label="Staff Hub tools">' + GROUPS.map(function (g) {
-        return '<li class="hn-group" data-group="' + g.id + '"><button type="button" class="hn-head" aria-haspopup="true" aria-expanded="false" aria-controls="hn-dd-' + g.id + '" role="menuitem">' + esc(g.title) + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>' +
+        return '<li class="hn-group" data-group="' + g.id + '"><button type="button" class="hn-head" aria-haspopup="true" aria-expanded="false" aria-controls="hn-dd-' + g.id + '" role="menuitem">' + (g.items[0].icon ? '<span class="hn-ico" aria-hidden="true">' + g.items[0].icon + '</span>' : '') + '<span class="hn-lbl"><span>' + esc(g.title) + '</span><svg class="hn-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></span></button>' +
           '<div class="hn-dd" id="hn-dd-' + g.id + '" role="menu" aria-label="' + esc(g.title) + '" hidden>' + (g.blurb ? '<div class="hn-dd-blurb">' + esc(g.blurb) + '</div>' : '') + g.items.map(function (t) { return itemHtml(t, 'hn-item'); }).join('') + '</div></li>';
-      }).join('') + '</ul>' +
-      '<div class="hn-search" role="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>' +
+      }).join('') + '</ul>';
+    // v1.0.4: the search box is the last cell of the band (full width on narrow screens, see hub.css).
+    var sh = document.createElement('div'); sh.className = 'hn-search'; sh.setAttribute('role', 'search');
+    sh.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>' +
       '<input type="search" id="hubSearch" placeholder="Search Staff Hub tools, resources and notices…" aria-label="Search Staff Hub" autocomplete="off" aria-controls="hubResults" aria-expanded="false">' +
-      '<button type="button" class="hn-clear" id="hubSearchClear" aria-label="Clear search" hidden>✕</button><div class="hn-results" id="hubResults" role="listbox" hidden></div></div>';
+      '<button type="button" class="hn-clear" id="hubSearchClear" aria-label="Clear search" hidden>✕</button><div class="hn-results" id="hubResults" role="listbox" hidden></div>';
+    host.appendChild(sh);
     var heads = Array.prototype.slice.call(host.querySelectorAll('.hn-head'));
     function closeAll(except) { heads.forEach(function (h) { if (h !== except) { h.setAttribute('aria-expanded', 'false'); h.parentNode.classList.remove('is-open'); $('.hn-dd', h.parentNode).hidden = true; } }); }
-    function toggle(h) { var on = h.getAttribute('aria-expanded') === 'true'; closeAll(h); h.setAttribute('aria-expanded', on ? 'false' : 'true'); h.parentNode.classList.toggle('is-open', !on); $('.hn-dd', h.parentNode).hidden = on; if (!on) { var f = $('.hn-item', h.parentNode); } }
+    function toggle(h) {
+      var on = h.getAttribute('aria-expanded') === 'true'; closeAll(h);
+      h.setAttribute('aria-expanded', on ? 'false' : 'true'); h.parentNode.classList.toggle('is-open', !on);
+      var dd = $('.hn-dd', h.parentNode); dd.hidden = on;
+      if (!on) { var nr = host.getBoundingClientRect(), hr = h.getBoundingClientRect(); dd.style.setProperty('--dd-left', Math.max(4, Math.min(hr.left - nr.left, nr.width - dd.offsetWidth - 8)) + 'px'); }   // under its heading, inside the bar
+    }
     heads.forEach(function (h, i) {
       h.addEventListener('click', function () { toggle(h); });
       h.addEventListener('keydown', function (e) {
@@ -70,7 +81,7 @@
         if (e.key === 'Escape') { e.preventDefault(); closeAll(); h.focus(); }
       });
     });
-    document.addEventListener('click', function (e) { if (!host.contains(e.target)) { closeAll(); hideResults(); } });
+    document.addEventListener('click', function (e) { if (!host.contains(e.target) && !sh.contains(e.target)) { closeAll(); hideResults(); } });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeAll(); hideResults(); } });
     var mb = $('#hubMenuBtn'); mb.onclick = function () { var on = mb.getAttribute('aria-expanded') === 'true'; mb.setAttribute('aria-expanded', on ? 'false' : 'true'); host.classList.toggle('is-menu-open', !on); if (on) closeAll(); };
     wireSearch();
@@ -158,5 +169,5 @@
     var lib = $('#libList'); if (lib && G.MutationObserver) new MutationObserver(refresh).observe(lib, { childList: true, subtree: true });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
-  G.PHFHubNav = { VERSION: 'v1.0.1', TOOLS: TOOLS, GROUPS: GROUPS, refresh: refresh, setNotices: setNotices };
+  G.PHFHubNav = { VERSION: 'v1.0.4', TOOLS: TOOLS, GROUPS: GROUPS, refresh: refresh, setNotices: setNotices };
 })(window);

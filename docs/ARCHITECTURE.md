@@ -748,17 +748,19 @@ All implemented stages keep source business files local to the browser and gener
 - Testing: see GITHUB-RELEASE-v21.24.0.md (item size the only TXT difference against v21.23.0; CURRENT last price and
   SIZE-off runs change only their own field).
 
-## Staff Hub v21.25.0 — site icon, development wording, navigation + search, Staff Noticeboard (14 Oct 2026 13:00 AEDT)
+## Staff Hub v21.25.0 — site icon, development wording, navigation + search, Staff Noticeboard (14 Oct 2026 15:30 AEDT)
 - Icons: `assets/icons/` (favicon.ico 16/32/48, icon-16…512, icon-180 opaque for iOS, icon-192/512-maskable with 50 %
   padding) cut from the apple in `assets/img/phf-logo.png`; `site.webmanifest` at the root with relative `start_url` /
   icon paths (works under the `/staff-hub/` Pages prefix); the `<link rel=icon|apple-touch-icon|manifest>` + theme-color
   tags on the hub and every tool page.
 - phf-lock.js v1.2.0: wording only (ask / setDialog / finish / remove), `markTiles` also marks `[data-tool]` elements
   (navigation items, tool list, search results) and is exposed as `PHFLock.mark`, with `devLabel` / `devNote`.
-- hub-nav.js v1.0.1: `TOOLS` is the single registry (tool id, name, href, status, desc, version) — the eight board tools
-  plus the noticeboard; `GROUPS` = one single-item group per tool (`single: true`), so the menubar has one heading per
-  tool (v1.0.0 had four category groups). `renderNav` builds the menubar (`.hn-head` buttons wrap to a second row when
-  needed, `.hn-dd` panels; open/close/swap/outside/Escape/arrow keys; `#hubMenuBtn` under 760 px),
+- hub-nav.js v1.0.4: `TOOLS` is the single registry (tool id, name, href, status, desc, version, icon) — the eight board
+  tools plus the noticeboard; `GROUPS` = one single-item group per tool (`single: true`), so the band has one tab per
+  tool (v1.0.0 had four category groups). `renderNav` builds the band: `.hn-group{flex:1 1 0}` equal-width tabs, each
+  `.hn-head` = `.hn-ico` (board icon) over `.hn-lbl` (name, chevron in the corner); `.hn-dd` panel positioned under its
+  tab with `--dd-left`; the search box is appended last (`flex:0 0 min(280px,20vw)`, full width under 1250 px; results
+  right-aligned); open/close/swap/outside/Escape/arrow keys; `#hubMenuBtn` + stacked rows under 760 px (hub.css v21.25.4),
   `renderQuick` the compact list, `renderNoticePreview` the top four active notices by priority then date. Search: a
   lazily built `index` of groups, tools, Library rows (`#libList .phf-lib-what`, rebuilt on a MutationObserver) and notices
   (`PHFNotices.searchText`), all-words match, title hits first, 12 results, keyboard selection; `PHFHubNav.refresh()`.
