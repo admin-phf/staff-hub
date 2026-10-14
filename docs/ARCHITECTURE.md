@@ -789,8 +789,10 @@ All implemented stages keep source business files local to the browser and gener
 - Supplier Contacts v1.2.0 (`tools/supplier-contacts/js/contacts.js`): rows carry `arch`; `counts()` returns
   sup / util / arch; `render()` lists suppliers, utilities (both narrowed by `matches()` + `colMatch()`), then every
   archived row under a `.sc-div.is-arch` divider; `archive(id, on)` replaces `del()` and `place()` keeps the order
-  suppliers → utilities → archived; `state.colq[column]` holds the filter-row text (`renderHead()` builds the
-  `.sc-filters` row); the file has a `Status` column (`STATUS` alias status / archived / state) read in `fromMatrix()`
+  suppliers → utilities → archived; `state.colq[column] = { text, vals }` (menu search words, ticked values or null)
+  and `state.sort = { col, dir }` drive `colMatch()` / `sorted()` — view only, `state.rows` keeps the file order;
+  `renderHead()` puts a `.sc-thbtn` on each heading and `openMenu()` builds the `#scMenu` popover (sort, search,
+  tick-list from `colValues()`); the file has a `Status` column (`STATUS` alias status / archived / state) read in `fromMatrix()`
   and written by `outHeads()` / `outValue()` with a strike font and a conditional fill for Archived.
 - Reconcile CH2 v2.11.3 (`tools/reconcile-ch2/js/app.js`): `applyTableSearch()` runs after `renderPreview()` and on
   `#tableSearch` input; it toggles `is-searching` on `#resultTable` and `search-miss` on data rows (section / total /

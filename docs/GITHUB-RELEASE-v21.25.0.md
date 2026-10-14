@@ -57,9 +57,10 @@ icon tags in their `<head>`.
   search or column filters say. **Restore** (row button or dialog) brings it back to its section; **Undo** reverses either.
 - The downloaded .xlsx / .csv gains a **Status** column (`Active` / `Archived`); archived rows sit last, struck through and
   grey in Excel, so another computer loads the same list. A file without a Status column loads with everything active.
-- A filter box under every column heading narrows that column — words all match, digits match phone numbers
-  (`0400000002` finds 0400 000 002) — together with the search box. The ✕ at the left of the filter row clears them all.
-  The heading and filter rows both stay in view when the list scrolls.
+- Every column heading has a menu (≡), as in Excel / Google Sheets: Sort A → Z / Z → A (within each section; the file
+  keeps its own order), a search box and a tick-list of the column's values with Select all / Clear. A filtered heading
+  shows a gold funnel, a sorted one ▲ / ▼; the ✕ at the top left clears every filter and the sort. Column filters and
+  the main search apply together; digits match phone numbers written with spaces.
 - Files: tools/supplier-contacts/{index.html, js/contacts.js v1.2.0, css/contacts.css v1.1.0, README.md}.
 
 ## Reconcile CH2 Order v2.11.3 — search box over the result table
@@ -82,8 +83,9 @@ icon tags in their `<head>`.
 
 ## Testing done (14 Oct, headless Chromium against a local copy of the repo)
 - Supplier Contacts (made-up 4-row file): archive → row struck through under the Archived divider, count "1 archived";
-  Supplier filter "gam" shows Gamma only with the archived row still at the bottom ("Showing 1 of 3"); Phone filter
-  "0390000001" finds "03 9000 0001"; clear-filters ✕; .csv and .xlsx downloads carry Status (Archived last); reload from
+  Supplier menu: Sort Z → A reorders the suppliers (Gamma, Alpha) with the utility and the archived row still below;
+  unticking Alpha hides it ("Showing 2 of 3", funnel on the heading); Phone Numbers menu search "0390000001" finds
+  "03 9000 0001"; the ✕ clears filter and sort and the file order returns; .csv and .xlsx downloads carry Status (Archived last); reload from
   the Library keeps the archive; dialog button reads Restore and restores; Undo re-archives.
 - Reconcile (real 74147128 order + invoice, master and Ongoing Discounts): run unchanged (104/106 matched, Integrity
   PASS, 6 exceptions); search "pukka" → "1 of 109" rows with the section rows kept; Exceptions view "0 of 8"; Esc clears.

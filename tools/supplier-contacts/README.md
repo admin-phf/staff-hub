@@ -28,8 +28,11 @@ The hub's Library panel shows the saved list. Library **Delete all** leaves it i
 - **Add contact** — every field, and Section (Supplier / Utility). A new contact goes at the end of its section. A name
   that is already in the list is not added twice — open the existing contact instead.
 - **Edit** — double-click a row or press ✎. Changing Section moves the contact to the end of the other section.
-- **Filter a column** — the boxes under the headings narrow that column (`vic` under Supplier, `03` under Phone Numbers);
-  every box with text and the search must all match. The ✕ on the filter row clears every box.
+- **Sort or filter a column** — the ≡ button on a heading opens its menu, as in Excel or Google Sheets: **Sort A → Z** /
+  **Z → A** (suppliers, utilities and archived each sort within their section; the file keeps its own order), a search
+  box and a tick-list of the column's values (Select all / Clear; everything ticked = no filter). A filtered heading shows
+  a gold funnel, a sorted one ▲ / ▼; the ✕ at the top left clears every filter and the sort. Column filters and the main
+  search all apply together.
 - **Archive** (v1.2.0) — nothing is deleted. The archive button (or Archive in the edit dialog) strikes the contact
   through and moves it to the Archived section at the bottom, which stays visible whatever the search or filters say;
   **Restore** brings it back to its section. **Undo** (up to 50 steps) reverses either. Archived contacts stay in the

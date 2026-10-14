@@ -1,7 +1,9 @@
 /* PHF Staff Hub — Supplier Contacts v1.2.0 (14 Oct 2026)
  * v1.2.0: contacts are archived, not deleted — an archived contact is struck through at the bottom of the list (shown
- *         there whatever the search or filters say) and can be restored; a filter box under every column heading narrows
- *         that column (all boxes and the search must match); the file gains a Status column (Active / Archived).
+ *         there whatever the search or filters say) and can be restored; every column heading has a menu like Excel /
+ *         Google Sheets — Sort A→Z / Z→A and a tick-list of the column's values with a search box (a filtered column shows
+ *         a funnel, a sorted one an arrow; sorting is only how the list is shown — the file keeps its order); the file
+ *         gains a Status column (Active / Archived).
  * v1.1.0: no Index, 100% GST or Min Order columns (a file that has them loads without them); everything is text — numbers
  *         are read exactly as stored (no $ or thousands commas from a cell's number format) and the .xlsx columns are Text.
  * One list of supplier and utility contacts: search every field, add / edit / delete, download (.xlsx / .csv).
@@ -35,7 +37,7 @@
   var BANDS = { sup: ['E9F0F5', 'F5F5F5'], util: ['FDEADA', 'FCD5B4'] };
 
   var $ = function (s) { return document.querySelector(s); };
-  var state = { heads: FIELDS.map(function (f) { return f.key; }), extras: [], rows: [], query: '', colq: {}, undo: [], saved: null, dirty: false, saving: false, nextId: 1, editing: null, rev: 0 };
+  var state = { heads: FIELDS.map(function (f) { return f.key; }), extras: [], rows: [], query: '', colq: {}, sort: null, menu: null, undo: [], saved: null, dirty: false, saving: false, nextId: 1, editing: null, rev: 0 };
 
   // ---------- helpers ----------
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -78,17 +80,31 @@
     });
   }
   // v1.2.0: one filter box per column — every box with text must match its column (words all match; digits match phone numbers)
+  // state.colq[column] = { text: 'words typed in the menu search', vals: null | { 'cell value': true } (ticked values) }
+  function colActive(k) { var q = state.colq[k]; return !!q && (!!tokens(q.text).length || !!q.vals); }
   function colMatch(r) {
     var keys = Object.keys(state.colq);
     for (var i = 0; i < keys.length; i++) {
-      var toks = tokens(state.colq[keys[i]]); if (!toks.length) continue;
-      var v = String(r.f[keys[i]] || '').toLowerCase(), dig = v.split('\n').map(function (l) { return l.replace(/\D+/g, ''); }).join(' ');
-      var ok = toks.every(function (t) { if (v.indexOf(t) >= 0) return true; var d = t.replace(/[\s()+-]/g, ''); return /^\d{3,}$/.test(d) && dig.indexOf(d) >= 0; });
-      if (!ok) return false;
+      var q = state.colq[keys[i]]; if (!q) continue;
+      var raw = String(r.f[keys[i]] || '');
+      if (q.vals && !q.vals[raw]) return false;
+      if (!textHit(raw, tokens(q.text))) return false;
     }
     return true;
   }
-  function filtering() { return !!tokens(state.query).length || Object.keys(state.colq).some(function (k) { return tokens(state.colq[k]).length; }); }
+  function textHit(raw, toks) { // every word in the text; a run of digits also matches a phone number written with spaces
+    if (!toks.length) return true;
+    var v = raw.toLowerCase(), dig = v.split('\n').map(function (l) { return l.replace(/\D+/g, ''); }).join(' ');
+    return toks.every(function (t) { if (v.indexOf(t) >= 0) return true; var d = t.replace(/[\s()+-]/g, ''); return /^\d{3,}$/.test(d) && dig.indexOf(d) >= 0; });
+  }
+  function filtering() { return !!tokens(state.query).length || Object.keys(state.colq).some(colActive); }
+  function cmpRows(a, b) { // sort within a section; the file order is untouched
+    var k = state.sort.col, x = String(a.f[k] || ''), y = String(b.f[k] || '');
+    if (!x && y) return 1; if (x && !y) return -1;   // blanks last either way
+    var c = x.localeCompare(y, 'en-AU', { numeric: true, sensitivity: 'base' });
+    return state.sort.dir === 'desc' ? -c : c;
+  }
+  function sorted(list) { return state.sort ? list.slice().sort(cmpRows) : list; }
   function markRe(toks) {
     if (!toks.length) return null;
     return new RegExp('(' + toks.map(function (t) { return t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).sort(function (a, b) { return b.length - a.length; }).join('|') + ')', 'gi');
@@ -113,22 +129,74 @@
   var DEL_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
   var ARCH_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg>';
   var REST_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>';
+  var MENU_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg>';
+  var FUNNEL_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5h18l-7 8v6l-4-2v-4z"/></svg>';
   function renderHead() {
     var cols = '<col class="sc-col-act">' + state.heads.map(function (h) { return '<col style="width:' + field(h).w + 'px">'; }).join('');
     $('#scCols').innerHTML = cols;
-    $('#scHead').innerHTML = '<tr><th class="sc-act" scope="col"><span class="sc-sr">Edit, archive or restore</span></th>' + state.heads.map(function (h, i) {
-      return '<th scope="col" class="' + (i === 0 ? 'sc-name' : '') + (field(h).centre ? ' sc-c' : '') + '">' + esc(h) + '</th>';
-    }).join('') + '</tr>' +
-      // v1.2.0: filter row
-      '<tr class="sc-filters"><th class="sc-act"><button type="button" class="sc-ibtn" id="scFilterClear" title="Clear every column filter" aria-label="Clear every column filter" hidden>' + DEL_SVG + '</button></th>' + state.heads.map(function (h, i) {
-        return '<th class="' + (i === 0 ? 'sc-name' : '') + '"><input type="search" class="sc-colq" data-col="' + esc(h) + '" value="' + esc(state.colq[h] || '') + '" placeholder="Filter" aria-label="Filter ' + esc(h) + '" autocomplete="off" spellcheck="false"></th>';
-      }).join('') + '</tr>';
-    var head = $('#scHead');
-    head.querySelectorAll('.sc-colq').forEach(function (inp) {
-      inp.addEventListener('input', function () { state.colq[inp.dataset.col] = inp.value; clearTimeout(searchTimer); searchTimer = setTimeout(render, 70); });
-      inp.addEventListener('keydown', function (e) { if (e.key === 'Escape') { inp.value = ''; state.colq[inp.dataset.col] = ''; render(); } });
-    });
-    $('#scFilterClear').onclick = function () { state.colq = {}; head.querySelectorAll('.sc-colq').forEach(function (i) { i.value = ''; }); render(); $('#scSearch').focus(); };
+    $('#scHead').innerHTML = '<tr><th class="sc-act" scope="col"><button type="button" class="sc-ibtn" id="scFilterClear" title="Clear every column filter and sort" aria-label="Clear every column filter and sort" hidden>' + DEL_SVG + '</button></th>' + state.heads.map(function (h, i) {
+      var on = colActive(h), srt = state.sort && state.sort.col === h;
+      return '<th scope="col" class="' + (i === 0 ? 'sc-name' : '') + (field(h).centre ? ' sc-c' : '') + (on ? ' is-filtered' : '') + (srt ? ' is-sorted' : '') + '" data-col="' + esc(h) + '"><span class="sc-th"><span class="sc-th-lbl">' + esc(h) + (srt ? '<span class="sc-sort-ind" aria-label="sorted ' + (state.sort.dir === 'desc' ? 'Z to A' : 'A to Z') + '">' + (state.sort.dir === 'desc' ? '▼' : '▲') + '</span>' : '') + '</span>' +
+        '<button type="button" class="sc-thbtn" data-menu="' + esc(h) + '" title="Sort or filter ' + esc(h) + '" aria-label="Sort or filter ' + esc(h) + '" aria-haspopup="dialog">' + (on ? FUNNEL_SVG : MENU_SVG) + '</button></span></th>';
+    }).join('') + '</tr>';
+    var fc = $('#scFilterClear'); fc.hidden = !(state.sort || Object.keys(state.colq).some(colActive));
+    fc.onclick = function () { state.colq = {}; state.sort = null; closeMenu(); renderHead(); render(); };
+    $('#scHead').querySelectorAll('[data-menu]').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); if (state.menu === b.dataset.menu) closeMenu(); else openMenu(b.dataset.menu, b); }; });
+  }
+  // ---------- column menu (Sort A→Z / Z→A, search, tick-list of values) ----------
+  function colValues(h) {
+    var seen = {}, out = [];
+    state.rows.forEach(function (r) { if (r.arch) return; var v = String(r.f[h] || ''); if (!seen[v]) { seen[v] = true; out.push(v); } });
+    return out.sort(function (x, y) { if (!x) return -1; if (!y) return 1; return x.localeCompare(y, 'en-AU', { numeric: true, sensitivity: 'base' }); });
+  }
+  function openMenu(h, btn) {
+    closeMenu(); state.menu = h;
+    var q = state.colq[h] || (state.colq[h] = { text: '', vals: null }), vals = colValues(h), m = document.createElement('div');
+    m.className = 'sc-menu'; m.id = 'scMenu'; m.setAttribute('role', 'dialog'); m.setAttribute('aria-label', 'Sort or filter ' + h);
+    m.innerHTML = '<div class="sc-menu-h">' + esc(h) + '</div>' +
+      '<button type="button" class="sc-menu-item' + (state.sort && state.sort.col === h && state.sort.dir === 'asc' ? ' is-on' : '') + '" data-sort="asc">Sort A → Z</button>' +
+      '<button type="button" class="sc-menu-item' + (state.sort && state.sort.col === h && state.sort.dir === 'desc' ? ' is-on' : '') + '" data-sort="desc">Sort Z → A</button>' +
+      '<div class="sc-menu-sep"></div>' +
+      '<label class="sc-menu-search"><input type="search" placeholder="Search ' + esc(h) + '…" value="' + esc(q.text) + '" aria-label="Filter ' + esc(h) + ' by text" autocomplete="off" spellcheck="false"></label>' +
+      '<div class="sc-menu-tools"><button type="button" class="sc-link" data-all="1">Select all</button><button type="button" class="sc-link" data-all="0">Clear</button><span class="sc-menu-n"></span></div>' +
+      '<div class="sc-menu-list" role="group" aria-label="Values"></div>' +
+      '<div class="sc-menu-foot"><button type="button" class="btn small" data-reset>Clear filter</button><button type="button" class="btn small primary" data-close>Done</button></div>';
+    document.body.appendChild(m);
+    var r = btn.getBoundingClientRect(), w = 300;
+    m.style.top = (r.bottom + window.scrollY + 4) + 'px'; m.style.left = Math.max(8, Math.min(r.right + window.scrollX - w, window.innerWidth - w - 8)) + 'px';
+    var list = m.querySelector('.sc-menu-list'), search = m.querySelector('input'), n = m.querySelector('.sc-menu-n');
+    function drawList() {
+      var toks = tokens(search.value), shown = vals.filter(function (v) { return textHit(v, toks); });
+      list.innerHTML = shown.slice(0, 400).map(function (v) {
+        var on = !q.vals || !!q.vals[v];
+        return '<label class="sc-menu-val"><input type="checkbox" value="' + esc(v) + '"' + (on ? ' checked' : '') + '><span>' + (v ? esc(v.replace(/\s*\n\s*/g, ' · ')) : '<i>(Blanks)</i>') + '</span></label>';
+      }).join('') + (shown.length > 400 ? '<div class="sc-menu-more">' + (shown.length - 400) + ' more — type to narrow the list</div>' : '') + (!shown.length ? '<div class="sc-menu-more">No values match</div>' : '');
+      n.textContent = (q.vals ? Object.keys(q.vals).length + ' of ' : '') + vals.length + ' value' + (vals.length === 1 ? '' : 's');
+    }
+    function setVal(v, on) {
+      if (!q.vals) { q.vals = {}; vals.forEach(function (x) { q.vals[x] = true; }); }
+      if (on) q.vals[v] = true; else delete q.vals[v];
+      if (Object.keys(q.vals).length === vals.length) q.vals = null;   // everything ticked = no filter
+      renderHead(); render(); drawList();
+    }
+    drawList();
+    search.addEventListener('input', function () { q.text = search.value; clearTimeout(searchTimer); searchTimer = setTimeout(function () { renderHead(); render(); }, 70); drawList(); });
+    list.addEventListener('change', function (e) { var c = e.target; if (c.type === 'checkbox') setVal(c.value, c.checked); });
+    m.querySelectorAll('[data-all]').forEach(function (b) { b.onclick = function () {
+      var toks = tokens(search.value), shown = vals.filter(function (v) { return textHit(v, toks); });
+      if (b.dataset.all === '1') { if (!q.vals) return; shown.forEach(function (v) { q.vals[v] = true; }); if (Object.keys(q.vals).length === vals.length) q.vals = null; }
+      else { if (!q.vals) { q.vals = {}; vals.forEach(function (x) { q.vals[x] = true; }); } shown.forEach(function (v) { delete q.vals[v]; }); }
+      renderHead(); render(); drawList();
+    }; });
+    m.querySelectorAll('[data-sort]').forEach(function (b) { b.onclick = function () { state.sort = state.sort && state.sort.col === h && state.sort.dir === b.dataset.sort ? null : { col: h, dir: b.dataset.sort }; renderHead(); render(); closeMenu(); }; });
+    m.querySelector('[data-reset]').onclick = function () { delete state.colq[h]; renderHead(); render(); closeMenu(); };
+    m.querySelector('[data-close]').onclick = closeMenu;
+    m.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.stopPropagation(); closeMenu(); } });
+    setTimeout(function () { search.focus(); }, 10);
+  }
+  function closeMenu() {
+    var m = $('#scMenu'); if (m) m.remove();
+    if (state.menu) { var h = state.menu; state.menu = null; if (state.colq[h] && !colActive(h)) delete state.colq[h]; renderHead(); }
   }
   function rowHtml(r, k, re) {
     var band = (r.util ? BANDS.util : BANDS.sup), cls = 'sc-row' + (r.util ? ' is-util' : '') + (r.arch ? ' is-arch' : '') + (k % 2 ? ' is-b' : ' is-a');
@@ -153,19 +221,19 @@
     var sup = [], ut = [], ar = [], narrowing = filtering();
     state.rows.forEach(function (r) { if (r.arch) ar.push(r); else if (matches(r, toks) && colMatch(r)) (r.util ? ut : sup).push(r); });   // archived rows always show, at the bottom
     var n = state.heads.length + 1, html = [];
+    sup = sorted(sup); ut = sorted(ut); ar = sorted(ar);
     sup.forEach(function (r, k) { html.push(rowHtml(r, k, re)); });
     if (ut.length) {
       html.push('<tr class="sc-div"><td colspan="' + n + '"><div><span>Utilities</span> ' + (narrowing ? ut.length.toLocaleString() + ' of ' + c.util.toLocaleString() : c.util.toLocaleString()) + '</div></td></tr>');
       ut.forEach(function (r, k) { html.push(rowHtml(r, sup.length + k, re)); });
     }
-    if (!sup.length && !ut.length) html.push('<tr class="sc-none"><td colspan="' + n + '">No contact matches ' + (state.query.trim() ? '“' + esc(state.query.trim()) + '”' : 'the column filters') + '. Try fewer words, or part of a name, phone number or email.</td></tr>');
+    if (!sup.length && !ut.length) html.push('<tr class="sc-none"><td colspan="' + n + '">No contact matches ' + (state.query.trim() ? '“' + esc(state.query.trim()) + '”' : 'the column filters (the funnel on a heading)') + '. Try fewer words, or part of a name, phone number or email.</td></tr>');
     if (ar.length) {
       html.push('<tr class="sc-div is-arch"><td colspan="' + n + '"><div><span>Archived</span> ' + ar.length.toLocaleString() + ' — struck through, kept in the file, Restore brings one back</div></td></tr>');
       ar.forEach(function (r, k) { html.push(rowHtml(r, sup.length + ut.length + k, re)); });
     }
     $('#scBody').innerHTML = html.join('');
-    var shown = sup.length + ut.length, fc = $('#scFilterClear');
-    if (fc) fc.hidden = !Object.keys(state.colq).some(function (k) { return tokens(state.colq[k]).length; });
+    var shown = sup.length + ut.length;
     $('#scShown').textContent = narrowing ? 'Showing ' + shown.toLocaleString() + ' of ' + (c.all - c.arch).toLocaleString() : '';
   }
   var searchTimer = 0;
@@ -434,7 +502,7 @@
       change(function () { place(r); }, 'Added ' + f.Supplier + (util ? ' to the utilities' : ' to the suppliers'));
     }
     closeDialog();
-    if (!r.arch && !(matches(r, tokens(state.query)) && colMatch(r))) msg((id ? 'Saved ' : 'Added ') + f.Supplier + ' — the search or a column filter is hiding it; clear them to see it.', 'ok', true);
+    if (!r.arch && !(matches(r, tokens(state.query)) && colMatch(r))) msg((id ? 'Saved ' : 'Added ') + f.Supplier + ' — the search or a column filter (funnel on a heading) is hiding it; clear them to see it.', 'ok', true);
     else flash(r.id);
   }
   function flash(id) {
@@ -457,6 +525,8 @@
 
   // ---------- page wiring ----------
   function wire() {
+    document.addEventListener('click', function (e) { if (state.menu && !e.target.closest('#scMenu') && !e.target.closest('[data-menu]')) closeMenu(); });
+    $('#scTableWrap').addEventListener('scroll', function () { if (state.menu) closeMenu(); }, { passive: true });
     $('#scSearch').addEventListener('input', onSearch);
     $('#scSearch').addEventListener('keydown', function (e) { if (e.key === 'Escape') { $('#scSearch').value = ''; onSearch(); } });
     $('#scClear').onclick = function () { $('#scSearch').value = ''; onSearch(); $('#scSearch').focus(); };
