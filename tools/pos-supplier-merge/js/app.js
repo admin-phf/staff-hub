@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.15.1 (16 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.15.2 (16 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -138,11 +138,14 @@
  *         Engine-host v1.7.0: sell-through "*" on POS DESCR + NOTES, LTR / PWD forms, WOMEN'S / MEN'S not doubled.
  * v1.15.1 (16 Oct 2026): the price tick pairs are back on OUT_MERGED_DATA — CURRENT / NEW WSP EXGST, LAST PRICE and RRP,
  *         with the v1.14.0 rules (NEW = the merge's price goes to POS, CURRENT = matched products keep POS's, same
- *         setting as the supplier sheet's J / K ticks). Supplier, brand, description and SIZE stay tick-less. */
+ *         setting as the supplier sheet's J / K ticks). Supplier, brand, description and SIZE stay tick-less.
+ * v1.15.2 (16 Oct 2026): the supplier sheet's J tick covers the WSP and the last price again (as before v1.14.0) — it sets
+ *         both OUT pairs; the OUT NEW / CURRENT LAST PRICE tick can still split them for a run. The CURRENT WSP / LAST
+ *         PRICE / RRP columns are editable again (v1.15.0 had locked them). */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.15.1';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.15.2';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -200,7 +203,7 @@
     { id: 'product', col: 6, what: 'description (descr / pos desc) and packaging', upd: ['descr', 'pos desc', 'packaging'], out: ['POS DESCR', 'descr', 'pos desc', 'packaging'], cur: 'ORIGINAL POS DESCR', new: 'POS DESCR' },   // v1.12.0 packaging
     { id: 'units', col: 7, what: 'units', upd: ['units'], out: ['units'] },
     { id: 'minorder', col: 8, what: 'min order qty (box lot)', upd: ['min order qty'], out: ['min order qty'] },
-    { id: 'ws', col: 9, what: 'wholesale price', upd: ['wsp excgst'], out: ['NEW WSP EXGST', 'WSP CHANGE %', 'WSP CHANGE $', 'wsp excgst'], cur: 'CURRENT WSP EXGST', new: 'NEW WSP EXGST' },
+    { id: 'ws', col: 9, what: 'wholesale price', tip: 'Update in POS — ticked: the WSP and the last price are updated from the merge (J covers both; NEW LAST PRICE on OUT_MERGED_DATA can be set on its own). Unticked: POS keeps its current WSP and last price for matched products.', upd: ['wsp excgst'], out: ['NEW WSP EXGST', 'WSP CHANGE %', 'WSP CHANGE $', 'wsp excgst'], cur: 'CURRENT WSP EXGST', new: 'NEW WSP EXGST' },
     { id: 'last', col: -1, what: 'last price', upd: ['last price'], out: ['NEW LAST PRICE', 'CHANGE LAST PRICE %', 'CHANGE LAST PRICE $', 'last price'], cur: 'CURRENT LAST PRICE', new: 'NEW LAST PRICE' },   // v1.14.0 its own tick
     { id: 'size', col: -1, what: 'item size', upd: ['itemsize'], out: ['itemsize'], single: 'SIZE',
       tip: 'Item size — ticked: SIZE (AL) goes to POS as the item size, as written (1KG, 300G, 60C), for new and matched products. Unticked: matched products keep POS’s item size and new products get none.' },   // v1.14.0
@@ -1402,11 +1405,8 @@
   var OUT_CURRENT = {
     'POS SUPPLIER': 'the supplier POS has now (read-only). Change UPDATED SUPPLIER (G) instead — it is checked against POS Suppliers',
     'OLD BRAND': 'the brand POS has now (read-only). Change POS BRAND instead',
-    'ORIGINAL POS DESCR': 'the description POS has now (read-only). Change POS DESCR instead',
-    'CURRENT WSP EXGST': 'the WSP POS has now (read-only). Change NEW WSP EXGST instead',
-    'CURRENT LAST PRICE': 'the last price POS has now (read-only). Change NEW LAST PRICE instead',
-    'CURRENT RRP': 'the RRP POS has now (read-only). Change NEW RRP instead'
-  };
+    'ORIGINAL POS DESCR': 'the description POS has now (read-only). Change POS DESCR instead'
+  };   // v1.15.2: the CURRENT price columns are editable (their pair's tick decides which price goes to POS)
   // v1.15.1: the price pairs keep their CURRENT / NEW ticks (v1.14.0 rules): one of the two is ticked — NEW = the merge's
   // price goes to POS, CURRENT = matched products keep POS's own (grey). The same setting as the supplier sheet's J / K.
   var PRICE_TICKS = { ws: 1, last: 1, rrp: 1 };
@@ -2833,7 +2833,7 @@
     $('#supDelRows').onclick = deleteSelectedRows;
     // v1.6.0: Update in POS ticks, the Discontinue switch and the SUP BRAND filter.
     host.addEventListener('change', function (e) {
-      var k = e.target.closest('[data-keep]'); if (k) { setKeep(k.dataset.keep, !k.checked); return; }
+      var k = e.target.closest('[data-keep]'); if (k) { setKeep(k.dataset.keep, !k.checked); if (k.dataset.keep === 'ws') setKeep('last', !k.checked); return; }   // v1.15.2: J = WSP + last price
       if (e.target.id === 'supDiscontinue') { state.opts.discontinue = e.target.checked; optsChanged(); }
     });
     host.addEventListener('click', function (e) {
