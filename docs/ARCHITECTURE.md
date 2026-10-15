@@ -844,7 +844,7 @@ All implemented stages keep source business files local to the browser and gener
 ## Staff Hub v21.25.4 (16 Oct 2026 08:00 AEDT)
 - merge app.js v1.14.10 `KEEP_GROUPS.brand`: `cur: 'OLD BRAND', new: 'POS BRAND'` (was POS BRAND / SUP BRAND).
 
-## Staff Hub v21.25.5 (16 Oct 2026 09:00 AEDT)
+## Staff Hub v21.25.5 (16 Oct 2026 09:30 AEDT)
 - merge app.js v1.15.0: `drawOutGrid` passes no `ticks` and no `onTick` (`keepTicks` removed); `OUT_CURRENT` → `outReadOnly(head,
   look.readOnly)` adds the reason text per "what POS has now" column. `engineSheetEdit` message for `ch.fill`. Session
   restore deletes `opts.keep.size` / `.last`. `KEEP_GROUPS.supplier.col = 1` (POS SUPPLIER NAME).
@@ -852,3 +852,9 @@ All implemented stages keep source business files local to the browser and gener
   it starts `filling = { b, to }`, mouseover paints `td.is-fill`, document mouseup → `fillDown(b, to)` → one `cells` change
   with `fill` / `skipped` / `newRows`; Ctrl+D → `fillShortcut()`. `roWhy(c)` reads a string `edit.readOnly[c]`.
 - merge.css v1.13.4: `.wbg-fill`, `td.is-fill`; `.keep-c1` greys `sup-c1` and `sup-c2`.
+- engine-host v1.7.0: `SELL_THRU` matches every note form; `sellNote()` / `sellText()`; `noteSellThru()` keyed by `bcKey`
+  (then text when unambiguous) sets Q, P (`markStar`, ≤ 35), AP / AQ and NOTES (31); `refineForms()` (after `refineSizes`,
+  before `noteSellThru`): `litres()` → LTR with LT / L fallback at 35, `addPwd()` for TYPE POWDER; `SZ_UNIT` litres → LTR,
+  `SZ_OK` / `SIZE_RE` accept LTR; upload check "Powder without PWD"; `m13DP5EnsureMustKeepFromQ_` wrapper drops a
+  re-added word already present as a possessive. engine-worker / engine-frame / app.js load engine-host ?v=1.7.0.
+- app.js `KEEP_GROUPS.supplier.cols = [1, 2]`: the tick renders on both headings; `drawSup` sets every `[data-keep]`.

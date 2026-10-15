@@ -1,4 +1,11 @@
-/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.6.3 (15 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.7.0 (16 Oct 2026)
+ * v1.7.0: sell-through — the note on SUP PRODUCT in any of its forms (*SELL THRU*, *SELL THROUGH, NEW SKU 2959733*, SELL
+ *   THROUGH) is read off before matching / descriptions (so no SELL or SKU number leaks into POS DESCR); after stage 2 /
+ *   Refresh the row's POS DESCR ends with "*" (the marker POS staff look for), Q shows the note and NOTES (AF) says
+ *   "SELL THROUGH — new SKU 2959733". Forms (refineForms): litres are written LTR in SIZE / itemsize and in POS DESCR
+ *   (1L / 1LT / 1 LITRE → 1LTR); a POWDER product's POS DESCR carries PWD (ORAL → PWD, else PWD before the size when it
+ *   fits in 35; otherwise an upload check says so). A possessive word (WOMEN'S, MEN'S, CAT'S) is not re-added as its
+ *   base word by the script's must-keep pass (BIOC WOMEN'S ESS WOMEN 120C).
  * v1.6.3: the brand's CURRENT / NEW tick decides again (v1.6.2 kept POS's brand on every differing row by itself).
  * v1.6.1: hold every product of a brand that shares one last price while the WSPs differ (a discount % typed into N).
  * v1.6.0: SIZE (AL) gaps filled after stage 2 / Refresh (refineSizes): count × size (30X4.5G, 20X5G), weights and volumes
@@ -237,7 +244,14 @@
     return false;
   }
   // ------------------------------------------------ v1.3.0 supplier columns M / O, member pricing, SELL THRU
-  var SUP_SHEET = 'IN_SUPPLIER_/_PRODUCT_UPDATES', SELL_THRU = /\s*\*SELL THRU\*\s*/gi;
+  var SUP_SHEET = 'IN_SUPPLIER_/_PRODUCT_UPDATES';
+  // v1.7.0: every form of the note — "*SELL THRU*", "*SELL THROUGH, NEW SKU 2959733*", "* SELL THROUGH *", a bare "SELL THROUGH, NEW SKU 2959733".
+  var SELL_THRU = /\s*(?:\*\s*SELL\s*(?:THROUGH|THRU)\b[^*]*\*?|\bSELL\s*(?:THROUGH|THRU)\b(?:\s*,?\s*NEW\s*SKU\s*#?\s*\d+)?)\s*/gi;
+  function sellNote(text) {                                    // → { sku } when the text carries the note, else null
+    var t = String(text == null ? '' : text); if (!/SELL\s*(?:THROUGH|THRU)/i.test(t)) return null;
+    var m = t.match(/NEW\s*SKU\s*#?\s*(\d+)/i); return { sku: m ? m[1] : '' };
+  }
+  function sellText(n) { return 'SELL THROUGH' + (n && n.sku ? ' — new SKU ' + n.sku : ''); }
   function bcKey(v) { return String(v == null ? '' : v).replace(/\D/g, '').replace(/^0+/, ''); }
   function pluKey(v) { return String(v == null ? '' : v).trim().replace(/\.0+$/, ''); }
   // IN_SUPPLIER column c by barcode (D); numeric = only cells that are a number (stock).
@@ -301,7 +315,7 @@
     wrapCtx('m13ApplySupplierOverrideToOutRow_', function (a) { var row = a[0], sup = a[1]; return { plu: row ? pluKey(row[42]) : '', bc: sup && sup.barcode ? bcKey(sup.barcode) : '' }; });
     wrapCtx('m13ResolvedShelfPricingForOutput_', function (a) { var f = a[2]; return { plu: pluKey(f(1)), bc: bcKey(f(0)) }; });
   }
-  function stripNote(v) { return typeof v === 'string' && v.indexOf('*') >= 0 ? v.replace(SELL_THRU, ' ').replace(/\s+/g, ' ').trim() : v; }
+  function stripNote(v) { return typeof v === 'string' && /SELL\s*(?:THROUGH|THRU)/i.test(v) ? v.replace(SELL_THRU, ' ').replace(/\s+/g, ' ').trim() : v; }   // v1.7.0: every form
   function installSellThruHooks() {
     // The script reads SUP PRODUCT through m13ColVal_ / hbbColVal_ with 'SUP PRODUCT' first in the list.
     ['m13ColVal_', 'hbbColVal_'].forEach(function (name) {
@@ -317,19 +331,49 @@
       a[0] = stripNote(a[0]); a[2] = stripNote(a[2]);
       return origP.apply(this, a);
     };
+    // v1.7.0: the script's must-keep pass puts the strongest supplier word back when it cannot see it in the description;
+    // WOMEN'S / MEN'S / CAT'S hide the word behind the apostrophe, so it added WOMEN again (BIOC WOMEN'S ESS WOMEN 120C).
+    var origMust = G.m13DP5EnsureMustKeepFromQ_;
+    if (typeof origMust === 'function') G.m13DP5EnsureMustKeepFromQ_ = function (body) {
+      var r = origMust.apply(this, arguments), was = up(body).split(' '), now = String(r == null ? '' : r).split(' ');
+      if (now.length !== was.length + 1) return r;
+      var added = now.filter(function (w) { return was.indexOf(w) < 0; });
+      if (added.length !== 1) return r;
+      var w = added[0], has = was.some(function (x) { var b = x.replace(/[^A-Z0-9']/g, ''); return b === w + "'S" || b === w + 'S' || b === w + "'"; });
+      if (!has) return r;
+      now.splice(now.indexOf(w), 1); return now.join(' ');
+    };
   }
-  // After stage 2 / Refresh: OUT_MERGED_DATA's Q (SUP PRODUCT) shows the note again for the supplier rows that have it.
+  // After stage 2 / Refresh: for the supplier rows that carry the sell-through note, OUT_MERGED_DATA's Q (SUP PRODUCT) shows
+  // it again, P (POS DESCR) ends with "*" (v1.7.0 — the marker that identifies sell-through stock in POS; stage 3 reads P),
+  // and NOTES (AF, index 31) says "SELL THROUGH — new SKU 2959733". Runs after refineForms so the "*" is the last token.
+  var DESCR_MAX = 35;
+  function markStar(p) {
+    p = up(p).replace(/\s*\*+$/, '').trim(); if (!p) return '';
+    return (p + ' *').length <= DESCR_MAX ? p + ' *' : p + '*';
+  }
   function noteSellThru() {
     var sup = shim && shim.ss._find(SUP_SHEET), out = shim && shim.ss._find('OUT_MERGED_DATA'); if (!sup || !out) return 0;
-    var noted = {}, any = false, n = 0;
+    // By the supplier barcode first; by the product text only when every supplier row with that text carries the note (the
+    // replacement SKU often has the same name without it — EAGLE TRESOS B PRO 60T: old barcode sell-through, new barcode not).
+    var byBc = {}, byText = {}, any = false, n = 0;
     for (var r = 2; r < sup.cells.length; r++) {
-      var row = sup.cells[r], g = row && row[6] != null ? String(row[6]) : '';
-      if (g && /\*SELL THRU\*/i.test(g)) { noted[stripNote(g).toUpperCase()] = 1; any = true; }
+      var row = sup.cells[r], g = row && row[6] != null ? String(row[6]) : '', sn = sellNote(g), k = bcKey(row && row[3]), t = String(stripNote(g)).toUpperCase();
+      if (!t) continue;
+      if (sn) { any = true; if (k) byBc[k] = sn; if (byText[t] === undefined) byText[t] = sn; }
+      else { byText[t] = null; }                                                           // the same name without the note: text is not enough
     }
     if (!any) return 0;
     for (var o = 2; o < out.cells.length; o++) {
-      var orow = out.cells[o], q = orow && orow[16] != null ? String(orow[16]).trim() : '';
-      if (q && !/\*SELL THRU\*/i.test(q) && noted[q.toUpperCase()]) { orow[16] = q + ' *SELL THRU*'; n++; }
+      var orow = out.cells[o], q = orow && orow[16] != null ? String(orow[16]).trim() : '', key = String(stripNote(q)).toUpperCase();
+      var sn2 = byBc[bcKey(orow && orow[10])] || (key ? byText[key] : null);
+      if (!sn2 || /DISCONTINUED/.test(up(orow[1]))) continue;
+      if (!sellNote(q)) orow[16] = key + ' *' + sellText(sn2).replace(' — new SKU', ', NEW SKU').toUpperCase() + '*';
+      var p = up(orow[15]);
+      if (p && !/^Z{3,}/.test(p) && !/\*$/.test(p)) { orow[15] = markStar(p); orow[45] = orow[15]; orow[46] = posDescOf(orow[15]); }
+      var note = String(orow[31] == null ? '' : orow[31]).trim(), txt = sellText(sn2);
+      if (note.toUpperCase().indexOf('SELL THROUGH') < 0) orow[31] = note ? note + ' | ' + txt : txt;
+      n++;
     }
     return n;
   }
@@ -379,19 +423,21 @@
     return n;
   }
   // ------------------------------------------------ v1.6.0 SIZE (AL, index 37) gaps and BR itemsize (index 69)
-  var SZ_UNIT = { KG: 'KG', G: 'G', GM: 'G', GMS: 'G', GRAM: 'G', GRAMS: 'G', ML: 'ML', MLS: 'ML', L: 'LT', LT: 'LT', LTR: 'LT', LITRE: 'LT', LITRES: 'LT', OZ: 'OZ', LB: 'LB', LBS: 'LB' };
+  var SZ_UNIT = { KG: 'KG', G: 'G', GM: 'G', GMS: 'G', GRAM: 'G', GRAMS: 'G', ML: 'ML', MLS: 'ML', L: 'LTR', LT: 'LTR', LTR: 'LTR', LITRE: 'LTR', LITRES: 'LTR', LITER: 'LTR', OZ: 'OZ', LB: 'LB', LBS: 'LB' };
   var DOSE_UNIT = { MG: 'MG', MCG: 'MCG', IU: 'IU' };
   var CT_UNIT = { C: 'C', CA: 'C', CAP: 'C', CAPS: 'C', CAPSULE: 'C', CAPSULES: 'C', VC: 'VC', VCAP: 'VC', VCAPS: 'VC', VEGIECAP: 'VC', VEGIECAPS: 'VC', VEGECAPS: 'VC', VEGCAPS: 'VC',
     T: 'T', TAB: 'T', TABS: 'T', TABLET: 'T', TABLETS: 'T', TB: 'T', S: 'S', SG: 'SG', SOFTGEL: 'SG', SOFTGELS: 'SG', CHEW: 'CHEW', CHEWS: 'CHEW', CHEWABLE: 'CHEW', CHEWABLES: 'CHEW',
     GUMMY: 'GUMMIES', GUMMIES: 'GUMMIES', LOZ: 'LOZ', LOZENGE: 'LOZ', LOZENGES: 'LOZ', PK: 'PK', PACK: 'PK', PC: 'PC', PCS: 'PC', PIECE: 'PC', PIECES: 'PC',
     SACH: 'SACHET', SACHS: 'SACHET', SACHET: 'SACHET', SACHETS: 'SACHET', BAG: 'BAG', BAGS: 'BAG', TEABAG: 'TB', TEABAGS: 'TB', SERVE: 'SERVE', SERVES: 'SERVE', PADS: 'PADS', PAD: 'PADS' };
-  var SZ_OK = /^\d+(\.\d+)?(KG|G|ML|LT|OZ|LB|MG|MCG|IU|C|VC|T|S|SG|CHEW|GUMMIES|LOZ|PK|PC|SACHET|BAG|TB|SERVE|PADS)$|^\d+X\d+(\.\d+)?(KG|G|ML|LT)$|^\d+XSACHET$/;
+  var SZ_OK = /^\d+(\.\d+)?(KG|G|ML|LTR|OZ|LB|MG|MCG|IU|C|VC|T|S|SG|CHEW|GUMMIES|LOZ|PK|PC|SACHET|BAG|TB|SERVE|PADS)$|^\d+X\d+(\.\d+)?(KG|G|ML|LTR)$|^\d+XSACHET$/;   // v1.7.0 LTR
+  var LITRE_RE = /\b(\d+(?:\.\d+)?)\s?(?:L|LT|LTR|LITRES?|LITER)\b/g;                          // v1.7.0: 1L, 1LT, 1 LITRE → 1LTR
+  function litres(t) { return String(t == null ? '' : t).replace(LITRE_RE, '$1LTR'); }
   function sizeFrom(text) {
     var t = up(text).replace(SELL_THRU, ' ').replace(/\d+(\.\d+)?\s*%/g, ' ').replace(/[(),]/g, ' ').replace(/\s+/g, ' ').trim();
     if (!t) return '';
     var m;
-    if ((m = t.match(/\b(\d{1,3})\s*X\s*(\d+(?:\.\d+)?)\s*(KG|G|GM|ML|MLS|L|LT)\b/))) return m[1] + 'X' + m[2] + SZ_UNIT[m[3]];           // 20 X 5G, 30X4.5G
-    if ((m = t.match(/\b(\d+(?:\.\d+)?)\s*(KG|G|GM|ML|MLS|L|LT)\s*X\s*(\d{1,3})\b/))) return m[3] + 'X' + m[1] + SZ_UNIT[m[2]];         // 4.5G X 30
+    if ((m = t.match(/\b(\d{1,3})\s*X\s*(\d+(?:\.\d+)?)\s*(KG|G|GM|ML|MLS|L|LT|LTR)\b/))) return m[1] + 'X' + m[2] + SZ_UNIT[m[3]];           // 20 X 5G, 30X4.5G
+    if ((m = t.match(/\b(\d+(?:\.\d+)?)\s*(KG|G|GM|ML|MLS|L|LT|LTR)\s*X\s*(\d{1,3})\b/))) return m[3] + 'X' + m[1] + SZ_UNIT[m[2]];         // 4.5G X 30
     if ((m = t.match(/\b(\d{1,3})\s*X\s*(?:SACH\w*)\b/))) return m[1] + 'XSACHET';                                                       // 30 X SACH
     var re = /\b(\d+(?:\.\d+)?)\s*([A-Z]+)\b/g, best = null, rank = 9;
     while ((m = re.exec(t))) {
@@ -412,11 +458,42 @@
     var one = function (i) {
       var row = out.cells[i]; if (!row || String(row[0] == null ? '' : row[0]).trim() === '') return;
       var was = up(row[37]), t = was;
+      if (/^\d+(\.\d+)?(X\d+(\.\d+)?)?(L|LT|LITRES?)$/.test(was)) { t = litres(was); if (t !== was) { row[37] = t; was = t; n++; } }   // v1.7.0: 1LT → 1LTR
       if (!syncOnly && !SZ_OK.test(was)) { t = sizeFrom(row[16]) || sizeFrom(row[15]) || sizeFrom(row[14]); if (t !== was) { row[37] = t; n++; } }
       if (/DISCONTINUED/.test(up(row[1]))) return;
       if (t && String(row[69] == null ? '' : row[69]) !== t) row[69] = t;
     };
     if (list) list.forEach(function (r) { if (r >= 3) one(r - 1); }); else for (var i = 2; i < out.cells.length; i++) one(i);
+    return n;
+  }
+  // v1.7.0 — forms written one way in POS DESCR (P, index 15; stage 3 reads P): litres as LTR (1L / 1LT / 1 LITRE → 1LTR) and a
+  // POWDER product (AM) carries PWD — ORAL becomes PWD, else PWD goes in before the size when the 35 characters allow; a
+  // powder that cannot fit PWD is listed by the upload checks. Not for discontinued or ZZZZ rows. AP / AQ (descr, pos desc) follow.
+  function pwdFits(p) { return p.length + 4 <= DESCR_MAX; }
+  function addPwd(p) {
+    if (/\bPWD\b/.test(p)) return p;
+    if (/\bORAL\b/.test(p)) return p.replace(/\bORAL\b/, 'PWD').replace(/\s+/g, ' ').trim();
+    if (/\bPOWDER\b/.test(p)) return p.replace(/\bPOWDER\b/, 'PWD');
+    if (!pwdFits(p)) return p;
+    var w = p.split(' '), at = w.length;
+    for (var i = w.length - 1; i > 0; i--) if (SZ_OK.test(w[i]) || /^\d+(\.\d+)?(X\d+(\.\d+)?)?[A-Z]+$/.test(w[i])) { at = i; }
+    w.splice(at, 0, 'PWD'); return w.join(' ');
+  }
+  function refineForms(rowsOnly) {
+    var out = shim && shim.ss._find('OUT_MERGED_DATA'); if (!out) return 0;
+    var head = (out.cells[1] || []).map(function (h) { return String(h == null ? '' : h).trim().toUpperCase(); });
+    if (head[15] !== 'POS DESCR' || head[38] !== 'TYPE') return 0;
+    var n = 0, one = function (i) {
+      var row = out.cells[i]; if (!row || String(row[0] == null ? '' : row[0]).trim() === '' || /DISCONTINUED/.test(up(row[1]))) return;
+      var p = up(row[15]); if (!p || /^Z{3,}/.test(p)) return;
+      var star = /\*$/.test(p); if (star) p = p.replace(/\s*\*+$/, '').trim();
+      var t = litres(p);
+      if (t.length > DESCR_MAX && t !== p) { var t1 = t.replace(/(\d)LTR\b/g, '$1LT'); t = t1.length <= DESCR_MAX ? t1 : t.replace(/(\d)LTR\b/g, '$1L'); }   // no room for LTR: 10LT, else 10L
+      if (up(row[38]) === 'POWDER') t = addPwd(t);
+      if (star) t = markStar(t);
+      if (t !== up(row[15])) { row[15] = t; row[45] = t; row[46] = posDescOf(t); n++; }
+    };
+    if (rowsOnly) rowsOnly.forEach(function (r) { if (r >= 3) one(r - 1); }); else for (var i = 2; i < out.cells.length; i++) one(i);
     return n;
   }
   // OUT_POS_INSERT / OUT_POS_UPDATE: min order qty (field 11) must be a number for POS.
@@ -442,7 +519,7 @@
    *           repeated word taken out of the description, a ZZZZ brand / descr made consistent).
    * The result goes back with the run as info.checks = { OUT_POS_INSERT: { sheetRow: { level, notes, fix } }, … }.
    * Row fields: 1 barcode / PLU, 2 sub id, 3 brand, 4 descr, 5 pos desc, 8 supplier, 12 wsp, 13 last, 15 rrp, 30 soh. */
-  var SIZE_RE = /(\d+(?:\.\d+)?)\s*(KG|G|GM|GRAMS?|ML|LT|L|MG|MCG)\b/g, COUNT_RE = /\b(\d{1,4})\s*(T|TABS?|TABLETS?|C|CAPS?|CAPSULES?|VC|S|SG|SOFTGELS?|LOZ|SACH\w*|PK|PACK|PADS?|TEABAGS?|TB)\b/g;
+  var SIZE_RE = /(\d+(?:\.\d+)?)\s*(KG|G|GM|GRAMS?|ML|LTR|LT|L|MG|MCG)\b/g, COUNT_RE = /\b(\d{1,4})\s*(T|TABS?|TABLETS?|C|CAPS?|CAPSULES?|VC|S|SG|SOFTGELS?|LOZ|SACH\w*|PK|PACK|PADS?|TEABAGS?|TB)\b/g;
   function num(v) { var t = String(v == null ? '' : v).replace(/[$,%\s]/g, ''); return t !== '' && isFinite(Number(t)) ? Number(t) : 0; }
   function money(n) { return (Math.round(n * 100) / 100).toFixed(2); }
   function pct(a, b) { return b > 0 ? Math.abs(a - b) / b : 0; }
@@ -453,7 +530,7 @@
   function up(v) { return String(v == null ? '' : v).toUpperCase().replace(/\s+/g, ' ').trim(); }
   function stripZ(v) { return up(v).replace(/^(?:Z{2,}\s*)+/, '').trim(); }
   function uniq(a) { var o = [], m = {}; a.forEach(function (x) { if (!m[x]) { m[x] = 1; o.push(x); } }); return o; }
-  function sizeKey(text) { var m, t = up(text).replace(/\bGM\b|\bGRAMS?\b/g, 'G').replace(/\d+\s*%/g, ' '), out = []; SIZE_RE.lastIndex = 0; while ((m = SIZE_RE.exec(t))) out.push(Number(m[1]) + (m[2] === 'LT' ? 'L' : m[2] === 'GM' ? 'G' : m[2])); return uniq(out); }
+  function sizeKey(text) { var m, t = up(text).replace(/\bGM\b|\bGRAMS?\b/g, 'G').replace(/\d+\s*%/g, ' '), out = []; SIZE_RE.lastIndex = 0; while ((m = SIZE_RE.exec(t))) out.push(Number(m[1]) + (m[2] === 'LT' || m[2] === 'LTR' ? 'L' : m[2] === 'GM' ? 'G' : m[2])); return uniq(out); }
   function countKey(text) { var m, t = up(text), out = []; COUNT_RE.lastIndex = 0; while ((m = COUNT_RE.exec(t))) out.push(m[1]); return uniq(out); }   // the number only: 60C, 60VC and 60SG are one pack
   function shares(a, b) { return a.some(function (x) { return b.indexOf(x) >= 0; }); }
   // The pack count in a box / display description: "7G X 20 DISPLAY", "35G 12", "12 X 35G", "20 PK", "X 20 DISPLAY".
@@ -589,6 +666,7 @@
         var cl = cleanDescr(row[4]);
         if (cl) { fixed('Descr "' + up(row[4]) + '" → "' + cl + '"', 4, row[4]); row[4] = cl; var pd2 = posDescOf(cl); if (pd2 !== up(row[5])) { fix[5] = row[5]; row[5] = pd2; } }
       }
+      if ((isNew || !keep.product) && !zRow && up(row[29]) === 'POWDER' && !/\bPWD\b|\bPOWDER\b/.test(up(row[4]))) check('Powder without PWD in the description — no room in 35 characters (' + up(row[4]) + ')');   // v1.7.0
       if (p && !keep.product) {                                                            // size / pack after the clean-up: no size in common = look again
         var pd = P(p, 'POS DESCR'), sz = sizeKey(pd), nz = sizeKey(row[4]), ck = countKey(pd), nk = countKey(row[4]);
         if (sz.length && nz.length && !shares(sz, nz)) check('Size ' + sz.join('/') + ' → ' + nz.join('/') + ' (POS: ' + up(pd) + ')');
@@ -772,7 +850,7 @@
         var ret;
         try { ret = step === 'export' && msg.only ? withOnlyRows(msg.only, function () { return G[fnName](); }) : G[fnName](); }
         finally { runOpts = null; }
-        if (step === 'build' || step === 'refresh') { noteSellThru(); refineTypes(); refineSizes(); }   // v1.3.0 / v1.4.0 / v1.6.0
+        if (step === 'build' || step === 'refresh') { refineTypes(); refineSizes(); refineForms(); noteSellThru(); }   // v1.3.0 / v1.4.0 / v1.6.0 / v1.7.0 (forms before the sell-through "*")
         var files = [];
         if (step === 'export' && ret && ret.length) {
           files = ret.map(function (f) { return { label: f.label, filename: f.filename, rowCount: f.rowCount, base64: f.base64 }; });

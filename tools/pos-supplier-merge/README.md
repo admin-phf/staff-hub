@@ -1,6 +1,6 @@
 # POS New Product Check Clean v1.15.0 (Staff Hub v21.25.5)
 
-Updated 16 Oct 2026 09:00 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 16 Oct 2026 09:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
 
 v1.15.0 — **No ticks on OUT_MERGED_DATA; the updated columns are what goes to POS; fill down on every sheet.**
@@ -10,8 +10,21 @@ v1.15.0 — **No ticks on OUT_MERGED_DATA; the updated columns are what goes to 
   account number or name becomes `NAME (NUMBER)`; anything else is refused and the cell goes back).
 - **The "what POS has now" columns are read-only** — POS SUPPLIER (F), OLD BRAND (J), ORIGINAL POS DESCR (O), CURRENT WSP
   EXGST, CURRENT LAST PRICE, CURRENT RRP. Clicking one says which column to change instead.
-- **Update in POS ticks stay on the supplier sheet** (unticked = POS keeps its value on matched products). The supplier
-  tick is now under **POS SUPPLIER NAME (B)** rather than POS SUPPLIER NUMBER (C).
+- **Update in POS ticks stay on the supplier sheet** — every heading except INDEX, SUP BARCODE and STATUS. Ticked = that
+  column goes into the merge and the POS files; unticked = matched products keep what POS has for it (swapping suppliers
+  and only updating the Sub ID: tick C / F, untick the rest). The supplier tick shows under both **POS SUPPLIER NAME (B)**
+  and **POS SUPPLIER NUMBER (C)** — one setting.
+- **Sell-through** (engine-host v1.7.0): the note on SUP PRODUCT in any form — `*SELL THRU*`, `*SELL THROUGH, NEW SKU
+  2959733*`, a bare `SELL THROUGH` — is read off before matching and the description is built (no `SELL` or SKU number
+  leaks into POS DESCR, as `WELEDA NAIL CRM 50ML 2893931` did). The row's **POS DESCR ends with `*`** (the sell-through
+  marker staff look for; it goes to POS in descr / pos desc), SUP PRODUCT shows the note, and **NOTES (AF)** says
+  `SELL THROUGH — new SKU 2959733`. Matched by the supplier barcode, so a replacement SKU with the same name is not marked.
+- **Forms written one way** (engine-host v1.7.0): litres are **LTR** in SIZE / itemsize and POS DESCR (`1L`, `1LT`,
+  `1 LITRE` → `1LTR`; when LTR does not fit in 35 characters, LT, then L). A **POWDER** product's POS DESCR carries
+  **PWD** — `ORAL` becomes `PWD`, else PWD goes in before the size when it fits; the 13 that cannot fit are listed by the
+  upload checks ("Powder without PWD in the description").
+- **No doubled word after a possessive**: `BIOC WOMEN'S ESS WOMEN 120C`, `EA CAT'S CLAW ECHINE CAT 60T` — the script's
+  must-keep pass could not see WOMEN behind WOMEN'S and added it again; it no longer does (OUT_MERGED_DATA and the TXT).
 - **Fill down on the workbook sheets** (OUT_MERGED_DATA, OUT_POS_INSERT / UPDATE and the SRC tabs), as on the supplier
   sheet: drag the small blue square at the corner of the selection down, or Ctrl+D (⌘D) fills a selection down from its
   first row (one cell selected: from the cell above). Read-only cells are skipped and counted in the note; Undo takes the

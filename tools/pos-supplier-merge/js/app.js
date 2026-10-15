@@ -134,7 +134,8 @@
  *         SUPPLIER is checked against POS Suppliers). The "what POS has now" columns (POS SUPPLIER, OLD BRAND, ORIGINAL
  *         POS DESCR, CURRENT WSP / LAST PRICE / RRP) are read-only. Update in POS ticks stay on the supplier sheet. Fill
  *         down on the workbook sheets (the corner square, Ctrl+D; sheet-grid v1.8.0). The supplier sheet's Update in POS
- *         tick for the supplier is on POS SUPPLIER NAME (B), not POS SUPPLIER NUMBER (C). */
+ *         tick for the supplier is on POS SUPPLIER NAME (B) and POS SUPPLIER NUMBER (C) — one setting, shown on both.
+ *         Engine-host v1.7.0: sell-through "*" on POS DESCR + NOTES, LTR / PWD forms, WOMEN'S / MEN'S not doubled. */
 (function () {
   'use strict';
 
@@ -190,7 +191,7 @@
     // v1.14.0: `cur` / `new` = the CURRENT / NEW pair on OUT_MERGED_DATA that carries this group's tick there (tick NEW = the
     // merge's value goes to POS, tick CURRENT = POS keeps its own); groups without a pair have their tick on the supplier
     // sheet only. col -1 = no supplier-sheet tick (`last`, `size`).
-    { id: 'supplier', col: 1, what: 'supplier', upd: ['supplier'], out: ['supplier'], cur: 'POS SUPPLIER', new: 'UPDATED SUPPLIER' },
+    { id: 'supplier', col: 1, cols: [1, 2], what: 'supplier', upd: ['supplier'], out: ['supplier'], cur: 'POS SUPPLIER', new: 'UPDATED SUPPLIER' },
     { id: 'brand', col: 4, what: 'brand', upd: ['brand'], out: ['brand', 'POS BRAND', 'OLD BRAND'], cur: 'OLD BRAND', new: 'POS BRAND' },   // v1.14.10: POS BRAND is the updated brand (the engine writes it there), OLD BRAND what POS had
     { id: 'sub', col: 5, what: 'Sub ID', upd: ['sub id'], out: ['sub id'] },
     { id: 'product', col: 6, what: 'description (descr / pos desc) and packaging', upd: ['descr', 'pos desc', 'packaging'], out: ['POS DESCR', 'descr', 'pos desc', 'packaging'], cur: 'ORIGINAL POS DESCR', new: 'POS DESCR' },   // v1.12.0 packaging
@@ -376,12 +377,12 @@
       kind = 'in-page';
       frame = document.createElement('iframe');
       frame.hidden = true; frame.title = 'POS New Product Check Clean engine';
-      frame.src = './engine-frame.html?v=1.6.3';
+      frame.src = './engine-frame.html?v=1.7.0';
       window.addEventListener('message', frameListener);
       document.body.appendChild(frame);
     }
     try {
-      worker = new Worker('./js/engine-worker.js?v=1.6.3');
+      worker = new Worker('./js/engine-worker.js?v=1.7.0');
       kind = 'worker';
       worker.onmessage = function (ev) { onMsg(ev.data); };
       worker.onerror = function (ev) {
@@ -2318,7 +2319,7 @@
       for (var c = 0; c < SUP_HEADS.length; c++) {
         var lines = mode === 'all3' || (mode === 'empty3' && !longest[c].length) ? 3 : 2;
         var hw = headMin('800 ' + hfs + 'px ' + fam, hfs, String(SUP_HEADS[c]).split(/\s+/), lines);
-        if (KEEP_GROUPS.some(function (g) { return g.col === c; })) hw = Math.max(hw, 16);      // the tick
+        if (KEEP_GROUPS.some(function (g) { return g.col === c || (g.cols || []).indexOf(c) >= 0; })) hw = Math.max(hw, 16);      // the tick
         var cw = 0;
         // H–O show tabular figures (every digit as wide as 0), so their digits are measured as 0s; 3px to spare.
         longest[c].forEach(function (t) { cw = Math.max(cw, supTextW((c === 15 ? 'italic 700 ' : '') + cell, c >= 7 && c <= 14 ? t.replace(/\d/g, '0') : t) + 3); });
@@ -2401,7 +2402,7 @@
           (i === 4 ? '<button type="button" class="sup-filt" id="supBrandFilt" title="Filter SUP BRAND — the merge then covers only the brands you keep ticked" aria-label="Filter SUP BRAND"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5h18l-7 8v5l-4 2v-7z"/></svg></button>' : '') + '</th>';
       }).join('') + '</tr><tr class="sup-tot" id="supTot">' + SUP_HEADS.map(function (h, i) { return '<th class="sup-t' + i + '"></th>'; }).join('') +
       '</tr><tr class="sup-heads">' + SUP_HEADS.map(function (h, i) {
-        var g = KEEP_GROUPS.filter(function (x) { return x.col === i; })[0];
+        var g = KEEP_GROUPS.filter(function (x) { return x.col === i || (x.cols || []).indexOf(i) >= 0; })[0];   // v1.15.0: B and C share the supplier tick
         return '<th class="sup-c' + i + (i === 0 || i === 15 ? ' sup-ro' : '') + '"><span class="sup-hl">' + esc(h) + '</span><span class="sup-tick">' +
           (g ? '<label class="sup-keep" title="' + esc(g.tip || ('Update in POS — ticked: POS ' + g.what + ' is updated from this column. Unticked: POS keeps its current ' + g.what + ' for matched products.')) + '"><input type="checkbox" data-keep="' + g.id + '" aria-label="Update in POS: ' + esc(h) + '"></label>' : '') + '</span></th>';
       }).join('') + '</tr></thead><tbody id="supBody"></tbody></table></div>' +
@@ -2437,7 +2438,7 @@
     var tbl = $('#supTable');
     KEEP_GROUPS.forEach(function (g) {
       tbl.classList.toggle('keep-c' + g.col, !!state.opts.keep[g.id]);
-      var cb = tbl.querySelector('[data-keep="' + g.id + '"]'); if (cb) { cb.checked = !state.opts.keep[g.id]; cb.disabled = state.busy; }
+      tbl.querySelectorAll('[data-keep="' + g.id + '"]').forEach(function (cb) { cb.checked = !state.opts.keep[g.id]; cb.disabled = state.busy; });   // v1.15.0: B and C
     });
     var bf = $('#supBrandFilt'); if (bf) bf.classList.toggle('is-on', !!supView.brands);
     drawLibSup();
