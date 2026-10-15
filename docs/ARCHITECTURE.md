@@ -843,3 +843,12 @@ All implemented stages keep source business files local to the browser and gener
 
 ## Staff Hub v21.25.4 (16 Oct 2026 08:00 AEDT)
 - merge app.js v1.14.10 `KEEP_GROUPS.brand`: `cur: 'OLD BRAND', new: 'POS BRAND'` (was POS BRAND / SUP BRAND).
+
+## Staff Hub v21.25.5 (16 Oct 2026 09:00 AEDT)
+- merge app.js v1.15.0: `drawOutGrid` passes no `ticks` and no `onTick` (`keepTicks` removed); `OUT_CURRENT` → `outReadOnly(head,
+  look.readOnly)` adds the reason text per "what POS has now" column. `engineSheetEdit` message for `ch.fill`. Session
+  restore deletes `opts.keep.size` / `.last`. `KEEP_GROUPS.supplier.col = 1` (POS SUPPLIER NAME).
+- sheet-grid v1.8.0: `.wbg-fill` handle appended in `paintSel` (editable, cell selection, not busy / editing); mousedown on
+  it starts `filling = { b, to }`, mouseover paints `td.is-fill`, document mouseup → `fillDown(b, to)` → one `cells` change
+  with `fill` / `skipped` / `newRows`; Ctrl+D → `fillShortcut()`. `roWhy(c)` reads a string `edit.readOnly[c]`.
+- merge.css v1.13.4: `.wbg-fill`, `td.is-fill`; `.keep-c1` greys `sup-c1` and `sup-c2`.

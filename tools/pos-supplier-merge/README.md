@@ -1,9 +1,23 @@
-# POS New Product Check Clean v1.14.0 (Staff Hub v21.24.0)
+# POS New Product Check Clean v1.15.0 (Staff Hub v21.25.5)
 
-Updated 14 Oct 2026 10:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 16 Oct 2026 09:00 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
 
-v1.14.0 — **Ticks only where there is a choice; item size; Ctrl + arrow.**
+v1.15.0 — **No ticks on OUT_MERGED_DATA; the updated columns are what goes to POS; fill down on every sheet.**
+- **OUT_MERGED_DATA has no heading ticks any more.** The updated column of each pair — UPDATED SUPPLIER (G), POS BRAND (H),
+  POS DESCR (P), NEW WSP EXGST (S), NEW LAST PRICE (W), NEW RRP (AA) — and SIZE (AL) are what the merge writes to POS. To
+  override one, edit that cell: it turns orange, and UPDATED SUPPLIER is checked against POS Suppliers as before (an
+  account number or name becomes `NAME (NUMBER)`; anything else is refused and the cell goes back).
+- **The "what POS has now" columns are read-only** — POS SUPPLIER (F), OLD BRAND (J), ORIGINAL POS DESCR (O), CURRENT WSP
+  EXGST, CURRENT LAST PRICE, CURRENT RRP. Clicking one says which column to change instead.
+- **Update in POS ticks stay on the supplier sheet** (unticked = POS keeps its value on matched products). The supplier
+  tick is now under **POS SUPPLIER NAME (B)** rather than POS SUPPLIER NUMBER (C).
+- **Fill down on the workbook sheets** (OUT_MERGED_DATA, OUT_POS_INSERT / UPDATE and the SRC tabs), as on the supplier
+  sheet: drag the small blue square at the corner of the selection down, or Ctrl+D (⌘D) fills a selection down from its
+  first row (one cell selected: from the cell above). Read-only cells are skipped and counted in the note; Undo takes the
+  fill back.
+
+v1.14.0 — **Ticks only where there is a choice; item size; Ctrl + arrow.** (OUT ticks removed again in v1.15.0.)
 - **OUT_MERGED_DATA ticks on the CURRENT / NEW pairs only** — supplier (F / G), brand (H / I), description (O / P), WSP
   (R / S), last price (V / W) and RRP (Z / AA). One of the two is ticked: **NEW** = the merge's value goes to POS, **CURRENT**
   = POS keeps its own for matched products. The internal columns (CHANGE %, CHANGE $, WSP TO RRP MARKUP %, +6.5 %, CURRENT

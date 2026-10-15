@@ -1,4 +1,8 @@
-/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.7.2 (15 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.8.0 (16 Oct 2026)
+ * v1.8.0: fill down as in Excel / Google Sheets — the small blue square at the corner of the selection: drag it down and
+ * the selection repeats into the rows dragged over (read-only / locked cells are skipped); Ctrl+D (⌘D) fills a selection
+ * down from its first row (one cell selected: the cell above fills it). edit.readOnly[col] may be a string — the reason
+ * shown on the heading's hover and when the cell is clicked (else "worked out by the merge").
  * v1.7.2: Ctrl + C uses the clipboard API first; an empty selection copies as empty text.
  * v1.7.1: rowFlags[n].changed → tr.wbg-row-changed (an Upload tick the user set the other way from the checks).
  * v1.7.0: Ctrl + arrow (⌘ + arrow) jumps to the edge of the filled cells like Excel — the end of the run when the next cell is
@@ -119,12 +123,13 @@
         '<tr class="wbg-headrow' + (st.ticks ? ' wbg-has-ticks' : '') + '"><th class="wbg-rn">' + (st.firstRow - 1) + '</th>' + st.cols.map(function (c, k) {
           var flag = st.flags && st.flags[c], tick = st.ticks && st.ticks[c], dim = st.dim && st.dim[c];   // v1.4.0 dim
           var cls = (st.edit && ro[c] ? 'wbg-ro-head' : '') + (flag ? ' wbg-flagged' : '') + ((tick && !tick.on) || dim ? ' wbg-off' : '');
-          return '<th data-hc="' + k + '"' + (cls.trim() ? ' class="' + cls.trim() + '"' : '') + (st.edit && ro[c] ? ' title="' + esc(st.head[c]) + ' — worked out by the merge (read-only here)"' : ' title="' + esc(st.head[c]) + (flag ? ' — ' + esc(flag) : '') + (dim ? ' — ' + esc(dim) : '') + '"') + '>' + esc(st.head[c]) +
+          return '<th data-hc="' + k + '"' + (cls.trim() ? ' class="' + cls.trim() + '"' : '') + (st.edit && ro[c] ? ' title="' + esc(st.head[c]) + ' — ' + esc(roWhy(c)) + '"' : ' title="' + esc(st.head[c]) + (flag ? ' — ' + esc(flag) : '') + (dim ? ' — ' + esc(dim) : '') + '"') + '>' + esc(st.head[c]) +
             (flag ? '<span class="wbg-flag">' + esc(String(flag).split(' — ')[0]) + '</span>' : '') +
             (tick ? '<label class="wbg-tick" title="' + esc(tick.title || '') + '"><input type="checkbox" data-tick="' + esc(tick.id) + '"' + (tick.on ? ' checked' : '') + (st.busy ? ' disabled' : '') + ' aria-label="Update in POS: ' + esc(st.head[c]) + '"></label>' : '') +
             '<button type="button" class="wbg-filt' + (st.filters[c] !== undefined ? ' is-on' : '') + '" data-fc="' + c + '" aria-label="Filter ' + esc(st.head[c]) + '">' + FILTER_SVG + '</button></th>';
         }).join('') + '</tr>';
     }
+    function roWhy(c) { var ro = st.edit ? st.edit.readOnly || {} : {}; return typeof ro[c] === 'string' ? ro[c] : 'worked out by the merge (read-only here)'; }   // v1.8.0
     function drawTotals() { var tr = table.querySelector('thead tr.wbg-tot'); if (tr) tr.outerHTML = totalsHtml(); }
     function headH() { var th = table.querySelector('thead'); return th ? th.offsetHeight : 90; }
     function totalRows() { return st.vis.length + (newRowOn() ? 1 : 0); }
@@ -207,6 +212,11 @@
         if (r >= b.r1 && r <= b.r2 && (b.rows ? true : (c >= b.c1 && c <= b.c2)) && c >= 0) td.classList.add('is-sel');
         if (!b.rows && r === s.r2 && c === s.c2) td.classList.add('is-anchor');
       });
+      body.querySelectorAll('.wbg-fill').forEach(function (x) { x.remove(); });                       // v1.8.0: the fill handle
+      if (st.edit && !st.busy && !st.editing && !b.rows && b.r2 < st.vis.length) {
+        var corner = cellEl(b.r2, b.c2);
+        if (corner) { var fh = document.createElement('span'); fh.className = 'wbg-fill'; fh.title = 'Drag down to fill (Ctrl+D fills a selection down)'; corner.appendChild(fh); }
+      }
       if (selInfo && st.edit) {
         var n = Math.min(b.r2, st.vis.length - 1) - b.r1 + 1;
         selInfo.textContent = b.rows ? (n > 0 ? n.toLocaleString('en-AU') + ' row' + (n === 1 ? '' : 's') + ' selected' : '')
@@ -264,7 +274,7 @@
       var s = st.sel; if (!s || s.rows || !st.edit) return;
       var r = s.r2, k = s.c2;
       if (st.busy) return;
-      if (!editable(k)) { say(st.head[st.cols[k]] + ' is worked out by the merge, so it is read-only here.', 'info'); return; }
+      if (!editable(k)) { say(st.head[st.cols[k]] + ' — ' + roWhy(st.cols[k]) + '.', 'info'); return; }
       var lk = lockOf(st.vis[r], k); if (lk) { say(lk, 'info'); return; }
       var td = cellEl(r, k); if (!td) return;
       var e = st.vis[r], cur = e ? String(e.r[st.cols[k]] == null ? '' : e.r[st.cols[k]]) : '';
@@ -343,6 +353,31 @@
       st.sel = null;
       emit({ type: 'deleteRows', rows: list });
     }
+    // v1.8.0: fill rows r1..r2 (the pattern) down to row `to`, columns c1..c2 — Excel's fill handle / Ctrl+D.
+    function fillDown(b, to) {
+      if (!st.edit || st.busy || !b || b.rows) return;
+      to = Math.min(to, totalRows() - 1); if (to <= b.r2) return;
+      var n = b.r2 - b.r1 + 1, cells = [], skipped = 0, newRows = 0;
+      for (var r = b.r2 + 1; r <= to; r++) {
+        var src = st.vis[b.r1 + ((r - b.r1) % n)], e = st.vis[r];
+        if (!e && !newRowOn()) break;
+        if (!e) newRows++;
+        for (var k = b.c1; k <= b.c2; k++) {
+          var v = src ? src.r[st.cols[k]] : '', val = v == null ? '' : String(v);
+          if (!editable(k) || lockOf(e, k)) { skipped++; continue; }
+          if (e && String(e.r[st.cols[k]] == null ? '' : e.r[st.cols[k]]) === val) continue;
+          cells.push({ i: e ? e.n : st.rows.length + (r - st.vis.length), c: st.cols[k], v: val });
+        }
+      }
+      st.sel = { r: b.r1, c: b.c1, r2: to, c2: b.c2 }; paintSel();
+      if (!cells.length) { say(skipped ? 'Nothing filled — the cells there are read-only.' : 'Nothing to fill — the cells already have these values.', skipped ? 'warn' : 'info'); return; }
+      emit({ type: 'cells', cells: cells, where: colLetter(st.cols[b.c1] + 1) + rowNum(b.r2 + 1) + ':' + colLetter(st.cols[b.c2] + 1) + rowNum(to), fill: colLetter(st.cols[b.c1] + 1) + rowNum(b.r1) + (n > 1 || b.c2 > b.c1 ? ':' + colLetter(st.cols[b.c2] + 1) + rowNum(b.r2) : ''), skipped: skipped, newRows: newRows });
+    }
+    function fillShortcut() {                                                                   // Ctrl+D
+      var b = selBox(); if (!b || b.rows) return;
+      if (b.r2 > b.r1) fillDown({ r1: b.r1, r2: b.r1, c1: b.c1, c2: b.c2 }, b.r2);
+      else if (b.r1 > 0) fillDown({ r1: b.r1 - 1, r2: b.r1 - 1, c1: b.c1, c2: b.c2 }, b.r1);
+    }
     function copySel() {
       var b = selBox(); if (!b) return '';
       var lines = [];
@@ -379,11 +414,21 @@
       });
     }, { passive: true });
     if (search) { var t; search.addEventListener('input', function () { clearTimeout(t); t = setTimeout(function () { st.q = search.value; st.sel = null; filter(); wrap.scrollTop = 0; drawTotals(); drawRows(); viewChanged(); }, 200); }); }
-    var dragging = false;
+    var dragging = false, filling = null;
+    function paintFill() {
+      table.querySelectorAll('td.is-fill').forEach(function (x) { x.classList.remove('is-fill'); });
+      if (!filling) return;
+      for (var r = filling.b.r2 + 1; r <= filling.to; r++) for (var k = filling.b.c1; k <= filling.b.c2; k++) { var x = cellEl(r, k); if (x) x.classList.add('is-fill'); }
+    }
     table.addEventListener('mousedown', function (ev) {
       var fb = ev.target.closest('.wbg-filt');
       if (fb) { ev.preventDefault(); ev.stopPropagation(); if (openCol === +fb.dataset.fc && pickerOpen()) closeFilter(); else openFilter(+fb.dataset.fc, fb); return; }
       if (ev.target.closest('.wbg-rtick')) return;                                                  // v1.6.0: the Upload tick
+      if (ev.target.classList.contains('wbg-fill')) {                                               // v1.8.0: start a fill-down drag
+        var fb0 = selBox(); if (!fb0 || fb0.rows || st.busy) return;
+        if (st.editing) commitEdit();
+        filling = { b: fb0, to: fb0.r2 }; ev.preventDefault(); ev.stopPropagation(); wrap.focus({ preventScroll: true }); return;
+      }
       var td = ev.target.closest('tbody td[data-r]'); if (!td || ev.target.classList.contains('wbg-input')) return;
       if (st.editing) commitEdit();
       var r = +td.dataset.r, k = +td.dataset.c;
@@ -395,12 +440,19 @@
       ev.preventDefault();
     });
     table.addEventListener('mouseover', function (ev) {
+      if (filling) {
+        var ft = ev.target.closest('tbody td[data-r]'); if (!ft) return;
+        var fr = +ft.dataset.r; filling.to = Math.max(filling.b.r2, Math.min(fr, totalRows() - 1)); paintFill(); return;
+      }
       if (!dragging || !st.sel) return;
       var td = ev.target.closest('tbody td[data-r]'); if (!td) return;
       st.sel.r2 = +td.dataset.r; if (dragging !== 'rows' && +td.dataset.c >= 0) st.sel.c2 = +td.dataset.c;
       paintSel();
     });
-    document.addEventListener('mouseup', function () { dragging = false; });
+    document.addEventListener('mouseup', function () {
+      dragging = false;
+      if (filling) { var f = filling; filling = null; paintFill(); if (f.to > f.b.r2) fillDown(f.b, f.to); }       // v1.8.0
+    });
     table.addEventListener('change', function (ev) {                     // v1.3.0: a heading tick · v1.6.0: a row's Upload tick
       var rt = ev.target.closest('input[data-rtick]');
       if (rt) {
@@ -437,6 +489,7 @@
       if (ev.key === 'Tab') { ev.preventDefault(); goTo(s.r2, s.c2 + (ev.shiftKey ? -1 : 1)); return; }
       if (ev.key === 'Enter' || ev.key === 'F2') { ev.preventDefault(); startEdit(); return; }
       if (ev.key === 'Delete' || ev.key === 'Backspace') { ev.preventDefault(); clearSel(); return; }
+      if (mod && (ev.key === 'd' || ev.key === 'D')) { ev.preventDefault(); fillShortcut(); return; }   // v1.8.0 fill down
       if (!mod && !ev.altKey && ev.key.length === 1 && !s.rows) { ev.preventDefault(); startEdit(ev.key); }
     });
     wrap.addEventListener('copy', function (ev) {
