@@ -1,4 +1,5 @@
-/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.7.1 (15 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.7.2 (15 Oct 2026)
+ * v1.7.2: Ctrl + C uses the clipboard API first; an empty selection copies as empty text.
  * v1.7.1: rowFlags[n].changed → tr.wbg-row-changed (an Upload tick the user set the other way from the checks).
  * v1.7.0: Ctrl + arrow (⌘ + arrow) jumps to the edge of the filled cells like Excel — the end of the run when the next cell is
  * filled, else the next filled cell, else the sheet's edge; Ctrl + Shift + arrow extends the selection there.
@@ -247,13 +248,17 @@
     function srcIndex(r) { var e = st.vis[r]; return e ? e.n : st.rows.length + (r - st.vis.length); }
     // v1.5.0: write the clipboard from a key press (a hidden text box + copy, else the Clipboard API).
     function copyText(txt) {
-      var ta = document.createElement('textarea'), prev = document.activeElement, ok = false;
-      ta.value = txt; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
-      document.body.appendChild(ta); ta.select();
-      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
-      document.body.removeChild(ta);
-      if (prev && prev.focus) prev.focus({ preventScroll: true });
-      if (!ok && navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).catch(function () {});
+      // v1.7.2: the clipboard API first (what Chrome trusts in a key press on https); the hidden-text-box trick as the fallback.
+      var legacy = function () {
+        var ta = document.createElement('textarea'), prev = document.activeElement, ok = false;
+        ta.value = txt; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+        document.body.appendChild(ta); ta.select();
+        try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+        document.body.removeChild(ta);
+        if (prev && prev.focus) prev.focus({ preventScroll: true });
+        return ok;
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).catch(legacy); else legacy();
     }
     function startEdit(initial) {
       var s = st.sel; if (!s || s.rows || !st.edit) return;
@@ -417,7 +422,7 @@
       var s = st.sel, mod = ev.ctrlKey || ev.metaKey;
       if (mod && (ev.key === 'z' || ev.key === 'Z')) { if (st.edit && st.edit.onUndo && st.edit.canUndo && !st.busy) { ev.preventDefault(); st.edit.onUndo(); } return; }
       if (!s) return;
-      if (mod && (ev.key === 'c' || ev.key === 'C')) { var ct = copySel(); if (ct) { ev.preventDefault(); copyText(ct); say('Copied ' + (selInfo && selInfo.textContent || 'the selection') + '.', 'info'); } return; }   // v1.5.0
+      if (mod && (ev.key === 'c' || ev.key === 'C')) { var ct = copySel(); if (st.sel) { ev.preventDefault(); copyText(ct); say('Copied ' + (selInfo && selInfo.textContent || 'the selection') + (ct ? '' : ' (empty)') + '.', 'info'); } return; }   // v1.5.0
       var moves = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
       if (moves[ev.key]) {
         ev.preventDefault(); if (s.rows) st.sel = { r: s.r2, c: 0, r2: s.r2, c2: 0 };

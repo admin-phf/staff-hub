@@ -829,3 +829,14 @@ All implemented stages keep source business files local to the browser and gener
 ## Staff Hub v21.25.2 — Delete all clears the merge's own store (15 Oct 2026 11:00 AEDT)
 - hub-library v1.0.4: `OTHER_STORES = ['phf-pos-supplier-merge']`; Delete all = `L.clearAll()` then `deleteDatabase` of each
   (blocked / error resolve too). The merge's `dbTx` closes the connection per transaction, so no `onblocked` wait.
+
+## Staff Hub v21.25.3 — Build workbooks in the merge look (15 Oct 2026 13:30 AEDT)
+- pipeline.js v21.15.0 `addBasic`: row 1 totals (`TOTAL ROWS` formula with cached text; `UNIQUE: n` for `isBrandHead`;
+  `TOTAL:` SUBTOTAL(109) for `isMoneyHead` / `isStockHead`), row 2 headings (navy / gold), banded data rows, `colWidth`
+  by heading, autoFilter + freeze from row 2, `fullCalcOnLoad`. `verifyBasic` / `verifyMasterWorkbook` read headings from
+  row 2 and expect `rows + 2`.
+- master-core v2.5.0 `writeMasterWorkbook`: `themed` for all kinds (kit header / totals / bands; the selected master's red
+  rise font via `themedCell(…, { color })`), totals yielded first with refs `3:n+2` and cached results from `colStats`,
+  `isBrandCol` → `UNIQUE: n` (column A: row count + unique), freeze row 3, autoFilter from row 2. xlsx-writer v1.2.0:
+  `{ formula, result: '<text>' }` → `t="str"` cell.
+- merge app.js v1.14.9 / sheet-grid v1.7.2 `copyText`: `navigator.clipboard.writeText` first, legacy execCommand fallback.

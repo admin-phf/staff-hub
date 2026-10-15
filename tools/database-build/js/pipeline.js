@@ -1,5 +1,8 @@
 (function(){'use strict';
-const VERSION='v21.14.3', CH2V='v1.2.0', UHPV='v1.2.0', MASTERV='v2.4.0', POSV='v5.2.0';
+const VERSION='v21.15.0', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.5.0', POSV='v5.3.0';
+// v21.15.0 (Staff Hub v21.25.3) — every output workbook has the POS New Product Check Clean look: totals band on row 1 (TOTAL
+// ROWS, UNIQUE: n above brand / supplier-name columns, SUBTOTAL sums for prices and stock — live under Excel filters),
+// navy / gold headings on row 2, banded rows, set column widths, filter and freeze from row 2. Values and columns unchanged.
 // v21.14.3 (Staff Hub v21.21.0) — supplier-layout v1.1.0: the CH2 _pos_db rows end SUP PRODUCT in " *SELL THRU*" when CH2's
 // Description 2 says SELL THROUGH / SELL THRU.
 // v21.14.2 (Staff Hub v21.19.0) — ✕ on each loaded input row of the rail removes it straight away.
@@ -114,11 +117,32 @@ function stagePrereqs(id){if(id==='pos')return !!(state.files.stock&&state.files
 function refreshStageReadiness(){for(const st of STAGES){if(['running','done','error'].includes(state.stageStatus[st.id]))continue;let ready=stagePrereqs(st.id),el=document.querySelector(`[data-stage-nav="${st.id}"] .nav-state`);if(el){el.className='nav-state '+(ready?'ready':'');el.textContent=ready?'READY':'WAIT'}let card=$(`#stage-${st.id}`);if(card){let badge=card.querySelector('.small-badge'),msg=card.querySelector('.stage-status');if(badge){badge.className='small-badge '+(ready?'ready':'wait');badge.textContent=ready?'READY':'WAITING'}if(msg){let miss=stageMissing(st.id);msg.className='status stage-status '+(ready?'ready':'missing');msg.textContent=ready?'Validated inputs are ready. This stage can run independently.':'Missing: '+miss.join(', ')};let run=card.querySelector('.stage-build');if(run)run.disabled=!ready}}}
 function updateBuildAll(keepStatus){let ok=req.every(k=>state.files[k]);$('#buildAllBtn').disabled=!ok;if(keepStatus){}else if(ok)setGlobal('All required raw files are validated. Build All will create POS, CH2, Unique and Combined Master without re-uploading.','ready');else setGlobal('Missing: '+req.filter(k=>!state.files[k]).map(k=>inputDef(k)?.[1]||k).join(', ')+'.','missing');refreshStageReadiness();updateMasterReadiness()}
 // ---------- workbook helpers ----------
-function addBasic(ws,headers,rows,text=new Set()){ws.addRow(headers);ws.getRow(1).font={bold:true};rows.forEach(r=>ws.addRow(r));ws.autoFilter={from:{row:1,column:1},to:{row:Math.max(1,ws.rowCount),column:headers.length}};ws.views=[{state:'frozen',ySplit:1}];ws.eachRow({includeEmpty:true},(r,n)=>{r.height=15;r.eachCell({includeEmpty:true},c=>c.alignment={wrapText:false,shrinkToFit:false,vertical:n===1?'middle':'top'})});headers.forEach((h,i)=>{if(text.has(h))ws.getColumn(i+1).eachCell({includeEmpty:true},c=>c.numFmt='@')})}
-async function makeBasic(sheet,headers,rows,text){let wb=new ExcelJS.Workbook(),ws=wb.addWorksheet(sheet);addBasic(ws,headers,rows,text);return new Blob([await wb.xlsx.writeBuffer()],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
+// v21.15.0 — the POS New Product Check Clean look for the plain outputs (POS / CH2 / Unique full sets and the _pos_db files):
+// row 1 totals band, row 2 navy / gold headings, banded rows, column widths by heading, filter + freeze from row 2.
+const TH={navy:'FF1E3A5F',gold:'FFE6CD74',ink:'FF1F2937',bands:['FFE9F0F5','FFF5F5F5'],font:'Google Sans'};
+const isBrandHead=h=>/(^|_| )(MASTER[_ ])?BRAND$|VENDOR[_ ]NAME$|^POS SUPPLIER NAME$|^SUP BRAND$/i.test(h)&&!/BARCODE/i.test(h);
+const isMoneyHead=h=>/WSP|LAST[_ ]PRICE|RRP|WS[_ ]EX|WHOLESALE|RET[_ ]PRICE|DISCOUNT PRICE/i.test(h)&&!/PC$|_PCT|%/.test(h);
+const isStockHead=h=>/(^|_| )SOH$|STOCK[_ ]IN$|SOH[_ ]/i.test(h);
+function colWidth(h){if(/DESCR|DESCRIPTION|PRODUCT$|LONG/i.test(h))return 36;if(/BARCODE|MAIN_ID|MAIN ID/i.test(h))return 16;if(isBrandHead(h)||/SUPPLIER NAME|VENDOR/i.test(h))return 24;if(/PLU|SUB[_ ]ID|CODE|INDEX/i.test(h))return 12;if(isMoneyHead(h)||isStockHead(h)||/QTY|UNITS|PC$|PCT|%|GST|DISSNO|GRP/i.test(h))return 11;return Math.min(28,Math.max(10,String(h).length+2))}
+function addBasic(ws,headers,rows,text=new Set()){
+ const n=rows.length,L=c=>{let s='';while(c>0){let m=(c-1)%26;s=String.fromCharCode(65+m)+s;c=Math.floor((c-1)/26)}return s};
+ const band=[{type:'pattern',pattern:'solid',fgColor:{argb:TH.bands[0]}},{type:'pattern',pattern:'solid',fgColor:{argb:TH.bands[1]}}],navy={type:'pattern',pattern:'solid',fgColor:{argb:TH.navy}};
+ const totals=headers.map((h,i)=>{const ref=`${L(i+1)}3:${L(i+1)}${n+2}`;
+  if(i===0)return {formula:`"TOTAL ROWS: "&TEXT(SUBTOTAL(103,${ref}),"#,##0")`,result:'TOTAL ROWS: '+n.toLocaleString()};
+  if(isBrandHead(h)){const u=new Set();for(const r of rows){const v=r[i];if(v!==''&&v!=null)u.add(String(v).trim().toUpperCase())}return 'UNIQUE: '+u.size.toLocaleString()}
+  if(isMoneyHead(h)||isStockHead(h)){let sum=0,any=false;for(const r of rows){const v=r[i];if(typeof v==='number'){sum+=v;any=true}}if(!any)return null;const money=isMoneyHead(h);return {formula:`"TOTAL: "&TEXT(SUBTOTAL(109,${ref}),"${money?'$#,##0.00':'#,##0'}")`,result:'TOTAL: '+(money?'$'+sum.toLocaleString('en-AU',{minimumFractionDigits:2,maximumFractionDigits:2}):Math.round(sum).toLocaleString())}}
+  return null});
+ const tr=ws.addRow(totals);tr.height=25;tr.eachCell({includeEmpty:true},c=>{c.fill=navy;c.font={name:TH.font,size:10,bold:true,color:{argb:TH.gold}};c.alignment={vertical:'middle',horizontal:'left',indent:1,wrapText:false}});
+ const hr=ws.addRow(headers);hr.height=30;hr.eachCell({includeEmpty:true},c=>{c.fill=navy;c.font={name:TH.font,size:9,bold:true,color:{argb:TH.gold}};c.alignment={vertical:'middle',horizontal:'center',wrapText:true}});
+ const textIdx=new Set(headers.map((h,i)=>text.has(h)?i+1:0).filter(Boolean)),dataFont={name:TH.font,size:9,color:{argb:TH.ink}};
+ for(let r=0;r<n;r++){const row=ws.addRow(rows[r]);row.height=15;const f=band[r%2];row.eachCell({includeEmpty:true},(c,col)=>{c.fill=f;c.font=dataFont;c.alignment={wrapText:false,shrinkToFit:false,vertical:'top'};if(textIdx.has(col))c.numFmt='@'})}
+ headers.forEach((h,i)=>{ws.getColumn(i+1).width=colWidth(h)});
+ ws.autoFilter={from:{row:2,column:1},to:{row:Math.max(2,n+2),column:headers.length}};ws.views=[{state:'frozen',ySplit:2,showGridLines:false}];
+}
+async function makeBasic(sheet,headers,rows,text){let wb=new ExcelJS.Workbook();wb.calcProperties.fullCalcOnLoad=true;let ws=wb.addWorksheet(sheet);addBasic(ws,headers,rows,text);return new Blob([await wb.xlsx.writeBuffer()],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
 // Re-opens a written workbook and compares it with the data. Differences are reported as warnings on the output row —
 // the file has been generated and stays downloadable; only a failure to create the file stops a stage.
-async function verifyBasic(blob,sheet,headers,rows){try{let wb=XLSX.read(await blob.arrayBuffer(),{type:'array',raw:true}),ws=wb.Sheets[sheet];if(!ws)return sheet+': worksheet missing in the re-opened file';let a=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true,blankrows:true});if(a.length!==rows.length+1)return `${sheet}: expected ${rows.length.toLocaleString()} rows, re-opened file has ${(a.length-1).toLocaleString()}`;if((a[0]||[]).length!==headers.length||headers.some((h,i)=>String(a[0][i]??'')!==h))return sheet+': headers differ from the required layout';return ''}catch(e){return `${sheet}: could not re-open the file to double check it (${e.message})`}}
+async function verifyBasic(blob,sheet,headers,rows){try{let wb=XLSX.read(await blob.arrayBuffer(),{type:'array',raw:true}),ws=wb.Sheets[sheet];if(!ws)return sheet+': worksheet missing in the re-opened file';let a=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true,blankrows:true});if(a.length!==rows.length+2)return `${sheet}: expected ${rows.length.toLocaleString()} rows, re-opened file has ${(a.length-2).toLocaleString()}`;if((a[1]||[]).length!==headers.length||headers.some((h,i)=>String(a[1][i]??'')!==h))return sheet+': headers differ from the required layout';if(!/^TOTAL ROWS/.test(String(a[0][0]??'')))return sheet+': totals band missing';return ''}catch(e){return `${sheet}: could not re-open the file to double check it (${e.message})`}}
 // ---------- _pos_db supplier layout (v21.14.0: js/supplier-layout.js, shared with POS New Product Check Clean) ----------
 const SL=window.PHFSupplierLayout,SUP_LAYOUT=C.SUPPLIER_IMPORT_HEADERS,SUP_TEXT=new Set(['SUP BARCODE','SUP SUB ID']);
 
@@ -145,12 +169,12 @@ async function verifyMasterWorkbook(blob,sheet,headers,records,kind){
  // (shown on the output row) instead of stopping — the workbook was written and stays downloadable.
  try{
  let wb=XLSX.read(await blob.arrayBuffer(),{type:'array',raw:true}),ws=wb.Sheets[sheet];if(!ws)return `${sheet}: worksheet missing in the re-opened file`;
- let a=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true,blankrows:true}),hdr=(a[0]||[]).map(x=>String(x));
+ let a=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true,blankrows:true}),hdr=(a[1]||[]).map(x=>String(x));   // v21.15.0: headings on row 2
  if(hdr.length!==headers.length||headers.some((h,i)=>hdr[i]!==h))return `${sheet}: header row differs from the required layout`;
- if(a.length!==records.length+2)return `${sheet}: expected ${records.length.toLocaleString()} data rows + totals, re-opened file has ${(a.length-1).toLocaleString()}`;
- let tot=a[a.length-1];if(kind!=='order'&&String(tot[0])!=='📊 FILTERED TOTALS:')return `${sheet}: totals row missing`;
+ if(a.length!==records.length+2)return `${sheet}: expected ${records.length.toLocaleString()} data rows + totals, re-opened file has ${(a.length-2).toLocaleString()}`;
+ let tot=a[0];if(!/^TOTAL ROWS/.test(String(tot[kind==='order'?1:0]??'')))return `${sheet}: totals band missing`;
  let key=headers.indexOf('MASTER_BARCODE'),pi=headers.indexOf(kind==='order'?'PLU / SKU':'POS_INDEX'),step=Math.max(1,Math.floor(records.length/200));
- for(let r=0;r<records.length;r+=step){let rec=records[r],row=a[r+1];if(key>=0&&String(row[key]??'')!==String(rec.MASTER_BARCODE??''))return `${sheet}: row ${r+2} MASTER_BARCODE differs from the data`;let pk=kind==='order'?'AV_PLU_SKU':'POS_INDEX';if(pi>=0&&String(row[pi]??'')!==String(rec[pk]??''))return `${sheet}: row ${r+2} ${pk} differs from the data`}
+ for(let r=0;r<records.length;r+=step){let rec=records[r],row=a[r+2];if(key>=0&&String(row[key]??'')!==String(rec.MASTER_BARCODE??''))return `${sheet}: row ${r+3} MASTER_BARCODE differs from the data`;let pk=kind==='order'?'AV_PLU_SKU':'POS_INDEX';if(pi>=0&&String(row[pi]??'')!==String(rec[pk]??''))return `${sheet}: row ${r+3} ${pk} differs from the data`}
  return ''}catch(e){return `${sheet}: could not re-open the file to double check it (${e.message})`}
 }
 // Downloads merged_alligned_pos_supplier_uhp_full_DD.MM.YY.xlsx the moment Combined Master finishes, and leaves a

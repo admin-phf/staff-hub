@@ -1,4 +1,5 @@
-/* XlsxLite v1.1.0 — small streaming .xlsx writer for large styled sheets.
+/* XlsxLite v1.2.0 — small streaming .xlsx writer for large styled sheets.
+   v1.2.0 (15 Oct 2026): a formula with a text result ({formula, result:'…'}) is written as t="str" with the cached text.
    v1.1.0 (10 Oct 2026): optional font name (font:{name}), sheet.gridLines:false and a cached number result for formulas ({formula, result}).
    Runs entirely in the browser: rows are turned into worksheet XML in batches and compressed with the
    browser's built-in CompressionStream, so 38k-row x 150-column masters are written in seconds without
@@ -255,7 +256,10 @@
       return `<c r="${ref}"${sAttr}><v>${num}</v></c>`;
     }
     if (t === 'boolean') return `<c r="${ref}"${sAttr} t="b"><v>${value ? 1 : 0}</v></c>`;
-    if (t === 'object' && value.formula) return `<c r="${ref}"${sAttr}><f>${esc(value.formula)}</f>${typeof value.result === 'number' && Number.isFinite(value.result) ? `<v>${value.result}</v>` : ''}</c>`;
+    if (t === 'object' && value.formula) {
+      if (typeof value.result === 'string') return `<c r="${ref}"${sAttr} t="str"><f>${esc(value.formula)}</f><v>${esc(value.result)}</v></c>`;   // v1.2.0: text result
+      return `<c r="${ref}"${sAttr}><f>${esc(value.formula)}</f>${typeof value.result === 'number' && Number.isFinite(value.result) ? `<v>${value.result}</v>` : ''}</c>`;
+    }
     if (value instanceof Date) return `<c r="${ref}"${sAttr} t="inlineStr"><is><t>${esc(value.toISOString())}</t></is></c>`;
     let text = String(value);
     if (text.length > 32767) text = text.slice(0, 32767); // Excel's cell text limit

@@ -1,4 +1,7 @@
-/* MasterCore v2.4.0 — Combined Master (browser port of MASTER Step 3 V30.15, no pandas / no database).
+/* MasterCore v2.5.0 — Combined Master (browser port of MASTER Step 3 V30.15, no pandas / no database).
+   v2.5.0 (15 Oct 2026): every master file (full, selected, To-Order) has the navy / gold look; the totals band is row 1
+   (TOTAL ROWS, SUBTOTAL counts / sums / averages with cached values, UNIQUE: n above every brand column) and the headings
+   row 2 — as the POS New Product Check Clean workbook. Values and column order unchanged.
    v2.4.0 (10 Oct 2026): full file only — CHK_* link checks after MATCH_BASIS (☑ / ☒ per CH2 and UHP link for BC, SUB ID,
    BRAND, W/S, TEXT and pack SIZE, a score and HIGH / MEDIUM / LOW confidence), a Match_Audit tab, and the Reconcile CH2
    look (navy header, banded rows, red ↑ / blue ↓ price moves). Matching, pricing, columns before MATCH_BASIS, the selected
@@ -26,7 +29,7 @@
    matchMode 'python' reproduces V30.15 exactly and is used only to verify the port. */
 (function (g) {
   'use strict';
-  const VERSION = '2.4.0';
+  const VERSION = '2.5.0';
 
   // ---------------------------------------------------------------- constants (Python V30.15)
   const COLUMN_MAPPINGS = {
@@ -1609,13 +1612,13 @@
   async function writeMasterWorkbook(kind, result, opts) {
     const X = g.XlsxLite;
     if (!X) throw new Error('xlsx-writer.js is not loaded.');
-    const isOrder = kind === 'order', themed = kind === 'full';
+    const isOrder = kind === 'order', themed = true;   // v2.5.0: every master file has the navy / gold look (was the full file only)
     const internal = kind === 'full' ? result.outHeaders : kind === 'selected' ? result.selectedHeaders : ['ORDERED', ...result.order.internal];
     const display = isOrder ? result.order.display : internal;
     const records = isOrder ? result.order.records : result.records;
     const sheetName = kind === 'full' ? 'Full_Data' : kind === 'selected' ? 'Selected_Data' : 'To_Order';
     const st = new X.StyleSheet();
-    const kit = themed ? themeKit(st) : null;
+    const kit = themeKit(st);
     const cols = internal.length, n = records.length;
     const highlight = new Set();
     if (isOrder) { internal.forEach((h, i) => { if (OF_COLUMNS.includes(h) || h === 'AV_QTY_UNITS') highlight.add(i); }); }
@@ -1634,8 +1637,8 @@
       return (styleFor[key] = st.style(spec));
     };
     // Themed (full) cells: AV / OF order columns keep a highlight, in the theme's amber.
-    const themedCell = (band, i, variant) => kit.cell(band, variant === 'up' || variant === 'down' || variant === 'same' ? arrowFormat(internal[i], variant) : fmts[i],
-      variant, !variant && highlight.has(i) ? { fill: 'FFF7E0', color: '7A4F00' } : null);
+    const themedCell = (band, i, variant, extra) => kit.cell(band, variant === 'up' || variant === 'down' || variant === 'same' ? arrowFormat(internal[i], variant) : fmts[i],
+      variant, extra || (!variant && highlight.has(i) ? { fill: 'FFF7E0', color: '7A4F00' } : null));
     const bandStyles = [0, 1].map(b => internal.map((h, i) => themed ? themedCell(b, i, '') : cellStyle(b, i, false)));
     const border = { top: { style: 'medium', color: '000000' } };
     const totalsBlank = themed ? kit.totalsBlank : st.style({ fill: 'D9EAD3', border });
@@ -1643,14 +1646,30 @@
     const totalsFmt = {};
     const totalsStyle = fmt => themed ? kit.totals(fmt) : totalsFmt[fmt] !== undefined ? totalsFmt[fmt] : (totalsFmt[fmt] = st.style({ fill: 'D9EAD3', border, numFmt: fmt, font: { bold: true, size: 11, color: '000000' }, align: { h: 'right', v: 'center' } }));
     const L = c => X.colLetter(c);
-    const last = L(cols), dataEnd = n + 1;
+    // v2.5.0: the totals band is row 1 and the headings row 2, as the POS New Product Check Clean workbook has them; data
+    // starts on row 3. Counts and sums are SUBTOTAL formulas (they follow Excel's filters) with the full-file value cached;
+    // a brand column shows "UNIQUE: n" (worked out here — a live unique count over 38,000 rows would stall Excel).
+    const last = L(cols), dataEnd = n + 2;
+    const isBrandCol = h => /(^|_)(MASTER_)?BRAND$|_VENDOR_NAME$|^OD_BRAND$/.test(h) && !/BARCODE/.test(h);
+    const colStats = internal.map((h, i) => {
+      if (COUNT_COLUMNS.has(h) || SUM_COLUMNS.has(h) || AVG_COLUMNS.has(h) || isBrandCol(h)) {
+        let cnt = 0, sum = 0, nums = 0; const uniq = isBrandCol(h) ? new Set() : null;
+        for (let r = 0; r < n; r++) { const v = records[r][h]; if (v === undefined || v === null || v === '') continue; cnt++; if (typeof v === 'number') { sum += v; nums++; } if (uniq) uniq.add(String(v).trim().toUpperCase()); }
+        return { cnt, sum, avg: nums ? sum / nums : 0, uniq: uniq ? uniq.size : 0 };
+      }
+      return null;
+    });
     const totals = internal.map((h, i) => {
       if (isOrder && h === 'ORDERED') return [null, totalsBlank];
-      if (i === 0) return ['📊 FILTERED TOTALS:', totalsLabel];
-      const ref = `${L(i + 1)}2:${L(i + 1)}${dataEnd}`;
-      if (COUNT_COLUMNS.has(h)) return [{ formula: `SUBTOTAL(103,${ref})` }, totalsStyle('#,##0')];
-      if (SUM_COLUMNS.has(h)) return [{ formula: `SUBTOTAL(109,${ref})` }, totalsStyle(CURRENCY_COLS.includes(h) || h.endsWith('_$') ? CURRENCY_FMT : '#,##0')];
-      if (AVG_COLUMNS.has(h)) return [{ formula: `SUBTOTAL(101,${ref})` }, totalsStyle(PERCENTAGE_COLS.includes(h) ? '0.00%' : '0.00')];
+      const ref = `${L(i + 1)}3:${L(i + 1)}${dataEnd}`, cs = colStats[i];
+      if (i === (isOrder ? 1 : 0)) {   // column A (MASTER_BRAND) carries the row count and its own unique count
+        const u = isBrandCol(h) ? ` · UNIQUE: ${cs.uniq.toLocaleString()}` : '';
+        return [{ formula: `"TOTAL ROWS: "&TEXT(SUBTOTAL(103,${ref}),"#,##0")&"${u}"`, result: 'TOTAL ROWS: ' + n.toLocaleString() + u }, totalsLabel];
+      }
+      if (isBrandCol(h)) return ['UNIQUE: ' + cs.uniq.toLocaleString(), totalsLabel];
+      if (COUNT_COLUMNS.has(h)) return [{ formula: `SUBTOTAL(103,${ref})`, result: cs.cnt }, totalsStyle('#,##0')];
+      if (SUM_COLUMNS.has(h)) return [{ formula: `SUBTOTAL(109,${ref})`, result: Math.round(cs.sum * 100) / 100 }, totalsStyle(CURRENCY_COLS.includes(h) || h.endsWith('_$') ? CURRENCY_FMT : '#,##0')];
+      if (AVG_COLUMNS.has(h)) return [{ formula: `SUBTOTAL(101,${ref})`, result: cs.avg }, totalsStyle(PERCENTAGE_COLS.includes(h) ? '0.00%' : '0.00')];
       return [null, totalsBlank];
     });
     // Themed per-row colours: price groups (current → new, ↑ ↓ —), ☑ / ☒ / ☐ checks, TEXT %, SCORE and CONFIDENCE levels.
@@ -1659,14 +1678,15 @@
     const tickCols = themed ? internal.map((h, i) => /^CHK_(CH2|UHP)_(BC|SUBID|BRAND|WS|SIZE)$/.test(h) ? i : -1).filter(i => i >= 0) : [];
     const textCols = themed ? internal.map((h, i) => /^CHK_(CH2|UHP)_TEXT$/.test(h) ? i : -1).filter(i => i >= 0) : [];
     const levelCols = themed ? internal.map((h, i) => h === 'CHK_CONFIDENCE' || /^CHK_(CH2|UHP)_SCORE$/.test(h) ? i : -1).filter(i => i >= 0) : [];
-    let freeze = 'H2';
-    if (!isOrder) { const ai = internal.indexOf('AV_INDEX'); freeze = ai >= 0 ? `${L(ai + 2)}2` : 'H2'; }
-    else { const pi = display.indexOf('PLU / SKU'); freeze = pi >= 0 ? `${L(pi + 2)}2` : 'E2'; }
+    let freeze = 'H3';
+    if (!isOrder) { const ai = internal.indexOf('AV_INDEX'); freeze = ai >= 0 ? `${L(ai + 2)}3` : 'H3'; }
+    else { const pi = display.indexOf('PLU / SKU'); freeze = pi >= 0 ? `${L(pi + 2)}3` : 'E3'; }
     const sheet = {
-      name: sheetName, columnCount: cols, freeze, autoFilter: `A1:${last}${n + 1}`, dimension: `A1:${last}${n + 2}`, gridLines: themed ? false : undefined,
+      name: sheetName, columnCount: cols, freeze, autoFilter: `A2:${last}${n + 2}`, dimension: `A1:${last}${n + 2}`, gridLines: false,
       widths: internal.map(h => h === 'ORDERED' ? 11 : columnWidth(h)),
-      conditional: isOrder && n ? [{ ref: `A2:${last}${n + 1}`, formula: 'AND($A2<>"☐",$A2<>"")', dxf: st.dxf({ font: { color: '808080' }, fill: 'D3D3D3' }) }] : [],
+      conditional: isOrder && n ? [{ ref: `A3:${last}${n + 2}`, formula: 'AND($A3<>"☐",$A3<>"")', dxf: st.dxf({ font: { color: '808080' }, fill: 'D3D3D3' }) }] : [],
       rows: function* () {
+        yield { cells: totals.map(t => t[0]), styles: totals.map(t => t[1]), height: 25 };
         yield { cells: display, styles: headerStyle, height: 45 };
         for (let r = 0; r < n; r++) {
           const rec = records[r], band = r % 2 === 0 ? 0 : 1, cells = new Array(cols);
@@ -1679,7 +1699,7 @@
             if (v === undefined || v === null) v = '';
             if (fmts[i] === '0') v = numericIfPlainInteger(v);
             cells[i] = v;
-            if (!themed && red.has(i) && typeof v === 'number' && v > 0) set(i, cellStyle(band, i, true));
+            if (red.has(i) && typeof v === 'number' && v > 0) set(i, themedCell(band, i, '', { color: 'C5221F' }));   // Python's red font for a rise (selected master)
           }
           if (themed) {
             for (const gp of groups) {
@@ -1691,9 +1711,8 @@
             for (const i of textCols) if (typeof cells[i] === 'number') set(i, themedCell(band, i, cells[i] >= TEXT_OK ? 'goodText' : 'badText'));
             for (const i of levelCols) { const vl = levelVariant(cells[i]); if (vl) set(i, themedCell(band, i, vl)); }
           }
-          yield themed ? { cells, styles, height: 18 } : { cells, styles };
+          yield { cells, styles, height: 18 };
         }
-        yield { cells: totals.map(t => t[0]), styles: totals.map(t => t[1]), height: 25 };
       }
     };
     const sheets = [sheet];

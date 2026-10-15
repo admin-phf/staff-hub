@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.14.8 (15 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.14.9 (15 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -124,11 +124,13 @@
  *         session disappear when the browser clears the site's storage.
  * v1.14.8 (15 Oct 2026): a POS Database that Build saves while this page is open is loaded at once when the slot is empty
  *         or holds an older Library copy (it said "reload this page"); the session's own copy of a Library file that was
- *         ✕-ed is not brought back by a newer build being dismissed — dismissal is per saved copy, as before. */
+ *         ✕-ed is not brought back by a newer build being dismissed — dismissal is per saved copy, as before.
+ * v1.14.9 (15 Oct 2026): Ctrl + C on the sheets writes through the clipboard API first (the hidden-box trick only as a
+ *         fallback) and copies an empty selection as empty text; sheet-grid v1.7.2 the same. */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.14.8';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.14.9';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -2761,13 +2763,18 @@
   }
   // ---- v1.11.0: Ctrl+C / ⌘C writes the clipboard itself (some browsers send no copy event when no text is selected).
   function copyText(txt) {
-    var ta = document.createElement('textarea'), prev = document.activeElement, ok = false;
-    ta.value = txt; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
-    document.body.appendChild(ta); ta.select();
-    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
-    document.body.removeChild(ta);
-    if (prev && prev.focus) prev.focus({ preventScroll: true });
-    if (!ok && navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).catch(function () {});
+    // v1.14.9: the clipboard API first (it is what Chrome trusts in a key press on https); the hidden-text-box trick only
+    // when the API is missing or refuses. An empty selection copies an empty string rather than nothing.
+    var legacy = function () {
+      var ta = document.createElement('textarea'), prev = document.activeElement, ok = false;
+      ta.value = txt; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+      document.body.appendChild(ta); ta.select();
+      try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(ta);
+      if (prev && prev.focus) prev.focus({ preventScroll: true });
+      return ok;
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).catch(legacy); else legacy();
     return true;
   }
 
@@ -2875,7 +2882,7 @@
       var s = supView.sel, mod = e.ctrlKey || e.metaKey;
       if (mod && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); supUndo(); return; }
       if (!s) return;
-      if (mod && (e.key === 'c' || e.key === 'C')) { var ct = supCopy(); if (ct) { e.preventDefault(); copyText(ct); supSay('Copied ' + ($('#supSelInfo').textContent || 'the selection') + '.', 'info'); } return; }   // v1.11.0
+      if (mod && (e.key === 'c' || e.key === 'C')) { var ct = supCopy(); e.preventDefault(); copyText(ct); supSay('Copied ' + ($('#supSelInfo').textContent || 'the selection') + (ct ? '' : ' (empty)') + '.', 'info'); return; }   // v1.11.0 · v1.14.9 empties too
       if (mod && (e.key === 'd' || e.key === 'D')) { e.preventDefault(); supFillDown(); return; }                     // v1.11.0 fill down
       var moves = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
       if (moves[e.key]) {
