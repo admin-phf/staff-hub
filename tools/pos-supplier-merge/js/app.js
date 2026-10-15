@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.14.9 (15 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.14.10 (16 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -126,11 +126,13 @@
  *         or holds an older Library copy (it said "reload this page"); the session's own copy of a Library file that was
  *         ✕-ed is not brought back by a newer build being dismissed — dismissal is per saved copy, as before.
  * v1.14.9 (15 Oct 2026): Ctrl + C on the sheets writes through the clipboard API first (the hidden-box trick only as a
- *         fallback) and copies an empty selection as empty text; sheet-grid v1.7.2 the same. */
+ *         fallback) and copies an empty selection as empty text; sheet-grid v1.7.2 the same.
+ * v1.14.10 (16 Oct 2026): the brand tick pair is OLD BRAND (current) / POS BRAND (new) — OUT_MERGED_DATA's POS BRAND is
+ *         the updated brand and OLD BRAND what POS had; v1.14.0 had it on POS BRAND / SUP BRAND (the raw supplier word). */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.14.9';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.14.10';   // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -183,7 +185,7 @@
     // merge's value goes to POS, tick CURRENT = POS keeps its own); groups without a pair have their tick on the supplier
     // sheet only. col -1 = no supplier-sheet tick (`last`, `size`).
     { id: 'supplier', col: 2, what: 'supplier number', upd: ['supplier'], out: ['supplier'], cur: 'POS SUPPLIER', new: 'UPDATED SUPPLIER' },
-    { id: 'brand', col: 4, what: 'brand', upd: ['brand'], out: ['brand', 'POS BRAND', 'OLD BRAND'], cur: 'POS BRAND', new: 'SUP BRAND' },
+    { id: 'brand', col: 4, what: 'brand', upd: ['brand'], out: ['brand', 'POS BRAND', 'OLD BRAND'], cur: 'OLD BRAND', new: 'POS BRAND' },   // v1.14.10: POS BRAND is the updated brand (the engine writes it there), OLD BRAND what POS had
     { id: 'sub', col: 5, what: 'Sub ID', upd: ['sub id'], out: ['sub id'] },
     { id: 'product', col: 6, what: 'description (descr / pos desc) and packaging', upd: ['descr', 'pos desc', 'packaging'], out: ['POS DESCR', 'descr', 'pos desc', 'packaging'], cur: 'ORIGINAL POS DESCR', new: 'POS DESCR' },   // v1.12.0 packaging
     { id: 'units', col: 7, what: 'units', upd: ['units'], out: ['units'] },

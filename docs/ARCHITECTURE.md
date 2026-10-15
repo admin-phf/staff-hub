@@ -840,3 +840,6 @@ All implemented stages keep source business files local to the browser and gener
   `isBrandCol` → `UNIQUE: n` (column A: row count + unique), freeze row 3, autoFilter from row 2. xlsx-writer v1.2.0:
   `{ formula, result: '<text>' }` → `t="str"` cell.
 - merge app.js v1.14.9 / sheet-grid v1.7.2 `copyText`: `navigator.clipboard.writeText` first, legacy execCommand fallback.
+
+## Staff Hub v21.25.4 (16 Oct 2026 08:00 AEDT)
+- merge app.js v1.14.10 `KEEP_GROUPS.brand`: `cur: 'OLD BRAND', new: 'POS BRAND'` (was POS BRAND / SUP BRAND).
