@@ -1,9 +1,14 @@
-# POS New Product Check Clean v1.15.0 (Staff Hub v21.25.5)
+# POS New Product Check Clean v1.15.1 (Staff Hub v21.25.6)
 
-Updated 16 Oct 2026 09:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 16 Oct 2026 09:45 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
 
-v1.15.0 — **No ticks on OUT_MERGED_DATA; the updated columns are what goes to POS; fill down on every sheet.**
+v1.15.1 — **The price ticks are back on OUT_MERGED_DATA.** CURRENT / NEW WSP EXGST, CURRENT / NEW LAST PRICE and CURRENT /
+NEW RRP have their tick pairs again, with the v1.14.0 rules: one of the two is ticked — **NEW** = the merge's price goes
+to POS, **CURRENT** = matched products keep POS's price (the NEW column greys). The same setting as the supplier sheet's
+J / K ticks. Supplier, brand, description and SIZE stay as v1.15.0 (no ticks; edit the cell to override).
+
+v1.15.0 — **No ticks on OUT_MERGED_DATA (price pairs back in v1.15.1); the updated columns are what goes to POS; fill down on every sheet.**
 - **OUT_MERGED_DATA has no heading ticks any more.** The updated column of each pair — UPDATED SUPPLIER (G), POS BRAND (H),
   POS DESCR (P), NEW WSP EXGST (S), NEW LAST PRICE (W), NEW RRP (AA) — and SIZE (AL) are what the merge writes to POS. To
   override one, edit that cell: it turns orange, and UPDATED SUPPLIER is checked against POS Suppliers as before (an

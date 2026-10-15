@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.15.0 (16 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.15.1 (16 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -135,11 +135,14 @@
  *         POS DESCR, CURRENT WSP / LAST PRICE / RRP) are read-only. Update in POS ticks stay on the supplier sheet. Fill
  *         down on the workbook sheets (the corner square, Ctrl+D; sheet-grid v1.8.0). The supplier sheet's Update in POS
  *         tick for the supplier is on POS SUPPLIER NAME (B) and POS SUPPLIER NUMBER (C) — one setting, shown on both.
- *         Engine-host v1.7.0: sell-through "*" on POS DESCR + NOTES, LTR / PWD forms, WOMEN'S / MEN'S not doubled. */
+ *         Engine-host v1.7.0: sell-through "*" on POS DESCR + NOTES, LTR / PWD forms, WOMEN'S / MEN'S not doubled.
+ * v1.15.1 (16 Oct 2026): the price tick pairs are back on OUT_MERGED_DATA — CURRENT / NEW WSP EXGST, LAST PRICE and RRP,
+ *         with the v1.14.0 rules (NEW = the merge's price goes to POS, CURRENT = matched products keep POS's, same
+ *         setting as the supplier sheet's J / K ticks). Supplier, brand, description and SIZE stay tick-less. */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.15.0';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.15.1';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -1377,13 +1380,14 @@
   function drawOutGrid(keep) {
     var R = state.review;
     var cols = R.head.map(function (h, i) { return h === '__EXPORT_VISIBLE__' ? -1 : i; }).filter(function (i) { return i >= 0; });
-    if (!wb.outGrid) wb.outGrid = window.PHFSheetGrid.create($('#reviewGrid'), { search: false, onView: function () { renderScopes(); renderOutActions(); outBadge(); } });   // v1.15.0: no heading ticks
+    if (!wb.outGrid) wb.outGrid = window.PHFSheetGrid.create($('#reviewGrid'), { search: false, onView: function () { renderScopes(); renderOutActions(); outBadge(); },
+      onTick: function (id, on) { if (id.indexOf('cur:') === 0) setKeep(id.slice(4), on); else setKeep(id, !on); } });   // v1.15.1: the price pairs' ticks
     var look = keptLook(window.PHFSheetLook.forSheet(SHEETS.OUT, R.head), R.head, 'out', R.idx['ROW STATUS']);
     look = Object.assign({}, look, { readOnly: outReadOnly(R.head, look.readOnly) });                                         // v1.15.0
     var marks = state.edits.marks[SHEETS.OUT] || {}, mk = {};
     R.fidx.forEach(function (sheetRow, i) { if (marks[sheetRow]) mk[i] = marks[sheetRow]; });
     wb.outGrid.set({
-      head: R.head, rows: R.filtered, cols: cols, rowNumbers: R.fidx, look: look, marks: mk, keepView: !!keep,
+      head: R.head, rows: R.filtered, cols: cols, rowNumbers: R.fidx, look: look, marks: mk, keepView: !!keep, ticks: priceTicks(R.head),
       totals: function (vis) { return look.totals(R.rows, vis); },
       edit: {
         readOnly: look.readOnly, cellLock: keptLock(R.head, 'out', R.idx['ROW STATUS']), rows: false, canUndo: (state.edits.undo[SHEETS.OUT] || 0) > 0,
@@ -1403,6 +1407,21 @@
     'CURRENT LAST PRICE': 'the last price POS has now (read-only). Change NEW LAST PRICE instead',
     'CURRENT RRP': 'the RRP POS has now (read-only). Change NEW RRP instead'
   };
+  // v1.15.1: the price pairs keep their CURRENT / NEW ticks (v1.14.0 rules): one of the two is ticked — NEW = the merge's
+  // price goes to POS, CURRENT = matched products keep POS's own (grey). The same setting as the supplier sheet's J / K.
+  var PRICE_TICKS = { ws: 1, last: 1, rrp: 1 };
+  function priceTicks(head) {
+    var t = null;
+    head.forEach(function (h, i) {
+      KEEP_GROUPS.forEach(function (g) {
+        if (!PRICE_TICKS[g.id]) return;
+        var keep = !!state.opts.keep[g.id];
+        if (g.new === h) { t = t || {}; t[i] = { id: g.id, on: !keep, title: 'NEW ' + g.what + ' — ticked: the merge’s ' + g.what + ' goes to POS. Tick CURRENT instead to keep POS’s own for matched products.' + (g.col >= 0 ? ' Same tick as the supplier sheet heading.' : '') }; }
+        else if (g.cur === h) { t = t || {}; t[i] = { id: 'cur:' + g.id, on: keep, title: 'CURRENT ' + g.what + ' — ticked: matched products keep POS’s current ' + g.what + '. Tick NEW instead to update it from the merge.' }; }
+      });
+    });
+    return t;
+  }
   function outReadOnly(head, ro) {
     var o = Object.assign({}, ro || {});
     head.forEach(function (h, i) { if (OUT_CURRENT[h] && !o[i]) o[i] = OUT_CURRENT[h]; });
@@ -3040,7 +3059,7 @@
   function restoreState() {
     return dbTx('readonly', function (st) { return st.get(SESSION_ST); }).then(function (rec) {
       if (!rec) return null;
-      if (rec.opts) { state.opts = { keep: rec.opts.keep || {}, discontinue: rec.opts.discontinue !== false }; delete state.opts.keep.size; delete state.opts.keep.last; }   // v1.15.0: no tick for these any more
+      if (rec.opts) { state.opts = { keep: rec.opts.keep || {}, discontinue: rec.opts.discontinue !== false }; delete state.opts.keep.size; }   // v1.15.0: SIZE has no tick any more (v1.15.1: last price has one again)
       if (rec.outView) wb.outView = rec.outView;
       refreshSupSheet(); renderScopes();
       if (!rec.dump || !rec.results || !rec.stage || !requiredReady()) return null;

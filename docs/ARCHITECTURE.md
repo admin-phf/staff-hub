@@ -858,3 +858,7 @@ All implemented stages keep source business files local to the browser and gener
   `SZ_OK` / `SIZE_RE` accept LTR; upload check "Powder without PWD"; `m13DP5EnsureMustKeepFromQ_` wrapper drops a
   re-added word already present as a possessive. engine-worker / engine-frame / app.js load engine-host ?v=1.7.0.
 - app.js `KEEP_GROUPS.supplier.cols = [1, 2]`: the tick renders on both headings; `drawSup` sets every `[data-keep]`.
+
+## Staff Hub v21.25.6 (16 Oct 2026 09:45 AEDT)
+- merge app.js v1.15.1: `PRICE_TICKS = { ws, last, rrp }`; `priceTicks(head)` (the v1.14.0 `keepTicks` limited to those
+  groups) → `set({ ticks })`; `onTick` back on the OUT grid; session restore drops only `keep.size`.
