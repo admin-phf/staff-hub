@@ -1,4 +1,11 @@
-/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.7.2 (16 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.7.3 (16 Oct 2026)
+ * v1.7.3: descriptions cleaned on OUT_MERGED_DATA itself (every row, after stage 2 / Refresh), not only on the POS rows:
+ *   a ZZZZ marker glued to a word (ZZZZTHE 3 BEES …) never lands inside POS DESCR — only a leading "ZZZZ " stays
+ *   (ZZZZ 3 BEES ZZZZTHE 3 BEES BLUE GUM → ZZZZ 3 BEES BLUE GUM 950G); a stray single Z goes; a leading phrase
+ *   repeated straight after itself, with or without THE (3 BEES THE 3 BEES, KIWI HERB KIWI HERB), an abbreviation right
+ *   after the word it shortens (FRONTIER FRONT, COCOLUSCIOUS COCOLUSC, DOVEDALE DOVE), a size written twice in two
+ *   spellings (500GM 500G 500G, 120CAPS 120C, 30TABS 30T) are taken out. Real doubled words stay (PAW PAW, KIN KIN,
+ *   CAMU CAMU, YLANG YLANG, PERI PERI, KAVA KAVA, LUM LUM, GUMBI GUMBI …).
  * v1.7.2: SUP DISCOUNT PRICE (N) is a discount PERCENTAGE off the WSP (15 = 15 %, 0.15 too, "15%" too), never a dollar
  *   price: the script reads it as the last price it works out to — WSP × (1 − N/100). A value that is not a percentage
  *   between 0 and 100 is ignored (the ongoing discount applies as usual).
@@ -355,6 +362,8 @@
     var wsp = Number(String(wspRaw == null ? '' : wspRaw).replace(/[$,\s]/g, '')); if (!isFinite(wsp) || wsp <= 0) return '';
     return (Math.round(wsp * (1 - pct / 100) * 10000) / 10000).toFixed(4);
   }
+  // v1.7.3: ZZZ… markers — standalone (ZZZZ 3 BEES) or glued to the next word (ZZZZTHE 3 BEES) — off a supplier text / brand.
+  function stripZzz(v) { return typeof v === 'string' && /Z{3,}/i.test(v) ? v.replace(/(^|\s)Z{3,}(?=[A-Za-z(])/g, '$1').replace(/(^|\s)Z{3,}(?=\s|$)/g, '$1').replace(/\s+/g, ' ').trim() : v; }
   function stripNote(v) { return typeof v === 'string' && /SELL\s*(?:THROUGH|THRU)/i.test(v) ? v.replace(SELL_THRU, ' ').replace(/\s+/g, ' ').trim() : v; }   // v1.7.0: every form
   function installSellThruHooks() {
     // The script reads SUP PRODUCT through m13ColVal_ / hbbColVal_ with 'SUP PRODUCT' first in the list.
@@ -555,7 +564,9 @@
     if (head[15] !== 'POS DESCR' || head[38] !== 'TYPE') return 0;
     var n = 0, one = function (i) {
       var row = out.cells[i]; if (!row || String(row[0] == null ? '' : row[0]).trim() === '' || /DISCONTINUED/.test(up(row[1]))) return;
-      var p = up(row[15]); if (!p || /^Z{3,}/.test(p)) return;
+      var p = up(row[15]); if (!p) return;
+      var cl = cleanDescr(p); if (cl) p = cl;                                                     // v1.7.3: the clean-up on the sheet itself
+      if (/^Z{3,}/.test(p)) { if (p !== up(row[15])) { row[15] = p; row[45] = p; row[46] = posDescOf(p); n++; } return; }
       var star = /\*$/.test(p); if (star) p = p.replace(/\s*\*+$/, '').trim();
       var t = litres(p);
       if (t.length > DESCR_MAX && t !== p) { var t1 = t.replace(/(\d)LTR\b/g, '$1LT'); t = t1.length <= DESCR_MAX ? t1 : t.replace(/(\d)LTR\b/g, '$1L'); }   // no room for LTR: 10LT, else 10L
@@ -615,17 +626,35 @@
   }
   // Description clean-up: "SELL" left from SELL THROUGH, a word repeated straight after itself (210G 210G, CREAT CREAT), the
   // brand prefix repeated later (CABOT DR CABOT …) and 210GM 210G. Returns '' when nothing changed.
-  var DOUBLED = { PAW: 1, YLANG: 1, AGAR: 1, BYE: 1, CHA: 1, BON: 1, PIRI: 1, TUK: 1, MAHI: 1, COUS: 1, GOJI: 0, NIGHT: 0 };   // real doubled words (PAW PAW)
+  var DOUBLED = { PAW: 1, YLANG: 1, AGAR: 1, BYE: 1, CHA: 1, BON: 1, PIRI: 1, TUK: 1, MAHI: 1, COUS: 1, KIN: 1, CAMU: 1, LUM: 1, MULLA: 1, PERI: 1, GUMBI: 1, KAVA: 1, MIRROR: 1, GOJI: 0, NIGHT: 0 };   // real doubled words (PAW PAW, KIN KIN)
+  var SIZE_ALIAS = { GM: 'G', GMS: 'G', MLS: 'ML', LT: 'LTR', L: 'LTR', CAPS: 'C', CAP: 'C', CAPSULES: 'C', TABS: 'T', TAB: 'T', TABLETS: 'T', VCAPS: 'VC', PACK: 'PK', TBAGS: 'TB', TEABAGS: 'TB' };
+  var SIZE_UNITS = { C: 1, T: 1, VC: 1, SG: 1, S: 1, TB: 1, PK: 1, ML: 1, G: 1, KG: 1, LTR: 1, MG: 1, MCG: 1, IU: 1 };
+  function sizeNorm(x) { var m = x.match(/^(\d+(?:\.\d+)?)([A-Z]+)$/); if (!m) return x; var u = SIZE_ALIAS[m[2]] || m[2]; return SIZE_UNITS[u] ? m[1] + u : x; }
   function cleanDescr(descr) {
     var s = up(descr); if (!s) return '';
     var t = s.replace(/\bSELL\s*(?:THROUGH|THRU)\b/g, ' ').replace(/\bSELLTHRU\b/g, ' ').replace(/\bSELL\b/g, ' ').replace(/\s+/g, ' ').trim();
-    var w = t.split(' '), out = [], norm = function (x) { return x.replace(/^(\d+(?:\.\d+)?)GM$/, '$1G'); };
-    for (var i = 0; i < w.length; i++) {
-      if (i > 0 && w[i].length > 1 && !DOUBLED[w[i]] && norm(w[i]) === norm(w[i - 1])) continue;   // 210G 210G, K2 K2, CREAT CREAT (not MP T T …, PAW PAW)
-      if (i > 1 && i <= 3 && w[i] === w[0] && w[0].length >= 5 && !/^\d/.test(w[0])) continue;   // CABOT DR CABOT …, PRANA SPORT PRANA … (not PROT SUPP … PROT)
-      out.push(w[i]);
+    // v1.7.3: a ZZZZ marker inside the text (glued or alone) goes; a leading one stays as "ZZZZ ".
+    var lead = ''; if (/^Z{3,}/.test(t)) { lead = 'ZZZZ '; t = t.replace(/^(?:Z{3,}\s*)+/, ''); }
+    t = t.replace(/(^|\s)Z{3,}(?=[A-Z(])/g, '$1').replace(/(^|\s)Z{3,}(?=\s|$)/g, '$1').replace(/\s+/g, ' ').trim();
+    var w = t.split(' ');
+    for (var k = 3; k >= 1; k--) {                                                                  // v1.7.3: 3 BEES THE 3 BEES …, KIWI HERB KIWI HERB …
+      if (w.length < 2 * k) continue;
+      var j = k; if (w[j] === 'THE' && w.length >= 2 * k + 1) j = k + 1;
+      var same = true; for (var q = 0; q < k; q++) if (w[j + q] !== w[q]) { same = false; break; }
+      if (same && !(k === 1 && (DOUBLED[w[0]] || w[0].length < 3))) { w.splice(j, k); if (j > k) w.splice(k, 1); break; }   // the THE goes too
     }
-    t = out.join(' ');
+    var out = [], norm = sizeNorm;
+    for (var i = 0; i < w.length; i++) {
+      var x = w[i], prev = out.length ? out[out.length - 1] : '';
+      if (x === 'Z') continue;                                                                       // v1.7.3: what the script leaves of a ZZZZ marker
+      if (out.length && x.length > 1 && !DOUBLED[x] && norm(x) === norm(prev)) continue;             // 210G 210G, 500GM 500G, K2 K2, CREAT CREAT (not PAW PAW)
+      if (i > 1 && i <= 3 && x === w[0] && w[0].length >= 5 && !/^\d/.test(w[0])) continue;            // CABOT DR CABOT …, PRANA SPORT PRANA … (not PROT SUPP … PROT, BARE WPI BARE)
+      if (i > 0 && i <= 2 && x.length >= 5 && prev.length > x.length && prev.indexOf(x) === 0 && !/^\d/.test(x)) continue;   // v1.7.3: FRONTIER FRONT, COCOLUSCIOUS COCOLUSC (not COCOLUSCIOUS COCO)
+      if (i > 0 && i <= 2 && prev.length >= 4 && x.length > prev.length && x.indexOf(prev) === 0 && !/^\d/.test(prev)) continue;   // v1.7.3: BIOL BIOLOGIKA, CYMB CYMBIOTIKA (the prefix stays)
+      var sn = norm(x); if (sn !== x || /^\d+(\.\d+)?[A-Z]+$/.test(x)) { var dupSize = false; for (var o = 0; o < out.length; o++) if (norm(out[o]) === sn && SIZE_UNITS[(sn.match(/[A-Z]+$/) || [''])[0]]) { dupSize = true; break; } if (dupSize) continue; }   // v1.7.3: 120CAPS … 120C, 500GM … 500G
+      out.push(x);
+    }
+    t = (lead + out.join(' ')).trim();
     return t !== s ? t : '';
   }
   // MELROSE ORGANIC / MELROSE, ENDURA SPORT / ENDURA, BOOKS CABOT HEALTH / CABOT HEALTH: the same brand family, not a wrong match.

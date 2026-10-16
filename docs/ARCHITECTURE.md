@@ -886,3 +886,8 @@ All implemented stages keep source business files local to the browser and gener
   dropdown filters are gone. Supplier sheet: `supView.picked` (row objects), `[data-pick]` / `[data-pick-all]` handlers,
   `deleteSelectedRows` picks first; `supFindSpec` text-only; `supPrefill` unused.
 - engine-host v1.7.2: `discountToPrice()` in the ColVal hook (`SUP DISCOUNT PRICE` → price from the row's WSP).
+
+## Staff Hub v21.25.8 (16 Oct 2026 18:30 AEDT)
+- engine-host v1.7.3: `cleanDescr` — `lead` (ZZZZ) split off, inner `Z{3,}` removed, repeated leading phrase (k = 3..1,
+  optional THE), `sizeNorm` / `SIZE_ALIAS` / `SIZE_UNITS` for duplicate sizes, adjacent abbreviation rules (i ≤ 2), lone
+  `Z` dropped; called from `refineForms` for every row (discontinued rows excluded as before). Loaders at ?v=1.7.3.

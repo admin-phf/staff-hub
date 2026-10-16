@@ -1,7 +1,18 @@
-# POS New Product Check Clean v1.16.0 (Staff Hub v21.25.7)
+# POS New Product Check Clean v1.16.1 (Staff Hub v21.25.8)
 
-Updated 16 Oct 2026 17:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 16 Oct 2026 18:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.16.1 (engine-host v1.7.3) — **Descriptions cleaned on the sheet itself.** The clean-up that used to run only on the
+POS rows now runs on every OUT_MERGED_DATA row after stage 2 / Refresh, with new rules from the 16 Oct review:
+- a ZZZZ marker inside a description goes — glued (`ZZZZ 3 BEES ZZZZTHE 3 BEES BLUE GUM` → `ZZZZ 3 BEES BLUE GUM 950G`)
+  or alone; only a leading `ZZZZ ` stays; a stray single `Z` goes;
+- a leading phrase repeated straight after itself, with or without THE (`3 BEES THE 3 BEES …`, `KIWI HERB KIWI HERB …`);
+- an abbreviation right next to the word it shortens (`FRONTIER FRONT`, `COCOLUSCIOUS COCOLUSC`, `BIOL BIOLOGIKA`,
+  `CYMB CYMBIOTIKA` — the prefix stays);
+- a size written twice in two spellings (`500GM 500G 500G`, `120CAPS 120C`, `30TABS 30T`, `28CAPS 28C`).
+Real doubled words stay (PAW PAW, KIN KIN, CAMU CAMU, YLANG YLANG, PERI PERI, KAVA KAVA, LUM LUM, GUMBI GUMBI). On the
+16 Oct workbook: 2,106 descriptions with a marker inside → 0; the 15 Oct rows change on 16 lines, all duplicates.
 
 v1.16.0 — **Sort in every column menu, tick boxes with Delete, no INDEX column, a simpler OUT toolbar, discount %.**
 - **Every column menu sorts as well as filters** (OUT_MERGED_DATA, the POS tabs, the SRC tabs): A to Z / Z to A, or on a
