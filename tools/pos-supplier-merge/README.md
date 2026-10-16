@@ -4,9 +4,11 @@ Updated 16 Oct 2026 14:15 AEDT. (Named POS Supplier New Product Check and Clean 
 Merge up to v1.3.1; the folder and web address are unchanged.)
 
 v1.15.5 — **One rule for every tick, shown the same way.** Ticked = the column's value goes to POS. Unticked = matched
-products keep what POS has; the merge's value still shows on OUT_MERGED_DATA in grey, and the POS block at the right
-shows POS's. POS SUB ID (N) and UPDATED SUPPLIER (G) now grey like POS BRAND, POS DESCR and the NEW prices did; units,
-min order, GST and member have no review column, only the POS block. The POS UPDATE file was already right (with F
+products keep what POS has, and OUT_MERGED_DATA shows that existing POS data in the column, greyed — UPDATED SUPPLIER
+(G), POS SUB ID (N), POS BRAND, POS DESCR and the POS block at the right all show what POS will have (N and G used to
+show the supplier's value). Prices are the exception you asked for: NEW WSP / LAST PRICE / RRP and the CHANGE columns
+always show the new price and its coloured change. Units, min order, GST and member have no review column, only the
+POS block. The POS UPDATE file was already right (with F
 unticked, 1,753 of 1,753 matched rows carried POS's Sub ID). New products (INSERT) always carry the supplier's values —
 POS has nothing to keep for them.
 

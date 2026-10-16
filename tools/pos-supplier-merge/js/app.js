@@ -151,7 +151,9 @@
  *         show what POS will have.
  * v1.15.5 (16 Oct 2026): SUP SUB ID unticked greys OUT_MERGED_DATA's POS SUB ID (N) on matched rows as well as the POS
  *         block's sub id (which shows POS's own) — the POS files already kept POS's Sub ID (verified: 1,753 of 1,753).
- *         UPDATED SUPPLIER (G) greys the same way with B / C unticked. New products always carry the supplier's values. */
+ *         UPDATED SUPPLIER (G) greys the same way with B / C unticked. New products always carry the supplier's values.
+ *         Unticked, N and G show POS's existing Sub ID / supplier on matched rows (as POS BRAND and POS DESCR already did):
+ *         the sheet shows what POS will have. Prices keep showing the new price and its change (v1.15.4). */
 (function () {
   'use strict';
 
@@ -241,9 +243,9 @@
   // values, so ticking the heading again shows them. [OUT_MERGED_DATA heading, POS Database heading, POS blank → the
   // merge's value stays (POS cannot take blank there)]
   var KEEP_SHOW = {
-    supplier: [['supplier', 'POS SUPPLIER']],
+    supplier: [['supplier', 'POS SUPPLIER'], ['UPDATED SUPPLIER', '=POS SUPPLIER']],   // v1.15.5: G shows the row's POS SUPPLIER (F) — NAME (NO)
     brand: [['POS BRAND', 'POS BRAND'], ['brand', 'POS BRAND']],
-    sub: [['sub id', 'POS SUB ID']],
+    sub: [['sub id', 'POS SUB ID'], ['POS SUB ID', 'POS SUB ID']],   // v1.15.5: N shows POS's Sub ID too
     product: [['POS DESCR', 'POS DESCR'], ['descr', 'POS DESCR'], ['pos desc', 'POS POS DESC'], ['packaging', 'POS PACKAGING']],
     units: [['units', 'POS UNITS', 1]],
     minorder: [['min order qty', 'POS MIN ORDER QTY', 1]],
@@ -292,7 +294,10 @@
     var st = H['ROW STATUS'], plu = H['POS PLU']; if (st === undefined || plu === undefined) return rows;
     var pos = posMap(), sets = [], zero = [], blank = [], shelf = false, gstKept = false;
     groups.forEach(function (g) {
-      (KEEP_SHOW[g.id] || []).forEach(function (k) { if (H[k[0]] !== undefined && pos.col[k[1]] !== undefined) sets.push({ c: H[k[0]], p: pos.col[k[1]], need: !!k[2], money: !!KEEP_MONEY[k[0]] }); });
+      (KEEP_SHOW[g.id] || []).forEach(function (k) {
+        if (k[1].charAt(0) === '=') { if (H[k[0]] !== undefined && H[k[1].slice(1)] !== undefined) sets.push({ c: H[k[0]], from: H[k[1].slice(1)] }); return; }   // v1.15.5: from another OUT column
+        if (H[k[0]] !== undefined && pos.col[k[1]] !== undefined) sets.push({ c: H[k[0]], p: pos.col[k[1]], need: !!k[2], money: !!KEEP_MONEY[k[0]] });
+      });
       (KEEP_ZERO[g.id] || []).forEach(function (h) { if (H[h] !== undefined) zero.push(H[h]); });
       (KEEP_BLANK[g.id] || []).forEach(function (h) { if (H[h] !== undefined) blank.push(H[h]); });
       if (g.id === 'ws' || g.id === 'last' || g.id === 'rrp' || g.id === 'gst') shelf = true;
@@ -305,6 +310,7 @@
       if (!p) { out.push(r); continue; }
       var o = r.slice();
       sets.forEach(function (k) {
+        if (k.from !== undefined) { o[k.c] = r[k.from] == null ? '' : r[k.from]; return; }
         var v = p[k.p] == null ? '' : p[k.p];
         if (String(v).trim() === '' && k.need) return;
         o[k.c] = k.money ? moneyText(v) : String(v);

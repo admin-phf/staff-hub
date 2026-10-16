@@ -869,6 +869,8 @@ All implemented stages keep source business files local to the browser and gener
   (#FEF3E2 / #E37400, bold) with `!important`; the v1.13.2 corner triangle is gone.
 - v1.15.4: `KEEP_SHOW.ws / last / rrp` cover the POS block only; `KEEP_ZERO = {}`; `keptRows` shelf from `wsp excgst` /
   `last price`; `KEEP_COLOUR` (the four CHANGE columns) skipped by `keptLook`.
+- v1.15.5: `KEEP_SHOW` entries whose POS heading starts with `=` copy another OUT column (`['UPDATED SUPPLIER', '=POS
+  SUPPLIER']`); `keptRows` handles them as `{ c, from }`. `KEEP_SHOW.sub` includes `POS SUB ID`.
 - engine-host v1.7.1: must-keep wrapper checks sub-tokens (`split(/[^A-Z0-9]+/)`); `restoreMarketing(descr, o, q)` after
   `m13SZ1RestorePurgedPosWords_` (phrases from `m13MarketingPhrases_`, inserted before the first size token, ≤ 35, skipped
   when a ≥ 4-char prefix of the word is already a token); `inferType(src, size)` with `I_TOPICAL` / `I_CREAM` / `I_CLEANER` /

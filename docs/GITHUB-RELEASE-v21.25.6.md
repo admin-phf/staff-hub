@@ -17,9 +17,11 @@
 - v1.15.4: with CURRENT ticked, NEW WSP EXGST / NEW LAST PRICE / NEW RRP still show the merge's price (greyed) and the
   CHANGE % / $ columns keep their value and colour; only the POS block and FINAL SHELF RRP show what POS will have
   (`KEEP_SHOW` without the NEW columns, `KEEP_ZERO` empty, `KEEP_COLOUR` left out of the grey).
-- v1.15.5: `KEEP_GROUPS.sub.out` includes POS SUB ID and `supplier.out` UPDATED SUPPLIER, so an unticked F / B greys N / G
-  on matched rows as the other groups' review columns already did (the POS block shows POS's). The POS files were already
-  right: with F unticked every matched UPDATE row carries POS's Sub ID. New products always carry the supplier's values.
+- v1.15.5: an unticked supplier column shows POS's existing data in OUT_MERGED_DATA, greyed — `KEEP_SHOW.sub` adds POS SUB
+  ID (N) and `KEEP_SHOW.supplier` adds UPDATED SUPPLIER (G, copied from the row's POS SUPPLIER as NAME (NO)); `sub.out` /
+  `supplier.out` grey and lock them as POS BRAND / POS DESCR already were. Prices keep the v1.15.4 rule (new price and
+  change always shown). The POS files were already right: with F unticked every matched UPDATE row carries POS's Sub ID.
+  New products always carry the supplier's values.
 - engine-host v1.7.1 (Apps Script files unchanged):
   - `m13DP5EnsureMustKeepFromQ_` wrapper: a re-added word already inside another token (WOMEN'S, NIGHT+L, L-THN,
     QUERCETIN+NETTLES) is dropped — no `BIOC ULTRA MUSCLEZE NIGHT+L THN L 60T`.
