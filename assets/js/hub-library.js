@@ -1,38 +1,116 @@
-/* PHF Staff Hub — Library panel on the home page v1.0.4 (15 Oct 2026: Delete all also clears POS New Product Check Clean's own store; v1.0.3 storage protected / not protected line; v1.0.0 10 Oct 2026; v1.0.1 shows the renamed tools; v1.0.2 mentions the Supplier Contacts list): lists the files the tools saved in this
-   browser (assets/js/phf-library.js), with Download, ✕ (delete straight away) and Delete all. */
+/* PHF Staff Hub — Library panel v2.0.0 (17 Oct 2026)
+ * One shared renderer for the files the tools save in this browser (assets/js/phf-library.js). It can be mounted:
+ *   - on the home page as a SUMMARY (file count + storage line) with a "View all files" expander, and
+ *   - inside a tool, SCOPED to that tool — only the files that tool makes or uses, with Download / ✕ as before.
+ * The files themselves are one shared store (no duplication): a file shared by several tools shows in each tool's view
+ * by reference. Nothing is uploaded; another browser or PC has its own Library.
+ *
+ * Use:
+ *   PHFLibraryPanel.mount({ root:'#libraryPanel', summaryOnly:true })           // home page
+ *   PHFLibraryPanel.mount({ root:'#toolLibrary', scope:'Build POS Master Databases' })   // a tool
+ * Back-compat: if #libList already exists in the root (the old home-page markup), it is reused.
+ */
 (function () {
   'use strict';
-  var L = window.PHFLibrary, $ = function (s) { return document.querySelector(s); };
-  if (!L || !$('#libList')) return;
-  var urls = [];
+  var L = window.PHFLibrary;
+  if (!L) return;
   function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function size(b) { b = b || 0; if (b < 1024) return b + ' B'; if (b < 1048576) return (b / 1024).toFixed(1) + ' KB'; return (b / 1048576).toFixed(1) + ' MB'; }
-  // v1.0.3: what the site is using, and whether the browser protects it from automatic clearing
-  function usageLine() {
+
+  // A record is relevant to a tool when the tool's name is in what makes it, what uses it, or who saved it.
+  function relevant(rec, scope) {
+    if (!scope) return true;
+    var info = L.info(rec.kind) || {};
+    var hay = [info.made, info.used, rec.source && (L.displayName ? L.displayName(rec.source) : rec.source)].join(' ');
+    return hay.indexOf(scope) >= 0;
+  }
+
+  var OTHER_STORES = ['phf-pos-supplier-merge'];   // POS New Product Check Clean's own store (reference tables + session)
+  function clearOtherStores() {
+    return Promise.all(OTHER_STORES.map(function (name) { return new Promise(function (res) { try { var r = indexedDB.deleteDatabase(name); r.onsuccess = r.onerror = r.onblocked = function () { res(); }; } catch (e) { res(); } }); }));
+  }
+
+  function Panel(opts) {
+    var root = typeof opts.root === 'string' ? document.querySelector(opts.root) : opts.root;
+    if (!root) return null;
+    this.opts = opts; this.root = root; this.scope = opts.scope || ''; this.summaryOnly = !!opts.summaryOnly;
+    this.showAll = false; this.urls = [];
+    this.build();
+    var self = this;
+    this.onChange = function () { self.render(); };
+    L.onChange(this.onChange);
+    this.render();
+  }
+
+  Panel.prototype.build = function () {
+    var r = this.root, hadList = r.querySelector('#libList');
+    this.ids = {};
+    if (hadList) {   // old home-page markup — reuse it
+      this.listEl = r.querySelector('#libList'); this.sumEl = r.querySelector('#libSummary');
+      this.usageEl = r.querySelector('#libUsage'); this.clearEl = r.querySelector('#libClearAll');
+      this.bodyEl = r.querySelector('.phf-lib-body') || r;
+    } else {
+      var uid = 'lib' + Math.random().toString(36).slice(2, 7);
+      var heading = this.opts.heading || (this.scope ? 'Files for this tool' : 'Library · saved in this browser');
+      r.classList.add('phf-lib');
+      r.innerHTML =
+        '<div class="results-head phf-lib-head"><div><h2>' + esc(heading) + '</h2>' +
+          '<p>' + (this.scope ? 'The files this tool makes or uses, saved in this browser. Shared files are the same copy the other tools use.' : 'Files the tools save in this browser.') + '</p></div>' +
+          '<div class="result-badge" id="' + uid + 'sum">Checking…</div></div>' +
+        '<div class="phf-lib-body">' +
+          (this.scope ? '<label class="phf-lib-allchk"><input type="checkbox" id="' + uid + 'all"> Show all saved files</label>' : '') +
+          '<div class="phf-lib-list" id="' + uid + 'list"></div>' +
+          '<div class="phf-lib-foot"><span id="' + uid + 'usage"></span>' +
+          (this.summaryOnly || this.scope ? '' : '<button type="button" class="phf-lib-btn danger" id="' + uid + 'clear" title="Delete every saved file except the Supplier Contacts list">Delete all</button>') +
+          '</div></div>';
+      this.listEl = r.querySelector('#' + uid + 'list'); this.sumEl = r.querySelector('#' + uid + 'sum');
+      this.usageEl = r.querySelector('#' + uid + 'usage'); this.clearEl = r.querySelector('#' + uid + 'clear');
+      this.bodyEl = r.querySelector('.phf-lib-body');
+      var all = r.querySelector('#' + uid + 'all'); var self = this;
+      if (all) all.onchange = function () { self.showAll = all.checked; self.render(); };
+    }
+    if (this.clearEl) { var s = this; this.clearEl.onclick = function () { s.clearEl.disabled = true; L.clearAll().then(clearOtherStores).then(function () { s.render(); }); }; }
+  };
+
+  Panel.prototype.usageLine = function () {
+    var el = this.usageEl; if (!el) return Promise.resolve();
     return L.estimate().then(function (est) {
       var usage = est && est.usage != null ? 'This site is using ' + size(est.usage) + (est.quota ? ' of ' + size(est.quota) + ' the browser allows' : '') + '.' : '';
       return (L.persisted ? L.persisted() : Promise.resolve(null)).then(function (p) {
-        var el = $('#libUsage'); if (!el) return;
         el.innerHTML = esc(usage) + (p === true ? ' <span class="phf-pill is-green">Storage protected</span> <span>the browser will not clear these files by itself.</span>'
-          : p === false ? ' <span class="phf-pill is-amber">Storage not protected</span> <span>the browser may clear this site\'s saved files (Library, reference tables, sessions) when disk space is short. To protect them, install the Staff Hub as an app (Chrome menu ⋮ → Cast, save and share → Install page as app, or the install icon in the address bar) or bookmark it, then reload.</span>' : '');
+          : p === false ? ' <span class="phf-pill is-amber">Storage not protected</span> <span>the browser may clear this site\'s saved files when disk space is short. Install the Staff Hub as an app or bookmark it, then reload, to protect them.</span>' : '');
       });
     }).catch(function () {});
-  }
-  function render() {
-    urls.forEach(function (u) { URL.revokeObjectURL(u); }); urls = [];
+  };
+
+  Panel.prototype.render = function () {
+    var self = this;
+    this.urls.forEach(function (u) { URL.revokeObjectURL(u); }); this.urls = [];
     return L.list().then(function (recs) {
-      var total = recs.reduce(function (a, r) { return a + (r.size || 0); }, 0);
-      $('#libSummary').textContent = recs.length ? recs.length + ' file' + (recs.length === 1 ? '' : 's') + ' · ' + size(total) : 'Empty';
-      $('#libClearAll').disabled = !recs.length;
-      if (!recs.length) {
-        usageLine();
-        $('#libList').innerHTML = '<div class="phf-lib-empty">Nothing saved yet. Files appear here when Build POS Master Databases finishes a build, or when you load a reference file (Brand Abbreviation, Weight &amp; Dimensions, Ongoing Discounts, or Reconcile CH2’s reference files), and when you load the Supplier Contacts list.</div>';
-        return;
+      var all = recs, shown = (self.scope && !self.showAll) ? recs.filter(function (r) { return relevant(r, self.scope); }) : recs;
+      var total = all.reduce(function (a, r) { return a + (r.size || 0); }, 0);
+      // summary badge: scoped count for a tool, total for the home page
+      if (self.sumEl) {
+        if (self.scope) self.sumEl.textContent = shown.length + ' file' + (shown.length === 1 ? '' : 's');
+        else self.sumEl.textContent = all.length ? all.length + ' file' + (all.length === 1 ? '' : 's') + ' · ' + size(total) : 'Empty';
       }
-      $('#libList').innerHTML = recs.map(function (r) {
+      if (self.clearEl) self.clearEl.disabled = !all.length;
+
+      // Home page in summary mode: keep the list collapsed inside a "View all files" expander.
+      if (self.summaryOnly && self.listEl && !self._wrapped) { self.wrapSummary(); }
+
+      if (!shown.length) {
+        self.listEl.innerHTML = '<div class="phf-lib-empty">' + (self.scope
+          ? 'No saved files for this tool yet.' + (all.length ? ' <label class="phf-lib-inline-all"><input type="checkbox" id="' + 'allx' + '"> Show all ' + all.length + ' saved file' + (all.length === 1 ? '' : 's') + '</label>' : '')
+          : 'Nothing saved yet. Files appear here when Build POS Master Databases finishes a build, or when you load a reference file or the Supplier Contacts list.') + '</div>';
+        var cb = self.listEl.querySelector('#allx'); if (cb) cb.onchange = function () { self.showAll = cb.checked; self.render(); };
+        return self.usageLine();
+      }
+      self.listEl.innerHTML = shown.map(function (r) {
         var info = L.info(r.kind), stale = info.generated && L.isStale(r);
-        var url = r.blob ? URL.createObjectURL(r.blob) : ''; if (url) urls.push(url);
-        return '<div class="phf-lib-row' + (stale ? ' stale' : '') + '"><span class="phf-lib-dot" aria-hidden="true">' + (stale ? '!' : '✓') + '</span>' +
+        var url = r.blob ? URL.createObjectURL(r.blob) : ''; if (url) self.urls.push(url);
+        var offScope = self.scope && self.showAll && !relevant(r, self.scope);
+        return '<div class="phf-lib-row' + (stale ? ' stale' : '') + (offScope ? ' off-scope' : '') + '"><span class="phf-lib-dot" aria-hidden="true">' + (stale ? '!' : '✓') + '</span>' +
           '<div class="phf-lib-what"><strong>' + esc(info.label) + '</strong><span>' + esc(r.name) + '</span></div>' +
           '<div class="phf-lib-when"><strong>' + esc(L.when(r)) + '</strong><span>' + esc(L.ago(r)) + (stale ? ' — over a day old' : '') + '</span></div>' +
           '<div class="phf-lib-size">' + size(r.size) + '</div>' +
@@ -40,20 +118,34 @@
           '<div class="phf-lib-btns">' + (url ? '<a class="phf-lib-btn download" href="' + url + '" download="' + esc(r.name) + '">Download</a>' : '') +
           '<button type="button" class="phf-lib-btn del" data-del="' + esc(r.kind) + '" title="Delete ' + esc(info.label) + ' from this browser" aria-label="Delete ' + esc(info.label) + '">✕</button></div></div>';
       }).join('');
-      document.querySelectorAll('#libList [data-del]').forEach(function (b) { b.onclick = function () { b.disabled = true; L.remove(b.dataset.del).then(render); }; });
-      return usageLine();
+      self.listEl.querySelectorAll('[data-del]').forEach(function (b) { b.onclick = function () { b.disabled = true; L.remove(b.dataset.del).then(function () { self.render(); }); }; });
+      return self.usageLine();
     }).catch(function (e) {
-      $('#libSummary').textContent = 'Unavailable';
-      $('#libList').innerHTML = '<div class="phf-lib-empty">The Library is not available in this browser (' + esc(e.message) + '). The tools still work with drag and drop.</div>';
+      if (self.sumEl) self.sumEl.textContent = 'Unavailable';
+      if (self.listEl) self.listEl.innerHTML = '<div class="phf-lib-empty">The Library is not available in this browser (' + esc(e.message) + '). The tools still work with drag and drop.</div>';
     });
+  };
+
+  // Home page: wrap the list + Delete all in a "View all files" <details> so the page shows only the summary by default.
+  Panel.prototype.wrapSummary = function () {
+    var body = this.bodyEl; if (!body) return;
+    var det = document.createElement('details'); det.className = 'phf-lib-viewall';
+    var sm = document.createElement('summary'); sm.textContent = 'View all files'; det.appendChild(sm);
+    // move the list and foot into the details
+    var foot = body.querySelector('.phf-lib-foot');
+    det.appendChild(this.listEl);
+    if (foot) det.appendChild(foot);
+    body.appendChild(det);
+    this._wrapped = true;
+  };
+
+  function mount(opts) { return new Panel(opts || {}); }
+
+  window.PHFLibraryPanel = { mount: mount };
+
+  // Auto-mount the home page panel if its markup is present (back-compat with the old inline script).
+  if (document.querySelector('#libraryPanel') && document.querySelector('#libList')) {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { mount({ root: '#libraryPanel', summaryOnly: true }); });
+    else mount({ root: '#libraryPanel', summaryOnly: true });
   }
-  // v1.0.4: Delete all also empties POS New Product Check Clean's own store (its saved reference tables and session), which is
-  // not part of the Library — so "delete everything saved" means everything. Supplier Contacts stays, as before.
-  var OTHER_STORES = ['phf-pos-supplier-merge'];
-  function clearOtherStores() {
-    return Promise.all(OTHER_STORES.map(function (name) { return new Promise(function (res) { try { var r = indexedDB.deleteDatabase(name); r.onsuccess = r.onerror = r.onblocked = function () { res(); }; } catch (e) { res(); } }); }));
-  }
-  $('#libClearAll').onclick = function () { $('#libClearAll').disabled = true; L.clearAll().then(clearOtherStores).then(render); };
-  L.onChange(function () { render(); });
-  render();
 })();

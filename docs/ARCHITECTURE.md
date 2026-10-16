@@ -928,3 +928,18 @@ All implemented stages keep source business files local to the browser and gener
   30, totals row 30; the full / selected master's row-2 headings are spaced for display (data keyed to `internal`); the order
   sheet keeps its custom display names; Match_Audit / Links_To_Check inherit the light header. Every consumer (the merge
   tool's `normHead`, Reconcile's alias lists) collapses underscores to spaces, so spaced display headers read identically.
+
+## Staff Hub v21.25.12 (17 Oct 2026 01:40 AEDT)
+- hub-library.js rewritten as a shared mountable panel, `window.PHFLibraryPanel.mount({ root, scope, summaryOnly, heading })`
+  (v2.0.0). `scope` = a tool's display name; a record is shown when that name is in its KIND's `made` / `used` or the
+  record's `source` (`relevant()`), with a "Show all saved files" toggle that also marks off-scope rows. The store itself
+  (phf-library.js / IndexedDB) is unchanged — shared files appear in each tool's view by reference, never duplicated.
+  Download / ✕ per file as before; Delete all stays on the home page only.
+- Home page: mounted with `summaryOnly:true` — the badge shows the file count + size, and the list + usage + Delete all
+  move into a "View all files" `<details>` (`wrapSummary()`), so the home page is a summary with details on demand. The old
+  `#libraryPanel` / `#libList` markup is reused (back-compat auto-mount).
+- Each tool mounts a scoped, collapsible (`data-acc`) `#toolLibrary` panel: Build POS Master Databases
+  (scope "Build POS Master Databases"), POS New Product Check Clean ("POS New Product Check Clean"), Reconcile CH2 Order
+  ("Reconcile CH2 Order"). library.css (v2.0.0) is loaded on those tool pages; it gains `.phf-lib-head`, `.phf-lib-allchk`,
+  `.phf-lib-viewall`, `.phf-lib-row.off-scope`. Supplier Contacts is left as-is — its one library file (the contacts list)
+  is already shown in its own card, so a separate panel would duplicate it.

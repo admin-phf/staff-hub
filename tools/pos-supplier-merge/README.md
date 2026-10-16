@@ -1,7 +1,12 @@
-# POS New Product Check Clean v1.16.4 (Staff Hub v21.25.11)
+# POS New Product Check Clean v1.16.4 (Staff Hub v21.25.12)
 
-Updated 17 Oct 2026 00:20 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 17 Oct 2026 01:40 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+**Saved files for this tool.** Each tool now shows a "Saved files" panel with the library files it makes or uses —
+here, the POS Database and the CH2 / Unique supplier sets it merges from. Tick "Show all saved files" to see the rest.
+It is the same shared store the other tools use (no duplicate copies); the home page now shows only a count and a
+"View all files" expander instead of every file.
 
 v1.16.4 — **Collapsible panels.** The input, readiness, stage and output panels can be collapsed to just their heading
 (click the heading); the badge stays visible as the summary, and the state is remembered in this browser. Nothing about
