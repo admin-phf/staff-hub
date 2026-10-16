@@ -943,3 +943,13 @@ All implemented stages keep source business files local to the browser and gener
   ("Reconcile CH2 Order"). library.css (v2.0.0) is loaded on those tool pages; it gains `.phf-lib-head`, `.phf-lib-allchk`,
   `.phf-lib-viewall`, `.phf-lib-row.off-scope`. Supplier Contacts is left as-is — its one library file (the contacts list)
   is already shown in its own card, so a separate panel would duplicate it.
+
+## Staff Hub v21.25.13 (17 Oct 2026 02:05 AEDT)
+- Stage cards no longer use the whole-panel accordion (that hid the Build / Run button). Instead each stage card wraps its
+  output area in `<details class="stage-outputs" data-stage-outputs="…">` with an "Output files · N files" summary. The
+  heading, status line and Build / Run button are always visible; only the file list opens / closes. renderOutputs()
+  shows the `<details>` when the stage has files, sets the count, and opens it once on the 0→N transition (tracked by
+  `dataset.had`) so it springs open when a build finishes but a later re-render does not re-open a drop-down the user
+  collapsed. Build POS Master Databases (pipeline.js v21.17.0) and POS New Product Check Clean (app.js v1.16.5).
+- theme.css v20.3.0: `.stage-outputs` summary styling (caret, count, clickable heading). The input / readiness / output /
+  saved-files panels keep their `data-acc` whole-panel accordions.

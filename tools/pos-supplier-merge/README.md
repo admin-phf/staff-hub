@@ -1,7 +1,12 @@
-# POS New Product Check Clean v1.16.4 (Staff Hub v21.25.12)
+# POS New Product Check Clean v1.16.5 (Staff Hub v21.25.13)
 
-Updated 17 Oct 2026 01:40 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 17 Oct 2026 02:05 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.16.5 — **Stage output drop-downs.** Each stage card now has an "Output files" drop-down that opens by itself when the
+stage finishes, showing that stage's generated files and Download buttons; collapse it to tidy the card. The stage
+heading, status and Run button stay visible at all times (the stage card no longer collapses as a whole). The input,
+readiness, output and saved-files panels keep their collapse-to-heading behaviour.
 
 **Saved files for this tool.** Each tool now shows a "Saved files" panel with the library files it makes or uses —
 here, the POS Database and the CH2 / Unique supplier sets it merges from. Tick "Show all saved files" to see the rest.

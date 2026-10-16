@@ -490,3 +490,16 @@ body.phf-page-specials .card-image-health.err{background:var(--phf-red-bg);borde
 /* stage cards: the heading row keeps its badge; the body (description / status / actions / output) collapses */
 .stage-panel.acc-collapsed>.stage-head{margin-bottom:0!important}
 @media print{.acc-panel.acc-collapsed>*:not(.acc-head){display:revert!important}}
+
+/* Stage output drop-down (phf — v20.3.0): each stage card reveals its generated files under a "Output files" summary.
+   The stage heading, status and Build button stay visible; only the file list opens / closes. */
+.stage-outputs{margin-top:12px;border-top:1px solid var(--phf-line,#D8E0EA);padding-top:8px}
+.stage-outputs>summary{cursor:pointer;user-select:none;list-style:none;display:flex;align-items:center;gap:6px;font:800 12px/1.3 var(--phf-ui-font,inherit);color:var(--phf-navy,#1E3A5F);padding:2px 0}
+.stage-outputs>summary::-webkit-details-marker{display:none}
+.stage-outputs>summary::before{content:"▸";font-size:10px;transition:transform .12s ease}
+.stage-outputs[open]>summary::before{content:"▾"}
+.stage-outputs>summary:hover{color:var(--phf-gold-ink,#7A5B00)}
+.stage-outputs>summary:focus-visible{outline:2px solid var(--phf-navy,#1E3A5F);outline-offset:2px;border-radius:6px}
+.stage-outputs .so-count{color:var(--phf-muted,#5F6368);font-weight:600}
+.stage-outputs .stage-output-inline{margin-top:8px}
+@media print{.stage-outputs>.stage-output-inline{display:revert!important}}
