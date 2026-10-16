@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.15.2 (16 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.15.3 (16 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -141,11 +141,14 @@
  *         setting as the supplier sheet's J / K ticks). Supplier, brand, description and SIZE stay tick-less.
  * v1.15.2 (16 Oct 2026): the supplier sheet's J tick covers the WSP and the last price again (as before v1.14.0) — it sets
  *         both OUT pairs; the OUT NEW / CURRENT LAST PRICE tick can still split them for a run. The CURRENT WSP / LAST
- *         PRICE / RRP columns are editable again (v1.15.0 had locked them). */
+ *         PRICE / RRP columns are editable again (v1.15.0 had locked them).
+ * v1.15.3 (16 Oct 2026): the WSP and last price pairs move together on OUT_MERGED_DATA too — tick CURRENT WSP EXGST and
+ *         CURRENT LAST PRICE ticks with it, tick NEW WSP EXGST and NEW LAST PRICE follows (either pair's tick sets both).
+ *         Edited cells look the same on every sheet (merge.css v1.13.5). */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.15.2';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.15.3';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -1384,7 +1387,10 @@
     var R = state.review;
     var cols = R.head.map(function (h, i) { return h === '__EXPORT_VISIBLE__' ? -1 : i; }).filter(function (i) { return i >= 0; });
     if (!wb.outGrid) wb.outGrid = window.PHFSheetGrid.create($('#reviewGrid'), { search: false, onView: function () { renderScopes(); renderOutActions(); outBadge(); },
-      onTick: function (id, on) { if (id.indexOf('cur:') === 0) setKeep(id.slice(4), on); else setKeep(id, !on); } });   // v1.15.1: the price pairs' ticks
+      onTick: function (id, on) {                                                        // v1.15.1: the price pairs' ticks
+        var cur = id.indexOf('cur:') === 0, g = cur ? id.slice(4) : id, keep = cur ? on : !on;
+        (g === 'ws' || g === 'last' ? ['ws', 'last'] : [g]).forEach(function (x) { setKeep(x, keep); });   // v1.15.3: WSP and last price move together
+      } });
     var look = keptLook(window.PHFSheetLook.forSheet(SHEETS.OUT, R.head), R.head, 'out', R.idx['ROW STATUS']);
     look = Object.assign({}, look, { readOnly: outReadOnly(R.head, look.readOnly) });                                         // v1.15.0
     var marks = state.edits.marks[SHEETS.OUT] || {}, mk = {};
@@ -2833,7 +2839,7 @@
     $('#supDelRows').onclick = deleteSelectedRows;
     // v1.6.0: Update in POS ticks, the Discontinue switch and the SUP BRAND filter.
     host.addEventListener('change', function (e) {
-      var k = e.target.closest('[data-keep]'); if (k) { setKeep(k.dataset.keep, !k.checked); if (k.dataset.keep === 'ws') setKeep('last', !k.checked); return; }   // v1.15.2: J = WSP + last price
+      var k = e.target.closest('[data-keep]'); if (k) { setKeep(k.dataset.keep, !k.checked); if (k.dataset.keep === 'ws') setKeep('last', !k.checked); return; }   // v1.15.2 / v1.15.3: J = WSP + last price, both pairs
       if (e.target.id === 'supDiscontinue') { state.opts.discontinue = e.target.checked; optsChanged(); }
     });
     host.addEventListener('click', function (e) {
@@ -3059,7 +3065,7 @@
   function restoreState() {
     return dbTx('readonly', function (st) { return st.get(SESSION_ST); }).then(function (rec) {
       if (!rec) return null;
-      if (rec.opts) { state.opts = { keep: rec.opts.keep || {}, discontinue: rec.opts.discontinue !== false }; delete state.opts.keep.size; }   // v1.15.0: SIZE has no tick any more (v1.15.1: last price has one again)
+      if (rec.opts) { state.opts = { keep: rec.opts.keep || {}, discontinue: rec.opts.discontinue !== false }; delete state.opts.keep.size; if (state.opts.keep.ws) state.opts.keep.last = true; else delete state.opts.keep.last; }   // v1.15.0: SIZE has no tick; v1.15.3: last price follows the WSP
       if (rec.outView) wb.outView = rec.outView;
       refreshSupSheet(); renderScopes();
       if (!rec.dump || !rec.results || !rec.stage || !requiredReady()) return null;

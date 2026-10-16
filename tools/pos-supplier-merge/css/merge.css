@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.13.4 (16 Oct 2026: fill handle on the workbook sheets; v1.13.3 15 Oct storage note; v1.13.2 edited cells and changed Upload ticks orange; v1.13.1 supplier search bar with icon and ×; v1.13.0 14 Oct; v1.11.0 / v1.10.0 / v1.8.0 13 Oct; v1.7.2 12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean v1.13.5 (16 Oct 2026: edited cells the same on every sheet — orange text, orange band, orange edge and corner; v1.13.4 fill handle on the workbook sheets; v1.13.3 15 Oct storage note; v1.13.2 edited cells and changed Upload ticks orange; v1.13.1 supplier search bar with icon and ×; v1.13.0 14 Oct; v1.11.0 / v1.10.0 / v1.8.0 13 Oct; v1.7.2 12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
    v1.13.0: upload checks — Upload ticks in the row numbers, held / check / fixed row edges, the Upload checks list (end of file).
    v1.11.0: no lines between the supplier sheet's bands; the search / add bar; M, N, O ticks; the fill handle (end of file).
    v1.10.0: no inner lines in the heading block of any sheet (end of file).
@@ -153,7 +153,9 @@ body.phf-page-merge .sup-table tbody{user-select:none}
 body.phf-page-merge .sup-table td{position:relative;cursor:cell}
 body.phf-page-merge .sup-table tbody tr td.sup-ro{background:#EEF1F3;color:#7B8794;cursor:default}
 body.phf-page-merge .sup-table tr.sup-heads th.sup-ro{color:var(--phf-gold)}
-body.phf-page-merge .sup-table tbody tr td.is-edited{background:#FFF7E0;color:#7A4F00;font-weight:600}
+body.phf-page-merge .sup-table tbody tr td.is-edited{background:#FFF7E0!important;color:#7A4F00!important;font-weight:600;text-decoration:none;box-shadow:inset 0 0 0 1px #F29900}   /* v1.13.5: as the workbook sheets */
+body.phf-page-merge .sup-table tbody tr td.is-edited::after{content:"";position:absolute;top:0;right:0;border-style:solid;border-width:0 7px 7px 0;border-color:transparent #F29900 transparent transparent}
+body.phf-page-merge .sup-table tbody tr td.is-edited.is-anchor{box-shadow:inset 0 0 0 2px #1A73E8}
 body.phf-page-merge .sup-table tbody tr td.is-sel{background:#D2E3FC;color:#174EA6}
 body.phf-page-merge .sup-table tbody tr td.is-anchor{box-shadow:inset 0 0 0 2px #1A73E8;background:#E8F0FE}
 body.phf-page-merge .sup-table tbody tr td.is-editing{padding:0;overflow:visible;z-index:3}
@@ -290,7 +292,8 @@ body.phf-page-merge .wbg-table tbody td.is-anchor{box-shadow:inset 0 0 0 2px #1A
 /* v1.13.4: fill down on the workbook sheets (sheet-grid v1.8.0) — the corner square, dashed cells while dragging */
 body.phf-page-merge .wbg-table tbody td .wbg-fill{position:absolute;right:0;bottom:0;width:7px;height:7px;background:#1A73E8;border:1px solid #fff;cursor:crosshair;z-index:2;box-sizing:content-box}
 body.phf-page-merge .wbg-table tbody td.is-fill{box-shadow:inset 0 0 0 1px #1A73E8;background-image:repeating-linear-gradient(45deg,rgba(26,115,232,.06) 0 4px,transparent 4px 8px)!important}
-body.phf-page-merge .wbg-table tbody td.is-edited{background-color:#FFF7E0!important;color:#7A4F00!important;font-weight:600}   /* v1.13.2: your change — orange text on an orange band, as on the supplier sheet */
+body.phf-page-merge .wbg-table tbody td.is-edited,body.phf-page-merge .wbg-table tbody tr.wbg-skip td.is-edited,body.phf-page-merge .wbg-grey .wbg-table tbody td.is-edited{background-color:#FFF7E0!important;color:#7A4F00!important;font-weight:600;text-decoration:none;box-shadow:inset 0 0 0 1px #F29900}   /* v1.13.5: the one look everywhere — text, band, edge, corner */
+body.phf-page-merge .wbg-table tbody td.is-edited.is-anchor{box-shadow:inset 0 0 0 2px #1A73E8}   /* v1.13.2: your change — orange text on an orange band, as on the supplier sheet */
 body.phf-page-merge .wbg-table tbody td.is-edited::after{content:"";position:absolute;top:0;right:0;border-style:solid;border-width:0 7px 7px 0;border-color:transparent #F29900 transparent transparent}
 body.phf-page-merge .wbg-table tbody tr.wbg-row-changed td.wbg-rn{background-color:#FFF7E0!important;color:#7A4F00!important;font-weight:700}
 body.phf-page-merge .wbg-table tbody td.is-editing{padding:0;overflow:visible;z-index:6}

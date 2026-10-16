@@ -1,11 +1,17 @@
-# POS New Product Check Clean v1.15.2 (Staff Hub v21.25.6)
+# POS New Product Check Clean v1.15.3 (Staff Hub v21.25.6)
 
-Updated 16 Oct 2026 10:00 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 16 Oct 2026 11:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
 
+v1.15.3 — **WSP and last price move together; edited cells look the same everywhere.** On OUT_MERGED_DATA, tick
+CURRENT WSP EXGST and CURRENT LAST PRICE ticks with it; tick NEW WSP EXGST and NEW LAST PRICE follows (either pair's tick
+sets both, as the supplier sheet's J does). A cell you change has one look on every sheet: orange text on an orange band
+with an orange edge and corner (the supplier sheet had no edge or corner, and a grey "no change" colour could show
+through on the workbook sheets).
+
 v1.15.2 — **J covers the WSP and the last price again; CURRENT price columns editable.** The supplier sheet's SUP WS EXGST
-tick (J) sets both the WSP and the last price, as it did before v1.14.0 — untick it and both OUT pairs go to CURRENT. The
-OUT NEW / CURRENT LAST PRICE tick still works on its own, so the two can be split for a run (WSP kept, last price updated).
+tick (J) sets both the WSP and the last price, as it did before v1.14.0 — untick it and both OUT pairs go to CURRENT. (v1.15.3: the
+OUT last-price tick moves with the WSP tick too.)
 CURRENT WSP EXGST, CURRENT LAST PRICE and CURRENT RRP can be edited again (v1.15.0 had locked them).
 
 v1.15.1 — **The price ticks are back on OUT_MERGED_DATA.** CURRENT / NEW WSP EXGST, CURRENT / NEW LAST PRICE and CURRENT /
