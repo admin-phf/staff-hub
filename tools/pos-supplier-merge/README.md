@@ -1,7 +1,25 @@
-# POS New Product Check Clean v1.15.4 (Staff Hub v21.25.6)
+# POS New Product Check Clean v1.16.0 (Staff Hub v21.25.7)
 
-Updated 16 Oct 2026 14:15 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 16 Oct 2026 17:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.16.0 — **Sort in every column menu, tick boxes with Delete, no INDEX column, a simpler OUT toolbar, discount %.**
+- **Every column menu sorts as well as filters** (OUT_MERGED_DATA, the POS tabs, the SRC tabs): A to Z / Z to A, or on a
+  column of numbers Highest to lowest / Lowest to highest, as in Excel. A view-only sort — the heading shows ▲ / ▼, Sort
+  off puts the sheet's order back; the row numbers travel with their rows.
+- **Tick boxes in the row numbers** of OUT_MERGED_DATA, the SRC tabs and the supplier sheet (the POS tabs keep their Upload
+  ticks). Tick rows — or the corner box for every row shown — and **Delete rows** deletes the ticked rows (with nothing
+  ticked it deletes the selected rows, as before). OUT_MERGED_DATA rows can now be deleted (not added); Undo takes it back.
+- **No INDEX column.** The sheets' own INDEX / POS INDEX column is not shown on any grid — the row numbers are the index.
+  Column letters stay as the Sheet has them.
+- **OUT_MERGED_DATA toolbar:** the row status / price status / brand dropdowns and Reset are gone (the column menus do
+  that); the Sheet view uses the grid's own search, on the same row as the rows count, Delete rows and Undo. The Review
+  columns view keeps its search box.
+- **Supplier sheet:** a plain search bar like the other sheets (the type-a-row Add is gone — paste or Add 5 rows); **Clean
+  up empty rows** (was Clear empty rows).
+- **SUP DISCOUNT PRICE (N) is a discount percentage** off the WSP, never a dollar price (engine-host v1.7.2): 15 = 15 % off
+  (0.15 and "15%" work too) → the last price is WSP × 0.85. A value that is not a percentage between 0 and 100 is ignored.
+  The PRANAON 15.00 rows that were held in v1.6.1 are now 28 ordinary rows at 85 % of the WSP.
 
 v1.15.5 — **One rule for every tick, shown the same way.** Ticked = the column's value goes to POS. Unticked = matched
 products keep what POS has, and OUT_MERGED_DATA shows that existing POS data in the column, greyed — UPDATED SUPPLIER

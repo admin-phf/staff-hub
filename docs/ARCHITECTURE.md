@@ -875,3 +875,14 @@ All implemented stages keep source business files local to the browser and gener
   `m13SZ1RestorePurgedPosWords_` (phrases from `m13MarketingPhrases_`, inserted before the first size token, ≤ 35, skipped
   when a ≥ 4-char prefix of the word is already a token); `inferType(src, size)` with `I_TOPICAL` / `I_CREAM` / `I_CLEANER` /
   `I_FOOD` / `I_POWDER`, called from `refineType` only when `t` is empty. Loaders at ?v=1.7.1.
+
+## Staff Hub v21.25.7 (16 Oct 2026 17:30 AEDT)
+- sheet-grid v1.9.0: `st.sort = { c, dir }` applied in `filter()` (blanks last, numeric compare when `colNumeric(c)`, else
+  `localeCompare` numeric); `picker({ sort: { numeric, dir }, onSort })` renders `.wbg-psort` links; `st.picked` by source
+  row, `pickOn()` = `opts.pick && st.edit && !st.rowFlags`; `deleteSel()` uses `pickedList()` first; `rows: 'delete'`;
+  new `picked()` / `search(q)` methods.
+- app.js v1.16.0: `isIndexHead(h)` filters `cols` for the OUT grid and the wb grid; OUT grid `search: true, pick: true,
+  rows: 'delete'`; `applyReviewFilter` ignores the app search in the Sheet view (`#reviewSearch` hidden there); the
+  dropdown filters are gone. Supplier sheet: `supView.picked` (row objects), `[data-pick]` / `[data-pick-all]` handlers,
+  `deleteSelectedRows` picks first; `supFindSpec` text-only; `supPrefill` unused.
+- engine-host v1.7.2: `discountToPrice()` in the ColVal hook (`SUP DISCOUNT PRICE` → price from the row's WSP).

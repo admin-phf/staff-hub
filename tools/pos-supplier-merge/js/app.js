@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.15.5 (16 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.16.0 (16 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -153,11 +153,18 @@
  *         block's sub id (which shows POS's own) — the POS files already kept POS's Sub ID (verified: 1,753 of 1,753).
  *         UPDATED SUPPLIER (G) greys the same way with B / C unticked. New products always carry the supplier's values.
  *         Unticked, N and G show POS's existing Sub ID / supplier on matched rows (as POS BRAND and POS DESCR already did):
- *         the sheet shows what POS will have. Prices keep showing the new price and its change (v1.15.4). */
+ *         the sheet shows what POS will have. Prices keep showing the new price and its change (v1.15.4).
+ * v1.16.0 (16 Oct 2026): sheet-grid v1.9.0 — every column menu sorts (A–Z / Z–A, highest–lowest) as well as filters; tick
+ *         boxes in the row numbers of OUT_MERGED_DATA and the SRC tabs with Delete rows for the ticked rows (OUT rows can
+ *         be deleted, not added); the sheets' own INDEX / POS INDEX column is not shown (the row numbers are the index);
+ *         OUT_MERGED_DATA's toolbar is the grid's own (search, rows, Delete, Undo on one row) — the row status / price
+ *         status / brand dropdowns are gone (the column menus do that). Supplier sheet: a plain search bar (the type-a-row
+ *         Add is gone), "Clean up empty rows", a tick box on every row with Delete rows for the ticked rows. Engine-host
+ *         v1.7.2: SUP DISCOUNT PRICE (N) is a discount percentage off the WSP, never a dollar price. */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.15.5';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.16.0';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -230,8 +237,8 @@
     // v1.11.0 — M, N: `use` ticks decide whether the column is used at all (unticked = not used), not what POS keeps.
     { id: 'stock', col: 12, use: true, what: 'stock in', upd: [], out: [],
       tip: 'Stock in — ticked: a number here becomes a NEW product’s stock on hand in POS (pos soh in the INSERT file), for a buy-in with stock. Matched products keep POS’s stock (it comes in through receiving). Empty = nothing. Unticked: no stock goes to POS.' },
-    { id: 'disc', col: 13, use: true, what: 'discount price', upd: [], out: [],
-      tip: 'Discount price — ticked: a price here is a one-off extra discount: it becomes the last price. Empty = the last price is the WSP less the ongoing discount. Unticked: the column is not used (the merge runs again).' }
+    { id: 'disc', col: 13, use: true, what: 'discount %', upd: [], out: [],
+      tip: 'Discount % — ticked: a percentage here (15 = 15 % off the WSP) is a one-off extra discount: the last price becomes WSP less that percentage. Empty = the last price is the WSP less the ongoing discount. Unticked: the column is not used (the merge runs again).' }   // v1.16.0: a percentage, never a dollar price
   ];
   function keptGroups(ids) { return KEEP_GROUPS.filter(function (g) { return ids ? ids.indexOf(g.id) >= 0 : state.opts.keep[g.id]; }); }
   function keptNames(list, ids) { var m = {}; keptGroups(ids).forEach(function (g) { g[list].forEach(function (h) { m[h] = 1; }); }); return m; }
@@ -399,12 +406,12 @@
       kind = 'in-page';
       frame = document.createElement('iframe');
       frame.hidden = true; frame.title = 'POS New Product Check Clean engine';
-      frame.src = './engine-frame.html?v=1.7.1';
+      frame.src = './engine-frame.html?v=1.7.2';
       window.addEventListener('message', frameListener);
       document.body.appendChild(frame);
     }
     try {
-      worker = new Worker('./js/engine-worker.js?v=1.7.1');
+      worker = new Worker('./js/engine-worker.js?v=1.7.2');
       kind = 'worker';
       worker.onmessage = function (ev) { onMsg(ev.data); };
       worker.onerror = function (ev) {
@@ -1325,14 +1332,9 @@
     var head = rows[1] || [], idx = {};
     head.forEach(function (h, i) { if (idx[h] === undefined) idx[h] = i; });
     var data = rows.slice(2);
-    var prev = keep ? { q: $('#reviewSearch').value, st: $('#reviewStatus').value, pr: $('#reviewPrice').value, br: $('#reviewBrand').value, page: state.review.page } : null;
+    var prev = keep ? { q: $('#reviewSearch').value, page: state.review.page } : null;   // v1.16.0: no dropdown filters (the column menus sort / filter)
     state.review = { rows: data, head: head, idx: idx, filtered: data, page: 0, hay: data.map(function (r) { return r.join(' ').toUpperCase(); }) };
-    var opts = function (h) { var set = {}; data.forEach(function (r) { var v = String(r[idx[h]] || '').trim(); if (v) set[v] = (set[v] || 0) + 1; }); return Object.keys(set).sort().map(function (v) { return '<option value="' + esc(v) + '">' + esc(cleanTitle(v) || v) + ' (' + fmtN(set[v]) + ')</option>'; }).join(''); };
-    $('#reviewStatus').innerHTML = '<option value="">All row statuses</option>' + opts('ROW STATUS');
-    $('#reviewPrice').innerHTML = '<option value="">All price statuses</option>' + opts('PRICE STATUS');
-    $('#reviewBrand').innerHTML = '<option value="">All brands</option>' + opts('POS BRAND');
     $('#reviewSearch').value = prev ? prev.q : '';
-    if (prev) { ['#reviewStatus', '#reviewPrice', '#reviewBrand'].forEach(function (sel, k) { var v = [prev.st, prev.pr, prev.br][k], el = $(sel); el.value = v; if (el.value !== v) el.value = ''; }); }
     $('#reviewTable thead').innerHTML = '<tr>' + REVIEW_COLS.filter(function (c) { return idx[c.h] !== undefined; }).map(function (c) { return '<th class="' + (c.cls || '') + (c.audit ? ' rv-audit-col' : '') + '">' + esc(c.label || c.h) + '</th>'; }).join('') + '</tr>';
     renderReviewKpis();
     applyReviewFilter(!!prev, prev && prev.page);
@@ -1348,14 +1350,10 @@
     renderOutActions();
   }
   function applyReviewFilter(keep, page) {
-    var R = state.review, q = $('#reviewSearch').value.trim().toUpperCase(), st = $('#reviewStatus').value, pr = $('#reviewPrice').value, br = $('#reviewBrand').value;
-    var si = R.idx['ROW STATUS'], pi = R.idx['PRICE STATUS'], bi = R.idx['POS BRAND'];
+    var R = state.review, q = wb.outView === 'sheet' ? '' : $('#reviewSearch').value.trim().toUpperCase();   // v1.16.0: the Sheet view searches in the grid
     R.filtered = []; R.fidx = [];
     for (var i = 0; i < R.rows.length; i++) {
       var r = R.rows[i];
-      if (st && String(r[si]).trim() !== st) continue;
-      if (pr && String(r[pi]).trim() !== pr) continue;
-      if (br && String(r[bi]).trim() !== br) continue;
       if (q && R.hay[i].indexOf(q) < 0) continue;
       R.filtered.push(r); R.fidx.push(i + 3);
     }
@@ -1378,6 +1376,7 @@
     var sheetView = wb.outView === 'sheet';
     $('#reviewTableWrap').hidden = sheetView; $('#reviewPager').hidden = sheetView; $('#reviewGrid').hidden = !sheetView;
     $('#reviewKpis').hidden = sheetView;      // v1.8.0: the Sheet view has the same totals in row 1, above the columns
+    $('#reviewSearch').hidden = sheetView;    // v1.16.0: the Sheet view has the grid's own search, on the row with Delete / Undo
     document.querySelectorAll('[data-out-view]').forEach(function (x) { x.classList.toggle('is-on', x.dataset.outView === wb.outView); });
     outBadge();
     if (sheetView) { drawOutGrid(keep); return; }
@@ -1398,8 +1397,8 @@
   }
   function drawOutGrid(keep) {
     var R = state.review;
-    var cols = R.head.map(function (h, i) { return h === '__EXPORT_VISIBLE__' ? -1 : i; }).filter(function (i) { return i >= 0; });
-    if (!wb.outGrid) wb.outGrid = window.PHFSheetGrid.create($('#reviewGrid'), { search: false, onView: function () { renderScopes(); renderOutActions(); outBadge(); },
+    var cols = R.head.map(function (h, i) { return h === '__EXPORT_VISIBLE__' || isIndexHead(h) ? -1 : i; }).filter(function (i) { return i >= 0; });   // v1.16.0: no INDEX column
+    if (!wb.outGrid) wb.outGrid = window.PHFSheetGrid.create($('#reviewGrid'), { search: true, pick: true, onView: function () { renderScopes(); renderOutActions(); outBadge(); },   // v1.16.0: the grid's own search and tick boxes
       onTick: function (id, on) {                                                        // v1.15.1: the price pairs' ticks
         var cur = id.indexOf('cur:') === 0, g = cur ? id.slice(4) : id, keep = cur ? on : !on;
         (g === 'ws' || g === 'last' ? ['ws', 'last'] : [g]).forEach(function (x) { setKeep(x, keep); });   // v1.15.3: WSP and last price move together
@@ -1412,7 +1411,7 @@
       head: R.head, rows: R.filtered, cols: cols, rowNumbers: R.fidx, look: look, marks: mk, keepView: !!keep, ticks: priceTicks(R.head),
       totals: function (vis) { return look.totals(R.rows, vis); },
       edit: {
-        readOnly: look.readOnly, cellLock: keptLock(R.head, 'out', R.idx['ROW STATUS']), rows: false, canUndo: (state.edits.undo[SHEETS.OUT] || 0) > 0,
+        readOnly: look.readOnly, cellLock: keptLock(R.head, 'out', R.idx['ROW STATUS']), rows: 'delete', canUndo: (state.edits.undo[SHEETS.OUT] || 0) > 0,   // v1.16.0: rows can be deleted
         onChange: function (ch) { engineSheetEdit(SHEETS.OUT, ch, function (i) { return R.fidx[i]; }); },
         onUndo: function () { engineSheetUndo(SHEETS.OUT); }
       }
@@ -1441,6 +1440,7 @@
     });
     return t;
   }
+  function isIndexHead(h) { var t = String(h == null ? '' : h).trim().toUpperCase(); return t === 'INDEX' || t === 'POS INDEX'; }   // v1.16.0: the row numbers are the index
   function outReadOnly(head, ro) {
     var o = Object.assign({}, ro || {});
     head.forEach(function (h, i) { if (OUT_CURRENT[h] && !o[i]) o[i] = OUT_CURRENT[h]; });
@@ -1497,15 +1497,13 @@
   }
   function wireReview() {
     var t; $('#reviewSearch').oninput = function () { clearTimeout(t); t = setTimeout(function () { applyReviewFilter(); }, 200); };
-    ['#reviewStatus', '#reviewPrice', '#reviewBrand'].forEach(function (s) { $(s).onchange = function () { applyReviewFilter(); }; });
-    $('#reviewReset').onclick = function () { $('#reviewSearch').value = ''; $('#reviewStatus').value = ''; $('#reviewPrice').value = ''; $('#reviewBrand').value = ''; applyReviewFilter(); };
     $('#reviewPrev').onclick = function () { state.review.page--; renderReviewPage(); };
     $('#reviewNext').onclick = function () { state.review.page++; renderReviewPage(); };
     $('#reviewTable').addEventListener('click', function (e) { var c = e.target.closest('.rv-clamp'); if (c) c.classList.toggle('is-open'); });
     document.querySelectorAll('[data-out-view]').forEach(function (b) {
       b.onclick = function () {
         wb.outView = b.dataset.outView;
-        if (state.review) renderReviewPage();
+        if (state.review) applyReviewFilter(true, state.review.page);   // v1.16.0: the search applies to the view shown
       };
     });
   }
@@ -1588,7 +1586,7 @@
     empty.hidden = !!(rows.length > 2) || !canStart;
     if (!empty.hidden) empty.innerHTML = '<strong>' + esc(inputDef(t.input).title) + ' is not loaded.</strong> Drop the ' + esc(t.sheet) + ' file in Drop All, or click a cell below and type or paste (Ctrl+V) rows to start the table — it is saved in this browser.';
     grid.hidden = false;
-    if (!wb.grid) wb.grid = window.PHFSheetGrid.create(grid, { search: true, onView: function () { var tt = wbTab(wb.active); if (tt.engine) renderWbActions(tt); wbBadge(); },
+    if (!wb.grid) wb.grid = window.PHFSheetGrid.create(grid, { search: true, pick: true, onView: function () { var tt = wbTab(wb.active); if (tt.engine) renderWbActions(tt); wbBadge(); },   // v1.16.0 pick
       onRowTick: function (i, on) { var tt = wbTab(wb.active); if (tt.engine) setUploadTick(tt.sheet, i + 3, on); } });   // v1.13.0
     var head = rows[1] || [], data = rows.slice(2), look = window.PHFSheetLook.forSheet(t.sheet, head);
     var edit = null, marks = null;
@@ -1602,6 +1600,7 @@
     var key = t.id + ':' + state.rev + ':' + (state.results[t.sheet] ? 'r' : 'i');
     var rf = t.engine && state.results[t.sheet] ? rowFlagsFor(t.sheet) : null;   // v1.13.0
     wb.grid.set({ head: head, rows: data, look: look, marks: marks, edit: edit, keepView: !!(keep && wb.gridFor === key) || !!keep,
+      cols: head.map(function (h, i) { return isIndexHead(h) ? -1 : i; }).filter(function (i) { return i >= 0; }),   // v1.16.0: no INDEX / POS INDEX column
       flags: t.id === 'upd' && state.results[t.sheet] && state.results.keep_generate && state.results.keep_generate.length ? keptFlags(head, 'upd', state.results.keep_generate) : null,
       rowFlags: rf, rowFilter: rf && wb.uploadView && wb.uploadView.sheet === t.sheet ? uploadRowFilter(t.sheet, wb.uploadView.level) : null,
       totals: function (vis) { return look.totals(data, vis); } });
@@ -1895,7 +1894,7 @@
   // v1.4.0: every row is in the sheet (no pages). Only the rows near the scroll position are drawn, with gap rows above /
   // below standing in for the rest, so a large list scrolls as quickly as a short one.
   var SUP_BUF = 40, ADDED = 'Added rows', SUP_UNDO_MAX = 40;
-  var supView = { q: '', undo: [], note: '', noteType: 'info', sel: null, vis: [], editing: null, rowH: 27, win: { start: 0, end: 0 }, raf: 0, brands: null };
+  var supView = { q: '', undo: [], note: '', noteType: 'info', sel: null, vis: [], editing: null, rowH: 27, win: { start: 0, end: 0 }, raf: 0, brands: null, picked: [] };   // v1.16.0 picked rows
 
   function parseTsv(text) {
     var s = String(text || '').replace(/\r\n?/g, '\n'), rows = [], row = [], f = '', q = false, i = 0, n = s.length;
@@ -2362,6 +2361,7 @@
         var cw = 0;
         // H–O show tabular figures (every digit as wide as 0), so their digits are measured as 0s; 3px to spare.
         longest[c].forEach(function (t) { cw = Math.max(cw, supTextW((c === 15 ? 'italic 700 ' : '') + cell, c >= 7 && c <= 14 ? t.replace(/\d/g, '0') : t) + 3); });
+        if (c === 0) cw += 20;                                                                   // v1.16.0: the row tick box
         // v1.8.0: row 1 (totals) — the value on one line must fit (its digits as 0s); the label may wrap at a word.
         var x = tot[c], tmin = 0, twant = 0;
         if (x && x.st) x.lines.forEach(function (l) { twant = Math.max(twant, supTextW('700 ' + (hfs + 0.5) + 'px ' + fam, l) + 3); });
@@ -2423,13 +2423,12 @@
       '<div class="sup-scope"><div class="sup-scope-brands" id="supScope"></div><div class="sup-scope-lib" data-lib-sup-host hidden></div></div>' +
       // v1.11.0: one wide search / add bar, started with the supplier (name | number | ) — type over it; Add 5 rows,
       // Clear empty rows.
-      '<div class="sup-tools"><div class="sup-find"><span class="sup-find-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="text" id="supSearch" spellcheck="false" autocomplete="off" placeholder="Search every column — or type a row: ' + esc(SUP_HEADS.slice(1, 15).join(' | ')) + '" aria-label="Search the supplier rows, or type a new row and Add it"><button type="button" class="sup-find-clear" id="supSearchClear" aria-label="Clear" hidden>✕</button></span>' +
-      '<span class="sup-find-hint" id="supFindHint" aria-live="polite"></span>' +
-      '<button type="button" class="btn small primary" id="supAddBtn" title="Add the row typed in the bar (Enter). The barcode is checked first: already on the sheet = shown, not added; same brand and Sub ID or WS = added with a warning.">Add</button></div>' +
+      '<div class="sup-tools"><div class="sup-find"><span class="sup-find-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="text" id="supSearch" spellcheck="false" autocomplete="off" placeholder="Search this sheet…" aria-label="Search this sheet"><button type="button" class="sup-find-clear" id="supSearchClear" aria-label="Clear" hidden>✕</button></span>' +
+      '</div>' +   // v1.16.0: a plain search bar (the type-a-row Add is gone)
       '<button type="button" class="btn small primary" id="supPasteBtn" title="Paste the clipboard at the selected cell (or add the rows at the end when no cell is selected)">Paste</button>' +
       '<button type="button" class="btn small" id="supAdd5" title="Add 5 empty rows at the end — type in them, paste, or fill down (drag the corner of a cell, or Ctrl+D)">Add 5 rows</button>' +
-      '<button type="button" class="btn small" id="supClearEmpty" title="Remove every row with nothing from D (barcode) to O — the supplier name / number alone does not count">Clear empty rows</button>' +
-      '<button type="button" class="btn small" id="supDelRows" title="Delete the selected rows (click an INDEX number, Shift+click another to select several)">Delete rows</button>' +
+      '<button type="button" class="btn small" id="supClearEmpty" title="Remove every row with nothing from D (barcode) to O — the supplier name / number alone does not count">Clean up empty rows</button>' +
+      '<button type="button" class="btn small" id="supDelRows" title="Delete the ticked rows (or the selected rows: click an INDEX number, Shift+click another to select several)">Delete rows</button>' +
       '<button type="button" class="btn small" id="supUndo" title="Undo the last change (Ctrl+Z)">Undo</button>' +
       '<button type="button" class="btn small" id="supClearAdded" title="Remove every row typed or pasted here (dropped supplier files stay)">Clear added rows</button>' +
       '<button type="button" class="btn small" id="supCopyHeads" title="Copy the 16 headings, ready to paste into Excel or Google Sheets as a template">Copy headings</button>' +
@@ -2443,6 +2442,7 @@
       '</tr><tr class="sup-heads">' + SUP_HEADS.map(function (h, i) {
         var g = KEEP_GROUPS.filter(function (x) { return x.col === i || (x.cols || []).indexOf(i) >= 0; })[0];   // v1.15.0: B and C share the supplier tick
         return '<th class="sup-c' + i + (i === 0 || i === 15 ? ' sup-ro' : '') + '"><span class="sup-hl">' + esc(h) + '</span><span class="sup-tick">' +
+          (i === 0 ? '<label class="sup-pick sup-pick-all" title="Tick every row shown (untick to clear)"><input type="checkbox" data-pick-all aria-label="Tick every row shown"></label>' : '') +
           (g ? '<label class="sup-keep" title="' + esc(g.tip || ('Update in POS — ticked: POS ' + g.what + ' is updated from this column. Unticked: POS keeps its current ' + g.what + ' for matched products.')) + '"><input type="checkbox" data-keep="' + g.id + '" aria-label="Update in POS: ' + esc(h) + '"></label>' : '') + '</span></th>';
       }).join('') + '</tr></thead><tbody id="supBody"></tbody></table></div>' +
       '<div class="review-pager sup-foot"><span class="sup-sel-info" id="supSelInfo"></span><span id="supPage"></span></div></div>';
@@ -2452,7 +2452,7 @@
     var finp = $('#supSearch');                                        // v1.11.0: the bar starts with the supplier
     var fclr = $('#supSearchClear');                                   // v1.14.4: the × as on the other search bars
     if (fclr && finp) { fclr.onclick = function () { finp.value = ''; finp.dispatchEvent(new Event('input', { bubbles: true })); finp.focus(); }; finp.addEventListener('input', function () { fclr.hidden = !finp.value; }); fclr.hidden = !finp.value; }
-    if (finp && !finp.value && document.activeElement !== finp) { var pf = supPrefill(); if (pf) { finp.value = pf; supView.q = pf; } }
+
     var model = supModel(), bsel = null, spec = supFindSpec(supView.q);
     if (supView.brands) { bsel = {}; supView.brands.forEach(function (b) { bsel[b] = 1; }); }
     var vis = bsel ? model.items.filter(function (it) { return bsel[supBrandOf(it.ref.row)]; }) : model.items;
@@ -2488,7 +2488,7 @@
     $('#supPage').textContent = q || bsel ? fmtN(vis.length) + ' of ' + fmtN(model.items.length) + ' rows ' + (q && bsel ? 'match the search and the SUP BRAND filter' : q ? 'match the search' : 'in the SUP BRAND filter') : 'All ' + fmtN(model.items.length) + ' row' + (model.items.length === 1 ? '' : 's') + ' · scroll the sheet to see every row';
     $('#supUndo').disabled = !supView.undo.length || state.busy;
     $('#supClearAdded').disabled = !an || state.busy;
-    ['#supPasteBtn', '#supAdd5', '#supAddBtn'].forEach(function (s) { $(s).disabled = state.busy; });
+    ['#supPasteBtn', '#supAdd5'].forEach(function (s) { $(s).disabled = state.busy; });
     $('#supClearEmpty').disabled = state.busy || !model.items.some(function (it) { return supRowEmpty(it.ref.row); });
     supSay(supView.note, supView.noteType);
     paintSel();
@@ -2515,9 +2515,11 @@
     for (var c = 0; c < 16; c++) {
       var s = supCellText(it, c), mark = added ? ed[c] === 2 : !!ed[c];      // v1.8.0: see setSupCell
       var cls = 'sup-c' + c + (c === 0 || c === 15 ? ' sup-ro' : '') + (c === 15 ? ' sup-status ' + supStatusClass(s) : '') + (mark ? ' is-edited' : '');
-      cells += '<td class="' + cls + '" data-r="' + r + '" data-c="' + c + '"' + ((c === 6 || c === 15) && s ? ' title="' + esc(s) + '"' : c === 0 && added ? ' title="Added on this page"' : '') + '>' + esc(s) + '</td>';
+      var picked = c === 0 && supView.picked.indexOf(it.ref.row) >= 0;   // v1.16.0: a tick box in the INDEX cell
+      cells += '<td class="' + cls + '" data-r="' + r + '" data-c="' + c + '"' + ((c === 6 || c === 15) && s ? ' title="' + esc(s) + '"' : c === 0 && added ? ' title="Added on this page"' : '') + '>' +
+        (c === 0 ? '<label class="sup-pick" title="Tick rows, then Delete rows"><input type="checkbox" data-pick="' + r + '"' + (picked ? ' checked' : '') + (state.busy ? ' disabled' : '') + ' aria-label="Tick row ' + (r + 3) + '"></label>' : '') + esc(s) + '</td>';
     }
-    return '<tr class="' + (added ? 'is-added' : '') + (it.out ? ' is-out' : '') + band + '"' + (it.out ? ' title="Not in the last merge (the SUP BRAND filter left this brand out)"' : '') + '>' + cells + '</tr>';
+    return '<tr class="' + (added ? 'is-added' : '') + (it.out ? ' is-out' : '') + (supView.picked.indexOf(it.ref.row) >= 0 ? ' is-picked' : '') + band + '"' + (it.out ? ' title="Not in the last merge (the SUP BRAND filter left this brand out)"' : '') + '>' + cells + '</tr>';
   }
   function supGap(px) { return px > 0 ? '<tr class="sup-gap" aria-hidden="true"><td colspan="16" style="height:' + Math.round(px) + 'px"></td></tr>' : ''; }
   function drawSupRows() {
@@ -2560,14 +2562,16 @@
     var b = selBox(), s = supView.sel;
     body.querySelectorAll('td.is-sel,td.is-anchor').forEach(function (td) { td.classList.remove('is-sel', 'is-anchor'); });
     var info = $('#supSelInfo');
-    if (!b) { if (info) info.textContent = ''; $('#supDelRows').disabled = true; return; }
+    var np = supView.picked.length, delBtn = $('#supDelRows');
+    delBtn.textContent = np ? 'Delete ' + fmtN(np) + ' ticked row' + (np === 1 ? '' : 's') : 'Delete rows';
+    if (!b) { if (info) info.textContent = ''; delBtn.disabled = state.busy || !np; return; }
     body.querySelectorAll('td[data-r]').forEach(function (td) {
       var r = +td.dataset.r, c = +td.dataset.c;
       if (r >= b.r1 && r <= b.r2 && c >= b.c1 && c <= b.c2) td.classList.add('is-sel');
       if (r === s.r2 && c === s.c2) td.classList.add('is-anchor');
     });
     var rowsSel = Math.min(b.r2, supView.vis.length - 1) - b.r1 + 1;
-    $('#supDelRows').disabled = state.busy || rowsSel < 1 || b.r1 >= supView.vis.length;
+    $('#supDelRows').disabled = state.busy || (!np && (rowsSel < 1 || b.r1 >= supView.vis.length));
     // v1.11.0: the fill handle (drag down to fill) on the selection's bottom-right cell, B–O.
     body.querySelectorAll('.sup-fill').forEach(function (x) { x.remove(); });
     var corner = !state.busy && b.c2 >= 1 && b.c1 <= 14 && b.r2 < supView.vis.length ? supCellEl(b.r2, Math.min(14, b.c2)) : null;
@@ -2640,10 +2644,15 @@
     });
   }
   function deleteSelectedRows() {
-    var b = selBox(); if (!b) return;
     var targets = [];
-    for (var r = b.r1; r <= b.r2; r++) if (supView.vis[r]) targets.push(supView.vis[r].ref);
+    if (supView.picked.length) {                                                            // v1.16.0: the ticked rows first
+      supModel().items.forEach(function (it) { if (supView.picked.indexOf(it.ref.row) >= 0) targets.push(it.ref); });
+    } else {
+      var b = selBox(); if (!b) return;
+      for (var r = b.r1; r <= b.r2; r++) if (supView.vis[r]) targets.push(supView.vis[r].ref);
+    }
     if (!targets.length) return;
+    supView.picked = [];
     supMutate(function () {
       targets.forEach(function (ref) { var i = ref.e.data.indexOf(ref.row); if (i >= 0) ref.e.data.splice(i, 1); });
       return { msg: fmtN(targets.length) + ' row' + (targets.length === 1 ? '' : 's') + ' deleted.', type: 'success' };
@@ -2672,7 +2681,7 @@
   function supUp(v) { return String(v == null ? '' : v).trim().toUpperCase(); }
   function supFindSpec(raw) {
     var s = String(raw == null ? '' : raw);
-    if (s.indexOf('|') < 0) { var t = s.trim().toUpperCase(); return t ? { text: t } : null; }
+    { var t = s.trim().toUpperCase(); return t ? { text: t } : null; }   // v1.16.0: a plain search (the type-a-row form is gone)
     var p = s.split('|').map(function (x) { return x.trim(); });
     var ws = p[8] ? Number(p[8].replace(/[$,\s]/g, '')) : NaN;
     var spec = { slots: p, bc: supDigits(p[2]), br: supUp(p[3]), sub: supUp(p[4]), prod: supUp(p[5]), ws: isFinite(ws) && ws > 0 ? ws : 0 };
@@ -2695,7 +2704,7 @@
   }
   // Under the bar: the column the cursor is in, and what the search found.
   function supFindHint() {
-    var el = $('#supFindHint'), inp = $('#supSearch'); if (!el || !inp) return;
+    var el = $('#supFindHint'), inp = $('#supSearch'); if (!el || !inp) return;   // v1.16.0: nothing to show (the element is gone)
     var v = inp.value, at = inp.selectionStart == null ? v.length : inp.selectionStart, spec = supView.find, txt = '';
     if (v.indexOf('|') >= 0) {
       var k = v.slice(0, at).split('|').length;                   // slot 1 = B
@@ -2726,7 +2735,7 @@
   }
   function supFindReset() {
     var inp = $('#supSearch'); if (!inp) return;
-    inp.value = supPrefill(); supView.q = inp.value; supView.sel = null;
+    inp.value = ''; supView.q = ''; supView.sel = null;   // v1.16.0: no prefill
   }
   function supRowEmpty(row) { for (var c = 3; c <= 14; c++) if (String(row[c] == null ? '' : row[c]).trim() !== '') return false; return true; }
   function supFindAdd() {
@@ -2828,14 +2837,11 @@
     var host = $('#supSheet'); if (!host) return;
     var t, find = $('#supSearch');
     if (!supView.q) supFindReset(); else find.value = supView.q;
-    find.oninput = function () { supFindHint(); clearTimeout(t); t = setTimeout(function () { supView.q = find.value; supView.sel = null; $('#supWrap').scrollTop = 0; drawSup(); }, 200); };
-    ['keyup', 'click', 'focus'].forEach(function (ev) { find.addEventListener(ev, supFindHint); });
-    find.addEventListener('focus', function () { if (find.value === supPrefill()) setTimeout(function () { find.setSelectionRange(find.value.length, find.value.length); }, 0); });
+    find.oninput = function () { clearTimeout(t); t = setTimeout(function () { supView.q = find.value; supView.sel = null; $('#supWrap').scrollTop = 0; drawSup(); }, 200); };
     find.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') { e.preventDefault(); clearTimeout(t); supView.q = find.value; if (find.value.indexOf('|') >= 0) supFindAdd(); else drawSup(); }
-      else if (e.key === 'Escape') { e.preventDefault(); clearTimeout(t); supFindReset(); drawSup(); find.setSelectionRange(find.value.length, find.value.length); }
+      if (e.key === 'Enter') { e.preventDefault(); clearTimeout(t); supView.q = find.value; drawSup(); }
+      else if (e.key === 'Escape') { e.preventDefault(); clearTimeout(t); supFindReset(); drawSup(); }
     });
-    $('#supAddBtn').onclick = function () { clearTimeout(t); supView.q = find.value; supFindAdd(); };
     $('#supAdd5').onclick = supAddFive;
     $('#supClearEmpty').onclick = supClearEmpty;
     $('#supWrap').addEventListener('scroll', supOnScroll, { passive: true });
@@ -2853,6 +2859,10 @@
     $('#supDelRows').onclick = deleteSelectedRows;
     // v1.6.0: Update in POS ticks, the Discontinue switch and the SUP BRAND filter.
     host.addEventListener('change', function (e) {
+      var pk = e.target.closest('input[data-pick]');                                        // v1.16.0: row tick boxes
+      if (pk) { var it = supView.vis[+pk.dataset.pick]; if (it) { var ix = supView.picked.indexOf(it.ref.row); if (pk.checked && ix < 0) supView.picked.push(it.ref.row); if (!pk.checked && ix >= 0) supView.picked.splice(ix, 1); var ptr = pk.closest('tr'); if (ptr) ptr.classList.toggle('is-picked', pk.checked); } paintSel(); return; }
+      var pa = e.target.closest('input[data-pick-all]');
+      if (pa) { supView.picked = pa.checked ? supView.vis.map(function (it) { return it.ref.row; }) : []; drawSupRows(); return; }
       var k = e.target.closest('[data-keep]'); if (k) { setKeep(k.dataset.keep, !k.checked); if (k.dataset.keep === 'ws') setKeep('last', !k.checked); return; }   // v1.15.2 / v1.15.3: J = WSP + last price, both pairs
       if (e.target.id === 'supDiscontinue') { state.opts.discontinue = e.target.checked; optsChanged(); }
     });
@@ -2866,7 +2876,7 @@
         window.PHFSheetGrid.picker({ anchor: bf, title: 'SUP BRAND', values: supBrandList().map(function (x) { return { v: x.v, n: x.n }; }), selected: supView.brands, onApply: setSupBrands });
       }
     });
-    $('#supTable').querySelector('thead').addEventListener('mousedown', function (e) { if (e.target.closest('.sup-keep,.sup-filt')) e.stopPropagation(); });
+    $('#supTable').querySelector('thead').addEventListener('mousedown', function (e) { if (e.target.closest('.sup-keep,.sup-filt,.sup-pick')) e.stopPropagation(); });
     $('#supClearAdded').onclick = function () {
       var e = addedEntry(false); if (!e) return;
       var n = e.data.length;
@@ -2884,6 +2894,7 @@
     };
     var body = $('#supBody'), dragging = false;
     body.addEventListener('mousedown', function (e) {
+      if (e.target.closest('.sup-pick')) return;                       // v1.16.0: the row tick box
       if (e.target.classList.contains('sup-fill')) {                 // v1.11.0: start a fill-down drag
         var fb = selBox(); if (!fb || state.busy) return;
         if (supView.editing) commitEdit();

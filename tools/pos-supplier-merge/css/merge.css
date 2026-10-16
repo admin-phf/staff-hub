@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.13.6 (16 Oct 2026: edited cells the same on every sheet — the SUP OVERRIDE PENDING look, #E37400 bold on #FEF3E2; v1.13.4 fill handle on the workbook sheets; v1.13.3 15 Oct storage note; v1.13.2 edited cells and changed Upload ticks orange; v1.13.1 supplier search bar with icon and ×; v1.13.0 14 Oct; v1.11.0 / v1.10.0 / v1.8.0 13 Oct; v1.7.2 12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean v1.14.0 (16 Oct 2026: sort in the column menus, row tick boxes with Delete, no INDEX column, OUT toolbar; v1.13.6 edited cells the same on every sheet — the SUP OVERRIDE PENDING look, #E37400 bold on #FEF3E2; v1.13.4 fill handle on the workbook sheets; v1.13.3 15 Oct storage note; v1.13.2 edited cells and changed Upload ticks orange; v1.13.1 supplier search bar with icon and ×; v1.13.0 14 Oct; v1.11.0 / v1.10.0 / v1.8.0 13 Oct; v1.7.2 12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
    v1.13.0: upload checks — Upload ticks in the row numbers, held / check / fixed row edges, the Upload checks list (end of file).
    v1.11.0: no lines between the supplier sheet's bands; the search / add bar; M, N, O ticks; the fill handle (end of file).
    v1.10.0: no inner lines in the heading block of any sheet (end of file).
@@ -359,6 +359,19 @@ body.phf-page-merge .wbg-pop.wbg-pick{position:fixed;z-index:60;width:300px;max-
 body.phf-page-merge .wbg-plinks{display:flex;align-items:center;gap:10px;margin:0 0 4px;font-size:11.5px}
 body.phf-page-merge .wbg-plink{border:0;background:none;padding:0;color:#0B57D0;font:700 11.5px/1.2 var(--phf-font);cursor:pointer}
 body.phf-page-merge .wbg-plink:hover{text-decoration:underline}
+/* v1.14.0: sort links in the column menu, the sort mark in the heading, row tick boxes (pick) and the corner tick */
+body.phf-page-merge .wbg-psort{display:flex;flex-wrap:wrap;gap:6px 12px;margin:0 0 8px;padding:0 0 8px;border-bottom:1px solid #E1E3E6;font-size:11.5px}
+body.phf-page-merge .wbg-plink.is-on{color:#1E3A5F;text-decoration:underline}
+body.phf-page-merge .wbg-ptitle2{margin-top:2px}
+body.phf-page-merge .wbg-sortmark{font-size:9px;color:#1A73E8;margin-left:3px;vertical-align:middle}
+body.phf-page-merge .wbg-table tr.wbg-headrow th.wbg-sorted{color:#1A73E8}
+body.phf-page-merge .wbg-table tbody td.wbg-rn .wbg-rpick,body.phf-page-merge .wbg-table th.wbg-rn .wbg-pick-all{display:inline-flex;align-items:center;vertical-align:middle;margin:0 4px 0 0;cursor:pointer}
+body.phf-page-merge .wbg-table tbody td.wbg-rn .wbg-rpick input,body.phf-page-merge .wbg-table th.wbg-rn .wbg-pick-all input{width:12px;height:12px;margin:0;accent-color:#1E3A5F;cursor:pointer}
+body.phf-page-merge .wbg-table tbody tr.wbg-picked td{background-color:#E8F0FE!important}
+body.phf-page-merge .wbg-table tbody tr.wbg-picked td.wbg-rn{color:#1E3A5F;font-weight:700}
+body.phf-page-merge .sup-table td.sup-c0 .sup-pick,body.phf-page-merge .sup-table th.sup-c0 .sup-pick{display:inline-flex;align-items:center;vertical-align:middle;margin:0 4px 0 0;cursor:pointer}
+body.phf-page-merge .sup-table .sup-pick input{width:12px;height:12px;margin:0;accent-color:#1E3A5F;cursor:pointer}
+body.phf-page-merge .sup-table tbody tr.is-picked td{background:#E8F0FE}
 body.phf-page-merge .wbg-pcount{margin-left:auto;color:var(--phf-muted);font-weight:600}
 body.phf-page-merge label.wbg-pv{align-items:center;justify-content:flex-start}
 body.phf-page-merge label.wbg-pv input{margin:0;width:14px;height:14px;flex:0 0 auto;accent-color:#0B57D0}

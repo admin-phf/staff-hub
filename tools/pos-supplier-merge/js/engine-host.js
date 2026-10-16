@@ -1,4 +1,7 @@
-/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.7.1 (16 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.7.2 (16 Oct 2026)
+ * v1.7.2: SUP DISCOUNT PRICE (N) is a discount PERCENTAGE off the WSP (15 = 15 %, 0.15 too, "15%" too), never a dollar
+ *   price: the script reads it as the last price it works out to — WSP × (1 − N/100). A value that is not a percentage
+ *   between 0 and 100 is ignored (the ongoing discount applies as usual).
  * v1.7.1: descriptions — a word the script's must-keep pass re-adds is dropped when the description already has it inside
  *   another token (NIGHT+L … L, WOMEN'S … WOMEN, CAT'S … CAT); a marketing word the script strips (BIOACTIVE, HIGH
  *   POTENCY …) stays when the matched POS description has it (BIOC UBIQ BIOACTIVE 150MG 30C). TYPE (AM) filled by
@@ -343,6 +346,15 @@
     });
     return out;
   }
+  // v1.7.2: N is a percentage off the WSP → the last price the script expects (a number), or '' when it is not usable.
+  function discountToPrice(v, wspRaw) {
+    var t = String(v == null ? '' : v).trim(); if (!t) return '';
+    var pct = Number(t.replace(/[%\s,]/g, '')); if (!isFinite(pct) || pct <= 0) return '';
+    if (pct < 1) pct = pct * 100;                                                              // 0.15 = 15 %
+    if (pct >= 100) return '';                                                                 // not a percentage
+    var wsp = Number(String(wspRaw == null ? '' : wspRaw).replace(/[$,\s]/g, '')); if (!isFinite(wsp) || wsp <= 0) return '';
+    return (Math.round(wsp * (1 - pct / 100) * 10000) / 10000).toFixed(4);
+  }
   function stripNote(v) { return typeof v === 'string' && /SELL\s*(?:THROUGH|THRU)/i.test(v) ? v.replace(SELL_THRU, ' ').replace(/\s+/g, ' ').trim() : v; }   // v1.7.0: every form
   function installSellThruHooks() {
     // The script reads SUP PRODUCT through m13ColVal_ / hbbColVal_ with 'SUP PRODUCT' first in the list.
@@ -350,7 +362,9 @@
       var orig = G[name]; if (typeof orig !== 'function') return;
       G[name] = function (row, map, candidates) {
         var v = orig.apply(this, arguments);
-        return candidates && candidates[0] === 'SUP PRODUCT' ? stripNote(v) : v;
+        if (candidates && candidates[0] === 'SUP PRODUCT') return stripNote(v);
+        if (candidates && candidates[0] === 'SUP DISCOUNT PRICE') return discountToPrice(v, orig.call(this, row, map, ['SUP WS EXGST', 'SUP WSP', 'WSP EXGST', 'WSP']));   // v1.7.2
+        return v;
       };
     });
     var origP = G.m13PolishColumnPDescription_;

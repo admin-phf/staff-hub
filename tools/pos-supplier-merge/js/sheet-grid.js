@@ -1,4 +1,8 @@
-/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.8.0 (16 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.9.0 (16 Oct 2026)
+ * v1.9.0: the column menu sorts as well as filters — A to Z / Z to A, or for a column of numbers Highest to lowest / Lowest
+ * to highest (a view-only sort; the heading shows ▲ / ▼; Sort off puts the sheet's order back). create(host, { pick: true })
+ * puts a tick box in every row number (and one in the corner for the rows shown): Delete rows then deletes the ticked
+ * rows (else the selected rows). edit.rows: 'delete' = rows can be deleted but not added.
  * v1.8.0: fill down as in Excel / Google Sheets — the small blue square at the corner of the selection: drag it down and
  * the selection repeats into the rows dragged over (read-only / locked cells are skipped); Ctrl+D (⌘D) fills a selection
  * down from its first row (one cell selected: the cell above fills it). edit.readOnly[col] may be a string — the reason
@@ -89,7 +93,7 @@
     var count = host.querySelector('.wbg-count'), tools = host.querySelector('.wbg-edit-tools'), noteEl = host.querySelector('.wbg-note');
     var filtInfo = host.querySelector('.wbg-filters'), selInfo = host.querySelector('.wbg-sel');
     var st = { head: [], rows: [], cols: [], vis: [], q: '', hay: null, look: null, totals: null, firstRow: 3, nums: null, rowH: 25, win: { start: 0, end: 0 },
-      raf: 0, edit: null, sel: null, editing: null, busy: false, filters: {}, marks: null, flags: null, ticks: null, dim: null, rowFlags: null, rowFilter: null, visAll: [] };
+      raf: 0, edit: null, sel: null, editing: null, busy: false, filters: {}, marks: null, flags: null, ticks: null, dim: null, rowFlags: null, rowFilter: null, visAll: [], sort: null, picked: {} };   // v1.9.0 sort, picked
     function viewChanged() { if (opts.onView) { try { opts.onView(); } catch (e) { if (G.console) console.error(e); } } }
 
     // ------------------------------------------------------------------ layout
@@ -111,7 +115,9 @@
       var t = st.totals ? st.totals(st.vis.map(function (e) { return e.r; })) : {};
       return '<tr class="wbg-tot"><th class="wbg-rn">1</th>' + st.cols.map(function (c) { var s = t[c] || ''; return '<th>' + (s ? '<div>' + esc(s) + '</div>' : '') + '</th>'; }).join('') + '</tr>';
     }
-    function rnW() { return st.rowFlags ? 70 : 46; }
+    function rnW() { return st.rowFlags || pickOn() ? 70 : 46; }
+    function pickOn() { return !!(opts.pick && st.edit && !st.rowFlags); }                       // v1.9.0
+    function pickedList() { return Object.keys(st.picked).map(Number).filter(function (n) { return st.rows[n] !== undefined; }); }
     function drawHead() {
       var w = widths(), total = rnW();
       table.querySelector('colgroup').innerHTML = '<col style="width:' + rnW() + 'px">' + w.map(function (x) { total += x; return '<col style="width:' + x + 'px">'; }).join('');
@@ -120,20 +126,21 @@
       table.querySelector('thead').innerHTML =
         '<tr class="wbg-letters"><th class="wbg-rn wbg-corner"></th>' + st.cols.map(function (c) { return '<th>' + colLetter(c + 1) + '</th>'; }).join('') + '</tr>' +
         totalsHtml() +
-        '<tr class="wbg-headrow' + (st.ticks ? ' wbg-has-ticks' : '') + '"><th class="wbg-rn">' + (st.firstRow - 1) + '</th>' + st.cols.map(function (c, k) {
+        '<tr class="wbg-headrow' + (st.ticks ? ' wbg-has-ticks' : '') + '"><th class="wbg-rn">' + (pickOn() ? '<label class="wbg-pick-all" title="Tick every row shown (untick to clear)"><input type="checkbox" data-pick-all' + (st.busy ? ' disabled' : '') + ' aria-label="Tick every row shown"></label>' : (st.firstRow - 1)) + '</th>' + st.cols.map(function (c, k) {
           var flag = st.flags && st.flags[c], tick = st.ticks && st.ticks[c], dim = st.dim && st.dim[c];   // v1.4.0 dim
-          var cls = (st.edit && ro[c] ? 'wbg-ro-head' : '') + (flag ? ' wbg-flagged' : '') + ((tick && !tick.on) || dim ? ' wbg-off' : '');
+          var cls = (st.edit && ro[c] ? 'wbg-ro-head' : '') + (flag ? ' wbg-flagged' : '') + ((tick && !tick.on) || dim ? ' wbg-off' : '') + (st.sort && st.sort.c === c ? ' wbg-sorted' : '');   // v1.9.0
           return '<th data-hc="' + k + '"' + (cls.trim() ? ' class="' + cls.trim() + '"' : '') + (st.edit && ro[c] ? ' title="' + esc(st.head[c]) + ' — ' + esc(roWhy(c)) + '"' : ' title="' + esc(st.head[c]) + (flag ? ' — ' + esc(flag) : '') + (dim ? ' — ' + esc(dim) : '') + '"') + '>' + esc(st.head[c]) +
             (flag ? '<span class="wbg-flag">' + esc(String(flag).split(' — ')[0]) + '</span>' : '') +
             (tick ? '<label class="wbg-tick" title="' + esc(tick.title || '') + '"><input type="checkbox" data-tick="' + esc(tick.id) + '"' + (tick.on ? ' checked' : '') + (st.busy ? ' disabled' : '') + ' aria-label="Update in POS: ' + esc(st.head[c]) + '"></label>' : '') +
-            '<button type="button" class="wbg-filt' + (st.filters[c] !== undefined ? ' is-on' : '') + '" data-fc="' + c + '" aria-label="Filter ' + esc(st.head[c]) + '">' + FILTER_SVG + '</button></th>';
+            (st.sort && st.sort.c === c ? '<span class="wbg-sortmark" aria-hidden="true">' + (st.sort.dir > 0 ? '▲' : '▼') + '</span>' : '') +
+            '<button type="button" class="wbg-filt' + (st.filters[c] !== undefined || (st.sort && st.sort.c === c) ? ' is-on' : '') + '" data-fc="' + c + '" aria-label="Sort / filter ' + esc(st.head[c]) + '">' + FILTER_SVG + '</button></th>';
         }).join('') + '</tr>';
     }
     function roWhy(c) { var ro = st.edit ? st.edit.readOnly || {} : {}; return typeof ro[c] === 'string' ? ro[c] : 'worked out by the merge (read-only here)'; }   // v1.8.0
     function drawTotals() { var tr = table.querySelector('thead tr.wbg-tot'); if (tr) tr.outerHTML = totalsHtml(); }
     function headH() { var th = table.querySelector('thead'); return th ? th.offsetHeight : 90; }
     function totalRows() { return st.vis.length + (newRowOn() ? 1 : 0); }
-    function newRowOn() { return !!(st.edit && st.edit.rows !== false && !st.q.trim() && !Object.keys(st.filters).length); }
+    function newRowOn() { return !!(st.edit && st.edit.rows !== false && st.edit.rows !== 'delete' && !st.q.trim() && !Object.keys(st.filters).length); }
     function windowOf() {
       var total = totalRows(), rh = st.rowH, top = Math.max(0, wrap.scrollTop - headH()), h = wrap.clientHeight || 640;
       var first = Math.floor(top / rh), last = first + Math.ceil(h / rh);
@@ -150,7 +157,8 @@
       var r = e.r, look = st.look, ro = st.edit ? st.edit.readOnly || {} : {}, marks = st.marks && st.marks[e.n];
       var rf = st.rowFlags ? st.rowFlags[e.n] || null : null, off = !!(rf && rf.on === false);   // v1.6.0
       var cells = '<td class="wbg-rn' + (rf ? ' wbg-rf-' + rf.level : '') + '" data-r="' + i + '" data-c="-1"' + (rf && rf.title ? ' title="' + esc(rf.title) + '"' : '') + '>' +
-        (st.rowFlags ? '<label class="wbg-rtick" title="' + esc(rf && rf.title ? rf.title : 'Upload — ticked: this row goes into the POS TXT file. Untick to leave it out.') + '"><input type="checkbox" data-rtick="' + e.n + '"' + (off ? '' : ' checked') + (st.busy ? ' disabled' : '') + ' aria-label="Upload row ' + (st.nums ? st.nums[e.n] : e.n + st.firstRow) + '"></label>' : '') +
+        (st.rowFlags ? '<label class="wbg-rtick" title="' + esc(rf && rf.title ? rf.title : 'Upload — ticked: this row goes into the POS TXT file. Untick to leave it out.') + '"><input type="checkbox" data-rtick="' + e.n + '"' + (off ? '' : ' checked') + (st.busy ? ' disabled' : '') + ' aria-label="Upload row ' + (st.nums ? st.nums[e.n] : e.n + st.firstRow) + '"></label>'
+          : pickOn() ? '<label class="wbg-rpick" title="Tick rows, then Delete rows"><input type="checkbox" data-pick="' + e.n + '"' + (st.picked[e.n] ? ' checked' : '') + (st.busy ? ' disabled' : '') + ' aria-label="Tick row ' + (st.nums ? st.nums[e.n] : e.n + st.firstRow) + '"></label>' : '') +
         '<span>' + (st.nums ? st.nums[e.n] : e.n + st.firstRow) + '</span></td>';
       for (var k = 0; k < st.cols.length; k++) {
         var c = st.cols[k], raw = r[c], shown = cellDisplay(raw, c), s = String(shown == null ? '' : shown);
@@ -164,7 +172,7 @@
         var style = a ? ' style="' + (a.bg ? 'background-color:#' + a.bg + ';' : '') + (a.fg ? 'color:#' + a.fg + ';' : '') + (a.b ? 'font-weight:700' : '') + '"' : '';
         cells += '<td data-r="' + i + '" data-c="' + k + '"' + (cls.length ? ' class="' + cls.join(' ') + '"' : '') + style + (s.length > 16 ? ' title="' + esc(s) + '"' : '') + '>' + esc(s) + '</td>';
       }
-      return '<tr class="wbg-b' + (e.n % 2) + (rf ? ' wbg-row-' + rf.level : '') + (off ? ' wbg-skip' : '') + (rf && rf.changed ? ' wbg-row-changed' : '') + '">' + cells + '</tr>';   // v1.7.1 changed: the Upload tick differs from the checks' default
+      return '<tr class="wbg-b' + (e.n % 2) + (rf ? ' wbg-row-' + rf.level : '') + (off ? ' wbg-skip' : '') + (rf && rf.changed ? ' wbg-row-changed' : '') + (st.picked[e.n] ? ' wbg-picked' : '') + '">' + cells + '</tr>';   // v1.7.1 changed: the Upload tick differs from the checks' default
     }
     function drawRows() {
       var body = table.querySelector('tbody'), w = windowOf(), html = [gap(w.start * st.rowH)];
@@ -188,6 +196,17 @@
         for (var f = 0; f < allow.length; f++) { if (!allow[f].m[oneLine(cellDisplay(st.rows[i][allow[f].c], allow[f].c)).trim()]) { ok = false; break; } }
         if (ok) { st.visAll.push({ r: st.rows[i], n: i }); if (!st.rowFilter || st.rowFilter(i)) st.vis.push({ r: st.rows[i], n: i }); }
       }
+      if (st.sort) {                                                                             // v1.9.0: a view-only sort
+        var sc = st.sort.c, dir = st.sort.dir, key = function (e) { return oneLine(cellDisplay(e.r[sc], sc)).trim(); };
+        var numeric = colNumeric(sc);
+        var cmp = function (a, b) {
+          var ka = key(a), kb = key(b), ea = ka === '', eb = kb === '';
+          if (ea || eb) return ea && eb ? a.n - b.n : ea ? 1 : -1;                               // blanks last either way
+          if (numeric) { var na = toNum(ka), nb = toNum(kb); if (isFinite(na) && isFinite(nb) && na !== nb) return (na - nb) * dir; }
+          var c = ka.localeCompare(kb, 'en', { numeric: true, sensitivity: 'base' }); return c ? c * dir : a.n - b.n;
+        };
+        st.vis.sort(cmp); st.visAll.sort(cmp);
+      }
       if (count) count.textContent = (q || fk.length || st.rowFilter ? st.vis.length.toLocaleString('en-AU') + ' of ' : '') + st.rows.length.toLocaleString('en-AU') + ' rows';
       if (filtInfo) {
         filtInfo.hidden = !fk.length;
@@ -198,6 +217,12 @@
       }
     }
     function redraw() { filter(); drawHead(); drawRows(); updateTools(); viewChanged(); }
+    function toNum(t) { return Number(String(t).replace(/[$,%\s]/g, '')); }
+    function colNumeric(c) {                                                                       // most filled cells are numbers
+      var n = 0, k = 0;
+      for (var i = 0; i < st.rows.length && k < 400; i++) { var t = oneLine(cellDisplay(st.rows[i][c], c)).trim(); if (!t) continue; k++; if (isFinite(toNum(t))) n++; }
+      return k > 0 && n / k >= 0.8;
+    }
 
     // --------------------------------------------------------------- selection
     function selBox() { var s = st.sel; return s ? { r1: Math.min(s.r, s.r2), r2: Math.max(s.r, s.r2), c1: Math.min(s.c, s.c2), c2: Math.max(s.c, s.c2), rows: s.rows } : null; }
@@ -243,9 +268,12 @@
       tools.hidden = !st.edit;
       if (!st.edit) return;
       var b = selBox(), can = !st.busy;
-      tools.querySelector('[data-g="add"]').hidden = st.edit.rows === false;
+      tools.querySelector('[data-g="add"]').hidden = st.edit.rows === false || st.edit.rows === 'delete';
       var del = tools.querySelector('[data-g="del"]'); del.hidden = st.edit.rows === false;
-      del.disabled = !can || !b || !b.rows || b.r1 >= st.vis.length;
+      var np = pickOn() ? pickedList().length : 0;
+      del.disabled = !can || (np ? false : (!b || !b.rows || b.r1 >= st.vis.length));
+      del.textContent = np ? 'Delete ' + np.toLocaleString('en-AU') + ' ticked row' + (np === 1 ? '' : 's') : 'Delete rows';
+      del.title = np ? 'Delete the ticked rows' : 'Delete the selected rows (click a row number, Shift+click another to select several' + (pickOn() ? ', or tick rows' : '') + ')';
       tools.querySelector('[data-g="add"]').disabled = !can;
       tools.querySelector('[data-g="undo"]').disabled = !can || !st.edit.canUndo;
     }
@@ -346,11 +374,11 @@
       emit({ type: 'cells', cells: cells, where: colLetter(st.cols[k0] + 1) + rowNum(r0), paste: true, skipped: skipped, newRows: newRows });
     }
     function deleteSel() {
-      var b = selBox(); if (!b || !b.rows || !st.edit || st.busy) return;
-      var list = [];
-      for (var r = b.r1; r <= b.r2; r++) if (st.vis[r]) list.push(st.vis[r].n);
+      if (!st.edit || st.busy) return;
+      var list = pickOn() ? pickedList() : [];                                                   // v1.9.0: the ticked rows first
+      if (!list.length) { var b = selBox(); if (!b || !b.rows) return; for (var r = b.r1; r <= b.r2; r++) if (st.vis[r]) list.push(st.vis[r].n); }
       if (!list.length) return;
-      st.sel = null;
+      st.sel = null; st.picked = {};
       emit({ type: 'deleteRows', rows: list });
     }
     // v1.8.0: fill rows r1..r2 (the pattern) down to row `to`, columns c1..c2 — Excel's fill handle / Ctrl+D.
@@ -397,6 +425,8 @@
       order.sort(function (a, b) { return counts[b] - counts[a] || (a < b ? -1 : 1); });
       openCol = c;
       picker({ anchor: btn, title: st.head[c], values: order.map(function (v) { return { v: v, n: counts[v] }; }), selected: st.filters[c] || null,
+        sort: { numeric: colNumeric(c), dir: st.sort && st.sort.c === c ? st.sort.dir : 0 },                                   // v1.9.0
+        onSort: function (dir) { st.sort = dir ? { c: c, dir: dir } : null; st.sel = null; wrap.scrollTop = 0; redraw(); },
         onClose: function () { openCol = null; wrap.focus({ preventScroll: true }); },
         onApply: function (vals) { if (vals) st.filters[c] = vals; else delete st.filters[c]; st.sel = null; wrap.scrollTop = 0; redraw(); } });
     }
@@ -423,7 +453,7 @@
     table.addEventListener('mousedown', function (ev) {
       var fb = ev.target.closest('.wbg-filt');
       if (fb) { ev.preventDefault(); ev.stopPropagation(); if (openCol === +fb.dataset.fc && pickerOpen()) closeFilter(); else openFilter(+fb.dataset.fc, fb); return; }
-      if (ev.target.closest('.wbg-rtick')) return;                                                  // v1.6.0: the Upload tick
+      if (ev.target.closest('.wbg-rtick, .wbg-rpick, .wbg-pick-all')) return;                      // v1.6.0: the Upload tick · v1.9.0 pick boxes
       if (ev.target.classList.contains('wbg-fill')) {                                               // v1.8.0: start a fill-down drag
         var fb0 = selBox(); if (!fb0 || fb0.rows || st.busy) return;
         if (st.editing) commitEdit();
@@ -453,7 +483,11 @@
       dragging = false;
       if (filling) { var f = filling; filling = null; paintFill(); if (f.to > f.b.r2) fillDown(f.b, f.to); }       // v1.8.0
     });
-    table.addEventListener('change', function (ev) {                     // v1.3.0: a heading tick · v1.6.0: a row's Upload tick
+    table.addEventListener('change', function (ev) {                     // v1.3.0: a heading tick · v1.6.0: a row's Upload tick · v1.9.0: pick boxes
+      var pk = ev.target.closest('input[data-pick]');
+      if (pk) { var pn = +pk.dataset.pick; if (pk.checked) st.picked[pn] = 1; else delete st.picked[pn]; var ptr = pk.closest('tr'); if (ptr) ptr.classList.toggle('wbg-picked', pk.checked); updateTools(); return; }
+      var pa = ev.target.closest('input[data-pick-all]');
+      if (pa) { if (pa.checked) st.vis.forEach(function (e) { st.picked[e.n] = 1; }); else st.picked = {}; drawRows(); updateTools(); return; }
       var rt = ev.target.closest('input[data-rtick]');
       if (rt) {
         if (st.busy || !opts.onRowTick) { rt.checked = !rt.checked; return; }
@@ -530,10 +564,12 @@
         host.classList.toggle('wbg-editable', !!st.edit);
         if (!keep) {
           if (search) { search.value = ''; st.q = ''; }
-          st.filters = {}; st.sel = null; say('');
+          st.filters = {}; st.sel = null; st.sort = null; st.picked = {}; say('');
           closeFilter();
         } else {
           Object.keys(st.filters).forEach(function (c) { if (st.cols.indexOf(+c) < 0) delete st.filters[c]; });
+          if (st.sort && st.cols.indexOf(st.sort.c) < 0) st.sort = null;
+          Object.keys(st.picked).forEach(function (n) { if (st.rows[+n] === undefined) delete st.picked[n]; });
         }
         var top = wrap.scrollTop, left = wrap.scrollLeft;
         cancelEdit();
@@ -546,10 +582,12 @@
       visible: function () { return st.visAll.map(function (e) { return e.n; }); },             // v1.6.0: without rowFilter
       rowFilter: function (fn) { st.rowFilter = fn || null; st.sel = null; wrap.scrollTop = 0; redraw(); },
       filtered: function () { return !!(st.q.trim() || Object.keys(st.filters).length) && st.visAll.length < st.rows.length; },
-      clearFilters: function () { if (!st.q && !Object.keys(st.filters).length) return; st.q = ''; if (search) search.value = ''; st.filters = {}; redraw(); },
+      clearFilters: function () { if (!st.q && !Object.keys(st.filters).length && !st.sort) return; st.q = ''; if (search) search.value = ''; st.filters = {}; st.sort = null; redraw(); },
+      picked: function () { return pickedList(); },                                                   // v1.9.0
+      search: function (q) { st.q = String(q == null ? '' : q); if (search) search.value = st.q; st.sel = null; filter(); wrap.scrollTop = 0; drawTotals(); drawRows(); viewChanged(); },
       busy: function (b) {
         st.busy = !!b; host.classList.toggle('is-busy', st.busy); updateTools();
-        table.querySelectorAll('input[data-tick],input[data-rtick]').forEach(function (cb) { cb.disabled = st.busy; });
+        table.querySelectorAll('input[data-tick],input[data-rtick],input[data-pick],input[data-pick-all]').forEach(function (cb) { cb.disabled = st.busy; });
       },
       note: say,
       select: function (srcRow, srcCol) {
@@ -579,7 +617,10 @@
     var vals = o.values || [], on = {}, el = document.createElement('div');
     vals.forEach(function (x) { on[x.v] = !o.selected || o.selected.indexOf(x.v) >= 0; });
     el.className = 'wbg-pop wbg-pick'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-label', 'Filter ' + (o.title || ''));
-    el.innerHTML = '<div class="wbg-ptitle">' + esc(o.title || '') + ' — show</div><input type="search" class="wbg-psearch" placeholder="Search values…" aria-label="Search values">' +
+    var so = o.sort || null, sLab = so && so.numeric ? ['Highest to lowest', 'Lowest to highest', -1, 1] : ['A to Z', 'Z to A', 1, -1];
+    el.innerHTML = '<div class="wbg-ptitle">' + esc(o.title || '') + '</div>' +
+      (so ? '<div class="wbg-psort"><button type="button" class="wbg-plink' + (so.dir === sLab[2] ? ' is-on' : '') + '" data-psort="' + sLab[2] + '">' + sLab[0] + '</button><button type="button" class="wbg-plink' + (so.dir === sLab[3] ? ' is-on' : '') + '" data-psort="' + sLab[3] + '">' + sLab[1] + '</button>' + (so.dir ? '<button type="button" class="wbg-plink" data-psort="0">Sort off</button>' : '') + '</div>' : '') +
+      '<div class="wbg-ptitle wbg-ptitle2">Show</div><input type="search" class="wbg-psearch" placeholder="Search values…" aria-label="Search values">' +
       '<div class="wbg-plinks"><button type="button" class="wbg-plink" data-pall>Select all</button><button type="button" class="wbg-plink" data-pnone>Clear</button><span class="wbg-pcount"></span></div>' +
       '<div class="wbg-plist"></div><div class="wbg-pfoot"><button type="button" class="btn small" data-pcancel>Cancel</button><button type="button" class="btn small primary" data-pok>OK</button></div>';
     var list = el.querySelector('.wbg-plist'), ps = el.querySelector('.wbg-psearch'), cnt = el.querySelector('.wbg-pcount');
@@ -595,6 +636,8 @@
     }
     el.addEventListener('change', function (ev) { var cb = ev.target.closest('[data-pi]'); if (!cb) return; var x = vals[+cb.dataset.pi]; on[x.v] = cb.checked; cb.parentNode.classList.toggle('is-on', cb.checked); draw(); });
     el.addEventListener('click', function (ev) {
+      var ps = ev.target.closest('[data-psort]');
+      if (ps) { var cbS = o.onSort; closePicker(); if (cbS) cbS(+ps.dataset.psort); return; }
       if (ev.target.closest('[data-pall]')) { shown().forEach(function (x) { on[x.v] = true; }); draw(); return; }
       if (ev.target.closest('[data-pnone]')) { shown().forEach(function (x) { on[x.v] = false; }); draw(); return; }
       if (ev.target.closest('[data-pcancel]')) { closePicker(); return; }
