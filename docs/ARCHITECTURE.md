@@ -859,7 +859,7 @@ All implemented stages keep source business files local to the browser and gener
   re-added word already present as a possessive. engine-worker / engine-frame / app.js load engine-host ?v=1.7.0.
 - app.js `KEEP_GROUPS.supplier.cols = [1, 2]`: the tick renders on both headings; `drawSup` sets every `[data-keep]`.
 
-## Staff Hub v21.25.6 (16 Oct 2026 11:45 AEDT)
+## Staff Hub v21.25.6 (16 Oct 2026 12:15 AEDT)
 - merge app.js v1.15.1: `PRICE_TICKS = { ws, last, rrp }`; `priceTicks(head)` (the v1.14.0 `keepTicks` limited to those
   groups) → `set({ ticks })`; `onTick` back on the OUT grid; session restore drops only `keep.size`.
 - v1.15.2: the supplier sheet's `[data-keep="ws"]` change handler also calls `setKeep('last', …)`; `OUT_CURRENT` lists only
@@ -867,3 +867,5 @@ All implemented stages keep source business files local to the browser and gener
 - v1.15.3: the OUT grid `onTick` maps `ws` / `last` (and `cur:` forms) to both ids; restore sets `keep.last = keep.ws`.
   merge.css v1.13.6: `.sup-table td.is-edited` and `.wbg-table td.is-edited` share one rule — sheet-look's `warn` colours
   (#FEF3E2 / #E37400, bold) with `!important`; the v1.13.2 corner triangle is gone.
+- v1.15.4: `KEEP_SHOW.ws / last / rrp` cover the POS block only; `KEEP_ZERO = {}`; `keptRows` shelf from `wsp excgst` /
+  `last price`; `KEEP_COLOUR` (the four CHANGE columns) skipped by `keptLook`.

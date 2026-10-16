@@ -1,7 +1,12 @@
-# POS New Product Check Clean v1.15.3 (Staff Hub v21.25.6)
+# POS New Product Check Clean v1.15.4 (Staff Hub v21.25.6)
 
-Updated 16 Oct 2026 11:45 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 16 Oct 2026 12:15 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.15.4 — **The pricing columns always show the new price and its change.** NEW WSP EXGST, WSP CHANGE % / $, NEW
+LAST PRICE, CHANGE LAST PRICE % / $ and NEW RRP show the merge's price and the coloured change whether NEW or CURRENT is
+ticked — with CURRENT ticked the NEW price is greyed, the change keeps its colour. Only the POS block (wsp excgst, last
+price, rrp incgst, price levels, ret price) and FINAL SHELF RRP show what POS will have.
 
 v1.15.3 — **WSP and last price move together; edited cells look the same everywhere.** On OUT_MERGED_DATA, tick
 CURRENT WSP EXGST and CURRENT LAST PRICE ticks with it; tick NEW WSP EXGST and NEW LAST PRICE follows (either pair's tick

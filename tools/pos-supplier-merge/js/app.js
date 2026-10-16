@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.15.3 (16 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.15.4 (16 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -144,11 +144,15 @@
  *         PRICE / RRP columns are editable again (v1.15.0 had locked them).
  * v1.15.3 (16 Oct 2026): the WSP and last price pairs move together on OUT_MERGED_DATA too — tick CURRENT WSP EXGST and
  *         CURRENT LAST PRICE ticks with it, tick NEW WSP EXGST and NEW LAST PRICE follows (either pair's tick sets both).
- *         Edited cells look the same on every sheet (merge.css v1.13.5). */
+ *         Edited cells look the same on every sheet (merge.css v1.13.5).
+ * v1.15.4 (16 Oct 2026): the pricing review columns always show the merge's new price and its coloured change (NEW WSP
+ *         EXGST, WSP CHANGE % / $, NEW LAST PRICE, CHANGE LAST PRICE % / $, NEW RRP) — with CURRENT ticked they are only
+ *         greyed. The POS block (wsp excgst, last price, rrp incgst, price levels, ret price) and FINAL SHELF RRP still
+ *         show what POS will have. */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.15.3';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.15.4';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -240,14 +244,14 @@
     product: [['POS DESCR', 'POS DESCR'], ['descr', 'POS DESCR'], ['pos desc', 'POS POS DESC'], ['packaging', 'POS PACKAGING']],
     units: [['units', 'POS UNITS', 1]],
     minorder: [['min order qty', 'POS MIN ORDER QTY', 1]],
-    ws: [['NEW WSP EXGST', 'POS WSP EXCGST'], ['wsp excgst', 'POS WSP EXCGST']],
-    last: [['NEW LAST PRICE', 'POS LAST PRICE'], ['last price', 'POS LAST PRICE']],   // v1.14.0
+    ws: [['wsp excgst', 'POS WSP EXCGST']],                                               // v1.15.4: NEW WSP EXGST keeps the merge's price (greyed)
+    last: [['last price', 'POS LAST PRICE']],                                               // v1.14.0; v1.15.4 NEW LAST PRICE keeps the merge's
     size: [['itemsize', 'POS ITEMSIZE']],
-    rrp: [['NEW RRP', 'POS RRP INCGST', 1], ['rrp incgst', 'POS RRP INCGST', 1]].concat(PR.map(function (h) { return [h, 'POS ' + h.toUpperCase(), 1]; }), [['ret price', 'POS RET PRICE', 1]]),
+    rrp: [['rrp incgst', 'POS RRP INCGST', 1]].concat(PR.map(function (h) { return [h, 'POS ' + h.toUpperCase(), 1]; }), [['ret price', 'POS RET PRICE', 1]]),
     gst: [['gst tax pc', 'POS GST TAX PC']],
     member: PR.slice(0, 5).map(function (h) { return [h, 'POS ' + h.toUpperCase(), 1]; })   // v1.11.0
   };
-  var KEEP_ZERO = { ws: ['WSP CHANGE %', 'WSP CHANGE $'], last: ['CHANGE LAST PRICE %', 'CHANGE LAST PRICE $'] }, KEEP_BLANK = { brand: ['OLD BRAND'] };
+  var KEEP_ZERO = {}, KEEP_BLANK = { brand: ['OLD BRAND'] };   // v1.15.4: the change columns always show the merge's change
   // ROW STATUS → matched, as the merge reads it (m13OutStatusKey_: NEW wins over MATCHED).
   function isMatched(v) { var s = String(v == null ? '' : v).toUpperCase(); return s.indexOf('NEW') < 0 && s.indexOf('MATCHED') >= 0; }
   var posMapCache = null;
@@ -291,7 +295,7 @@
       if (g.id === 'ws' || g.id === 'last' || g.id === 'rrp' || g.id === 'gst') shelf = true;
       if (g.id === 'gst') gstKept = true;
     });
-    var AO = H['FINAL SHELF RRP'], BE = H['rrp incgst'], S_ = H['NEW WSP EXGST'], W_ = H['NEW LAST PRICE'], AB = H['HAS GST'], GT = H['gst tax pc'];
+    var AO = H['FINAL SHELF RRP'], BE = H['rrp incgst'], S_ = H['wsp excgst'], W_ = H['last price'], AB = H['HAS GST'], GT = H['gst tax pc'];   // v1.15.4: from the POS block (what POS will have)
     var out = rows.slice(0, 2);
     for (var i = 2; i < rows.length; i++) {
       var r = rows[i], p = r && isMatched(r[st]) ? pos.map[String(r[plu] == null ? '' : r[plu]).trim()] : null;
@@ -1441,9 +1445,10 @@
     return f;
   }
   // v1.6.1: kept cells take the Sheet's "no change" grey text (#9E9E9E, on the row's own band), as CHANGE LAST PRICE does.
+  var KEEP_COLOUR = { 'WSP CHANGE %': 1, 'WSP CHANGE $': 1, 'CHANGE LAST PRICE %': 1, 'CHANGE LAST PRICE $': 1 };   // v1.15.4: the change columns keep their colour with CURRENT ticked
   function keptLook(look, head, list, statusCol) {
     var names = keptNames(list), cols = {}, any = false;
-    head.forEach(function (h, i) { if (names[h]) { cols[i] = 1; any = true; } });
+    head.forEach(function (h, i) { if (names[h] && !KEEP_COLOUR[h]) { cols[i] = 1; any = true; } });
     if (!any || !look) return look;
     var base = look.style;
     return Object.assign({}, look, { style: function (row, c) {
