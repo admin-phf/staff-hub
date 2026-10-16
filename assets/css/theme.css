@@ -472,3 +472,21 @@ body.phf-page-specials .card-image-health.err{background:var(--phf-red-bg);borde
   body.phf-page-db-legacy .phf-shell-title{position:static;transform:none;margin-left:auto}
   body.phf-page-db-legacy .phf-shell-meta{flex-basis:100%}
 }
+
+/* =====================================================================
+   Accordion panels (phf-accordion.js) — v20.2.0 (17 Oct 2026)
+   A panel marked data-acc collapses to just its heading row. Formatting only: no control, input or data is changed.
+   ===================================================================== */
+.acc-panel>.acc-head{cursor:pointer;user-select:none;align-items:center}
+.acc-panel>.acc-head .acc-caret{flex:0 0 auto;margin-right:8px;font-size:11px;line-height:1;color:var(--phf-navy,#1E3A5F);transition:transform .12s ease;opacity:.75}
+.acc-panel>.acc-head:hover .acc-caret{opacity:1}
+.acc-panel>.acc-head:focus-visible{outline:2px solid var(--phf-navy,#1E3A5F);outline-offset:2px;border-radius:6px}
+.acc-panel>.acc-head .acc-summary{margin-left:10px;font:600 11px/1.4 var(--phf-ui-font,inherit);color:var(--phf-muted,#5F6368);background:var(--phf-chip-bg,#EEF3F8);border:1px solid var(--phf-line,#D8E0EA);border-radius:999px;padding:1px 9px;white-space:nowrap;display:none}
+.acc-panel.acc-collapsed>.acc-head .acc-summary{display:inline-block}
+/* collapsed: hide every direct child except the heading row */
+.acc-panel.acc-collapsed>*:not(.acc-head){display:none!important}
+.acc-panel.acc-collapsed{padding-bottom:0!important}
+.acc-panel.acc-collapsed>.acc-head{margin-bottom:0!important}
+/* stage cards: the heading row keeps its badge; the body (description / status / actions / output) collapses */
+.stage-panel.acc-collapsed>.stage-head{margin-bottom:0!important}
+@media print{.acc-panel.acc-collapsed>*:not(.acc-head){display:revert!important}}

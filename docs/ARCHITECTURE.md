@@ -909,3 +909,22 @@ All implemented stages keep source business files local to the browser and gener
   `input[data-pick]`, and the `.sup-heads` thead `mousedown` toggles a heading cell's `input[data-keep]` / `input[data-pick-all]`.
   Supplier toolbar order is now Paste, Undo, Add 5 rows, Clean up empty rows, Delete rows, Clear Sheet, Copy headings;
   `#supClearAdded` relabelled "Clear Sheet" with a `window.confirm` before clearing the typed / pasted rows (Undo still reverses it).
+
+## Staff Hub v21.25.11 (17 Oct 2026 00:20 AEDT)
+- New shared `assets/js/phf-accordion.js` (v1.0.0) + accordion CSS in theme.css (v20.2.0): any `.panel` / `.stage-panel`
+  marked `data-acc` collapses to its heading row (the `.results-head` / `.stage-head` becomes the toggle; the badge /
+  status stays visible as the summary). State is remembered per panel in localStorage; `PHFAccordion.refresh()` enhances
+  panels injected after load. Applied to Build POS Master Databases and POS New Product Check (input, readiness, stage and
+  output panels). No data, control or processing is affected.
+- New shared `assets/js/phf-xlsx-style.js` (v1.0.0): one style profile taken from the POS SUPPLIER review workbook — navy
+  row-1 band / gold text, light row-2 header (E9F0F5) / dark text (2C3E50), Calibri 9, banded rows (F5F5F5 / E9F0F5),
+  column widths by heading (7 / 11 / 12 / 18 / 24 / 36 / 48), freeze top two rows, filter from row 2, heights 30 / 30 / 15.
+  Also `headerDisplay(h, spaced)` — spaces underscores for display, `widthFor`, `numFmtFor`, `isTextHead`.
+- pipeline.js v21.16.0: `addBasic` takes the shared profile (light header / Calibri / banded) and an optional `disp`
+  (display headers for row 2). `makeBasic` / `verifyBasic` take `spaced` — the POS / CH2 / Unique full sets (Clean_Merged_POS_Data,
+  Supplier_Data, UHP_Data) now show spaced headings (MASTER_BRAND → MASTER BRAND); the IN_SUPPLIER_UPDATE supplier-layout
+  sheets keep their exact identifiers. Data, columns and formulas are unchanged; `state.models.*` keep underscore headers.
+- master-core.js v2.6.0: `RC` palette → light header (E9F0F5 / 2C3E50) / Calibri 9 / gold-on-navy totals, header row height
+  30, totals row 30; the full / selected master's row-2 headings are spaced for display (data keyed to `internal`); the order
+  sheet keeps its custom display names; Match_Audit / Links_To_Check inherit the light header. Every consumer (the merge
+  tool's `normHead`, Reconcile's alias lists) collapses underscores to spaces, so spaced display headers read identically.

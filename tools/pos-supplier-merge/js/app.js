@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.16.3 (16 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.16.4 (17 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -166,7 +166,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.16.3';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.16.4';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -783,10 +783,11 @@
   // ------------------------------------------------------------- stages
   function renderStages() {
     STAGES.forEach(function (s) {
-      $('#stage-' + s.id).innerHTML = '<section class="panel stage-panel stage-view-card ready"><div class="stage-head"><div class="stage-title"><span class="stepnum">' + s.n + '</span><div><h2>' + esc(s.title) + '</h2></div></div><span class="small-badge wait">WAITING</span></div><p class="stage-description">' + esc(s.desc) + '</p><div class="status info stage-status">Waiting for input files.</div><div class="stage-scope" data-stage-scope="' + s.id + '" hidden></div><div class="stage-actions"><button class="btn primary stage-run" data-stage="' + s.id + '" disabled>Run stage ' + s.n + '</button></div><div class="stage-output-inline" data-stage-output="' + s.id + '"></div></section>';
+      $('#stage-' + s.id).innerHTML = '<section class="panel stage-panel stage-view-card ready" data-acc data-acc-id="stage-' + s.id + '"><div class="stage-head"><div class="stage-title"><span class="stepnum">' + s.n + '</span><div><h2>' + esc(s.title) + '</h2></div></div><span class="small-badge wait">WAITING</span></div><p class="stage-description">' + esc(s.desc) + '</p><div class="status info stage-status">Waiting for input files.</div><div class="stage-scope" data-stage-scope="' + s.id + '" hidden></div><div class="stage-actions"><button class="btn primary stage-run" data-stage="' + s.id + '" disabled>Run stage ' + s.n + '</button></div><div class="stage-output-inline" data-stage-output="' + s.id + '"></div></section>';
     });
     document.querySelectorAll('.stage-run').forEach(function (b) { b.onclick = function () { runTo(b.dataset.stage); }; });
     renderScopes();
+    if (window.PHFAccordion) window.PHFAccordion.refresh();
   }
   function stageSet(id, status, msg) {
     state.stage[id] = { status: status, msg: msg };

@@ -1496,7 +1496,7 @@
      price moves ↑ red on pink / ↓ blue on pale blue / — grey (current price in grey), ☑ green / ☒ red checks and a navy
      totals row. Values are unchanged (only cell styles and display formats differ), so every reader of the file still works. */
   const RC = {
-    font: 'Google Sans', size: 9, navy: '1E3A5F', gold: 'E6CD74', ink: '1F2937', bands: ['E9F0F5', 'F5F5F5'], tol: 0.03,
+    font: 'Calibri', size: 9, navy: '1E3A5F', gold: 'FFD966', hdrBg: 'E9F0F5', hdrFg: '2C3E50', ink: '1C2833', bands: ['F5F5F5', 'E9F0F5'], tol: 0.03,
     border: { left: { style: 'thin', color: 'D9E2F3' }, right: { style: 'thin', color: 'D9E2F3' }, top: { style: 'thin', color: 'D9E2F3' }, bottom: { style: 'thin', color: 'D9E2F3' } },
     variants: {
       up: { fill: 'FCE8E6', color: 'C5221F', bold: true }, down: { fill: 'E8F0FE', color: '1967D2', bold: true }, same: { color: '9AA0A6' },
@@ -1522,7 +1522,7 @@
     const font = (color, bold) => ({ name: RC.font, size: RC.size, color, bold: !!bold });
     const cache = {};
     return {
-      header: st.style({ font: font(RC.gold, true), fill: RC.navy, align: { wrap: true, v: 'center', h: 'center' } }),
+      header: st.style({ font: font(RC.hdrFg, true), fill: RC.hdrBg, align: { wrap: true, v: 'center', h: 'center' } }),
       title: st.style({ font: { name: RC.font, size: 12, color: RC.gold, bold: true }, fill: RC.navy, align: { v: 'center', h: 'left', indent: 1 } }),
       note: st.style({ font: { name: RC.font, size: RC.size, color: '53616D', italic: true }, align: { v: 'center', h: 'left', indent: 1 } }),
       totalsLabel: st.style({ fill: RC.navy, font: { name: RC.font, size: 10, color: RC.gold, bold: true }, align: { h: 'left', v: 'center', indent: 1 } }),
@@ -1614,7 +1614,11 @@
     if (!X) throw new Error('xlsx-writer.js is not loaded.');
     const isOrder = kind === 'order', themed = true;   // v2.5.0: every master file has the navy / gold look (was the full file only)
     const internal = kind === 'full' ? result.outHeaders : kind === 'selected' ? result.selectedHeaders : ['ORDERED', ...result.order.internal];
-    const display = isOrder ? result.order.display : internal;
+    // v2.6.0: the display master is a review sheet, so row 2 shows spaced headings (MASTER_BRAND → MASTER BRAND); the
+    // data stays keyed to `internal`, so every downstream reader of the columns still works. The order sheet keeps its
+    // own custom display names.
+    const PX = g.PHFXlsxStyle;
+    const display = isOrder ? result.order.display : (PX ? internal.map(h => PX.headerDisplay(h, true)) : internal);
     const records = isOrder ? result.order.records : result.records;
     const sheetName = kind === 'full' ? 'Full_Data' : kind === 'selected' ? 'Selected_Data' : 'To_Order';
     const st = new X.StyleSheet();
@@ -1686,8 +1690,8 @@
       widths: internal.map(h => h === 'ORDERED' ? 11 : columnWidth(h)),
       conditional: isOrder && n ? [{ ref: `A3:${last}${n + 2}`, formula: 'AND($A3<>"☐",$A3<>"")', dxf: st.dxf({ font: { color: '808080' }, fill: 'D3D3D3' }) }] : [],
       rows: function* () {
-        yield { cells: totals.map(t => t[0]), styles: totals.map(t => t[1]), height: 25 };
-        yield { cells: display, styles: headerStyle, height: 45 };
+        yield { cells: totals.map(t => t[0]), styles: totals.map(t => t[1]), height: 30 };
+        yield { cells: display, styles: headerStyle, height: 30 };
         for (let r = 0; r < n; r++) {
           const rec = records[r], band = r % 2 === 0 ? 0 : 1, cells = new Array(cols);
           let styles = bandStyles[band];

@@ -16,14 +16,14 @@
 <link rel="stylesheet" href="./css/app.css?v=1.0.0-20261010">
 <link rel="stylesheet" href="./css/merge.css?v=1.15.0">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<link rel="stylesheet" href="../../assets/css/theme.css?v=20.1.1">
+<link rel="stylesheet" href="../../assets/css/theme.css?v=20.2.0">
 <link rel="stylesheet" href="../../assets/css/compact-layout.css?v=1.1.0">
 </head>
 <body class="database-builder-page phf-page-db phf-page-merge">
 <header class="phf-shell-header header-container">
   <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
   <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="POS New Product Check Clean — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg></span><div class="phf-shell-copy title-row"><h1 class="phf-title-long">POS New Product Check Clean</h1><p class="phf-shell-version version-text">v1.16.3</p></div></a>
-  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">POS New Product Check Clean</span></nav><p class="phf-shell-updated build-details">Updated 16 Oct 2026 22:30 AEDT</p><div class="phf-lock-ctl" id="phfLockCtl" aria-live="polite"></div></div>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">POS New Product Check Clean</span></nav><p class="phf-shell-updated build-details">Updated 17 Oct 2026 00:20 AEDT</p><div class="phf-lock-ctl" id="phfLockCtl" aria-live="polite"></div></div>
 </header>
 
 <main class="workflow-wrap full-width-wrap phf-full">
@@ -49,7 +49,7 @@
       <!-- v1.4.0 layout (assets/css/compact-layout.css): Drop All · selected input · readiness + Run all in one row,
            then the three stages and the output files in one row. -->
       <div class="dash-row dash-row-top">
-        <section class="panel bulk-drop-panel" id="bulkDropPanel" aria-label="Drop all input files">
+        <section class="panel bulk-drop-panel" id="bulkDropPanel" data-acc aria-label="Drop all input files">
           <div class="results-head"><div><h2>Drop All Input Files Here</h2><p>Drop every file at once — the POS Database, supplier files and reference tables, or a downloaded copy (.xlsx) of the POS DB &amp; SUPPLIER MERGE Google Sheet. Each file (or tab) is recognised from its headings and assigned to its input. Nothing runs until you choose a stage or Run All.</p></div><div class="result-badge" id="bulkCount">0 FILES</div></div>
           <div class="dropzone bulk-dropzone" id="bulkDrop" tabindex="0" role="button" aria-label="Drop or choose all input files"><div><strong>Drop all input files here</strong><small>or click to choose several files · .XLSX / .XLS / .CSV</small></div></div>
           <input class="hidden" type="file" id="bulkInput" multiple accept=".xls,.xlsx,.xlsm,.csv,.txt">
@@ -59,7 +59,7 @@
           <div id="inputWorkspace"><div class="empty-output">Select an input on the left to inspect, upload or replace it.</div></div>
         </section>
         <div class="dash-stack">
-          <section class="panel dashboard-summary"><div class="results-head"><div><h2>Input readiness</h2><p>Each group updates as soon as a file with the right headings is loaded.</p></div><div class="result-badge" id="readyCount">0 / 2 REQUIRED</div></div><div id="inputSummary" class="input-summary"></div></section>
+          <section class="panel dashboard-summary" data-acc><div class="results-head"><div><h2>Input readiness</h2><p>Each group updates as soon as a file with the right headings is loaded.</p></div><div class="result-badge" id="readyCount">0 / 2 REQUIRED</div></div><div id="inputSummary" class="input-summary"></div></section>
           <section class="panel run-panel dashboard-run">
             <div class="results-head"><div><h2>Run all</h2><p>Runs stages 1 → 3 in order, the same as the Google Sheet menu</p></div></div>
             <div class="actions"><button class="btn primary" id="runAllBtn" disabled>Run all stages</button><button class="btn" id="clearAllBtn">Clear results</button></div>
@@ -75,7 +75,7 @@
           <div id="stage-build"></div>
           <div id="stage-export"></div>
         </section>
-        <section class="panel outputs-panel"><div class="results-head"><div><h2>Generated output files</h2><p>POS import files and the review workbook from this session.</p></div><div class="result-badge" id="outputCount">0 OUTPUTS</div></div><div id="allOutputs" class="output-list"><div class="empty-output">Run a stage to create its download files.</div></div></section>
+        <section class="panel outputs-panel" data-acc><div class="results-head"><div><h2>Generated output files</h2><p>POS import files and the review workbook from this session.</p></div><div class="result-badge" id="outputCount">0 OUTPUTS</div></div><div id="allOutputs" class="output-list"><div class="empty-output">Run a stage to create its download files.</div></div></section>
       </div>
     </section>
   </div>
@@ -129,6 +129,7 @@
 <script src="../../assets/js/phf-library.js?v=1.1.2"></script>
 <script src="../../assets/js/phf-lock-config.js?v=20261012"></script>
 <script src="../../assets/js/phf-lock.js?v=1.1.0"></script>
-<script src="./js/app.js?v=1.16.3"></script>
+<script src="../../assets/js/phf-accordion.js?v=1.0.0"></script>
+<script src="./js/app.js?v=1.16.4"></script>
 </body>
 </html>

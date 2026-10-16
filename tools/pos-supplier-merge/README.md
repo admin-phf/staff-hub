@@ -1,7 +1,11 @@
-# POS New Product Check Clean v1.16.3 (Staff Hub v21.25.10)
+# POS New Product Check Clean v1.16.4 (Staff Hub v21.25.11)
 
-Updated 16 Oct 2026 22:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 17 Oct 2026 00:20 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.16.4 — **Collapsible panels.** The input, readiness, stage and output panels can be collapsed to just their heading
+(click the heading); the badge stays visible as the summary, and the state is remembered in this browser. Nothing about
+the inputs, stages or outputs changes — it only tidies the screen. (Shared with Build POS Master Databases.)
 
 v1.16.3 (sheet-grid v1.10.0) — **Whole checkbox cell clickable, and a tidier supplier toolbar.**
 - Every tick box now toggles when you click **anywhere in its cell**, not only on the small box: the row numbers (Upload /
