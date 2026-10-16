@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.16.2 (16 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.16.3 (16 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -166,7 +166,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.16.2';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.16.3';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -2427,12 +2427,13 @@
       // Clear empty rows.
       '<div class="sup-tools"><div class="sup-find"><span class="sup-find-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="text" id="supSearch" spellcheck="false" autocomplete="off" placeholder="Search this sheet…" aria-label="Search this sheet"><button type="button" class="sup-find-clear" id="supSearchClear" aria-label="Clear" hidden>✕</button></span>' +
       '</div>' +   // v1.16.0: a plain search bar (the type-a-row Add is gone)
+      // v1.17.0: Paste first, Undo straight after; the rest keep their order; Clear added rows renamed Clear Sheet.
       '<button type="button" class="btn small primary" id="supPasteBtn" title="Paste the clipboard at the selected cell (or add the rows at the end when no cell is selected)">Paste</button>' +
+      '<button type="button" class="btn small" id="supUndo" title="Undo the last change (Ctrl+Z)">Undo</button>' +
       '<button type="button" class="btn small" id="supAdd5" title="Add 5 empty rows at the end — type in them, paste, or fill down (drag the corner of a cell, or Ctrl+D)">Add 5 rows</button>' +
       '<button type="button" class="btn small" id="supClearEmpty" title="Remove every row with nothing from D (barcode) to O — the supplier name / number alone does not count">Clean up empty rows</button>' +
       '<button type="button" class="btn small" id="supDelRows" title="Delete the ticked rows (or the selected rows: click an INDEX number, Shift+click another to select several)">Delete rows</button>' +
-      '<button type="button" class="btn small" id="supUndo" title="Undo the last change (Ctrl+Z)">Undo</button>' +
-      '<button type="button" class="btn small" id="supClearAdded" title="Remove every row typed or pasted here (dropped supplier files stay)">Clear added rows</button>' +
+      '<button type="button" class="btn small" id="supClearAdded" title="Clear every row typed or pasted into this sheet (dropped supplier files and saved library files stay). You will be asked to confirm.">Clear Sheet</button>' +
       '<button type="button" class="btn small" id="supCopyHeads" title="Copy the 16 headings, ready to paste into Excel or Google Sheets as a template">Copy headings</button>' +
       '<div class="sup-opts" id="supOpts"></div></div>' +
       // v1.7.2: heading rows like the other workbook tabs — the column letters (grey, with the SUP BRAND filter), v1.8.0 the
@@ -2878,11 +2879,20 @@
         window.PHFSheetGrid.picker({ anchor: bf, title: 'SUP BRAND', values: supBrandList().map(function (x) { return { v: x.v, n: x.n }; }), selected: supView.brands, onApply: setSupBrands });
       }
     });
-    $('#supTable').querySelector('thead').addEventListener('mousedown', function (e) { if (e.target.closest('.sup-keep,.sup-filt,.sup-pick')) e.stopPropagation(); });
-    $('#supClearAdded').onclick = function () {
+    $('#supTable').querySelector('thead').addEventListener('mousedown', function (e) {
+      if (e.target.closest('.sup-filt')) { e.stopPropagation(); return; }
+      var hc = e.target.closest('tr.sup-heads th');                    // v1.17.0: whole heading cell toggles its Update in POS / pick-all tick
+      if (hc) {
+        var box = hc.querySelector('input[data-keep], input[data-pick-all]');
+        if (box) { e.preventDefault(); e.stopPropagation(); if (box.disabled) return; if (e.target.tagName !== 'INPUT') { box.checked = !box.checked; box.dispatchEvent(new Event('change', { bubbles: true })); } return; }
+      }
+      if (e.target.closest('.sup-keep,.sup-pick')) e.stopPropagation();
+    });
+    $('#supClearAdded').onclick = function () {      // v1.17.0: Clear Sheet — confirm before clearing typed / pasted rows
       var e = addedEntry(false); if (!e) return;
       var n = e.data.length;
-      supMutate(function () { e.data = []; return { msg: fmtN(n) + ' added row' + (n === 1 ? '' : 's') + ' removed.', type: 'info' }; });
+      if (!window.confirm('Clear the sheet?\n\nThis removes the ' + fmtN(n) + ' row' + (n === 1 ? '' : 's') + ' you typed or pasted here. Dropped supplier files and saved library files are not touched. You can undo this.')) return;
+      supMutate(function () { e.data = []; return { msg: fmtN(n) + ' added row' + (n === 1 ? '' : 's') + ' cleared.', type: 'info' }; });
     };
     $('#supCopyHeads').onclick = function () {
       var txt = SUP_HEADS.join('\t');
@@ -2896,6 +2906,11 @@
     };
     var body = $('#supBody'), dragging = false;
     body.addEventListener('mousedown', function (e) {
+      var pkCell = e.target.closest('td[data-c="0"]');                 // v1.17.0: whole INDEX cell toggles its row tick box
+      if (pkCell) {
+        var pkBox = pkCell.querySelector('input[data-pick]');
+        if (pkBox) { e.preventDefault(); e.stopPropagation(); if (pkBox.disabled) return; if (e.target.tagName !== 'INPUT') { pkBox.checked = !pkBox.checked; pkBox.dispatchEvent(new Event('change', { bubbles: true })); } return; }
+      }
       if (e.target.closest('.sup-pick')) return;                       // v1.16.0: the row tick box
       if (e.target.classList.contains('sup-fill')) {                 // v1.11.0: start a fill-down drag
         var fb = selBox(); if (!fb || state.busy) return;

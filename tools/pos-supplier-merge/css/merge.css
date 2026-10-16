@@ -1,4 +1,5 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.14.0 (16 Oct 2026: sort in the column menus, row tick boxes with Delete, no INDEX column, OUT toolbar; v1.13.6 edited cells the same on every sheet — the SUP OVERRIDE PENDING look, #E37400 bold on #FEF3E2; v1.13.4 fill handle on the workbook sheets; v1.13.3 15 Oct storage note; v1.13.2 edited cells and changed Upload ticks orange; v1.13.1 supplier search bar with icon and ×; v1.13.0 14 Oct; v1.11.0 / v1.10.0 / v1.8.0 13 Oct; v1.7.2 12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean v1.15.0 (16 Oct 2026: whole checkbox cell clickable — the tick toggles when you click anywhere in its cell);
+   v1.14.0 (16 Oct 2026: sort in the column menus, row tick boxes with Delete, no INDEX column, OUT toolbar; v1.13.6 edited cells the same on every sheet — the SUP OVERRIDE PENDING look, #E37400 bold on #FEF3E2; v1.13.4 fill handle on the workbook sheets; v1.13.3 15 Oct storage note; v1.13.2 edited cells and changed Upload ticks orange; v1.13.1 supplier search bar with icon and ×; v1.13.0 14 Oct; v1.11.0 / v1.10.0 / v1.8.0 13 Oct; v1.7.2 12 Oct 2026; v1.5.0 / v1.4.0 11 Oct 2026)
    v1.13.0: upload checks — Upload ticks in the row numbers, held / check / fixed row edges, the Upload checks list (end of file).
    v1.11.0: no lines between the supplier sheet's bands; the search / add bar; M, N, O ticks; the fill handle (end of file).
    v1.10.0: no inner lines in the heading block of any sheet (end of file).
@@ -505,3 +506,14 @@ body.phf-page-merge .up-more{padding:6px 12px;font-size:11.5px;color:var(--phf-m
 body.phf-page-merge .sidebar-footer.is-warn{border:1px solid var(--phf-amber-line,#F0D58A);background:var(--phf-amber-bg,#FFF7E0);border-radius:8px;padding:8px 10px}
 body.phf-page-merge .sidebar-footer.is-warn strong{color:var(--phf-amber-ink,#7A4F00)}
 body.phf-page-merge .sidebar-footer.is-ok strong{color:var(--phf-green,#2E7D32)}
+
+/* v1.15.0 — whole checkbox cell is clickable: show the pointer across the cell, not only on the tiny box */
+body.phf-page-merge .wbg-editable .wbg-table tbody td.wbg-rn,
+body.phf-page-merge .wbg-table thead th.wbg-rn,
+body.phf-page-merge .wbg-table tr.wbg-headrow th:has(.wbg-tick),
+body.phf-page-merge .sup-table tbody td[data-c="0"],
+body.phf-page-merge .sup-table tr.sup-heads th:has(.sup-keep),
+body.phf-page-merge .sup-table tr.sup-heads th:has(.sup-pick-all){cursor:pointer}
+body.phf-page-merge .wbg-table tr.wbg-headrow th .wbg-tick,
+body.phf-page-merge .sup-table tr.sup-heads th .sup-keep,
+body.phf-page-merge .sup-table tr.sup-heads th .sup-pick-all{pointer-events:none}

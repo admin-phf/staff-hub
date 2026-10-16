@@ -1,4 +1,6 @@
-/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.9.0 (16 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · sheet-grid.js v1.10.0 (16 Oct 2026)
+ * v1.10.0: the whole checkbox cell is clickable — clicking anywhere in a tick box's cell toggles it (row numbers, Upload / pick
+ *   boxes, the pick-all header and the Update in POS heading ticks), not only the small box itself.
  * v1.9.0: the column menu sorts as well as filters — A to Z / Z to A, or for a column of numbers Highest to lowest / Lowest
  * to highest (a view-only sort; the heading shows ▲ / ▼; Sort off puts the sheet's order back). create(host, { pick: true })
  * puts a tick box in every row number (and one in the corner for the rows shown): Delete rows then deletes the ticked
@@ -453,6 +455,16 @@
     table.addEventListener('mousedown', function (ev) {
       var fb = ev.target.closest('.wbg-filt');
       if (fb) { ev.preventDefault(); ev.stopPropagation(); if (openCol === +fb.dataset.fc && pickerOpen()) closeFilter(); else openFilter(+fb.dataset.fc, fb); return; }
+      var tickCell = ev.target.closest('td.wbg-rn, th.wbg-rn, th[data-hc]');                        // v1.10.0: whole checkbox cell is clickable
+      if (tickCell && !ev.target.closest('.wbg-filt')) {
+        var box = tickCell.querySelector('input[data-rtick], input[data-pick], input[data-pick-all], input[data-tick]');
+        if (box) {
+          ev.preventDefault(); ev.stopPropagation();
+          if (box.disabled) return;
+          if (ev.target.tagName !== 'INPUT') { box.checked = !box.checked; box.dispatchEvent(new Event('change', { bubbles: true })); }
+          return;
+        }
+      }
       if (ev.target.closest('.wbg-rtick, .wbg-rpick, .wbg-pick-all')) return;                      // v1.6.0: the Upload tick · v1.9.0 pick boxes
       if (ev.target.classList.contains('wbg-fill')) {                                               // v1.8.0: start a fill-down drag
         var fb0 = selBox(); if (!fb0 || fb0.rows || st.busy) return;

@@ -1,7 +1,16 @@
-# POS New Product Check Clean v1.16.2 (Staff Hub v21.25.9)
+# POS New Product Check Clean v1.16.3 (Staff Hub v21.25.10)
 
-Updated 16 Oct 2026 21:15 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 16 Oct 2026 22:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.16.3 (sheet-grid v1.10.0) — **Whole checkbox cell clickable, and a tidier supplier toolbar.**
+- Every tick box now toggles when you click **anywhere in its cell**, not only on the small box: the row numbers (Upload /
+  pick boxes), the pick-all box in the header, and the Update in POS heading ticks — on the OUT_MERGED_DATA grid and the
+  supplier sheet. Clicking a data cell still selects it as before.
+- Supplier toolbar reordered to **Paste · Undo · Add 5 rows · Clean up empty rows · Delete rows · Clear Sheet · Copy
+  headings** — Paste first, Undo straight after.
+- **Clear added rows** renamed **Clear Sheet**; it still clears only the rows you typed or pasted (dropped supplier files
+  and saved library files are untouched) and now asks you to confirm first. Undo still reverses it.
 
 v1.16.2 (engine-host v1.7.4) — **More description clean-up, from the second 16 Oct review.**
 - a `ZZ` marker glued to a word in a ZZZZ description goes (`ZZZZ ZZSHARK CARTILAGE 100C` → `ZZZZ SHARK CARTILAGE 100C`);

@@ -898,3 +898,14 @@ All implemented stages keep source business files local to the browser and gener
   (= w[0]) or i = 3 (= w[1]) is dropped unless in `DOUBLED` or after a `CONNECT` word (N, &, AND, TO, BY, OF, ON, THE, X,
   +, 2); the first word repeated as the last word (5+ letters) is dropped. `DOUBLED` gains GO. The `__phfOut` harness
   export was removed; `G.__phfCleanDescr` stays. Loaders at ?v=1.7.4; app.js v1.16.2 (`TOOL_VERSION`).
+
+## Staff Hub v21.25.10 (16 Oct 2026 22:30 AEDT)
+- sheet-grid v1.10.0: the table `mousedown` handler, before the cell-selection logic, checks whether the pointer is in a
+  checkbox cell (`td.wbg-rn`, `th.wbg-rn`, or a `th[data-hc]` heading cell that holds a `.wbg-tick`) and, if so, toggles
+  the contained `input[data-rtick|data-pick|data-pick-all|data-tick]` and fires its `change` (unless the input itself was
+  clicked, which toggles natively). The `.wbg-filt` sort/filter button is excluded. merge.css v1.15.0 shows the pointer
+  cursor across these cells and sets `pointer-events:none` on the inner `.wbg-tick` / `.sup-keep` / `.sup-pick-all` labels.
+- app.js v1.16.3: the same full-cell toggle on the supplier sheet — the `#supBody` `mousedown` toggles the INDEX cell's
+  `input[data-pick]`, and the `.sup-heads` thead `mousedown` toggles a heading cell's `input[data-keep]` / `input[data-pick-all]`.
+  Supplier toolbar order is now Paste, Undo, Add 5 rows, Clean up empty rows, Delete rows, Clear Sheet, Copy headings;
+  `#supClearAdded` relabelled "Clear Sheet" with a `window.confirm` before clearing the typed / pasted rows (Undo still reverses it).
