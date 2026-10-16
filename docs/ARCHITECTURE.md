@@ -953,3 +953,20 @@ All implemented stages keep source business files local to the browser and gener
   collapsed. Build POS Master Databases (pipeline.js v21.17.0) and POS New Product Check Clean (app.js v1.16.5).
 - theme.css v20.3.0: `.stage-outputs` summary styling (caret, count, clickable heading). The input / readiness / output /
   saved-files panels keep their `data-acc` whole-panel accordions.
+
+## Staff Hub v21.25.14 (17 Oct 2026 06:40 AEDT)
+- Build POS Master Databases outputs consolidated to one source of truth (pipeline.js v21.18.0). The stage cards no longer
+  carry download blocks or the v21.25.13 output drop-down: a DONE stage shows a `✓ N ROWS` badge (stageSet gains a `rows`
+  arg → state.stageRows) and a `.stage-jump` "View in outputs ↓" link that scrolls to and flashes that stage's rows in the
+  panel (jumpToOutputs). renderOutputs() now builds the "All generated output files" panel as grouped `.output-group`
+  blocks: "Final — Combined Master" (master-full / selected / order) pinned at the top with the full master's Download as
+  the primary action, then Intermediate groups per stage (POS / CH2 / Unique), each anchored `#output-stage-<id>`. Each
+  row (outputRow) shows an In Library / Temporary / Saving… chip (from LIB_OUT + o.lib) and warnings in a collapsible
+  `.out-warn` disclosure instead of repeated prose. outputRows() removed; per-stage output rendering removed.
+- Build All summary (renderBuildAllSummary) shows three metric tiles — Master records, Stages built · duration
+  (state.lastBuildSecs, measured in buildAll), Warnings — and one "Download final master" primary action; no intermediate
+  files are listed there. autoDownloadFull() triggers the download then calls renderBuildAllSummary().
+- compact-layout.css v1.2.0: the grouped panel, chips, warning disclosures, flash highlight, stage-jump link and Build All
+  metric tiles (all scoped to body.phf-page-db). The outputs panel keeps its data-acc whole-panel accordion. The per-tool
+  Saved files library (Phase C) is unchanged; the In Library chip in the outputs panel is the dedup signal between a
+  session output and its persisted Library copy.
