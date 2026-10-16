@@ -1,7 +1,14 @@
 # POS New Product Check Clean v1.15.4 (Staff Hub v21.25.6)
 
-Updated 16 Oct 2026 13:00 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 16 Oct 2026 14:15 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.15.5 — **One rule for every tick, shown the same way.** Ticked = the column's value goes to POS. Unticked = matched
+products keep what POS has; the merge's value still shows on OUT_MERGED_DATA in grey, and the POS block at the right
+shows POS's. POS SUB ID (N) and UPDATED SUPPLIER (G) now grey like POS BRAND, POS DESCR and the NEW prices did; units,
+min order, GST and member have no review column, only the POS block. The POS UPDATE file was already right (with F
+unticked, 1,753 of 1,753 matched rows carried POS's Sub ID). New products (INSERT) always carry the supplier's values —
+POS has nothing to keep for them.
 
 v1.15.4 (engine-host v1.7.1) — **Descriptions and forms.**
 - **No stray word after a possessive or a joined token.** The script's must-keep pass could not see WOMEN inside WOMEN'S,

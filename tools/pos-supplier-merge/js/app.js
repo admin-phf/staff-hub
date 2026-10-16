@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.15.4 (16 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.15.5 (16 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -148,11 +148,14 @@
  * v1.15.4 (16 Oct 2026): the pricing review columns always show the merge's new price and its coloured change (NEW WSP
  *         EXGST, WSP CHANGE % / $, NEW LAST PRICE, CHANGE LAST PRICE % / $, NEW RRP) — with CURRENT ticked they are only
  *         greyed. The POS block (wsp excgst, last price, rrp incgst, price levels, ret price) and FINAL SHELF RRP still
- *         show what POS will have. */
+ *         show what POS will have.
+ * v1.15.5 (16 Oct 2026): SUP SUB ID unticked greys OUT_MERGED_DATA's POS SUB ID (N) on matched rows as well as the POS
+ *         block's sub id (which shows POS's own) — the POS files already kept POS's Sub ID (verified: 1,753 of 1,753).
+ *         UPDATED SUPPLIER (G) greys the same way with B / C unticked. New products always carry the supplier's values. */
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.15.4';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.15.5';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -204,9 +207,9 @@
     // v1.14.0: `cur` / `new` = the CURRENT / NEW pair on OUT_MERGED_DATA that carries this group's tick there (tick NEW = the
     // merge's value goes to POS, tick CURRENT = POS keeps its own); groups without a pair have their tick on the supplier
     // sheet only. col -1 = no supplier-sheet tick (`last`, `size`).
-    { id: 'supplier', col: 1, cols: [1, 2], what: 'supplier', upd: ['supplier'], out: ['supplier'], cur: 'POS SUPPLIER', new: 'UPDATED SUPPLIER' },
+    { id: 'supplier', col: 1, cols: [1, 2], what: 'supplier', upd: ['supplier'], out: ['supplier', 'UPDATED SUPPLIER'], cur: 'POS SUPPLIER', new: 'UPDATED SUPPLIER' },   // v1.15.5: G greys too when POS keeps its supplier
     { id: 'brand', col: 4, what: 'brand', upd: ['brand'], out: ['brand', 'POS BRAND', 'OLD BRAND'], cur: 'OLD BRAND', new: 'POS BRAND' },   // v1.14.10: POS BRAND is the updated brand (the engine writes it there), OLD BRAND what POS had
-    { id: 'sub', col: 5, what: 'Sub ID', upd: ['sub id'], out: ['sub id'] },
+    { id: 'sub', col: 5, what: 'Sub ID', upd: ['sub id'], out: ['sub id', 'POS SUB ID'] },   // v1.15.5: N greys too when POS keeps its Sub ID
     { id: 'product', col: 6, what: 'description (descr / pos desc) and packaging', upd: ['descr', 'pos desc', 'packaging'], out: ['POS DESCR', 'descr', 'pos desc', 'packaging'], cur: 'ORIGINAL POS DESCR', new: 'POS DESCR' },   // v1.12.0 packaging
     { id: 'units', col: 7, what: 'units', upd: ['units'], out: ['units'] },
     { id: 'minorder', col: 8, what: 'min order qty (box lot)', upd: ['min order qty'], out: ['min order qty'] },
