@@ -1,7 +1,18 @@
-# POS New Product Check Clean v1.16.1 (Staff Hub v21.25.8)
+# POS New Product Check Clean v1.16.2 (Staff Hub v21.25.9)
 
-Updated 16 Oct 2026 18:30 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 16 Oct 2026 21:15 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.16.2 (engine-host v1.7.4) — **More description clean-up, from the second 16 Oct review.**
+- a `ZZ` marker glued to a word in a ZZZZ description goes (`ZZZZ ZZSHARK CARTILAGE 100C` → `ZZZZ SHARK CARTILAGE 100C`);
+- a prefix word repeated straight after the prefix block (`NOW FOODS NOW VIT D3` → `NOW FOODS VIT D3 5000IU 120C`,
+  `ETH NUTS ETH GLUC …`, `CATHAY HERBAL PRACT HERBAL AGA 50G` → `CATHAY HERBAL PRACT AGA 50G`, `BYRON BAY TALLOW BAY`,
+  `CHIEF BAR BEEF BAR 40G` → `CHIEF BAR BEEF 40G`) — not `SOW N SOW`, `KIN KIN`, `GO GO`, nor `PROT SUPP PEA PROT ISO`,
+  where the second PROT is the product;
+- a phrase repeated with one word between (`PROTO WHEY FF PROTO WHEY 1LB CHOC` → `PROTO WHEY FF 1LB CHOC`);
+- the brand repeated as the last word (`ESSENZZA EAR CANDLES 1PAIR ESSENZZA` → `ESSENZZA EAR CANDLES 1PAIR`).
+Checked on the 16 Oct set (507 matched rows: 47 descriptions change, all repeats) and the 15 Oct set (8 change: the
+PROT SUPP rows keep their PROT, the trailing CABOT goes from two book titles).
 
 v1.16.1 (engine-host v1.7.3) — **Descriptions cleaned on the sheet itself.** The clean-up that used to run only on the
 POS rows now runs on every OUT_MERGED_DATA row after stage 2 / Refresh, with new rules from the 16 Oct review:

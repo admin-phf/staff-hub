@@ -891,3 +891,10 @@ All implemented stages keep source business files local to the browser and gener
 - engine-host v1.7.3: `cleanDescr` — `lead` (ZZZZ) split off, inner `Z{3,}` removed, repeated leading phrase (k = 3..1,
   optional THE), `sizeNorm` / `SIZE_ALIAS` / `SIZE_UNITS` for duplicate sizes, adjacent abbreviation rules (i ≤ 2), lone
   `Z` dropped; called from `refineForms` for every row (discontinued rows excluded as before). Loaders at ?v=1.7.3.
+
+## Staff Hub v21.25.9 (16 Oct 2026 21:15 AEDT)
+- engine-host v1.7.4: `cleanDescr` — in a ZZZZ description a `ZZ` glued to a 3+ letter word is stripped; the repeated
+  leading-phrase search (k = 3..1) also tries one word between (`j = k` and `k + 1`); a prefix word repeated at i = 2
+  (= w[0]) or i = 3 (= w[1]) is dropped unless in `DOUBLED` or after a `CONNECT` word (N, &, AND, TO, BY, OF, ON, THE, X,
+  +, 2); the first word repeated as the last word (5+ letters) is dropped. `DOUBLED` gains GO. The `__phfOut` harness
+  export was removed; `G.__phfCleanDescr` stays. Loaders at ?v=1.7.4; app.js v1.16.2 (`TOOL_VERSION`).

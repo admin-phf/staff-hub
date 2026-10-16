@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS Supplier New Product Check and Clean Merge · engine-worker v1.7.3 (loads sheets-formula v1.0.1 / sheets-shim v1.0.3 / engine-host v1.7.3)
+/* PHF Staff Hub — POS Supplier New Product Check and Clean Merge · engine-worker v1.7.4 (loads sheets-formula v1.0.1 / sheets-shim v1.0.3 / engine-host v1.7.4)
  * engine-worker.js — loads the Sheets stand-in, then the four POS Supplier Merge Apps Script files
  * (Setup v6.3.87, Merge v6.3.89), then the message host (v1.1.0: sheet edits, undo, refresh supplier changes).
  * Running in a worker keeps the page responsive during large merges.
@@ -11,4 +11,4 @@ importScripts(
   '../engine/1.2-highlight-new-products-best-buy.js?v=6.3.87',
   '../engine/1.3-merge.js?v=6.3.89'
 );
-importScripts('./engine-host.js?v=1.7.3');
+importScripts('./engine-host.js?v=1.7.4');

@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.16.1 (16 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.16.2 (16 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -166,7 +166,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.16.1';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.16.2';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -408,12 +408,12 @@
       kind = 'in-page';
       frame = document.createElement('iframe');
       frame.hidden = true; frame.title = 'POS New Product Check Clean engine';
-      frame.src = './engine-frame.html?v=1.7.3';
+      frame.src = './engine-frame.html?v=1.7.4';
       window.addEventListener('message', frameListener);
       document.body.appendChild(frame);
     }
     try {
-      worker = new Worker('./js/engine-worker.js?v=1.7.3');
+      worker = new Worker('./js/engine-worker.js?v=1.7.4');
       kind = 'worker';
       worker.onmessage = function (ev) { onMsg(ev.data); };
       worker.onerror = function (ev) {

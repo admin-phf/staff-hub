@@ -1,4 +1,9 @@
-/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.7.3 (16 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.7.4 (16 Oct 2026)
+ * v1.7.4: more description clean-up from the second 16 Oct review — a ZZ marker glued to a word in a ZZZZ description
+ *   (ZZZZ ZZSHARK CARTILAGE → ZZZZ SHARK CARTILAGE 100C); a prefix word repeated right after the prefix block (NOW FOODS
+ *   NOW VIT D3, ETH NUTS ETH GLUC, CATHAY HERBAL PRACT HERBAL …, BYRON BAY TALLOW BAY — not SOW N SOW, KIN KIN, PROT SUPP PEA PROT); a phrase repeated
+ *   with one word between (PROTO WHEY FF PROTO WHEY); the
+ *   brand repeated as the last word (ESSENZZA EAR CANDLES 1PAIR ESSENZZA).
  * v1.7.3: descriptions cleaned on OUT_MERGED_DATA itself (every row, after stage 2 / Refresh), not only on the POS rows:
  *   a ZZZZ marker glued to a word (ZZZZTHE 3 BEES …) never lands inside POS DESCR — only a leading "ZZZZ " stays
  *   (ZZZZ 3 BEES ZZZZTHE 3 BEES BLUE GUM → ZZZZ 3 BEES BLUE GUM 950G); a stray single Z goes; a leading phrase
@@ -626,7 +631,8 @@
   }
   // Description clean-up: "SELL" left from SELL THROUGH, a word repeated straight after itself (210G 210G, CREAT CREAT), the
   // brand prefix repeated later (CABOT DR CABOT …) and 210GM 210G. Returns '' when nothing changed.
-  var DOUBLED = { PAW: 1, YLANG: 1, AGAR: 1, BYE: 1, CHA: 1, BON: 1, PIRI: 1, TUK: 1, MAHI: 1, COUS: 1, KIN: 1, CAMU: 1, LUM: 1, MULLA: 1, PERI: 1, GUMBI: 1, KAVA: 1, MIRROR: 1, GOJI: 0, NIGHT: 0 };   // real doubled words (PAW PAW, KIN KIN)
+  var DOUBLED = { PAW: 1, YLANG: 1, AGAR: 1, BYE: 1, CHA: 1, BON: 1, PIRI: 1, TUK: 1, MAHI: 1, COUS: 1, KIN: 1, CAMU: 1, LUM: 1, MULLA: 1, PERI: 1, GUMBI: 1, KAVA: 1, MIRROR: 1, GO: 1, GOJI: 0, NIGHT: 0 };   // real doubled words (PAW PAW, KIN KIN)
+  var CONNECT = { N: 1, '&': 1, AND: 1, TO: 1, BY: 1, OF: 1, ON: 1, THE: 1, X: 1, '+': 1, '2': 1 };   // SOW N SOW, BACK TO BACK, TUK TUK
   var SIZE_ALIAS = { GM: 'G', GMS: 'G', MLS: 'ML', LT: 'LTR', L: 'LTR', CAPS: 'C', CAP: 'C', CAPSULES: 'C', TABS: 'T', TAB: 'T', TABLETS: 'T', VCAPS: 'VC', PACK: 'PK', TBAGS: 'TB', TEABAGS: 'TB' };
   var SIZE_UNITS = { C: 1, T: 1, VC: 1, SG: 1, S: 1, TB: 1, PK: 1, ML: 1, G: 1, KG: 1, LTR: 1, MG: 1, MCG: 1, IU: 1 };
   function sizeNorm(x) { var m = x.match(/^(\d+(?:\.\d+)?)([A-Z]+)$/); if (!m) return x; var u = SIZE_ALIAS[m[2]] || m[2]; return SIZE_UNITS[u] ? m[1] + u : x; }
@@ -636,12 +642,17 @@
     // v1.7.3: a ZZZZ marker inside the text (glued or alone) goes; a leading one stays as "ZZZZ ".
     var lead = ''; if (/^Z{3,}/.test(t)) { lead = 'ZZZZ '; t = t.replace(/^(?:Z{3,}\s*)+/, ''); }
     t = t.replace(/(^|\s)Z{3,}(?=[A-Z(])/g, '$1').replace(/(^|\s)Z{3,}(?=\s|$)/g, '$1').replace(/\s+/g, ' ').trim();
+    if (lead) t = t.replace(/(^|\s)ZZ(?=[A-Z]{3,})/g, '$1');                                      // v1.7.4: ZZSHARK in a ZZZZ description
     var w = t.split(' ');
-    for (var k = 3; k >= 1; k--) {                                                                  // v1.7.3: 3 BEES THE 3 BEES …, KIWI HERB KIWI HERB …
+    for (var k = 3; k >= 1; k--) {                                                                  // v1.7.3: 3 BEES THE 3 BEES …, KIWI HERB KIWI HERB …, v1.7.4 PROTO WHEY FF PROTO WHEY …
       if (w.length < 2 * k) continue;
-      var j = k; if (w[j] === 'THE' && w.length >= 2 * k + 1) j = k + 1;
-      var same = true; for (var q = 0; q < k; q++) if (w[j + q] !== w[q]) { same = false; break; }
-      if (same && !(k === 1 && (DOUBLED[w[0]] || w[0].length < 3))) { w.splice(j, k); if (j > k) w.splice(k, 1); break; }   // the THE goes too
+      var hit = -1;
+      for (var j = k; j <= k + 1 && j + k <= w.length; j++) {
+        var same = true; for (var q = 0; q < k; q++) if (w[j + q] !== w[q]) { same = false; break; }
+        if (same) { hit = j; break; }
+      }
+      if (hit < 0 || (k === 1 && (DOUBLED[w[0]] || w[0].length < 3 || (hit > 1 && CONNECT[w[1]])))) continue;   // KIN KIN, SOW N SOW stay
+      w.splice(hit, k); if (hit > k && w[k] === 'THE') w.splice(k, 1); break;                        // the THE goes too; FF stays
     }
     var out = [], norm = sizeNorm;
     for (var i = 0; i < w.length; i++) {
@@ -649,6 +660,8 @@
       if (x === 'Z') continue;                                                                       // v1.7.3: what the script leaves of a ZZZZ marker
       if (out.length && x.length > 1 && !DOUBLED[x] && norm(x) === norm(prev)) continue;             // 210G 210G, 500GM 500G, K2 K2, CREAT CREAT (not PAW PAW)
       if (i > 1 && i <= 3 && x === w[0] && w[0].length >= 5 && !/^\d/.test(w[0])) continue;            // CABOT DR CABOT …, PRANA SPORT PRANA … (not PROT SUPP … PROT, BARE WPI BARE)
+      if (((i === 2 && x === w[0]) || (i === 3 && x === w[1])) && x.length >= 3 && !/^\d/.test(x) && !DOUBLED[x] && !CONNECT[w[i - 1]]) continue;   // v1.7.4: NOW FOODS NOW …, BARE WPI BARE …, CATHAY HERBAL PRACT HERBAL …, BYRON BAY TALLOW BAY … (not SOW N SOW, not PROT SUPP PEA PROT)
+      if (i === w.length - 1 && i > 1 && x === w[0] && x.length >= 5) continue;                      // v1.7.4: ESSENZZA EAR CANDLES 1PAIR ESSENZZA
       if (i > 0 && i <= 2 && x.length >= 5 && prev.length > x.length && prev.indexOf(x) === 0 && !/^\d/.test(x)) continue;   // v1.7.3: FRONTIER FRONT, COCOLUSCIOUS COCOLUSC (not COCOLUSCIOUS COCO)
       if (i > 0 && i <= 2 && prev.length >= 4 && x.length > prev.length && x.indexOf(prev) === 0 && !/^\d/.test(prev)) continue;   // v1.7.3: BIOL BIOLOGIKA, CYMB CYMBIOTIKA (the prefix stays)
       var sn = norm(x); if (sn !== x || /^\d+(\.\d+)?[A-Z]+$/.test(x)) { var dupSize = false; for (var o = 0; o < out.length; o++) if (norm(out[o]) === sn && SIZE_UNITS[(sn.match(/[A-Z]+$/) || [''])[0]]) { dupSize = true; break; } if (dupSize) continue; }   // v1.7.3: 120CAPS … 120C, 500GM … 500G
@@ -657,6 +670,7 @@
     t = (lead + out.join(' ')).trim();
     return t !== s ? t : '';
   }
+  G.__phfCleanDescr = cleanDescr;   // v1.7.3: for the test harness
   // MELROSE ORGANIC / MELROSE, ENDURA SPORT / ENDURA, BOOKS CABOT HEALTH / CABOT HEALTH: the same brand family, not a wrong match.
   function sameFamily(a, b) { var wa = a.split(' ')[0], wb = b.split(' ')[0]; return wa === wb || a.indexOf(b) >= 0 || b.indexOf(a) >= 0; }
   function posDescOf(descr) { return typeof G.m13PosDesc_ === 'function' ? G.m13PosDesc_(descr) : up(descr); }
