@@ -1,7 +1,24 @@
 # POS New Product Check Clean v1.15.4 (Staff Hub v21.25.6)
 
-Updated 16 Oct 2026 12:15 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 16 Oct 2026 13:00 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
+
+v1.15.4 (engine-host v1.7.1) — **Descriptions and forms.**
+- **No stray word after a possessive or a joined token.** The script's must-keep pass could not see WOMEN inside WOMEN'S,
+  or L inside NIGHT+L, so it added the word again (`BIOC WOMEN'S ESS WOMEN 120C`, `BIOC ULTRA MUSCLEZE NIGHT+L THN L 60T`,
+  `DH QUERCETIN+NETTLES QUERCETIN 60C`). It no longer does.
+- **A marketing word POS keeps stays.** The script strips BIOACTIVE, HIGH POTENCY, CERTIFIED ORGANIC … before it builds the
+  description; when the matched POS description carries the word, it goes back in front of the size if the 35 characters
+  allow (`BIOC UBIQ BIOACTIVE 150MG 30C`, not `BIOC UBIQ 150MG 30C`).
+- **TYPE (AM) filled by inference** when the text names no form — 896 of 1,984 live rows were blank on the 15 Oct run, 362
+  now. Only where the unit and the words leave little doubt: VC / SG counts → CAPSULES, LOZ → LOZENGES; a topical word
+  (lotion, serum, gel, balm, toothpaste, wash, shampoo, conditioner, deodorant, soap, cleanser, moisturiser, mask, scrub,
+  sunscreen, roll-on, lip, hair, shaving …) → TOPICAL; ML / LTR otherwise → LIQUID (drops, tinctures, household cleaners);
+  KG → POWDER unless a food word; G → POWDER only with a powder word (protein, collagen, greens, creatine, glutamine,
+  electrolytes, hydration, fibre, amino acids, probiotic, formula, blend, superfood, magnesium, zinc …) and no food word
+  (bar, bites, chocolate, chewables, gummies, nuts, seeds, honey …). A cream that is a flavour (STRAWBERRIES & CREAM 450G
+  protein) is a powder. A TYPE the script found itself is never changed. The remaining blanks are things with no form
+  (kits, books, gift packs, moulds, test strips) or a G size with no clue (D-MANNOSE 180G, pilules) — type it in AM.
 
 v1.15.4 — **The pricing columns always show the new price and its change.** NEW WSP EXGST, WSP CHANGE % / $, NEW
 LAST PRICE, CHANGE LAST PRICE % / $ and NEW RRP show the merge's price and the coloured change whether NEW or CURRENT is

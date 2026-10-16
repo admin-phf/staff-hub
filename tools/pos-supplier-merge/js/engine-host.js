@@ -1,4 +1,11 @@
-/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.7.0 (16 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.7.1 (16 Oct 2026)
+ * v1.7.1: descriptions — a word the script's must-keep pass re-adds is dropped when the description already has it inside
+ *   another token (NIGHT+L … L, WOMEN'S … WOMEN, CAT'S … CAT); a marketing word the script strips (BIOACTIVE, HIGH
+ *   POTENCY …) stays when the matched POS description has it (BIOC UBIQ BIOACTIVE 150MG 30C). TYPE (AM) filled by
+ *   inference when the text has no form word (inferType): VC / SG counts → CAPSULES, LOZ → LOZENGES; topical words
+ *   (cream, serum, shampoo, soap, toothpaste …) → TOPICAL; ML / LTR otherwise → LIQUID (household cleaners too); KG →
+ *   POWDER unless a food word; G → POWDER only with a powder word (protein, collagen, greens, creatine, electrolytes,
+ *   amino acids, probiotic, formula, blend …) and no food word. A TYPE the script found is never changed.
  * v1.7.0: sell-through — the note on SUP PRODUCT in any of its forms (*SELL THRU*, *SELL THROUGH, NEW SKU 2959733*, SELL
  *   THROUGH) is read off before matching / descriptions (so no SELL or SKU number leaks into POS DESCR); after stage 2 /
  *   Refresh the row's POS DESCR ends with "*" (the marker POS staff look for), Q shows the note and NOTES (AF) says
@@ -310,10 +317,31 @@
       if (c && c.plu && pm.plu[c.plu] !== undefined) return pm.plu[c.plu];   // a matched product: its own PL1 in POS
       return !!(brandNorm && pm.brand[brandNorm]);                          // otherwise most of the brand's POS products
     };
-    wrapCtx('m13BuildOneOutRow_', function (a) { var sup = a[2], pos = a[3]; return { plu: pos && pos.plu ? pluKey(pos.plu) : '', bc: sup && sup.barcode ? bcKey(sup.barcode) : '' }; });
+    wrapCtx('m13BuildOneOutRow_', function (a) { var sup = a[2], pos = a[3]; return { plu: pos && pos.plu ? pluKey(pos.plu) : '', bc: sup && sup.barcode ? bcKey(sup.barcode) : ''}; });
     wrapCtx('m13BuildDiscontinuedOutRow_', function (a) { var pos = a[1]; return { plu: pos && pos.plu ? pluKey(pos.plu) : '', bc: '' }; });
     wrapCtx('m13ApplySupplierOverrideToOutRow_', function (a) { var row = a[0], sup = a[1]; return { plu: row ? pluKey(row[42]) : '', bc: sup && sup.barcode ? bcKey(sup.barcode) : '' }; });
     wrapCtx('m13ResolvedShelfPricingForOutput_', function (a) { var f = a[2]; return { plu: pluKey(f(1)), bc: bcKey(f(0)) }; });
+  }
+  // v1.7.1: the script strips marketing words (BIOACTIVE, HIGH POTENCY, CERTIFIED ORGANIC …) when the supplier row is read,
+  // before it knows the POS product. When the matched POS description carries the word, POS wants it: after the polish
+  // pass it goes back in front of the size (BIOC UBIQ BIOACTIVE 150MG 30C) when the 35 characters allow.
+  function restoreMarketing(descr, originalPosDescr, supplierRaw) {
+    var list = typeof G.m13MarketingPhrases_ === 'function' ? G.m13MarketingPhrases_ : null, rx = typeof G.m13MarketingPhraseRegex_ === 'function' ? G.m13MarketingPhraseRegex_ : null;
+    var out = String(descr == null ? '' : descr), o = up(originalPosDescr), q = up(supplierRaw);
+    if (!list || !rx || !out || !o || !q) return out;
+    list().forEach(function (ph) {
+      var test = function (t) { var r = rx(ph); r.lastIndex = 0; return r.test(t); };
+      if (!test(o) || !test(q) || test(out)) return;
+      var word = (o.match(rx(ph)) || [''])[0].replace(/^[^A-Z0-9]+/, '').trim(); if (!word) return;
+      var stem = word.replace(/[^A-Z0-9]/g, '');
+      if (out.split(' ').some(function (t) { var b = t.replace(/[^A-Z0-9]/g, ''); return b.length >= 4 && stem.indexOf(b) === 0; })) return;   // already there, abbreviated (BIOACT)
+      var w = out.split(' '), at = w.length;
+      for (var i = w.length - 1; i > 0; i--) if (SZ_OK.test(w[i]) || /^\d+(\.\d+)?(X\d+(\.\d+)?)?[A-Z]+$/.test(w[i]) || /^\d+MG$/.test(w[i])) at = i;
+      w.splice(at, 0, word);
+      var next = w.join(' ');
+      if (next.length <= DESCR_MAX) out = next;
+    });
+    return out;
   }
   function stripNote(v) { return typeof v === 'string' && /SELL\s*(?:THROUGH|THRU)/i.test(v) ? v.replace(SELL_THRU, ' ').replace(/\s+/g, ' ').trim() : v; }   // v1.7.0: every form
   function installSellThruHooks() {
@@ -331,6 +359,13 @@
       a[0] = stripNote(a[0]); a[2] = stripNote(a[2]);
       return origP.apply(this, a);
     };
+    // v1.7.1: the script's own "purged POS words" restore (m13SZ1RestorePurgedPosWords_(descr, supplierRaw, originalPosDescr))
+    // only works when the word before the phrase is unchanged; the marketing restore runs right after it.
+    var origSZ = G.m13SZ1RestorePurgedPosWords_;
+    if (typeof origSZ === 'function') G.m13SZ1RestorePurgedPosWords_ = function (descr, supplierRaw, originalPosDescr) {
+      var r = origSZ.apply(this, arguments);
+      return typeof r === 'string' ? restoreMarketing(r, originalPosDescr, stripNote(supplierRaw)) : r;
+    };
     // v1.7.0: the script's must-keep pass puts the strongest supplier word back when it cannot see it in the description;
     // WOMEN'S / MEN'S / CAT'S hide the word behind the apostrophe, so it added WOMEN again (BIOC WOMEN'S ESS WOMEN 120C).
     var origMust = G.m13DP5EnsureMustKeepFromQ_;
@@ -339,7 +374,10 @@
       if (now.length !== was.length + 1) return r;
       var added = now.filter(function (w) { return was.indexOf(w) < 0; });
       if (added.length !== 1) return r;
-      var w = added[0], has = was.some(function (x) { var b = x.replace(/[^A-Z0-9']/g, ''); return b === w + "'S" || b === w + 'S' || b === w + "'"; });
+      var w = added[0], has = was.some(function (x) {
+        var b = x.replace(/[^A-Z0-9']/g, ''); if (b === w + "'S" || b === w + 'S' || b === w + "'") return true;   // WOMEN'S → WOMEN
+        return x.split(/[^A-Z0-9]+/).indexOf(w) >= 0;                                                              // v1.7.1: NIGHT+L → L, L-THN → L
+      });
       if (!has) return r;
       now.splice(now.indexOf(w), 1); return now.join(' ');
     };
@@ -406,7 +444,25 @@
     if (!t && stickOnly && T_STICK_TOPICAL.test(src)) t = 'TOPICAL';  // deodorant, zinc, lip, balm, skin sticks
     if (!t && T_SACH_WORD.test(src)) t = 'SACHETS';
     if (!t && q && singleServe(q)) t = 'SACHETS';
+    if (!t) t = inferType(src, size || sizeFrom(q) || sizeFrom(row[15]));   // v1.7.1
     return t;
+  }
+  // v1.7.1 — a form when the text names none. Only where the unit and the words leave little doubt; otherwise blank.
+  var I_TOPICAL = /\b(LOTIONS?|SERUMS?|GELS?|BALMS?|TOOTHPASTE|TPASTE|WASH|SHAMPOO|SHAMP|CONDITIONER|COND|DEODORANTS?|DEOD|SOAPS?|CLEANSERS?|MOISTURI[SZ]ERS?|MOIST|MASKS?|SCRUBS?|SUNSCREEN|OINTMENT|ROLL[- ]?ON|LIP|SALVE|RUB|EXFOLIAT\w*|TONER|MOUTHWASH|MASSAGE|HAIR|SHAVING|CLEANSING)\b/;
+  var I_CREAM = /\b(CREAMS?|CREME|CRM)\b/;                                                   // a cream — or a flavour (STRAWBERRIES & CREAM 450G)
+  var I_CLEANER = /\b(CLEANERS?|DETERGENT|LAUNDRY|DISHWASH\w*|DISH|SOFTE?NER|FLOOR|TOILET|BLEACH|SANITI[SZ]ER|DISINFECTANT|SPRAY N WIPE)\b/;
+  var I_FOOD = /\b(BARS?|BITES?|BALLS?|COOKIES?|BISCUITS?|NIBS|CHIPS|MUESLI|GRANOLA|CEREAL|OATS|HONEY|SYRUP|JAM|SPREAD|BUTTER|SUGAR|FLOUR|RICE|PASTA|SALT|COFFEE|NUTS?|SEEDS?|FRUIT|DRINKING|TEA|TBAGS?|LOLLIES|CHOCOLATE|CONC\w*|PASTE|CRACKERS?|NOODLES?|CHEWABLES?|CHEWS?|GUMMIES|GUMMY)\b/;
+  var I_POWDER = /\b(PROTEINS?|PROT|WHEY|WPI|WPC|COLLAGEN|COLL|PEPTIDES?|GREENS|GRNS|CREATINE|CREAT|GLUTAMINE|BCAAS?|EAAS?|ELECTROLYTES?|HYDRATION|HYD|FIBRE|FIBER|PWD|PRE[- ]?WORKOUT|INTRA[- ]?WORKOUT|AMINOS?|AMINO ACIDS?|GLYCINE|LYSINE|ARGININE|TAURINE|CITRULLINE|CARNITINE|GLUCOSAMINE|INOSITOL|TYROSINE|BETA ALANINE|MAGNESIUM|MAG|SPIRULINA|CHLORELLA|MACA|CARBS?|GAINER|SMOOTHIE|SHAKE|MEAL|BIOTIC|PROBIOTICS?|FORMULA|BLEND|SUPERFOODS?|LATTE|ZINC|VITAMIN C|VIT C|MANNOSE|GLYCOCALYX|SUPP\w* PWD)\b/;
+  function inferType(src, size) {
+    var u = (String(size || '').match(/^[\d.]+(?:X[\d.]+)?([A-Z]+)$/) || [])[1] || '';
+    if (u === 'VC' || u === 'SG') return 'CAPSULES';
+    if (u === 'LOZ') return 'LOZENGES';
+    var powder = (u === 'KG' && !I_FOOD.test(src)) || (u === 'G' && I_POWDER.test(src) && !I_FOOD.test(src));
+    if (I_TOPICAL.test(src) && (u === 'ML' || u === 'LTR' || u === 'G' || u === 'KG' || !u)) return 'TOPICAL';
+    if (powder) return 'POWDER';                                                           // before a CREAM that is a flavour
+    if (I_CREAM.test(src) && (u === 'ML' || u === 'LTR' || u === 'G' || u === 'KG' || !u)) return 'TOPICAL';
+    if (u === 'ML' || u === 'LTR') return I_FOOD.test(src) && !I_CLEANER.test(src) ? '' : 'LIQUID';
+    return '';
   }
   function refineTypes(rowsOnly, syncOnly) {          // syncOnly: after an edit, AM as typed → BS (no refining)
     var out = shim && shim.ss._find('OUT_MERGED_DATA'); if (!out) return 0;

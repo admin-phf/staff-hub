@@ -390,12 +390,12 @@
       kind = 'in-page';
       frame = document.createElement('iframe');
       frame.hidden = true; frame.title = 'POS New Product Check Clean engine';
-      frame.src = './engine-frame.html?v=1.7.0';
+      frame.src = './engine-frame.html?v=1.7.1';
       window.addEventListener('message', frameListener);
       document.body.appendChild(frame);
     }
     try {
-      worker = new Worker('./js/engine-worker.js?v=1.7.0');
+      worker = new Worker('./js/engine-worker.js?v=1.7.1');
       kind = 'worker';
       worker.onmessage = function (ev) { onMsg(ev.data); };
       worker.onerror = function (ev) {

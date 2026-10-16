@@ -1,6 +1,6 @@
-# Staff Hub v21.25.6 — merge price ticks back on OUT_MERGED_DATA (16 Oct 2026 12:15 AEDT)
+# Staff Hub v21.25.6 — merge price ticks back on OUT_MERGED_DATA (16 Oct 2026 13:00 AEDT)
 
-**Summary:** v21.25.6 — POS New Product Check Clean v1.15.4: the CURRENT / NEW price tick pairs (WSP + last price together, RRP) are back on OUT_MERGED_DATA with their v1.14.0 rules; CURRENT price columns editable; the pricing columns always show the new price and its coloured change; edited cells one look on every sheet
+**Summary:** v21.25.6 — POS New Product Check Clean v1.15.4: the CURRENT / NEW price tick pairs (WSP + last price together, RRP) are back on OUT_MERGED_DATA with their v1.14.0 rules; CURRENT price columns editable; the pricing columns always show the new price and its coloured change; edited cells one look on every sheet; engine-host v1.7.1 no doubled words, marketing words POS keeps, TYPE inferred
 
 ## Commit notes
 - OUT_MERGED_DATA shows the tick pair on CURRENT WSP EXGST / NEW WSP EXGST, CURRENT LAST PRICE / NEW LAST PRICE and
@@ -17,9 +17,19 @@
 - v1.15.4: with CURRENT ticked, NEW WSP EXGST / NEW LAST PRICE / NEW RRP still show the merge's price (greyed) and the
   CHANGE % / $ columns keep their value and colour; only the POS block and FINAL SHELF RRP show what POS will have
   (`KEEP_SHOW` without the NEW columns, `KEEP_ZERO` empty, `KEEP_COLOUR` left out of the grey).
+- engine-host v1.7.1 (Apps Script files unchanged):
+  - `m13DP5EnsureMustKeepFromQ_` wrapper: a re-added word already inside another token (WOMEN'S, NIGHT+L, L-THN,
+    QUERCETIN+NETTLES) is dropped — no `BIOC ULTRA MUSCLEZE NIGHT+L THN L 60T`.
+  - `m13SZ1RestorePurgedPosWords_` wrapper → `restoreMarketing()`: a marketing phrase in both the supplier text and the
+    matched POS description goes back in front of the size when it fits (BIOC UBIQ BIOACTIVE 150MG 30C); skipped when an
+    abbreviation of it is already there (BIOACT).
+  - `inferType()` at the end of `refineType` when the script found no form: VC / SG → CAPSULES, LOZ → LOZENGES, topical
+    words → TOPICAL, ML / LTR → LIQUID, KG → POWDER (no food word), G → POWDER (powder word, no food word; a flavour CREAM
+    does not make it topical). 15 Oct run: TYPE blank 896 → 362 of 1,984 live rows (+414 POWDER, +268 LIQUID, +158
+    TOPICAL, 1 CAPSULES); POWDER rows get PWD in POS DESCR as v1.7.0 does.
 
 ## Files
-- Changed: index.html (v21.25.6), tools/pos-supplier-merge/{index.html, README.md, js/app.js v1.15.4, css/merge.css v1.13.6}, docs/ARCHITECTURE.md.
+- Changed: index.html (v21.25.6), tools/pos-supplier-merge/{index.html, README.md, js/app.js v1.15.4, js/engine-host.js v1.7.1, js/engine-worker.js, engine-frame.html, css/merge.css v1.13.6}, docs/ARCHITECTURE.md.
 - New: docs/GITHUB-RELEASE-v21.25.6.md.
 
 ## Testing done (16 Oct, headless Chromium)
