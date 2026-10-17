@@ -14,17 +14,17 @@
 <title>POS New Product Check Clean | Prahran Health Foods</title>
 <link rel="stylesheet" href="../../assets/css/shell.css?v=21.6.0">
 <link rel="stylesheet" href="./css/app.css?v=1.0.0-20261010">
-<link rel="stylesheet" href="./css/merge.css?v=1.15.0">
+<link rel="stylesheet" href="./css/merge.css?v=1.16.0">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="../../assets/css/theme.css?v=20.3.0">
-<link rel="stylesheet" href="../../assets/css/compact-layout.css?v=1.2.0">
-<link rel="stylesheet" href="../../assets/css/library.css?v=2.0.0">
+<link rel="stylesheet" href="../../assets/css/compact-layout.css?v=1.3.0">
+<link rel="stylesheet" href="../../assets/css/library.css?v=2.1.0">
 </head>
 <body class="database-builder-page phf-page-db phf-page-merge">
 <header class="phf-shell-header header-container">
   <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
-  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="POS New Product Check Clean — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg></span><div class="phf-shell-copy title-row"><h1 class="phf-title-long">POS New Product Check Clean</h1><p class="phf-shell-version version-text">v1.16.5</p></div></a>
-  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">POS New Product Check Clean</span></nav><p class="phf-shell-updated build-details">Updated 17 Oct 2026 02:05 AEDT</p><div class="phf-lock-ctl" id="phfLockCtl" aria-live="polite"></div></div>
+  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="POS New Product Check Clean — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg></span><div class="phf-shell-copy title-row"><h1 class="phf-title-long">POS New Product Check Clean</h1><p class="phf-shell-version version-text">v1.17.0</p></div></a>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">POS New Product Check Clean</span></nav><p class="phf-shell-updated build-details">Updated 17 Oct 2026 07:45 AEDT</p><div class="phf-lock-ctl" id="phfLockCtl" aria-live="polite"></div></div>
 </header>
 
 <main class="workflow-wrap full-width-wrap phf-full">
@@ -66,6 +66,7 @@
             <div class="actions"><button class="btn primary" id="runAllBtn" disabled>Run all stages</button><button class="btn" id="clearAllBtn">Clear results</button></div>
             <div class="status info" id="globalStatus">Add the POS Database and at least one supplier file to start.</div>
             <div class="progress hidden" id="globalProgress"><div id="globalProgressBar"></div></div>
+            <div class="run-summary" id="runSummary" hidden></div>
           </section>
         </div>
       </div>
@@ -76,16 +77,22 @@
           <div id="stage-build"></div>
           <div id="stage-export"></div>
         </section>
-        <section class="panel outputs-panel" data-acc><div class="results-head"><div><h2>Generated output files</h2><p>POS import files and the review workbook from this session.</p></div><div class="result-badge" id="outputCount">0 OUTPUTS</div></div><div id="allOutputs" class="output-list"><div class="empty-output">Run a stage to create its download files.</div></div></section>
+        <section class="panel outputs-panel" data-acc><div class="results-head"><div><h2>Outputs &amp; Storage</h2><p>The files this run made, and the reference files saved in this browser.</p></div><div class="result-badge" id="outputCount">0 OUTPUTS</div></div><div id="allOutputs" class="output-list"><div class="empty-output">Run a stage to create its download files.</div></div>
+          <details class="outputs-storage-lib"><summary>Saved in this browser <span class="osl-count" id="toolLibraryCount"></span></summary><div id="toolLibrary" aria-label="Saved files for this tool"></div></details>
+        </section>
       </div>
-
-      <section class="panel" data-acc data-acc-id="merge-library" id="toolLibrary" aria-label="Saved files for this tool"></section>
     </section>
   </div>
 
   <!-- v1.4.0 workbook: the Google Sheet's tabs along the bottom (IN_SUPPLIER, OUT_MERGED_DATA, OUT_POS_INSERT / UPDATE,
        the SRC_ reference tabs and TMP_MERGED_POS_DATA). One tab shows at a time. -->
-  <section class="wb" id="workbook" aria-label="Workbook tabs">
+  <section class="wb is-collapsed" id="workbook" aria-label="Workbook tabs">
+    <!-- v1.17.0: sticky toggle — the 21-sheet workbook is collapsed while staging and opens itself after a run. -->
+    <div class="wb-toggle-bar" id="wbToggleBar">
+      <button type="button" class="wb-toggle" id="wbToggle" aria-expanded="false" aria-controls="wbBody"><span class="wb-toggle-caret" aria-hidden="true">▸</span><strong>Review &amp; Edit Sheets</strong><span class="wb-toggle-count" id="wbToggleCount"></span></button>
+      <span class="wb-toggle-hint" id="wbToggleHint">Run a stage to build the sheets</span>
+    </div>
+    <div class="wb-body" id="wbBody">
     <!-- v1.7.1: run bar — the three stages right above the sheet, kept on screen while scrolling. -->
     <div class="wb-runbar" id="wbRunBar" role="toolbar" aria-label="Run the merge stages">
       <span class="wb-runbar-label">RUN</span>
@@ -120,6 +127,7 @@
       </section>
     </div>
     <nav class="wb-tabs" id="wbTabs" aria-label="Sheets"></nav>
+    </div><!-- /.wb-body -->
   </section>
 </main>
 <script src="../database-build/js/ch2-core.js?v=1.0.1"></script>
@@ -130,11 +138,11 @@
 <script src="./js/sheet-look.js?v=1.1.0"></script>
 <script src="./js/sheet-grid.js?v=1.10.0"></script>
 <script src="../../assets/js/phf-library.js?v=1.1.2"></script>
-<script src="../../assets/js/hub-library.js?v=2.0.0"></script>
+<script src="../../assets/js/hub-library.js?v=2.1.0"></script>
 <script src="../../assets/js/phf-lock-config.js?v=20261012"></script>
 <script src="../../assets/js/phf-lock.js?v=1.1.0"></script>
 <script src="../../assets/js/phf-accordion.js?v=1.0.0"></script>
-<script src="./js/app.js?v=1.16.5"></script>
-<script>if(window.PHFLibraryPanel)window.PHFLibraryPanel.mount({root:'#toolLibrary',scope:'POS New Product Check Clean',heading:'Saved files'});if(window.PHFAccordion)window.PHFAccordion.refresh();</script>
+<script src="./js/app.js?v=1.17.0"></script>
+<script>if(window.PHFLibraryPanel)window.PHFLibraryPanel.mount({root:'#toolLibrary',scope:'POS New Product Check Clean',bare:true,countEl:'#toolLibraryCount'});if(window.PHFAccordion)window.PHFAccordion.refresh();</script>
 </body>
 </html>

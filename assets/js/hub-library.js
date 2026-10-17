@@ -34,6 +34,7 @@
     var root = typeof opts.root === 'string' ? document.querySelector(opts.root) : opts.root;
     if (!root) return null;
     this.opts = opts; this.root = root; this.scope = opts.scope || ''; this.summaryOnly = !!opts.summaryOnly;
+    this.bare = !!opts.bare; this.countEl = opts.countEl ? (typeof opts.countEl === 'string' ? document.querySelector(opts.countEl) : opts.countEl) : null;
     this.showAll = false; this.urls = [];
     this.build();
     var self = this;
@@ -49,6 +50,17 @@
       this.listEl = r.querySelector('#libList'); this.sumEl = r.querySelector('#libSummary');
       this.usageEl = r.querySelector('#libUsage'); this.clearEl = r.querySelector('#libClearAll');
       this.bodyEl = r.querySelector('.phf-lib-body') || r;
+    } else if (this.bare) {   // headless: just the controls + list + usage, no band (mounted inside another panel's drawer)
+      var uidb = 'lib' + Math.random().toString(36).slice(2, 7);
+      r.classList.add('phf-lib', 'phf-lib-bare');
+      r.innerHTML =
+        '<div class="phf-lib-body">' +
+          (this.scope ? '<label class="phf-lib-allchk"><input type="checkbox" id="' + uidb + 'all"> Show all saved files</label>' : '') +
+          '<div class="phf-lib-list" id="' + uidb + 'list"></div>' +
+          '<div class="phf-lib-foot"><span id="' + uidb + 'usage"></span></div></div>';
+      this.listEl = r.querySelector('#' + uidb + 'list'); this.sumEl = this.countEl; this.usageEl = r.querySelector('#' + uidb + 'usage'); this.clearEl = null; this.bodyEl = r.querySelector('.phf-lib-body');
+      var allb = r.querySelector('#' + uidb + 'all'); var selfb = this;
+      if (allb) allb.onchange = function () { selfb.showAll = allb.checked; selfb.render(); };
     } else {
       var uid = 'lib' + Math.random().toString(36).slice(2, 7);
       var heading = this.opts.heading || (this.scope ? 'Files for this tool' : 'Library · saved in this browser');
@@ -91,7 +103,8 @@
       var total = all.reduce(function (a, r) { return a + (r.size || 0); }, 0);
       // summary badge: scoped count for a tool, total for the home page
       if (self.sumEl) {
-        if (self.scope) self.sumEl.textContent = shown.length + ' file' + (shown.length === 1 ? '' : 's');
+        if (self.bare) self.sumEl.textContent = shown.length ? '· ' + shown.length + ' file' + (shown.length === 1 ? '' : 's') : '· none yet';
+        else if (self.scope) self.sumEl.textContent = shown.length + ' file' + (shown.length === 1 ? '' : 's');
         else self.sumEl.textContent = all.length ? all.length + ' file' + (all.length === 1 ? '' : 's') + ' · ' + size(total) : 'Empty';
       }
       if (self.clearEl) self.clearEl.disabled = !all.length;

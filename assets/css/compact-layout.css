@@ -186,3 +186,12 @@ body.phf-page-db .buildall-final>div{min-width:0}
 body.phf-page-db .buildall-final strong{color:var(--phf-navy,#1E3A5F)}
 body.phf-page-db .buildall-final span{display:block;font-size:11px;color:var(--phf-muted,#5F6368);margin-top:2px}
 @media(max-width:700px){body.phf-page-db .output-group .output-row{grid-template-columns:minmax(0,1fr) auto}body.phf-page-db .output-group .output-row .out-side{grid-column:2}body.phf-page-db .output-group .output-actions{grid-column:1/-1}}
+
+/* v1.3.0 (17 Oct 2026) — compact spacing polish: slightly tighter gaps now that outputs are one panel and the stage
+   cards are status-only. Scoped to the two dashboard tools. */
+body.phf-page-db .builder-workspace .panel{margin-bottom:12px}
+body.phf-page-db .builder-workspace .dash-row{margin-bottom:12px}
+body.phf-page-db .stage-dashboard{margin:12px 0}
+body.phf-page-db .stage-view-card .stage-actions{margin-top:10px}
+body.phf-page-db .dashboard-intro{padding-top:10px;padding-bottom:10px}
+body.phf-page-merge .wb{margin-top:12px}

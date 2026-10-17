@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.16.5 (17 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.17.0 (17 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -166,7 +166,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.16.5';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.17.0';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -724,7 +724,7 @@
     var names = gone.map(function (id) { return inputDef(id).title; });
     setGlobal(message || ((names.length ? names.join(', ') + ' removed. ' : 'Nothing to remove. ') + readinessText()), requiredReady() ? 'ready' : 'missing');
   }
-  function scrollToSupSheet() { wbShow('sup'); var el = $('#workbook'); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  function scrollToSupSheet() { wbShow('sup'); if (typeof wbExpand === 'function') wbExpand(true); var el = $('#workbook'); if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   function showInput(id, problem) {
     var def = inputDef(id); if (!def) return;
     state.activeInput = id;
@@ -783,10 +783,17 @@
   // ------------------------------------------------------------- stages
   function renderStages() {
     STAGES.forEach(function (s) {
-      $('#stage-' + s.id).innerHTML = '<section class="panel stage-panel stage-view-card ready"><div class="stage-head"><div class="stage-title"><span class="stepnum">' + s.n + '</span><div><h2>' + esc(s.title) + '</h2></div></div><span class="small-badge wait">WAITING</span></div><p class="stage-description">' + esc(s.desc) + '</p><div class="status info stage-status">Waiting for input files.</div><div class="stage-scope" data-stage-scope="' + s.id + '" hidden></div><div class="stage-actions"><button class="btn primary stage-run" data-stage="' + s.id + '" disabled>Run stage ' + s.n + '</button></div><details class="stage-outputs" data-stage-outputs="' + s.id + '" hidden><summary><span class="so-label">Output files</span><span class="so-count"></span></summary><div class="stage-output-inline" data-stage-output="' + s.id + '"></div></details></section>';
+      $('#stage-' + s.id).innerHTML = '<section class="panel stage-panel stage-view-card ready"><div class="stage-head"><div class="stage-title"><span class="stepnum">' + s.n + '</span><div><h2>' + esc(s.title) + '</h2></div></div><span class="small-badge wait">WAITING</span></div><p class="stage-description">' + esc(s.desc) + '</p><div class="status info stage-status">Waiting for input files.</div><div class="stage-scope" data-stage-scope="' + s.id + '" hidden></div><div class="stage-actions"><button class="btn primary stage-run" data-stage="' + s.id + '" disabled>Run stage ' + s.n + '</button></div><a class="stage-jump" data-jump="' + s.id + '" href="#output-stage-' + s.id + '" hidden>View in outputs ↓</a></section>';
     });
     document.querySelectorAll('.stage-run').forEach(function (b) { b.onclick = function () { runTo(b.dataset.stage); }; });
+    document.querySelectorAll('.stage-jump').forEach(function (a) { a.onclick = function (e) { e.preventDefault(); jumpToOutputs(a.dataset.jump); }; });
     renderScopes();
+  }
+  function stageRowCount(id) {   // v1.17.0: the count shown on a done stage badge
+    if (id === 'highlight') { var sup = state.results[SHEETS.SUP] || []; return Math.max(0, sup.length - 2); }
+    if (id === 'build') { var out = state.results[SHEETS.OUT] || []; return Math.max(0, out.length - 2); }
+    if (id === 'export') { return (state.results.files || []).length; }
+    return null;
   }
   function stageSet(id, status, msg) {
     state.stage[id] = { status: status, msg: msg };
@@ -795,7 +802,9 @@
     card.classList.add(status === 'waiting' ? 'ready' : status);
     var b = card.querySelector('.small-badge');
     b.className = 'small-badge ' + ({ waiting: 'wait', ready: 'ready', running: 'running', done: 'done', error: 'error' }[status] || 'wait');
-    b.textContent = { waiting: 'WAITING', ready: 'READY', running: 'RUNNING', done: 'DONE', error: 'ERROR' }[status] || 'WAITING';
+    var doneBadge = 'DONE';
+    if (status === 'done') { var rc = stageRowCount(id); if (rc != null) doneBadge = '✓ ' + fmtN(rc) + (id === 'export' ? ' TXT' : ' ROWS'); }
+    b.textContent = { waiting: 'WAITING', ready: 'READY', running: 'RUNNING', done: doneBadge, error: 'ERROR' }[status] || 'WAITING';
     var rb = document.querySelector('.wb-run[data-run="' + id + '"]');                 // v1.7.1 run bar
     if (rb) { rb.classList.remove('is-ready', 'is-running', 'is-done', 'is-error'); rb.classList.add('is-' + (status === 'waiting' ? 'waiting' : status)); rb.querySelector('i').textContent = b.textContent; }
     stageMsg(id, msg, status);
@@ -830,6 +839,7 @@
     state.outputs.forEach(function (o) { if (o.url) URL.revokeObjectURL(o.url); });
     state.outputs.clear();
     STAGES.forEach(function (s) { state.stage[s.id] = { status: 'waiting', msg: msg || '' }; });
+    var rs = $('#runSummary'); if (rs) { rs.hidden = true; rs.innerHTML = ''; }
     renderOutputs(); hideReview(); refreshSupSheet(); renderScopes();
     saveSessionSoon(true);
   }
@@ -944,7 +954,10 @@
       });
       return chain;
     }).then(function () {
-      setGlobal('Complete in ' + ((Date.now() - t0) / 1000).toFixed(1) + 's — ' + state.outputs.size + ' output file' + (state.outputs.size === 1 ? '' : 's') + ' ready below.', 'success');
+      state.lastRunSecs = ((Date.now() - t0) / 1000).toFixed(1);
+      setGlobal('Complete in ' + state.lastRunSecs + 's — ' + state.outputs.size + ' output file' + (state.outputs.size === 1 ? '' : 's') + ' ready below.', 'success');
+      renderRunSummary();
+      wbToggleUpdate(); wbExpand(true, true);   // v1.17.0: open the sheets once the run has built them
       setTimeout(function () { gpct(0); }, 800);
     }).catch(function (e) {
       console.error(e);
@@ -1160,11 +1173,45 @@
     state.outputs.set(key, { stage: stage, key: key, name: name, blob: blob, meta: meta, warn: warn || '', url: URL.createObjectURL(blob) });
     renderOutputs();
   }
-  function outputRows(arr) {
-    if (!arr.length) return '<div class="empty-output">No output files yet.</div>';
-    return arr.map(function (o) {
-      return '<div class="output-row' + (o.warn ? ' has-warning' : '') + '"><div><code>' + esc(o.name) + '</code><span>' + esc(o.meta) + '</span>' + (o.warn ? '<span class="output-warning">⚠ ' + esc(o.warn) + '</span>' : '') + '</div><div class="output-actions"><a class="download-link" href="' + o.url + '" download="' + esc(o.name) + '">Download</a></div></div>';
-    }).join('');
+  // v1.17.0: one unified outputs panel — POS import files (the deliverable) pinned on top, review workbook below; every
+  // output appears once, with a Session chip and warnings in a collapsible disclosure.
+  var FINAL_KEYS = { 'txt-0': 1, 'txt-1': 1 };   // the POS import TXT files are the real deliverable
+  function outputRow(o, primary) {
+    var warn = o.warn ? '<details class="out-warn"><summary>⚠ ' + o.warn.split('·').length + ' note' + (o.warn.split('·').length === 1 ? '' : 's') + '</summary><p>' + esc(o.warn) + '</p></details>' : '';
+    return '<div class="output-row' + (o.warn ? ' has-warning' : '') + '" data-row-stage="' + o.stage + '">'
+      + '<div class="out-main"><code>' + esc(o.name) + '</code><span class="out-meta">' + esc(o.meta) + '</span>' + warn + '</div>'
+      + '<div class="out-side"><span class="out-chip temp" title="Kept here for this session — download it to keep a copy">Session</span></div>'
+      + '<div class="output-actions"><a class="download-link' + (primary ? '' : ' secondary') + '" href="' + o.url + '" download="' + esc(o.name) + '">Download</a></div></div>';
+  }
+  function outputGroup(title, arr, opts) {
+    opts = opts || {}; if (!arr.length) return '';
+    return '<div class="output-group' + (opts.cls ? ' ' + opts.cls : '') + '"' + (opts.stageAnchor ? ' id="output-stage-' + opts.stageAnchor + '"' : '') + '><div class="output-group-head">' + esc(title) + '<span class="output-group-count">' + arr.length + '</span></div>'
+      + arr.map(function (o) { return outputRow(o, !!opts.primary && o.key === opts.primary); }).join('') + '</div>';
+  }
+  // v1.17.0: Run All summary — metrics + one primary action (download the POS import files). Intermediate detail lives in
+  // the outputs panel and the stage statuses, not repeated here.
+  function renderRunSummary() {
+    var n = $('#runSummary'); if (!n) return;
+    var txts = ['txt-0', 'txt-1'].map(function (k) { return state.outputs.get(k); }).filter(Boolean);
+    if (!txts.length) { n.hidden = true; n.innerHTML = ''; return; }
+    var outRows = Math.max(0, ((state.results[SHEETS.OUT] || []).length) - 2);
+    var warns = Array.from(state.outputs.values()).filter(function (o) { return o.warn; }).length;
+    var secs = state.lastRunSecs ? ' · ' + state.lastRunSecs + 's' : '';
+    var metrics = '<div class="buildall-metrics">'
+      + '<div class="ba-metric"><strong>' + fmtN(outRows) + '</strong><span>OUT_MERGED_DATA rows</span></div>'
+      + '<div class="ba-metric"><strong>' + txts.length + ' / 2</strong><span>POS import files' + secs + '</span></div>'
+      + '<div class="ba-metric' + (warns ? ' is-warn' : '') + '"><strong>' + warns + '</strong><span>Warning' + (warns === 1 ? '' : 's') + (warns ? ' (see outputs)' : '') + '</span></div>'
+      + '</div>';
+    n.innerHTML = metrics + '<div class="buildall-final"><div><strong>POS import files ready</strong><span>Download the tab-separated TXT files and upload them to POSActive. Every file is listed in the outputs panel below.</span></div><button type="button" class="download-link" id="dlImportFiles">Download POS import files</button></div>';
+    n.hidden = false;
+    var btn = n.querySelector('#dlImportFiles');
+    if (btn) btn.onclick = function () { txts.forEach(function (o, i) { setTimeout(function () { var a = document.createElement('a'); a.href = o.url; a.download = o.name; a.rel = 'noopener'; document.body.appendChild(a); a.click(); setTimeout(function () { a.remove(); }, 800); }, i * 350); }); };
+  }
+  function jumpToOutputs(stage) {
+    var panel = $('#allOutputs'); if (!panel) return;
+    var target = panel.querySelector('[data-output-stage="' + stage + '"]') || panel; target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    var rows = panel.querySelectorAll('.output-row[data-row-stage="' + stage + '"]');
+    rows.forEach(function (r) { r.classList.add('is-flash'); }); setTimeout(function () { rows.forEach(function (r) { r.classList.remove('is-flash'); }); }, 1600);
   }
   function renderOutputs() {
     var order = ['txt-0', 'txt-1', 'xlsx-review'];
@@ -1179,12 +1226,16 @@
         : state.edits.ticks ? 'Made before your Upload tick changes — use Export TXT again on the OUT_POS_INSERT / UPDATE tab.' : '';   // v1.13.0
     });
     var c = $('#outputCount'); c.textContent = arr.length + ' OUTPUT' + (arr.length === 1 ? '' : 'S'); c.className = 'result-badge' + (arr.length ? ' ok' : '');
-    $('#allOutputs').innerHTML = arr.length ? outputRows(arr) : '<div class="empty-output">Run a stage to create its download files.</div>';
+    var host = $('#allOutputs');
+    if (!arr.length) host.innerHTML = '<div class="empty-output">Run a stage to create its download files. Every file shows up here once — download it, or find saved reference files below.</div>';
+    else {
+      var txt = arr.filter(function (o) { return FINAL_KEYS[o.key]; }), rev = arr.filter(function (o) { return !FINAL_KEYS[o.key]; });
+      host.innerHTML = outputGroup('POS import files — upload to POSActive', txt, { cls: 'is-final', stageAnchor: 'export', primary: 'txt-0' })
+        + outputGroup('Review workbook', rev, { cls: 'is-intermediate', stageAnchor: 'build' });
+    }
     STAGES.forEach(function (s) {
-      var rows = arr.filter(function (o) { return o.stage === s.id; });
-      var el = document.querySelector('[data-stage-output="' + s.id + '"]'); if (el) el.innerHTML = outputRows(rows).replace('<div class="empty-output">No output files yet.</div>', '');
-      var det = document.querySelector('[data-stage-outputs="' + s.id + '"]');   // v1.16.5: outputs drop down inside the stage card
-      if (det) { var had = det.dataset.had === '1', n = rows.length; det.hidden = !n; var cnt = det.querySelector('.so-count'); if (cnt) cnt.textContent = n ? ' · ' + n + ' file' + (n === 1 ? '' : 's') : ''; if (n && !had) det.open = true; det.dataset.had = n ? '1' : ''; }
+      var has = arr.some(function (o) { return o.stage === s.id; });
+      var jump = document.querySelector('.stage-jump[data-jump="' + s.id + '"]'); if (jump) jump.hidden = !has;
     });
   }
 
@@ -1502,6 +1553,27 @@
       };
     });
   }
+  // v1.17.0: the 21-sheet workbook is collapsed while staging and opens itself after a run. The sticky toggle lets staff
+  // collapse it to get back to the pipeline controls without scrolling past every sheet.
+  function wbSheetCount() { var tabs = $('#wbTabs'); return tabs ? tabs.querySelectorAll('[data-wb-tab]').length : 0; }
+  function wbExpand(open, scroll) {
+    var wbEl = $('#workbook'), tog = $('#wbToggle'); if (!wbEl) return;
+    wbEl.classList.toggle('is-collapsed', !open);
+    if (tog) { tog.setAttribute('aria-expanded', open ? 'true' : 'false'); var c = tog.querySelector('.wb-toggle-caret'); if (c) c.textContent = open ? '▾' : '▸'; }
+    if (open && scroll && wbEl.scrollIntoView) wbEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function wbToggleUpdate() {
+    var n = wbSheetCount(), cnt = $('#wbToggleCount'), hint = $('#wbToggleHint'), has = n > 0;
+    if (cnt) cnt.textContent = has ? '(' + n + ')' : '';
+    if (hint) hint.textContent = has ? '' : 'Run a stage to build the sheets';
+    var tog = $('#wbToggle'); if (tog) tog.disabled = !has;
+    if (!has) wbExpand(false);
+  }
+  function wireWorkbookToggle() {
+    var tog = $('#wbToggle'); if (!tog) return;
+    tog.onclick = function () { if (tog.disabled) return; wbExpand($('#workbook').classList.contains('is-collapsed'), true); };
+    wbToggleUpdate();
+  }
   function wireReview() {
     var t; $('#reviewSearch').oninput = function () { clearTimeout(t); t = setTimeout(function () { applyReviewFilter(); }, 200); };
     $('#reviewPrev').onclick = function () { state.review.page--; renderReviewPage(); };
@@ -1553,6 +1625,7 @@
       return '<button type="button" class="wb-tab' + (t.id === wb.active ? ' is-active' : '') + (empty ? ' is-empty' : '') + '" data-wb-tab="' + t.id + '" style="--tab:' + (t.color ? '#' + t.color : 'transparent') + '" title="' + esc(t.sheet + (n >= 0 ? ' · ' + fmtN(n) + ' rows' : ' · made by ' + t.by) + (t.readOnly ? ' · read-only' : ' · editable')) + '"><span>' + esc(t.sheet) + '</span>' + (n > 0 ? '<small>' + fmtN(n) + '</small>' : '') + '</button>';
     }).join('');
     host.querySelectorAll('[data-wb-tab]').forEach(function (b) { b.onclick = function () { wbShow(b.dataset.wbTab); }; });
+    wbToggleUpdate();
   }
   function wbShow(id, quiet) {
     var t = wbTab(id), prev = wb.active;
@@ -3156,7 +3229,7 @@
   // ----------------------------------------------------------------- boot
   function renderAll() { renderInputNav(); renderInputSummary(); updateRunButtons(); renderTabs(); if (wb.active !== 'sup' && wb.active !== 'out') wbShow(wb.active, true); }
   function boot() {
-    renderStages(); renderOutputs(); wireBulkDrop(); wireReview();
+    renderStages(); renderOutputs(); wireBulkDrop(); wireReview(); wireWorkbookToggle();
     $('#supPanel').innerHTML = supSheetHtml(); wireSupSheet();
     renderTabs(); wbShow('sup', true);
     $('#runAllBtn').onclick = function () { runTo('export'); };

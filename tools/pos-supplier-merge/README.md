@@ -1,12 +1,24 @@
-# POS New Product Check Clean v1.16.5 (Staff Hub v21.25.13)
+# POS New Product Check Clean v1.17.0 (Staff Hub v21.25.15)
 
-Updated 17 Oct 2026 02:05 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
+Updated 17 Oct 2026 07:45 AEDT. (Named POS Supplier New Product Check and Clean Merge in v1.4.0 – v1.5.0 and POS Supplier
 Merge up to v1.3.1; the folder and web address are unchanged.)
 
 v1.16.5 — **Stage output drop-downs.** Each stage card now has an "Output files" drop-down that opens by itself when the
 stage finishes, showing that stage's generated files and Download buttons; collapse it to tidy the card. The stage
 heading, status and Run button stay visible at all times (the stage card no longer collapses as a whole). The input,
 readiness, output and saved-files panels keep their collapse-to-heading behaviour.
+
+v1.17.0 — **Consolidated outputs, and the workbook tucks away.**
+- One **Outputs & Storage** panel: the POS import TXT files (what you upload to POSActive) pinned on top with the primary
+  Download, the review workbook below, each with a Session chip and warnings in a collapsible note. The saved reference
+  files sit under a "Saved in this browser" drop-down in the same panel — the separate Saved files panel is gone.
+- Stage cards show a status badge (`✓ 3,174 rows`, `✓ 2 TXT`) and a **View in outputs ↓** link that jumps to and flashes
+  that stage's files; the per-stage download drop-downs are gone.
+- **Run all** shows run metrics (OUT rows, POS import files, duration, warnings) and one **Download POS import files**
+  button instead of a file list.
+- The 21-sheet workbook is now a **collapsible region with a sticky "Review & Edit Sheets (N)" bar** — collapsed while you
+  stage and run, it opens itself and scrolls into view when a run finishes, and you can collapse it to get back to the
+  pipeline. (Build POS Master Databases got the same Outputs & Storage consolidation.)
 
 **Saved files for this tool.** Each tool now shows a "Saved files" panel with the library files it makes or uses —
 here, the POS Database and the CH2 / Unique supplier sets it merges from. Tick "Show all saved files" to see the rest.

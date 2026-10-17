@@ -44,3 +44,13 @@
 .phf-lib-viewall>.phf-lib-list{margin-top:8px}
 .phf-lib-row.off-scope{opacity:.62}
 .phf-lib-row.off-scope .phf-lib-what strong::after{content:" · other tool";font-weight:400;font-size:10px;color:var(--phf-muted,#5B6672)}
+
+/* v2.1.0 — library folded into the Outputs & Storage drawer (bare mode, inside a <details>) */
+.outputs-storage-lib{margin-top:10px;border-top:1px solid var(--phf-line,#D6DEE6);padding-top:8px}
+.outputs-storage-lib>summary{cursor:pointer;list-style:none;font:800 12px/1.3 var(--phf-ui-font,inherit);color:var(--phf-navy,#1E3A5F);display:flex;align-items:center;gap:6px;padding:2px 0}
+.outputs-storage-lib>summary::-webkit-details-marker{display:none}
+.outputs-storage-lib>summary::before{content:"▸";font-size:10px}
+.outputs-storage-lib[open]>summary::before{content:"▾"}
+.outputs-storage-lib .osl-count{font-weight:600;color:var(--phf-muted,#5B6672)}
+.phf-lib-bare{margin-top:6px}
+.phf-lib-bare .phf-lib-body{padding:0}

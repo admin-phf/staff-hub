@@ -970,3 +970,20 @@ All implemented stages keep source business files local to the browser and gener
   metric tiles (all scoped to body.phf-page-db). The outputs panel keeps its data-acc whole-panel accordion. The per-tool
   Saved files library (Phase C) is unchanged; the In Library chip in the outputs panel is the dedup signal between a
   session output and its persisted Library copy.
+
+## Staff Hub v21.25.15 (17 Oct 2026 07:45 AEDT)
+- POS New Product Check Clean (app.js v1.17.0) brought to the v21.25.14 unified-outputs pattern: stage cards show a
+  `✓ N rows` / `✓ N TXT` badge (stageRowCount) + a `.stage-jump` "View in outputs ↓" link (jumpToOutputs); the per-stage
+  output drop-downs are removed. renderOutputs() builds grouped `.output-group` blocks — "POS import files" (txt-0 / txt-1,
+  pinned, txt-0 primary) and "Review workbook" (xlsx-review) — each row with a Session chip and a collapsible `.out-warn`.
+  New renderRunSummary() fills #runSummary with metric tiles (OUT rows, POS import files + duration, warnings) and one
+  "Download POS import files" action; shown on run completion, cleared by invalidateResults.
+- Outputs & Storage drawer on both tools: the outputs panel is renamed and the scoped Library is folded in as a collapsed
+  `<details class="outputs-storage-lib">` ("Saved in this browser · N files") holding a headless PHFLibraryPanel. hub-library
+  v2.1.0 adds a `bare` mode (no band; writes the count into an external `countEl`). The standalone #toolLibrary panels are
+  gone from both main tools. library.css v2.1.0 styles the drawer + bare mode.
+- The merge tool's 21-sheet workbook (#workbook) is wrapped in a `.wb-body` with a sticky `.wb-toggle-bar`
+  ("Review & Edit Sheets (N)"). `wbExpand(open, scroll)` toggles `#workbook.is-collapsed`; collapsed by default, opened +
+  scrolled into view after a run (and when scrollToSupSheet runs); wbToggleUpdate keeps the count / disabled state in sync
+  from renderTabs. merge.css v1.16.0 styles the bar and the collapse.
+- compact-layout.css v1.3.0: tighter panel / stage-dashboard gaps on the dashboard tools (§C polish).
