@@ -517,14 +517,3 @@ body.phf-page-merge .sup-table tr.sup-heads th:has(.sup-pick-all){cursor:pointer
 body.phf-page-merge .wbg-table tr.wbg-headrow th .wbg-tick,
 body.phf-page-merge .sup-table tr.sup-heads th .sup-keep,
 body.phf-page-merge .sup-table tr.sup-heads th .sup-pick-all{pointer-events:none}
-
-/* v1.16.0 — the workbook collapses to a sticky toggle bar while staging; it opens itself after a run. */
-body.phf-page-merge .wb-toggle-bar{position:sticky;top:0;z-index:31;display:flex;align-items:center;gap:12px;background:var(--phf-navy,#1E3A5F);color:#fff;border-radius:var(--phf-radius) var(--phf-radius) 0 0;padding:8px 14px;box-shadow:0 2px 6px rgba(16,24,40,.12)}
-body.phf-page-merge .wb.is-collapsed .wb-toggle-bar{border-radius:var(--phf-radius)}
-body.phf-page-merge .wb-toggle{display:inline-flex;align-items:center;gap:8px;background:transparent;border:0;color:#fff;font:800 13px/1 var(--phf-ui-font,inherit);cursor:pointer;padding:3px 0}
-body.phf-page-merge .wb-toggle:disabled{opacity:.6;cursor:default}
-body.phf-page-merge .wb-toggle strong{color:var(--phf-gold,#E6CD74)}
-body.phf-page-merge .wb-toggle-caret{font-size:11px;color:var(--phf-gold,#E6CD74)}
-body.phf-page-merge .wb-toggle-count{font-weight:600;opacity:.85}
-body.phf-page-merge .wb-toggle-hint{font-size:11px;opacity:.75;margin-left:auto}
-body.phf-page-merge .wb.is-collapsed .wb-body{display:none}

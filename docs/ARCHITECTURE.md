@@ -944,46 +944,17 @@ All implemented stages keep source business files local to the browser and gener
   `.phf-lib-viewall`, `.phf-lib-row.off-scope`. Supplier Contacts is left as-is — its one library file (the contacts list)
   is already shown in its own card, so a separate panel would duplicate it.
 
-## Staff Hub v21.25.13 (17 Oct 2026 02:05 AEDT)
-- Stage cards no longer use the whole-panel accordion (that hid the Build / Run button). Instead each stage card wraps its
-  output area in `<details class="stage-outputs" data-stage-outputs="…">` with an "Output files · N files" summary. The
-  heading, status line and Build / Run button are always visible; only the file list opens / closes. renderOutputs()
-  shows the `<details>` when the stage has files, sets the count, and opens it once on the 0→N transition (tracked by
-  `dataset.had`) so it springs open when a build finishes but a later re-render does not re-open a drop-down the user
-  collapsed. Build POS Master Databases (pipeline.js v21.17.0) and POS New Product Check Clean (app.js v1.16.5).
-- theme.css v20.3.0: `.stage-outputs` summary styling (caret, count, clickable heading). The input / readiness / output /
-  saved-files panels keep their `data-acc` whole-panel accordions.
-
-## Staff Hub v21.25.14 (17 Oct 2026 06:40 AEDT)
-- Build POS Master Databases outputs consolidated to one source of truth (pipeline.js v21.18.0). The stage cards no longer
-  carry download blocks or the v21.25.13 output drop-down: a DONE stage shows a `✓ N ROWS` badge (stageSet gains a `rows`
-  arg → state.stageRows) and a `.stage-jump` "View in outputs ↓" link that scrolls to and flashes that stage's rows in the
-  panel (jumpToOutputs). renderOutputs() now builds the "All generated output files" panel as grouped `.output-group`
-  blocks: "Final — Combined Master" (master-full / selected / order) pinned at the top with the full master's Download as
-  the primary action, then Intermediate groups per stage (POS / CH2 / Unique), each anchored `#output-stage-<id>`. Each
-  row (outputRow) shows an In Library / Temporary / Saving… chip (from LIB_OUT + o.lib) and warnings in a collapsible
-  `.out-warn` disclosure instead of repeated prose. outputRows() removed; per-stage output rendering removed.
-- Build All summary (renderBuildAllSummary) shows three metric tiles — Master records, Stages built · duration
-  (state.lastBuildSecs, measured in buildAll), Warnings — and one "Download final master" primary action; no intermediate
-  files are listed there. autoDownloadFull() triggers the download then calls renderBuildAllSummary().
-- compact-layout.css v1.2.0: the grouped panel, chips, warning disclosures, flash highlight, stage-jump link and Build All
-  metric tiles (all scoped to body.phf-page-db). The outputs panel keeps its data-acc whole-panel accordion. The per-tool
-  Saved files library (Phase C) is unchanged; the In Library chip in the outputs panel is the dedup signal between a
-  session output and its persisted Library copy.
-
-## Staff Hub v21.25.15 (17 Oct 2026 07:45 AEDT)
-- POS New Product Check Clean (app.js v1.17.0) brought to the v21.25.14 unified-outputs pattern: stage cards show a
-  `✓ N rows` / `✓ N TXT` badge (stageRowCount) + a `.stage-jump` "View in outputs ↓" link (jumpToOutputs); the per-stage
-  output drop-downs are removed. renderOutputs() builds grouped `.output-group` blocks — "POS import files" (txt-0 / txt-1,
-  pinned, txt-0 primary) and "Review workbook" (xlsx-review) — each row with a Session chip and a collapsible `.out-warn`.
-  New renderRunSummary() fills #runSummary with metric tiles (OUT rows, POS import files + duration, warnings) and one
-  "Download POS import files" action; shown on run completion, cleared by invalidateResults.
-- Outputs & Storage drawer on both tools: the outputs panel is renamed and the scoped Library is folded in as a collapsed
-  `<details class="outputs-storage-lib">` ("Saved in this browser · N files") holding a headless PHFLibraryPanel. hub-library
-  v2.1.0 adds a `bare` mode (no band; writes the count into an external `countEl`). The standalone #toolLibrary panels are
-  gone from both main tools. library.css v2.1.0 styles the drawer + bare mode.
-- The merge tool's 21-sheet workbook (#workbook) is wrapped in a `.wb-body` with a sticky `.wb-toggle-bar`
-  ("Review & Edit Sheets (N)"). `wbExpand(open, scroll)` toggles `#workbook.is-collapsed`; collapsed by default, opened +
-  scrolled into view after a run (and when scrollToSupSheet runs); wbToggleUpdate keeps the count / disabled state in sync
-  from renderTabs. merge.css v1.16.0 styles the bar and the collapse.
-- compact-layout.css v1.3.0: tighter panel / stage-dashboard gaps on the dashboard tools (§C polish).
+## Staff Hub v21.25.16 (18 Oct 2026 13:30 AEDT)
+- Rolled the Build / merge output UI back to the v21.25.12 state: the v21.25.13 per-stage output drop-downs, the v21.25.14
+  grouped Final/Intermediate outputs panel + "View in outputs" jump links + Build All metric tiles, and the v21.25.15 merge
+  consolidation + collapsible workbook + folded library are all removed. The outputs panel and the scoped Saved-files
+  library are back to their simple v21.25.12 form on both tools.
+- phf-accordion.js v1.1.0: the chevron now points DOWN (▾) when a panel is closed and UP (▴) when open, and sits at the
+  right of the heading as a round button that inverts (navy↔gold) on hover, like the nav icons. Click anywhere in the
+  heading, or the chevron, toggles. New `PHFAccordion.autoClose(panel)` collapses a panel only if the user has not already
+  made a choice for it (tracked per panel in localStorage under `phf-acc-touched:`), so auto-close never fights a manual
+  open. theme.css v20.3.0 restyles the caret (right-aligned round button, hover invert; gold on navy stage heads).
+- Auto-close wiring: a stage card auto-closes when its stage is set to `done` (pipeline.js stageSet / merge app.js
+  stageSet); the Drop-all-input-files panel auto-closes once all required inputs are loaded (pipeline.js updateBuildAll /
+  merge app.js renderInputSummary). The outputs and library panels stay as the user leaves them. pipeline.js ?v=21.16.1,
+  app.js v1.16.5.
