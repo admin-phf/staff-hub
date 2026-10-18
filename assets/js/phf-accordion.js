@@ -1,4 +1,4 @@
-/* PHF Staff Hub — phf-accordion.js v1.2.1 (19 Oct 2026)
+/* PHF Staff Hub — phf-accordion.js v1.2.2 (19 Oct 2026)
  * A small, shared collapsible-panel enhancer. It only shows / hides a panel's body under its heading — no data, input,
  * control or processing is changed.
  *
@@ -35,7 +35,7 @@
   function setOpen(panel, open) {
     panel.classList.toggle('acc-collapsed', !open);
     var head = headOf(panel); if (head) head.setAttribute('aria-expanded', open ? 'true' : 'false');
-    var btn = head && head.querySelector('.acc-caret'); if (btn) btn.textContent = open ? '▴' : '▾';   // ▴ up = open, ▾ down = closed
+    // the arrow direction is drawn in CSS from the panel's .acc-collapsed state (a big CSS triangle, not a glyph)
   }
 
   function enhance(panel) {
@@ -48,7 +48,7 @@
     // the chevron, added once at the END of the heading (right side)
     if (!head.querySelector('.acc-caret')) {
       var caret = document.createElement('span');
-      caret.className = 'acc-caret'; caret.setAttribute('aria-hidden', 'true'); caret.textContent = '▾';
+      caret.className = 'acc-caret'; caret.setAttribute('aria-hidden', 'true');
       head.appendChild(caret);
     }
 

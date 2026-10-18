@@ -983,3 +983,19 @@ All implemented stages keep source business files local to the browser and gener
   row; it drops to full-width only below 720px.
 - Responsive reflow confirmed: no page-level horizontal overflow at 1920 / 1440 / 1280 / 1024 on all three dashboard
   tools (CSS grid / flex with minmax(0,1fr); the sheet grids scroll inside their own frame, not the page).
+
+## Staff Hub v21.25.19 (19 Oct 2026 01:00 AEDT)
+- Reverted the v21.25.18 Reconcile fallback: reference-data.js v2.12.1 `status()` requires the merged master (posMaster)
+  again — the POS Database full set (lib:pos-db) has no CH2 product-code / link columns, so auto-loading it produced a
+  false "Ready" and then "Could not find a CH2 product-code column" at run. Reconcile now auto-loads posMaster from the
+  Library when a Combined Master build has saved one, and shows "Admin setup required" otherwise. lib:pos-db removed from
+  REF_KINDS (workspace.js v2.12.1).
+- phf-accordion.js v1.2.2 / theme.css v20.4.2: the chevron arrow is now a CSS-drawn triangle (border triangle, 14px wide /
+  9px tall) that fills the gold circle like the stage-number badge, instead of a small glyph. It points up when the panel
+  is open, down when collapsed, drawn purely from the panel's `.acc-collapsed` state; on hover the circle goes navy and the
+  triangle flips to gold. The `.acc-caret` glyph text is no longer set.
+- Auto open/close simplified to one rule: a stage card auto-closes only when it reaches `done`. The Drop-all-input-files
+  auto-close (pipeline.js updateBuildAll / merge app.js renderInputSummary) is removed, so the input, readiness, Build/Run
+  All, output and library panels never move on their own — only when clicked. pipeline.js v21.16.3, app.js v1.16.7.
+- Chevron coverage audited: every visible .panel on all three dashboard tools has data-acc + a chevron; only the one-line
+  intro blurb and the Reconcile privacy footnote (both plain prose, no heading) are left without one.

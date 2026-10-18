@@ -166,7 +166,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.16.6';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.16.7';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -778,7 +778,6 @@
     }).join('');
     var req = M.INPUTS.filter(function (d) { return d.required; }), ok = req.filter(function (d) { return loaded(d.id); }).length;
     var rc = $('#readyCount'); rc.textContent = ok + ' / ' + req.length + ' REQUIRED'; rc.className = 'result-badge ' + (ok === req.length ? 'ok' : ok ? 'ready' : '');
-    if (ok === req.length && window.PHFAccordion) { var bp = $('#bulkDropPanel'); if (bp) window.PHFAccordion.autoClose(bp); }   // v1.16.1: all required inputs in → tidy the drop panel away
   }
   function requiredReady() { return M.INPUTS.every(function (d) { return !d.required || loaded(d.id); }); }
 

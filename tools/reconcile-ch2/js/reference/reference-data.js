@@ -127,10 +127,10 @@
     catch(err){console.warn('Parsed reference cache could not be saved; current run remains valid.',err);return false;}
   }
   // supplier = the discount rules in use: the shared Ongoing Discounts file, or (saved before v2.10.0) the supplierMerge workbook.
-  // v2.12.0: the POS reference is the merged master (posMaster) when a Combined Master build has saved one; otherwise the
-  // POS Database full set (lib:pos-db) from Build POS Master Databases — it carries the same POS columns, so Reconcile
-  // works straight after a POS-only build, without re-dropping the file.
-  async function status(){let [master,posDb,discounts,full]=await Promise.all([load('posMaster'),load('lib:pos-db'),load(DISC_KIND),load(FULL_KIND)]);return {master:master||posDb||null,supplier:discounts||full||null,discounts,full};}
+  // The POS reference must be the merged master (posMaster) — it has the CH2 product-code / link columns the reconciliation
+  // needs. It is auto-loaded from the browser Library when a Combined Master build has saved one; the plain POS Database
+  // full set is NOT used here (it has no CH2 columns). v2.12.1: reverted the lib:pos-db fallback from v2.12.0.
+  async function status(){let [master,discounts,full]=await Promise.all([load('posMaster'),load(DISC_KIND),load(FULL_KIND)]);return {master:master||null,supplier:discounts||full||null,discounts,full};}
   // Discount rules from the shared Ongoing Discounts file; supplier names / CH2 links / brand changes from the full workbook
   // when one was dropped (otherwise from the Ongoing Discounts file itself and the built-in supplier names).
   async function parseSupplierRefs(st){
