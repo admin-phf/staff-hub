@@ -958,3 +958,11 @@ All implemented stages keep source business files local to the browser and gener
   stageSet); the Drop-all-input-files panel auto-closes once all required inputs are loaded (pipeline.js updateBuildAll /
   merge app.js renderInputSummary). The outputs and library panels stay as the user leaves them. pipeline.js ?v=21.16.1,
   app.js v1.16.5.
+
+## Staff Hub v21.25.17 (18 Oct 2026 14:05 AEDT)
+- phf-accordion.js v1.2.0 / theme.css v20.4.0: the chevron is now a filled gold circle the size of the stage-number badge
+  (26px) with a bold 15px arrow, inverting on hover (navy↔gold) — clearly a button, where before it was a faint 11px glyph.
+  `headOf` also recognises `.phf-band` and `.acc-custom-head` heads. Every status / list panel is now collapsible for
+  consistency: data-acc added to Build All (run-panel) on Build POS Master Databases and Run All on POS New Product Check
+  Clean (both stay open by default; no auto-close). The selected-input workspace panel (the Brand / input editor) and the
+  dashboard intro are intentionally left non-collapsible — the workspace is the active editing surface, not a status panel.

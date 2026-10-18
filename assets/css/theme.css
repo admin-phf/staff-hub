@@ -479,13 +479,15 @@ body.phf-page-specials .card-image-health.err{background:var(--phf-red-bg);borde
    closed and UP (▴) when open; click anywhere in the heading, or the chevron, to toggle. Formatting only.
    ===================================================================== */
 .acc-panel>.acc-head{cursor:pointer;user-select:none;align-items:center}
-/* the chevron sits at the far right of the heading, as a round button that inverts on hover (like the nav icons) */
-.acc-panel>.acc-head .acc-caret{flex:0 0 auto;margin-left:10px;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;font-size:11px;line-height:1;color:var(--phf-navy,#1E3A5F);background:transparent;transition:background .12s ease,color .12s ease}
+/* the chevron sits at the far right of the heading as a gold circle the size of the stage-number badge, with a bold
+   arrow inside — clearly a button, and it inverts on hover like the nav icons */
+.acc-panel>.acc-head .acc-caret{flex:0 0 auto;margin-left:12px;display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;font:800 15px/1 var(--phf-font,inherit);background:var(--phf-gold,#E6CD74);color:var(--phf-navy,#1E3A5F);transition:background .12s ease,color .12s ease,transform .1s ease}
 .acc-panel>.acc-head:hover .acc-caret,.acc-panel>.acc-head:focus-visible .acc-caret{background:var(--phf-navy,#1E3A5F);color:var(--phf-gold,#E6CD74)}
-/* on a navy stage head the chevron is gold, inverting to navy-on-gold on hover */
-.stage-panel>.acc-head .acc-caret{color:var(--phf-gold,#E6CD74)}
-.stage-panel>.acc-head:hover .acc-caret,.stage-panel>.acc-head:focus-visible .acc-caret{background:var(--phf-gold,#E6CD74);color:var(--phf-navy,#1E3A5F)}
-.acc-panel>.acc-head:focus-visible{outline:2px solid var(--phf-navy,#1E3A5F);outline-offset:2px;border-radius:6px}
+.acc-panel>.acc-head:active .acc-caret{transform:scale(.92)}
+/* on a navy stage / band head the gold circle inverts to navy-on-gold on hover */
+.stage-panel>.acc-head .acc-caret,.acc-panel>.acc-head.phf-band .acc-caret,.acc-panel>.acc-head.results-head.on-navy .acc-caret{background:var(--phf-gold,#E6CD74);color:var(--phf-navy,#1E3A5F)}
+.stage-panel>.acc-head:hover .acc-caret,.stage-panel>.acc-head:focus-visible .acc-caret{background:#fff;color:var(--phf-navy,#1E3A5F)}
+.acc-panel>.acc-head:focus-visible{outline:2px solid var(--phf-gold,#E6CD74);outline-offset:2px;border-radius:6px}
 /* collapsed: hide every direct child except the heading row */
 .acc-panel.acc-collapsed>*:not(.acc-head){display:none!important}
 .acc-panel.acc-collapsed{padding-bottom:0!important}
