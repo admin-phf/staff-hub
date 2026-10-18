@@ -293,7 +293,7 @@
     };
   }
   // A reference file saved or deleted by another tool or tab (shared Library) shows here straight away.
-  const REF_KINDS={posMaster:1,'lib:ref-discounts':1,supplierMerge:1};
+  const REF_KINDS={posMaster:1,'lib:pos-db':1,'lib:ref-discounts':1,supplierMerge:1};   // v2.12.0: POS full set counts as a POS reference too
   if(global.PHFLibrary)global.PHFLibrary.onChange(m=>{if(!m||!(m.action==='clear'||REF_KINDS[m.kind]))return;loadReferenceStatus();const app=global.PHFReconcileApp;if(app&&app.refreshReferenceStatus)app.refreshReferenceStatus();});
   wireReferenceDrops();wireBulkDrop();wireRailClear();observe();render();renderBulk();
   (PHF.referenceStore&&PHF.referenceStore.shareLegacy?PHF.referenceStore.shareLegacy():Promise.resolve(false)).then(shared=>{loadReferenceStatus();if(shared){const app=global.PHFReconcileApp;if(app&&app.refreshReferenceStatus)app.refreshReferenceStatus();}});

@@ -966,3 +966,20 @@ All implemented stages keep source business files local to the browser and gener
   consistency: data-acc added to Build All (run-panel) on Build POS Master Databases and Run All on POS New Product Check
   Clean (both stay open by default; no auto-close). The selected-input workspace panel (the Brand / input editor) and the
   dashboard intro are intentionally left non-collapsible — the workspace is the active editing surface, not a status panel.
+
+## Staff Hub v21.25.18 (19 Oct 2026 00:30 AEDT)
+- Reconcile CH2 Order auto-loads its POS reference from the browser Library even without a Combined Master build:
+  reference-data.js v2.12.0 `status()` falls back to `lib:pos-db` (the POS Database full set) when `posMaster` is absent —
+  both carry the POS columns, and `parsePosMaster`'s alias lists already accept the plain POS_* headers. workspace.js
+  v2.12.0 adds `lib:pos-db` to REF_KINDS so the rail / readiness refresh when a POS build finishes. Fixes the
+  "Reference data is not ready … POS / master required missing" state when the POS full set was already saved.
+- The accordion is now applied to Reconcile CH2 (data-acc on Drop-all, Input readiness, the Reconcile stage card and
+  Generated output files) and to the selected-input editor panel on both dashboard tools (phf-accordion v1.2.1: headOf
+  recognises `.acc-custom-head`; the injected `.input-workspace-card` carries data-acc and is re-enhanced after showInput,
+  so every panel on every page has the gold chevron). theme.css v20.4.1 centres the arrow in the circle (line-height 26px,
+  13px glyph).
+- Supplier toolbar (merge.css v1.16.0): the search box is a fixed 280px (was full-width, which pushed the buttons onto a
+  second row), so Paste / Undo / Add 5 rows / Clean up empty rows / Delete rows / Clear Sheet / Copy headings sit on one
+  row; it drops to full-width only below 720px.
+- Responsive reflow confirmed: no page-level horizontal overflow at 1920 / 1440 / 1280 / 1024 on all three dashboard
+  tools (CSS grid / flex with minmax(0,1fr); the sheet grids scroll inside their own frame, not the page).

@@ -1,4 +1,4 @@
-/* PHF Staff Hub — phf-accordion.js v1.2.0 (18 Oct 2026)
+/* PHF Staff Hub — phf-accordion.js v1.2.1 (19 Oct 2026)
  * A small, shared collapsible-panel enhancer. It only shows / hides a panel's body under its heading — no data, input,
  * control or processing is changed.
  *

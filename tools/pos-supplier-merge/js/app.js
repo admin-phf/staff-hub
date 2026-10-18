@@ -1,4 +1,4 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.16.5 (18 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.16.6 (19 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
@@ -166,7 +166,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.16.5';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.16.6';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -736,8 +736,8 @@
     }).join('') : '';
     var status = problem ? problem : has ? (def.stored ? 'Saved in this browser ' + esc(x.savedAt || '') : 'Loaded ' + esc(x.files[x.files.length - 1].loadedAt || '')) : 'Not loaded';
     $('#inputWorkspace').innerHTML =
-      '<section class="panel input-workspace-card ' + (has ? 'is-loaded' : def.required ? 'is-required' : 'is-optional') + '">' +
-      '<div class="input-workspace-head"><div><div class="nav-separator" style="margin:0 0 6px">' + esc(def.group) + '</div><h2>' + esc(def.title) + (def.required ? ' <span style="color:#b33">*</span>' : '') + '</h2><p>' + esc(def.desc) + '</p></div><span class="small-badge ' + badgeCls + '">' + s.text + '</span></div>' +
+      '<section class="panel input-workspace-card ' + (has ? 'is-loaded' : def.required ? 'is-required' : 'is-optional') + '" data-acc data-acc-id="merge-input-detail">' +
+      '<div class="input-workspace-head acc-custom-head"><div><div class="nav-separator" style="margin:0 0 6px">' + esc(def.group) + '</div><h2>' + esc(def.title) + (def.required ? ' <span style="color:#b33">*</span>' : '') + '</h2><p>' + esc(def.desc) + '</p></div><span class="small-badge ' + badgeCls + '">' + s.text + '</span></div>' +
       '<div class="dropzone" tabindex="0"><div><strong>' + (def.multi && has ? 'Add another supplier file' : has ? 'Replace file' : 'Drop file here') + '</strong><small>or click to choose · .XLSX / .XLS / .CSV' + (def.multi ? ' · several files are combined' : '') + '</small></div></div>' +
       '<input class="hidden" type="file" accept=".xlsx,.xls,.xlsm,.csv,.txt"' + (def.multi ? ' multiple' : '') + '>' +
       '<div class="file-list">' + files + '</div>' +
@@ -757,6 +757,7 @@
       host.querySelector('#supJump').onclick = scrollToSupSheet;
       drawLibSup();
     }
+    if (window.PHFAccordion) window.PHFAccordion.refresh(host);
   }
   function readinessText() {
     var miss = M.INPUTS.filter(function (d) { return d.required && !loaded(d.id); }).map(function (d) { return d.title; });
