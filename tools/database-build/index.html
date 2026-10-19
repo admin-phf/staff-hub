@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-title" content="PHF Staff Hub">
 <title>Build POS Master Databases | Prahran Health Foods</title>
 <link rel="stylesheet" href="../../assets/css/shell.css?v=21.6.0">
-<link rel="stylesheet" href="./css/app.css?v=21.6.0-20261009">
+<link rel="stylesheet" href="./css/app.css?v=21.17.0">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 <link rel="stylesheet" href="../../assets/css/theme.css?v=20.4.2">
@@ -23,58 +23,67 @@
 <body class="database-builder-page phf-page-db">
 <header class="phf-shell-header header-container">
   <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
-  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="Build POS Master Databases — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span><div class="phf-shell-copy title-row"><h1>Build POS Master Databases</h1><p class="phf-shell-version version-text">v21.16.4</p></div></a>
-  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Build POS Master Databases</span></nav><p class="phf-shell-updated build-details">Updated 19 Oct 2026 14:30 AEDT</p></div>
+  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="Build POS Master Databases — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg></span><div class="phf-shell-copy title-row"><h1>Build POS Master Databases</h1><p class="phf-shell-version version-text">v21.17.0</p></div></a>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Build POS Master Databases</span></nav><p class="phf-shell-updated build-details">Updated 20 Oct 2026 10:30 AEDT</p></div>
 </header>
 
 <main class="workflow-wrap full-width-wrap phf-full">
   <div class="builder-shell dashboard-mode">
     <aside class="builder-sidebar" aria-label="Database input files">
       <div class="sidebar-title">INPUT FILES</div>
-      <div class="sidebar-helper">Drop each source file onto its matching row, or drop them all together in Drop All Input Files.</div>
+      <div class="sidebar-helper">Drop each source file onto its matching row, or drop them all together here.</div>
+      <!-- v21.17.0 — Drop All moved to the top of the rail; incompatible files are listed below, not assigned. -->
+      <div class="rail-drop" id="bulkDropPanel">
+        <div class="dropzone bulk-dropzone" id="bulkDrop" tabindex="0" role="button" aria-label="Drop or choose all input files"><div><strong>Drop all input files here</strong><small>or click to choose several · .XLS / .XLSX / .CSV</small></div></div>
+        <input class="hidden" type="file" id="bulkInput" multiple accept=".xls,.xlsx,.xlsm,.csv,.txt">
+        <div class="bulk-results" id="bulkResults"></div>
+      </div>
       <div id="inputNav"></div>
       <div class="sidebar-actions" aria-label="Clear input files"><button type="button" class="btn small rail-clear-all" id="railClearInputs" title="Remove every loaded input file from this session (generated output files stay available)">Clear input files</button></div>
       <div class="sidebar-footer"><strong>One session</strong><span>Files are held once in browser memory and reused by every build stage.</span></div>
     </aside>
 
     <section class="builder-workspace">
-      <section class="panel dashboard-intro">
-        <p><strong>Cleaning and Merging and Appending CH2 and Unique DB to POS.</strong> Load the source files once (POS exports can stay as .XLS), then run any database on its own or build the full chain. Everything runs locally in this browser; output files, columns, sorting and totals follow the Python scripts (Steps 1, 2, 2.5 and 3 V30.15) with the Melbourne date added automatically.</p>
-      </section>
-
-      <!-- v21.11.0 layout (assets/css/compact-layout.css): Drop All · selected input · readiness + Build all in one row -->
-      <div class="dash-row dash-row-top">
-        <section class="panel bulk-drop-panel" id="bulkDropPanel" data-acc aria-label="Drop all input files">
-          <div class="results-head"><div><h2>Drop All Input Files Here</h2><p>Drop every source file at once. Each file is identified from its headings and assigned to its input; anything unclear is listed for review. Nothing is built until you run a stage or Build All.</p></div><div class="result-badge" id="bulkCount">0 FILES</div></div>
-          <div class="dropzone bulk-dropzone" id="bulkDrop" tabindex="0" role="button" aria-label="Drop or choose all input files"><div><strong>Drop all input files here</strong><small>or click to choose several files · .XLS / .XLSX / .CSV</small></div></div>
-          <input class="hidden" type="file" id="bulkInput" multiple accept=".xls,.xlsx,.xlsm,.csv,.txt">
-          <div class="bulk-results" id="bulkResults"></div>
-        </section>
-        <section class="panel input-detail-panel" id="inputDetailPanel">
-          <div id="inputWorkspace"><div class="empty-output">Select an input on the left to inspect, upload or replace it.</div></div>
-        </section>
-        <div class="dash-stack">
-          <section class="panel dashboard-summary" data-acc><div class="results-head"><div><h2>Input readiness</h2><p>Each group updates immediately after a structurally valid file is loaded.</p></div><div class="result-badge" id="readyCount">0 READY</div></div><div id="inputSummary" class="input-summary"></div></section>
-          <section class="panel run-panel dashboard-run" data-acc data-acc-id="db-buildall">
-            <div class="results-head"><div><h2>Build all</h2><p>Runs stages 1 → 4 in order</p></div></div>
-            <div class="actions"><button class="btn primary" id="buildAllBtn" disabled>Build all databases</button><button class="btn" id="clearAllBtn">Clear session</button></div>
-            <div class="status info" id="globalStatus">Add the required source files to enable Build All.</div>
-            <div class="auto-download" id="autoDownload" hidden></div>
-            <div class="progress hidden" id="globalProgress"><div id="globalProgressBar"></div></div>
-          </section>
+      <!-- v21.17.0 — run strip: four stage steps, Build all, Full merged master + AV to Order downloads, progress bar -->
+      <div class="db-runstrip" id="dbRunStrip" aria-label="Run databases">
+        <div class="db-runline">
+          <span class="db-lead">RUN</span>
+          <span class="db-step" data-run-step="pos"><span class="num">1</span> POS <span class="st wait" data-run-pill="pos">WAITING</span></span>
+          <span class="db-step" data-run-step="ch2"><span class="num">2</span> CH2 <span class="st wait" data-run-pill="ch2">WAITING</span></span>
+          <span class="db-step" data-run-step="uhp"><span class="num">3</span> Unique <span class="st wait" data-run-pill="uhp">WAITING</span></span>
+          <span class="db-step" data-run-step="master"><span class="num">4</span> Master <span class="st wait" data-run-pill="master">WAITING</span></span>
+          <button class="db-pill" id="buildAllBtn" disabled>Build all databases</button>
+          <a class="db-pill dlbtn" id="dlFull" hidden><span class="ic">↓</span> Full merged master <small id="dlFullSize"></small></a>
+          <a class="db-pill dlbtn" id="dlOrder" hidden><span class="ic">↓</span> AV to Order <small id="dlOrderSize"></small></a>
+          <button class="db-pill db-ghost" id="clearAllBtn">Clear session</button>
+          <span class="db-done-note" id="dbDoneNote"></span>
         </div>
+        <div class="db-progrow" id="globalProgress" hidden>
+          <span class="db-what status info" id="globalStatus">Add the required source files to enable Build All.</span>
+          <div class="db-bar"><div id="globalProgressBar"></div></div>
+        </div>
+        <div class="db-progrow db-statline" id="dbStatLine"><span class="db-what status info" id="globalStatusIdle">Add the required source files to enable Build All.</span></div>
       </div>
 
-      <section class="stage-dashboard" aria-label="Database build actions">
-        <div id="stage-pos"></div>
-        <div id="stage-ch2"></div>
-        <div id="stage-uhp"></div>
-        <div id="stage-master"></div>
-      </section>
+      <div class="db-grid">
+        <div class="db-col-main">
+          <!-- selected-input editor (shown when a rail row is opened) -->
+          <section class="panel input-detail-panel" id="inputDetailPanel">
+            <div id="inputWorkspace"><div class="empty-output">Select an input on the left to inspect, upload or replace it.</div></div>
+          </section>
 
-      <section class="panel outputs-panel" data-acc><div class="results-head"><div><h2>All generated output files</h2><p>Outputs from every independently completed stage remain available here.</p></div><div class="result-badge" id="outputCount">0 OUTPUTS</div></div><div id="allOutputs" class="output-list"><div class="empty-output">Build a stage to create its download files.</div></div></section>
+          <!-- Input readiness (collapsible) -->
+          <section class="panel dashboard-summary" data-acc data-acc-id="db-readiness"><div class="results-head acc-custom-head"><div><h2>Input readiness</h2><p>Each group updates immediately after a structurally valid file is loaded.</p></div><div class="result-badge" id="readyCount">0 READY</div></div><div id="inputSummary" class="input-summary"></div></section>
 
-      <section class="panel" data-acc data-acc-id="db-library" id="toolLibrary" aria-label="Saved files for this tool"></section>
+          <!-- Databases & Generated Files (collapsible, per-database groups) -->
+          <section class="panel db-files-panel" data-acc data-acc-id="db-files"><div class="results-head acc-custom-head"><div><h2>Databases &amp; generated files</h2><p>Build or update each database, then download its files. Files other tools use are saved to the Library.</p></div><div class="result-badge" id="outputCount">0 FILES</div></div>
+            <div id="dbGroups" class="db-groups"></div>
+            <div class="auto-download" id="autoDownload" hidden></div>
+          </section>
+
+          <section class="panel" data-acc data-acc-id="db-library" id="toolLibrary" aria-label="Saved files for this tool"></section>
+        </div>
+      </div>
     </section>
   </div>
 </main>
@@ -87,7 +96,7 @@
 <script src="../../assets/js/phf-library.js?v=1.1.2"></script>
 <script src="../../assets/js/hub-library.js?v=2.0.0"></script>
 <script src="../../assets/js/phf-accordion.js?v=1.2.2"></script>
-<script src="./js/pipeline.js?v=21.16.4"></script>
+<script src="./js/pipeline.js?v=21.17.0"></script>
 <script>if(window.PHFLibraryPanel)window.PHFLibraryPanel.mount({root:'#toolLibrary',scope:'Build POS Master Databases',heading:'Saved files'});if(window.PHFAccordion)window.PHFAccordion.refresh();</script>
 </body>
 </html>

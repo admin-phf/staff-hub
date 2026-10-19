@@ -1018,3 +1018,31 @@ All implemented stages keep source business files local to the browser and gener
   instead of the generic "header row differs from the required layout".
 - No change to master-core.js (v2.6.0, correct), the .gs/engine files, or any other tool. Only pipeline.js, the two index.html
   version badges/stamps and docs changed.
+
+## Staff Hub v21.26.0 (20 Oct 2026 10:30 AEDT)
+- Build POS Master Databases page layout rebuilt to remove duplicated output information and reclaim space. Driven by Kenneth's
+  references (one home per piece of information, built from the pieces he liked in the live tool). No change to any build,
+  validation, matching, column, sort, total or output file — only the HTML body, the render / wiring functions in pipeline.js
+  and new CSS. pipeline.js v21.17.0, app.css v21.17.0, tool badge v21.17.0.
+- New RUN STRIP (`#dbRunStrip`) at the top of `.builder-workspace`, replacing the old `dash-row-top` Build-all card: four step
+  pills (POS / CH2 / Unique / Master) with `data-run-step`, `#buildAllBtn`, two gold download buttons `#dlFull` (Full merged
+  master → `master-full` output) and `#dlOrder` (AV to Order → `master-order` output) shown only when their output exists,
+  `#clearAllBtn`, and the reused `#globalProgress` / `#globalProgressBar` + `#globalStatus` as a progress bar + live status line.
+  One shared `.db-pill` gold style (34px) for Build-all and both downloads.
+- Drop All zone moved to the top of the input rail (`.rail-drop`); `#bulkDrop` / `#bulkInput` / `#bulkResults` and
+  bulkAccept / renderBulk / wireBulkDrop unchanged in logic — incompatible files remain unassigned and are now shown compactly
+  as not-loaded under the drop zone (reject-don't-assign surfaced).
+- The four stage cards (`#stage-pos`..`#stage-master`), the `outputs-panel` ("All generated output files") and the `#autoDownload`
+  box are replaced by ONE `#dbGroups` "Databases & generated files" panel: a collapsible `.dbgroup` per database (`#dbgroup-pos`,
+  `-ch2`, `-uhp`, `-master`), each with number badge, name, status pill, row-count meta, a `.db-build` "Build / update" button
+  (→ buildStage) and its own chevron; its output files render beneath via `renderOutputs` in the saved-files row style. Master
+  group keeps `masterExtra()` (How-it-works + readiness chips) and the match summary.
+- Functions rewritten for the new layout, build pipeline untouched: setGlobal, gpct (→ run-strip status + progress bar),
+  stageSet (+ new setRunPill / updateDoneNote → step pills + group headers), renderStages (→ 4 collapsible groups),
+  renderOutputs (+ fileRow / groupRows / bindTopDownload / OUT_META → grouped file rows + top-download wiring),
+  refreshStageReadiness (→ run-strip pills + groups; `.stage-build` → `.db-build`). buildPos / buildCh2 / buildUhp / buildMaster,
+  validateSheets, verifyMasterWorkbook unchanged.
+- Collapse uses the shared chevron (assets/js/phf-accordion.js); Input readiness and each database group carry data-acc, with
+  `PHFAccordion.refresh()` called after the groups render.
+- Headless check (20 Oct): zero console errors; 4 run-strip steps; both top downloads present and hidden until built; 4 db
+  groups; 7 chevrons toggle; 9 input rows; 5 readiness chips; gold pills all 34px.
