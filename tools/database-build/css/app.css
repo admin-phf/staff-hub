@@ -208,3 +208,57 @@ body.phf-page-db .dashboard-summary .acc-custom-head,body.phf-page-db .db-files-
   body.phf-page-db .frow{grid-template-columns:18px minmax(0,1fr);gap:8px}
   body.phf-page-db .frow .sz,body.phf-page-db .frow .dl{grid-column:2;justify-self:start}
 }
+/* ============================================================================
+   v21.17.1 — bring the two panel heads up to the approved mockup (navy band,
+   gold UPPERCASE heading, white badge), style the readiness chips, drop the
+   bordered note box, and keep the input rail from collapsing to one letter
+   per line on a narrow window. No structural / behaviour change.
+   ============================================================================ */
+/* navy band heads for Input readiness, Databases & generated files, Saved files */
+body.phf-page-db .dashboard-summary,
+body.phf-page-db .db-files-panel,
+body.phf-page-db #toolLibrary{padding:0;overflow:hidden}
+body.phf-page-db .dashboard-summary>.results-head,
+body.phf-page-db .db-files-panel>.results-head,
+body.phf-page-db #toolLibrary .lib-head,
+body.phf-page-db #toolLibrary>.results-head{
+  background:var(--phf-navy);color:#fff;margin:0;padding:10px 16px;align-items:center}
+body.phf-page-db .dashboard-summary>.results-head h2,
+body.phf-page-db .db-files-panel>.results-head h2,
+body.phf-page-db #toolLibrary .lib-head h2,
+body.phf-page-db #toolLibrary>.results-head h2{
+  color:var(--phf-gold);font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;margin:0}
+body.phf-page-db .dashboard-summary>.results-head p,
+body.phf-page-db .db-files-panel>.results-head p,
+body.phf-page-db #toolLibrary .lib-head p,
+body.phf-page-db #toolLibrary>.results-head p{color:var(--phf-band-text);font-size:11px;margin:3px 0 0}
+body.phf-page-db .dashboard-summary>.results-head .result-badge,
+body.phf-page-db .db-files-panel>.results-head .result-badge,
+body.phf-page-db #toolLibrary .lib-head .result-badge,
+body.phf-page-db #toolLibrary>.results-head .result-badge{
+  background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.22)}
+body.phf-page-db .dashboard-summary>.results-head .result-badge.ok,
+body.phf-page-db .db-files-panel>.results-head .result-badge.ok{background:var(--phf-green-bg);color:var(--phf-green-ink);border-color:var(--phf-green-line)}
+/* the chevron sits in the band, drawn light so it reads on navy */
+body.phf-page-db .dashboard-summary>.results-head .acc-caret,
+body.phf-page-db .db-files-panel>.results-head .acc-caret,
+body.phf-page-db #toolLibrary>.results-head .acc-caret{margin-left:6px}
+/* body padding is restored inside each panel (head is now full-bleed) */
+body.phf-page-db .dashboard-summary #inputSummary{padding:12px 16px 16px}
+body.phf-page-db .db-files-panel .db-groups{padding:12px 16px 16px;margin-top:0}
+/* readiness chips — match the mockup (green when ready, soft when optional/missing) */
+body.phf-page-db .summary-chip{border:1px solid var(--phf-line);background:var(--phf-soft);border-radius:9px;padding:9px 11px}
+body.phf-page-db .summary-chip strong{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--phf-muted)}
+body.phf-page-db .summary-chip span{font-size:11px;color:var(--phf-muted)}
+body.phf-page-db .summary-chip.ok{background:var(--phf-green-bg);border-color:var(--phf-green-line)}
+body.phf-page-db .summary-chip.ok strong{color:var(--phf-green-ink)}
+body.phf-page-db .summary-chip.miss{background:var(--phf-red-bg);border-color:var(--phf-red-line)}
+body.phf-page-db .summary-chip.miss strong{color:var(--phf-red-ink)}
+/* the "From the Library: …" line is an info note, not a boxed status — no border/background */
+body.phf-page-db #dbStatLine .status,
+body.phf-page-db #globalStatusIdle.status,
+body.phf-page-db #globalStatus.status{border:0!important}
+/* rail: never collapse the input rows to one-letter-per-line */
+body.phf-page-db .builder-sidebar{min-width:270px}
+body.phf-page-db .input-nav-item strong{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}
+body.phf-page-db .input-nav-item>span:nth-child(2){min-width:0}

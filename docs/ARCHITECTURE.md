@@ -1046,3 +1046,16 @@ All implemented stages keep source business files local to the browser and gener
   `PHFAccordion.refresh()` called after the groups render.
 - Headless check (20 Oct): zero console errors; 4 run-strip steps; both top downloads present and hidden until built; 4 db
   groups; 7 chevrons toggle; 9 input rows; 5 readiness chips; gold pills all 34px.
+
+## Staff Hub v21.26.1 (20 Oct 2026 10:45 AEDT)
+- Styling fix on the v21.26.0 Build POS Master Databases layout (CSS only, tools/database-build/css/app.css v21.17.1; no HTML,
+  JS or build change). The rollout had styled the Input readiness / Databases & generated files / Saved files panel heads with
+  the tool's old plain `.results-head` (dark text on white) rather than the approved mockup's navy band + gold uppercase head.
+- Added navy-band heads (scoped body.phf-page-db): `.dashboard-summary>.results-head`, `.db-files-panel>.results-head` and the
+  library panel head get navy background, gold UPPERCASE h2, light sub-line and a white/green result badge; panel body padding
+  restored since the head is now full-bleed.
+- Readiness `.summary-chip` restyled to the mockup: `.ok` green, `.miss` red, base/`.opt` soft. The "From the Library: …" idle
+  status line (`#dbStatLine` / `#globalStatusIdle`) has its border removed (it is an info note, not a boxed status).
+- Rail hardened against narrow-width collapse: `.input-nav-item strong` forced `white-space:nowrap` + ellipsis and
+  `.builder-sidebar` given a min-width, so input names no longer wrap one character per line.
+- Headless check: zero console errors; heads render as navy/gold; narrow-viewport input name stays single-line.
