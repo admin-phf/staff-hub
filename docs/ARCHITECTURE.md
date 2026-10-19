@@ -999,3 +999,22 @@ All implemented stages keep source business files local to the browser and gener
   All, output and library panels never move on their own — only when clicked. pipeline.js v21.16.3, app.js v1.16.7.
 - Chevron coverage audited: every visible .panel on all three dashboard tools has data-acc + a chevron; only the one-line
   intro blurb and the Reconcile privacy footnote (both plain prose, no heading) are left without one.
+
+## Staff Hub v21.25.20 (19 Oct 2026 14:30 AEDT)
+- Fixed the Combined Master full / selected files failing verification and not being saved to the Library. Since v21.16.0 /
+  v21.25.11 the full and selected master show spaced display headings in row 2 (MASTER_BARCODE → "MASTER BARCODE"), written
+  by master-core.js v2.6.0 (`display = internal.map(h => PX.headerDisplay(h, true))`), while the data stays keyed to the
+  underscore identifiers. `verifyMasterWorkbook` (pipeline.js) was still comparing the re-opened row-2 headings against the
+  underscore `res.outHeaders` / `res.selectedHeaders`, so it always returned "header row differs from the required layout".
+  `addOutput` treats any warn on a LIB_OUT key as a reason not to save, so the master (master-full → posMaster) was never
+  written to the Library — which is the root cause of Reconcile CH2 Order reporting the POS / master as missing.
+- Fix (pipeline.js v21.16.4): `verifyMasterWorkbook` now computes `show = headers.map(h => PHFXlsxStyle.headerDisplay(h, true))`
+  for the full / selected sheets (the To-Order sheet already receives `res.order.display`, so `show = headers` verbatim for
+  `kind==='order'`) and compares the re-opened row-2 headings against `show`. This mirrors `verifyBasic`'s existing
+  `dispHeads(headers, spaced)` approach. The MASTER_BARCODE / POS_INDEX sample-row checks still use the underscore `headers`
+  for `indexOf` and read `a[r+2]` positionally, so they are unaffected by the display spacing.
+- The header-mismatch warning is now specific: it names the first differing column and what it found versus expected
+  ("Full_Data: column 1 heading is "MASTER BRAND", should be "MASTER_BRAND""), or reports a column-count difference,
+  instead of the generic "header row differs from the required layout".
+- No change to master-core.js (v2.6.0, correct), the .gs/engine files, or any other tool. Only pipeline.js, the two index.html
+  version badges/stamps and docs changed.

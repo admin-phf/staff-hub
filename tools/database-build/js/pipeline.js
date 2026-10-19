@@ -1,5 +1,10 @@
 (function(){'use strict';
-const VERSION='v21.15.0', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.5.0', POSV='v5.3.0';
+const VERSION='v21.16.4', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+// v21.16.4 (Staff Hub v21.25.20) — the Combined Master full / selected files now save to the Library again. The double-check
+// that re-opens each written file (verifyMasterWorkbook) was comparing the file's spaced headings (MASTER BARCODE) against the
+// underscore identifiers (MASTER_BARCODE), so it always reported "header row differs" and the master was NOT saved — which is
+// why Reconcile CH2 Order could not find it. The check now compares against the same spaced headings the file actually shows,
+// and the warning, when something really is wrong, names the exact column (e.g. column 1 heading is "X", should be "Y").
 // v21.15.0 (Staff Hub v21.25.3) — every output workbook has the POS New Product Check Clean look: totals band on row 1 (TOTAL
 // ROWS, UNIQUE: n above brand / supplier-name columns, SUBTOTAL sums for prices and stock — live under Excel filters),
 // navy / gold headings on row 2, banded rows, set column widths, filter and freeze from row 2. Values and columns unchanged.
@@ -177,7 +182,13 @@ async function verifyMasterWorkbook(blob,sheet,headers,records,kind){
  try{
  let wb=XLSX.read(await blob.arrayBuffer(),{type:'array',raw:true}),ws=wb.Sheets[sheet];if(!ws)return `${sheet}: worksheet missing in the re-opened file`;
  let a=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true,blankrows:true}),hdr=(a[1]||[]).map(x=>String(x));   // v21.15.0: headings on row 2
- if(hdr.length!==headers.length||headers.some((h,i)=>hdr[i]!==h))return `${sheet}: header row differs from the required layout`;
+ // v21.16.4: the full / selected master show spaced display headings (MASTER_BARCODE → MASTER BARCODE), so the re-open
+ // check compares against those; the order sheet already receives its custom display names. The data stays keyed to the
+ // underscore identifiers, so this is a display-only match.
+ var show=(kind==='order'||!window.PHFXlsxStyle)?headers:headers.map(function(h){return window.PHFXlsxStyle.headerDisplay(h,true);});
+ if(hdr.length!==show.length)return `${sheet}: the file has ${hdr.length} heading column${hdr.length===1?'':'s'} but the layout needs ${show.length}`;
+ var bad=show.findIndex((h,i)=>hdr[i]!==h);
+ if(bad>=0)return `${sheet}: column ${bad+1} heading is “${hdr[bad]||'(blank)'}”, should be “${show[bad]}”`;
  if(a.length!==records.length+2)return `${sheet}: expected ${records.length.toLocaleString()} data rows + totals, re-opened file has ${(a.length-2).toLocaleString()}`;
  let tot=a[0];if(!/^TOTAL ROWS/.test(String(tot[kind==='order'?1:0]??'')))return `${sheet}: totals band missing`;
  let key=headers.indexOf('MASTER_BARCODE'),pi=headers.indexOf(kind==='order'?'PLU / SKU':'POS_INDEX'),step=Math.max(1,Math.floor(records.length/200));
