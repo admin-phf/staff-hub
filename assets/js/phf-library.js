@@ -1,4 +1,4 @@
-/* PHF Staff Hub — Library v1.1.2 (15 Oct 2026: persisted() — is the site's storage protected from automatic clearing)
+/* PHF Staff Hub — Library v1.1.3 (20 Oct 2026: the A–P supplier-layout kinds lib:ch2-posdb / lib:uhp-posdb) · v1.1.2 (15 Oct 2026: persisted() — is the site's storage protected from automatic clearing)
  * v1.1.1 (12 Oct 2026)
  * v1.1.1: the POS, CH2 and Unique entries are the full sets from Build POS Master Databases v21.14.0 (clean_merged_pos_data,
  *         clean_ch2_data, clean_uhp_data); POS New Product Check Clean makes its supplier rows from the CH2 / Unique ones.
@@ -30,8 +30,12 @@
   var MERGE = 'POS New Product Check Clean';
   var KINDS = {
     'lib:pos-db':          { label: 'POS Database (full set)', made: 'Build POS Master Databases', used: MERGE, generated: true },
-    'lib:ch2-db':          { label: 'CH2 full set', made: 'Build POS Master Databases', used: MERGE + ' (Add button)', generated: true },
-    'lib:uhp-db':          { label: 'Unique full set', made: 'Build POS Master Databases', used: MERGE + ' (Add button)', generated: true },
+    'lib:ch2-db':          { label: 'CH2 full set', made: 'Build POS Master Databases', used: MERGE + ' (Add button, only when the A–P file is not saved)', generated: true },
+    'lib:uhp-db':          { label: 'Unique full set', made: 'Build POS Master Databases', used: MERGE + ' (Add button, only when the A–P file is not saved)', generated: true },
+    // v1.1.3: the supplier-layout A–P files (clean_ch2_data_pos_db / clean_uhp_data_pos_db) — already in the IN_SUPPLIER columns,
+    // so POS New Product Check Clean's Add buttons take these (smaller, no conversion) and fall back to the full sets.
+    'lib:ch2-posdb':       { label: 'CH2 supplier layout (A–P)', made: 'Build POS Master Databases', used: MERGE + ' (Add CH2 button)', generated: true },
+    'lib:uhp-posdb':       { label: 'Unique supplier layout (A–P)', made: 'Build POS Master Databases', used: MERGE + ' (Add Unique button)', generated: true },
     'posMaster':           { label: 'Full merged master', made: 'Build POS Master Databases', used: 'Reconcile CH2 Order', generated: true },
     'lib:master-selected': { label: 'Selected-columns master', made: 'Build POS Master Databases', used: 'Kept here to download', generated: true },
     'lib:to-order':        { label: 'To-Order file', made: 'Build POS Master Databases', used: 'Kept here to download', generated: true },

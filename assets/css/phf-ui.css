@@ -1,4 +1,4 @@
-/* PHF Staff Hub — phf-ui.css v1.3.0 (20 Oct 2026)
+/* PHF Staff Hub — phf-ui.css v1.4.0 (20 Oct 2026)
    ONE authoritative component sheet shared by Build POS Master Databases, POS New Product Check Clean and Reconcile
    CH2 Order (all three pages carry body.phf-page-db). Colours, type and spacing come from the --phf-* tokens in theme.css;
    nothing here changes any build, merge, sheet or Library behaviour — it is presentation only.
@@ -297,16 +297,6 @@ body.phf-page-db .phf-notice-body strong{display:block;margin-bottom:3px}
 body.phf-page-db .phf-notice-body ul{margin:0;padding-left:18px}
 body.phf-page-db .phf-notice-close{flex:0 0 auto;background:transparent;border:0;color:inherit;font-size:13px;font-weight:800;cursor:pointer;line-height:1;padding:2px 4px;border-radius:6px}
 body.phf-page-db .phf-notice-close:hover{background:rgba(0,0,0,.08)}
-/* step facts + folded detail (same pattern as the other tools' stage notes) */
-body.phf-page-db .db-group-desc strong{color:var(--phf-navy);margin-right:4px}
-body.phf-page-db .db-step-facts{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:3px;font-size:11.5px;color:var(--phf-muted)}
-body.phf-page-db .db-step-facts li strong{display:inline-block;min-width:128px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--phf-navy)}
-body.phf-page-db .master-how{margin:0 0 8px}
-body.phf-page-db .master-how+.master-how{margin-top:-2px}
-body.phf-page-db .master-how-body{padding:4px 12px 10px;font-size:11.5px;line-height:1.45;color:var(--phf-ink)}
-body.phf-page-db .db-cols{margin:0;padding-left:20px;columns:3;column-gap:18px;font-size:11px}
-@media(max-width:900px){body.phf-page-db .db-cols{columns:1}}
-body.phf-page-db .steps-version{display:inline-block;margin-left:6px;font-size:10.5px;font-weight:700;color:var(--phf-gold);letter-spacing:.02em}
 /* compact, collapsible input cards (POS order / Supplier invoices / reference files) — same head as the other tools */
 body.phf-page-db .input-workspace-card .input-workspace-head.acc-custom-head{cursor:pointer}
 body.phf-page-db .input-workspace-card .file-list .file-row{padding:6px 10px;margin-top:6px;font-size:12.5px}
@@ -322,11 +312,6 @@ body.phf-page-db :is(.results-head,.dbhdr,.input-workspace-head) :is(.result-bad
 body.phf-page-db :is(.results-head,.dbhdr,.input-workspace-head) .acc-caret{flex:0 0 auto;margin-left:6px}
 body.phf-page-db .input-workspace-head.acc-custom-head>div{min-width:0;flex:1 1 auto}
 body.phf-page-db .input-workspace-head.acc-custom-head>.small-badge{margin-left:auto}
-/* group headers in every tool: [Run / Build button] → status badge → chevron, so the badge always sits immediately before the
-   chevron at the same right edge as the panel heads (Task 15.3 / Task 3.2); the button keeps margin-left:auto */
-body.phf-page-db .dbhdr>.db-act{order:1}
-body.phf-page-db .dbhdr>.db-mini{order:2}
-body.phf-page-db .dbhdr>.acc-caret{order:3}
 /* Reconcile's Saved files panel is a direct child of the workspace, where theme.css forces `padding:16px !important` on
    panels; that put its navy band inside a white margin (chevron 33px in, not 17px). Same full-bleed head as the other tools —
    this !important only overrides that existing one. */
@@ -337,3 +322,19 @@ body.phf-page-db .result-steps{gap:6px 8px}
 body.phf-page-db .result-steps .db-step{padding-right:9px}
 body.phf-page-db .result-steps .result-downloads{gap:6px;justify-content:flex-end}
 body.phf-page-db .result-downloads .db-pill{padding:0 11px}
+/* ---- v1.4.0 (20 Oct 2026) ----------------------------------------------------------------------------------------------
+   Group headers go back to the Build POS Master look in every tool: status badge → white "… / update" button → chevron (the
+   v1.3.0 reorder is removed). Shared: the page summary's engine line, previous-build file rows (blue), and the merge sheet's
+   steps row. */
+body.phf-page-db .dashboard-intro .engine-state{display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right;flex:0 0 auto}
+body.phf-page-db .dashboard-intro .engine-state small{font-size:11px;color:var(--phf-muted);font-weight:600}
+@media(max-width:900px){body.phf-page-db .dashboard-intro .engine-state{align-items:flex-start;text-align:left}}
+/* inputs updated after a build: the earlier files stay downloadable, marked in the UPDATED blue until the database is rebuilt */
+body.phf-page-db .phf-lib-row.is-stale{background:var(--phf-blue-bg);box-shadow:inset 3px 0 0 var(--phf-blue)}
+body.phf-page-db .phf-lib-row.is-stale .phf-lib-dot{background:var(--phf-blue);color:#fff}
+body.phf-page-db .stale-tag{display:inline-block;margin-left:8px;font-style:normal;font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--phf-blue-ink);background:#fff;border:1px solid var(--phf-blue-line);border-radius:999px;padding:1px 7px;white-space:nowrap}
+body.phf-page-db .db-stale-note{padding:7px 12px;font-size:11.5px;color:var(--phf-blue-ink);background:var(--phf-blue-bg);border-bottom:1px solid var(--phf-blue-line)}
+body.phf-page-db .db-pill.is-stale{box-shadow:inset 0 0 0 2px var(--phf-blue)}
+/* the merge sheet's steps row (same pills as the top strip) */
+body.phf-page-db .wb-steps{margin:0 0 10px}
+body.phf-page-db .wb-steps .wb-steps-actions{margin-left:auto}

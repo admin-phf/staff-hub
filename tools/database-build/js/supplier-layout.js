@@ -1,4 +1,4 @@
-/* PHF Staff Hub — supplier-layout v1.1.0 (13 Oct 2026; v1.0.0 12 Oct 2026)
+/* PHF Staff Hub — supplier-layout v1.1.1 (20 Oct 2026: fromFullSheet reads the spaced headings of the full sets) · v1.1.0 (13 Oct 2026; v1.0.0 12 Oct 2026)
  * v1.1.0: a CH2 line whose Description 2 says SELL THROUGH / SELL THRU (** SELL THROUGH **, *SELL THRU, NEW SKU …*) gets
  * " *SELL THRU*" at the end of SUP PRODUCT. POS New Product Check Clean keeps it out of descr / pos desc. A SUP MIN ORDER WS that
  * is not a number (N/A) is kept as it is (it was blanked) — POS New Product Check Clean replaces it only in the POS files.
@@ -69,7 +69,9 @@
   function fromFullSheet(rows) {
     rows = rows || [];
     for (var i = 0; i < Math.min(8, rows.length); i++) {
-      var h = (rows[i] || []).map(function (x) { return String(x == null ? '' : x).trim().toUpperCase(); });
+      // v1.1.1: the full sets show spaced headings since Build POS Master v21.16 (CH2 MASTER BARCODE) — read them back as the
+      // underscore identifiers (a pure space ↔ underscore swap), so a full set is recognised and converted again.
+      var h = (rows[i] || []).map(function (x) { return String(x == null ? '' : x).trim().toUpperCase().replace(/\s+/g, '_'); });
       var has = function (n) { return h.indexOf(n) >= 0; };
       var kind = has('CH2_MASTER_BARCODE') && has('CH2_WHOLESALE_EX_GST') ? 'CH2' : has('UHP_MASTER_BARCODE') && has('UHP_WS_EX_GST') ? 'UHP' : '';
       if (!kind) continue;
@@ -87,7 +89,7 @@
     return null;
   }
 
-  var api = { VERSION: '1.1.0', HEADERS: HEADERS, bc13: bc13, cleanCh2Product: cleanCh2Product, numOrBlank: numOrBlank, numOrText: numOrText, ch2: ch2, uhp: uhp, fromFullSheet: fromFullSheet };
+  var api = { VERSION: '1.1.1', HEADERS: HEADERS, bc13: bc13, cleanCh2Product: cleanCh2Product, numOrBlank: numOrBlank, numOrText: numOrText, ch2: ch2, uhp: uhp, fromFullSheet: fromFullSheet };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   global.PHFSupplierLayout = api;
 })(typeof window !== 'undefined' ? window : (typeof self !== 'undefined' ? self : globalThis));

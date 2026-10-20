@@ -17,8 +17,8 @@ body.phf-page-merge .stage-dashboard.merge-stages{grid-template-columns:repeat(3
 
 /* Intro + engine state */
 body.phf-page-merge .dashboard-intro{grid-template-columns:minmax(0,1fr) 300px}
-body.phf-page-merge .engine-state{display:flex;flex-direction:column;align-items:flex-end;gap:4px;text-align:right}
-body.phf-page-merge .engine-state small{font-size:11px;color:var(--phf-muted);font-weight:600}
+
+
 @media(max-width:900px){body.phf-page-merge .dashboard-intro{grid-template-columns:1fr}body.phf-page-merge .engine-state{align-items:flex-start;text-align:left}}
 
 /* Recommended reference rows = amber (caution), the same meaning as the theme */
@@ -522,3 +522,13 @@ body.phf-page-merge .sup-table tr.sup-heads th .sup-pick-all{pointer-events:none
 
 /* v1.17.1: the run strip, pills, badges, navy heads, groups, file rows and rail rows now live in the shared
    assets/css/phf-ui.css (one source for both tools). */
+/* v1.21.0 — Supplier Updates card: "Open the IN_SUPPLIER sheet" and "From the Library" share one row (wrap only when narrow);
+   an Add button whose file is not in the Library yet is greyed with a short note */
+body.phf-page-merge .sup-card-actions{display:flex;align-items:center;justify-content:space-between;gap:10px 18px;flex-wrap:nowrap;margin-top:12px}
+body.phf-page-merge .sup-card-actions .sup-card-link{flex:1 1 auto;min-width:0;flex-wrap:nowrap}
+body.phf-page-merge .sup-card-actions .sup-card-link>button{flex:0 0 auto}
+body.phf-page-merge .sup-card-actions .sup-card-link>span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.phf-page-merge .sup-card-actions .sup-card-lib{flex:0 0 auto}
+@media(max-width:1180px){body.phf-page-merge .sup-card-actions{flex-wrap:wrap}body.phf-page-merge .sup-card-actions .sup-card-link>span{white-space:normal}}
+body.phf-page-merge .sup-card-actions .sup-card-link,body.phf-page-merge .sup-card-actions .sup-card-lib{margin-top:0}
+body.phf-page-merge .sup-lib-add.is-missing{opacity:.6;cursor:not-allowed}

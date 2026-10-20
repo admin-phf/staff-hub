@@ -1184,3 +1184,32 @@ All implemented stages keep source business files local to the browser and gener
 - Regression: real reconciliations of invoices 74147128 and 74154567 on v21.31.0 and the committed v21.30.1 produced
   byte-identical POSActive TXT, full CSV and POS key review CSV; full .xlsx identical except docProps/core.xml timestamps.
 - Versions: hub v21.31.0; reconcile v2.15.0; Build POS Master v21.20.2; POS New Product Check Clean v1.20.2; phf-ui ?v=1.3.0.
+
+## Staff Hub v21.32.0 (20 Oct 2026 21:30 AEDT) — Library Add buttons (A–P files), merge sheet steps row, previous-build files, UPDATED → LOADED
+- phf-library.js v1.1.3: KINDS `lib:ch2-posdb` / `lib:uhp-posdb` ("CH2 / Unique supplier layout (A–P)", made by Build POS
+  Master, used by the merge Add buttons). `lib:ch2-db` / `lib:uhp-db` (full sets) stay, now described as the Add fallback.
+- Build POS Master v21.21.0 (pipeline.js): `LIB_OUT` maps output keys `ch2-db` / `uhp-db` (the clean_…_pos_db A–P files) to
+  the new kinds. `invalidate()` calls `markStale(stage)` instead of `deleteStageOutputs` — rows keep their blob URL, get
+  `o.stale=true`, render with `.is-stale` + "Previous build · inputs updated" (libRow) and a `.db-stale-note` above the
+  groups; `bindTopDownload` outlines stale strip buttons. `stageSet(id,'done')` → `stageRebuilt(id)` drops that stage's
+  stale rows and removes `id` from every `state.updated[input]` pending Set (filled from `INPUT_STAGES` when a valid file
+  replaces another), deleting the flag when the Set empties. deleteStageOutputs is kept (no callers now).
+- supplier-layout.js v1.1.1: `fromFullSheet` normalises headings with `.replace(/\s+/g,'_')` (the full sets have spaced
+  headings since `PHFXlsxStyle.headerDisplay`, so the fallback Add found no columns). Merge app.js `isCombinedMaster` same.
+- POS New Product Check Clean v1.21.0 (app.js): `LIB_SUP_SRC` = CH2 [lib:ch2-posdb, lib:ch2-db], Unique [lib:uhp-posdb,
+  lib:uhp-db] — first saved kind wins; `libSupButtonsHtml` always renders (missing → disabled `.is-missing`).
+  Card markup `.sup-card-actions` (link left, `[data-lib-sup-host]` right). `#wbSteps` above the workbook tabs repeats
+  the strip's `[data-run-step][data-stage][data-run-pill]` buttons + `[data-run-all]` + `#wbDlPosUpdate` / `#wbDlPosTxt2`;
+  `setRunPill` updates every copy, boot wires every `[data-run-step][data-stage]` / `[data-run-all]`, `updateRunButtons`
+  syncs `[data-run-all]`. `bindPosUpdate` sorts `txt-*` outputs (UPDATE first) and labels each button from the filename
+  (`txtKind`). `stageSet(…,'done')` clears `railFlags.updated`. Stage header button `.db-build` "Run / update stage N".
+- Reconcile v2.16.0 (workspace.js): STEPS text restored from v2.14.1; `previewHtml` / `renderVersions` / `#stepsVersion`
+  removed. `renderEngine()` fills `#engineVersion` from `PHF.schema.BUILD` and `#engineState` (green when XLSX, pdfjsLib,
+  ExcelJS, JSZip, PHF.schema and PHF.posImport exist). `noteRunFinished()` (start of `render()`) clears `flags.updated` on
+  the results hidden → shown transition. Header button `.db-build` "Run / update step N".
+- phf-ui.css v1.4.0: removed `.db-step-facts`, `.master-how*`, `.db-cols`, `.steps-version` and the shared `.dbhdr` order
+  rules (headers follow DOM order: badge → button → chevron); added `.dashboard-intro .engine-state`, `.phf-lib-row.is-stale`,
+  `.stale-tag`, `.db-stale-note`, `.db-pill.is-stale`, `.wb-steps`. merge.css: `.sup-card-actions` row (wraps ≤1180px),
+  `.sup-lib-add.is-missing`; its `.engine-state` rules moved to phf-ui.css.
+- Versions: hub v21.32.0; Build POS Master v21.21.0; POS New Product Check Clean v1.21.0; reconcile v2.16.0;
+  phf-ui ?v=1.4.0; phf-library ?v=1.1.3; supplier-layout ?v=1.1.1.

@@ -1,4 +1,10 @@
-/* /* Reconcile CH2 v2.15.0 (20 Oct 2026, Staff Hub v21.31.0) — Tasks 12–16: the four downloads sit on the step row (steps left,
+/* /* Reconcile CH2 v2.16.0 (20 Oct 2026, Staff Hub v21.32.0) — the step groups go back to their v2.14 text (the v2.15.0
+   "What this does" / Needs / How it works / column previews are removed); instead the intro at the top carries a short
+   summary with the Integrity Engine version and an engine-ready line (renderEngine: READY only when the PDF reader,
+   spreadsheet libraries, schema and POS import contract have all loaded). Step headers use the white "Run / update step
+   N" button after the badge. UPDATED (blue) inputs turn back to LOADED (green) once a reconcile finishes
+   (noteRunFinished). No reconciliation, export or schema change.
+   Reconcile CH2 v2.15.0 (20 Oct 2026, Staff Hub v21.31.0) — Tasks 12–16: the four downloads sit on the step row (steps left,
    downloads right; one row from ~1,360 px windows, wrapping together below that); each step group has "What this does",
    Needs / Checks-produces / Output facts and a folded "How it works" (checked against the source); step 3 previews the
    REAL column contracts (PHF.posImport.CONTRACT.headers — 15, PHF.schema.HEADERS — 43); the Steps panel shows the page
@@ -144,26 +150,9 @@
      once a run has started), #progress visible = running, #results visible = the checklist is rendered (step 2 DONE,
      step 3 READY), the download buttons enabled = files can be built (step 3 DONE once one has been downloaded). */
   const STEPS=[
-    {id:'check',n:1,title:'Check inputs',
-     desc:'Confirms the POS back-end order, the supplier invoices and the saved reference data (POS / master, Ongoing Discounts) are all present and readable.',
-     needs:'POS back-end order · one or more CH2 / supplier invoices · saved POS / master and Ongoing Discounts',
-     produces:'Readiness for each input; the step pill reads READY when every required input is loaded, ERROR when a dropped file was rejected',
-     output:'No download produced',
-     how:'The reference store is re-read from this browser (POS / master links CH2 codes to POS products; Ongoing Discounts holds the discount rules). The POS order and each invoice must have parsed — an unreadable or wrongly-structured file is listed on its input row in yellow. Nothing is matched or calculated in this step.',
-     nofile:'This step confirms the inputs — it produces no download file.'},
-    {id:'reconcile',n:2,title:'Reconcile',
-     desc:'Matches each supplier invoice line to the POS order and builds the receiving checklist shown under this panel.',
-     needs:'Step 1 ready',
-     produces:'The receiving checklist on this page: Found quantities, CH2 invoice prices, discount audit and exceptions, with the POS layout / Exceptions / All lines views',
-     output:'No download produced — the files come from step 3',
-     how:'Each invoice line is linked to an order row by an exact key first — barcode, PLU, CH2 product code = POS Sub ID, the supplier-update barcode, or the CH2 supplier code = POS Sub ID (HIGH confidence); a description match is only a LOW-confidence fallback, and a wholesale-price match alone never links a line. Invoice arithmetic and the invoice footer total are checked; Ongoing Discounts rules give the expected discount and the audit flags differences. Billed products that are not on the POS order are kept as INV rows in their own section. Quantities you enter in Add Qty accumulate in Found; an exact Found completes the row, under / over counts stay in Remaining.',
-     nofile:'The receiving checklist is shown on this page — the files come from step 3.'},
-    {id:'export',n:3,title:'Export files',
-     desc:'Writes the download files from the checklist as it stands.',
-     needs:'Step 2 run; for the POSActive import at least one ticked / accounted POS-layout row',
-     produces:'POSActive import (.txt) · Full reconciliation (.xlsx and .csv) · POS key review (.csv)',
-     output:'Four downloads (listed below once step 2 has run)',
-     how:'The POSActive import is a positional 15-field tab-delimited file read by POSActive\'s "Apply Oborne Health Services Invoice" (each row\'s Found quantity at the CH2 invoice prices; unticked rows are treated as not supplied; one product billed on several lines of the same invoice becomes one line). It is never written empty — with no eligible rows the guard message is shown here instead. The full reconciliation workbook / CSV carries every line in the 43-column contract with sum totals; the POS key review lists how each import row\'s Sub ID / PLU / barcode was resolved.'}
+    {id:'check',n:1,title:'Check inputs',desc:'The POS back-end order, the supplier invoices and the saved reference data (POS / master, Ongoing Discounts) are all present and readable.',nofile:'This step confirms the inputs — it produces no download file.'},
+    {id:'reconcile',n:2,title:'Reconcile',desc:'Matches the supplier invoice lines to the POS order and builds the receiving checklist shown under this panel (Found quantities, CH2 invoice prices, exceptions).',nofile:'The receiving checklist is shown on this page — the files come from step 3.'},
+    {id:'export',n:3,title:'Export files',desc:'The POSActive import (Found quantities at CH2 invoice prices), the full reconciliation workbook / CSV and the POS key review.'}
   ];
   const OUT_META={downloadBtn:{name:'POSActive import',ext:'.txt',meta:'15-column tab-delimited import · ticked / accounted rows with their Found quantities at the CH2 invoice prices'},fullDownloadBtn:{name:'Full reconciliation',ext:'.xlsx',meta:'43-column linked-POS reconciliation workbook'},fullCsvDownloadBtn:{name:'Full reconciliation',ext:'.csv',meta:'the same 43 columns as an Excel-safe CSV'},keyReviewBtn:{name:'POS key review',ext:'.csv',meta:'import-key review for rows that need a look'}};
   const stepDone={check:false,export:false};
@@ -199,26 +188,12 @@
     if(dl){const show=on&&src&&!src.disabled&&!src.classList.contains('hidden');dl.hidden=!show;const nt=$('#dlPosImportNote');if(nt)nt.textContent=show?'.txt':'';}
     for(const p of document.querySelectorAll('.builder-workspace .panel,.dbgroup'))p.style.scrollMarginTop=($('#dbRunStrip')?.offsetHeight||56)+8+'px';
   }
-  // v2.15.0 (Task 13): previews list the REAL column contracts exposed by the export code — nothing is generated or invented.
-  function previewHtml(id){
-    if(id!=='export')return '';
-    const txt=PHF.posImport&&PHF.posImport.CONTRACT&&PHF.posImport.CONTRACT.headers,wb=PHF.schema&&PHF.schema.HEADERS;
-    const block=(title,cols)=>cols&&cols.length?`<details class="master-how"><summary>Preview — ${esc(title)} (${cols.length} columns)</summary><div class="master-how-body"><ol class="db-cols">${cols.map(c=>`<li>${esc(c)}</li>`).join('')}</ol></div></details>`:'';
-    return block('POSActive import.txt columns',txt)+block('Full reconciliation .xlsx / .csv columns',wb);
-  }
-  function renderVersions(){
-    const el=$('#stepsVersion');if(!el)return;
-    const page=(document.querySelector('.phf-shell-version')||{}).textContent||'';
-    const b=PHF.schema&&PHF.schema.BUILD;
-    el.textContent=[page?`Reconcile CH2 Order ${page.trim()}`:'',b&&b.version?`${b.name||'engine'} v${b.version}${b.date?` (${b.date})`:''}`:''].filter(Boolean).join(' · ')||'Version not available';
-  }
   function renderStepGroups(){
     const host=$('#stepGroups');if(!host)return;
     if(!host.children.length){
-      host.innerHTML=STEPS.map(s=>`<div class="dbgroup" id="stepgroup-${s.id}" data-acc data-acc-id="reconcile-step-${s.id}"><div class="dbhdr acc-custom-head"><span class="num">${s.n}</span><div class="dbhdr-copy"><h3>${esc(s.title)}</h3><span class="dbhdr-meta" data-step-meta></span></div><span class="db-mini wait">WAITING</span><span class="db-act"><button type="button" class="phf-step db-build" data-step-run="${s.id}" disabled title="Run step ${s.n} — ${esc(s.title)}"><span class="num">${s.n}</span> Run step ${s.n}</button></span></div><div class="dbgroup-body"><p class="db-group-desc"><strong>What this does</strong> ${esc(s.desc)}</p><ul class="db-step-facts"><li><strong>Needs</strong>${esc(s.needs)}</li><li><strong>Checks / produces</strong>${esc(s.produces)}</li><li><strong>Output</strong>${esc(s.output)}</li></ul><details class="master-how"><summary>How it works</summary><div class="master-how-body">${esc(s.how)}</div></details>${previewHtml(s.id)}<div class="db-group-status" data-step-status hidden></div>${s.nofile?`<div class="db-group-nofile">${esc(s.nofile)}</div>`:'<div class="db-group-files" data-step-files><div class="empty-output">Run the reconciliation to create its download files.</div></div>'}</div></div>`).join('');
+      host.innerHTML=STEPS.map(s=>`<div class="dbgroup" id="stepgroup-${s.id}" data-acc data-acc-id="reconcile-step-${s.id}"><div class="dbhdr acc-custom-head"><span class="num">${s.n}</span><div class="dbhdr-copy"><h3>${esc(s.title)}</h3><span class="dbhdr-meta" data-step-meta></span></div><span class="db-mini wait">WAITING</span><span class="db-act"><button type="button" class="db-build" data-step-run="${s.id}" disabled title="Run step ${s.n} — ${esc(s.title)}">Run / update step ${s.n}</button></span></div><div class="dbgroup-body"><p class="db-group-desc">${esc(s.desc)}</p><div class="db-group-status" data-step-status hidden></div>${s.nofile?`<div class="db-group-nofile">${esc(s.nofile)}</div>`:'<div class="db-group-files" data-step-files><div class="empty-output">Run the reconciliation to create its download files.</div></div>'}</div></div>`).join('');
       host.querySelectorAll('[data-step-run]').forEach(b=>{b.onclick=e=>{e.preventDefault();e.stopPropagation();if(b.disabled)return;runStep(b.dataset.stepRun);};b.onkeydown=e=>{if(e.key==='Enter'||e.key===' ')e.stopPropagation();};});
       if(global.PHFAccordion)global.PHFAccordion.refresh(host);
-      renderVersions();
     }
   }
   /* ---------- generated output files → step 3 rows (mirrors the result download buttons) ---------- */
@@ -242,7 +217,22 @@
     if(count){count.textContent=`${ready} FILE${ready===1?'':'S'}`;count.className='result-badge'+(ready&&ready===btns.length?' ok':'');}
   }
 
-  function render(){renderNav();renderCards();renderSummary();renderStage();renderOutputs();}
+  // v2.16.0 — the page summary's engine line (like POS New Product Check Clean): READY only when the reconcile engine and the
+  // libraries it needs actually loaded; versions come from the code (PHF.schema.BUILD, the page badge, pdfjsLib.version).
+  function renderEngine(){
+    const el=$('#engineState');if(!el)return;
+    const P=PHF,b=P.schema&&P.schema.BUILD,page=((document.querySelector('.phf-shell-version')||{}).textContent||'').trim();
+    const need=[['XLSX','spreadsheet reader'],['pdfjsLib','PDF reader'],['ExcelJS','Excel writer'],['JSZip','zip writer']].filter(([g])=>!global[g]).map(x=>x[1]);
+    if(!P.schema||!P.posImport)need.unshift('reconcile engine');
+    const v=$('#engineVersion');if(v)v.textContent=b&&b.version?'v'+b.version:'version not available';
+    const pdfv=global.pdfjsLib&&global.pdfjsLib.version;
+    el.innerHTML=need.length?`<span class="phf-pill is-red">Engine not ready</span><small>Not loaded: ${esc(need.join(', '))} — check the connection and reload</small>`
+      :`<span class="phf-pill is-green">Engine ready</span><small>${b?esc(b.name||'Integrity Engine')+' v'+esc(b.version):'Engine'} · Reconcile ${esc(page)}${pdfv?' · PDF reader '+esc(pdfv):''}</small>`;
+  }
+  // v2.16.0 — a blue UPDATED input turns green again once a reconciliation has run with it (the checklist appears again)
+  let resultsShown=false;
+  function noteRunFinished(){const r=$('#results'),shown=!!r&&!r.classList.contains('hidden');if(shown&&!resultsShown&&Object.keys(flags.updated).some(k=>flags.updated[k]))flags.updated={};resultsShown=shown;}
+  function render(){noteRunFinished();renderNav();renderCards();renderSummary();renderStage();renderOutputs();}
   function schedule(){if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;render();});}
 
   /* ---------- files dropped on the rail ---------- */
@@ -425,7 +415,7 @@
   // A reference file saved or deleted by another tool or tab (shared Library) shows here straight away.
   const REF_KINDS={posMaster:1,'lib:ref-discounts':1,supplierMerge:1};
   if(global.PHFLibrary)global.PHFLibrary.onChange(m=>{if(!m||!(m.action==='clear'||REF_KINDS[m.kind]))return;loadReferenceStatus();const app=global.PHFReconcileApp;if(app&&app.refreshReferenceStatus)app.refreshReferenceStatus();});
-  wireReferenceDrops();wireBulkDrop();wireRailClear();observe();render();renderBulk();
+  wireReferenceDrops();wireBulkDrop();wireRailClear();observe();render();renderBulk();renderEngine();
   (PHF.referenceStore&&PHF.referenceStore.shareLegacy?PHF.referenceStore.shareLegacy():Promise.resolve(false)).then(shared=>{loadReferenceStatus();if(shared){const app=global.PHFReconcileApp;if(app&&app.refreshReferenceStatus)app.refreshReferenceStatus();}});
   global.PHFReconcileWorkspace={select,render,bulkAccept,runStep};
 })(window);

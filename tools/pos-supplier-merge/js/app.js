@@ -1,8 +1,16 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.20.2 (20 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.21.0 (20 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
  * three merge stages, downloads and the OUT_MERGED_DATA review table.
+ * v1.21.0 (Staff Hub v21.32.0): the Supplier Updates card always shows "Open the IN_SUPPLIER sheet" and "From the Library
+ *   + Add CH2 / + Add Unique" on one row; each Add takes the A–P supplier-layout file Build POS Master saves
+ *   (lib:ch2-posdb / lib:uhp-posdb, the clean_…_pos_db output) and falls back to the full set; a button is greyed with a
+ *   "build it first" note when neither is saved. The full-set fallback reads spaced headings again (it failed with "No
+ *   matching column headings" since the full sets switched to spaced headings). The sheet carries the same RUN 1 · 2 · 3
+ *   pills, Run all and POS TXT downloads as the top strip. Stage headers use the white "Run / update stage N" button
+ *   after the badge. The POSActive TXT buttons name the file they hold (POS UPDATE / POS INSERT — the old single button
+ *   could hand over the INSERT file under the UPDATE label). UPDATED (blue) inputs turn back to LOADED (green) after a run.
  * v1.20.2 (Staff Hub v21.31.0): picks up phf-ui.css v1.3.0 — stage headers read [Run stage N] → status badge → chevron.
  * v1.20.1 (Staff Hub v21.30.1): the strip's progress row shows for any running stage with its live message; the INPUT
  *   FILES rail is sized to the real strip height so it no longer overlaps the sheet below.
@@ -192,14 +200,17 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.20.2';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.21.0';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
   // full CH2 / Unique catalogue would widen every merge to all its brands) — LIB_SUP lists them for the Add buttons.
   var LIB = window.PHFLibrary || null, LIB_TOOL = 'pos-supplier-merge';
   var LIB_LOAD = [{ id: 'pos', kind: 'lib:pos-db' }, { id: 'disc', kind: 'lib:ref-discounts' }];
-  var LIB_SUP = ['lib:ch2-db', 'lib:uhp-db'];
+  // v1.21.0: each Add button takes the supplier-layout A–P file Build POS Master Databases saves (clean_…_pos_db — already the
+  // IN_SUPPLIER columns, smaller, no conversion); the full set is used only when that file has not been saved yet.
+  var LIB_SUP_SRC = [{ id: 'ch2', name: 'CH2', kinds: ['lib:ch2-posdb', 'lib:ch2-db'] }, { id: 'uhp', name: 'Unique', kinds: ['lib:uhp-posdb', 'lib:uhp-db'] }];
+  var LIB_SUP = ['lib:ch2-posdb', 'lib:uhp-posdb', 'lib:ch2-db', 'lib:uhp-db'];
   var LIB_SHARED = { disc: 'lib:ref-discounts' };
   var M = window.PHFMergeMap;
   var $ = function (s) { return document.querySelector(s); };
@@ -525,7 +536,7 @@
   }
   function isCombinedMaster(rows) {
     for (var i = 0; i < Math.min(8, (rows || []).length); i++) {
-      var h = (rows[i] || []).map(function (x) { return String(x == null ? '' : x).trim().toUpperCase(); });
+      var h = (rows[i] || []).map(function (x) { return String(x == null ? '' : x).trim().toUpperCase().replace(/\s+/g, '_'); });   // v1.21.0: spaced headings too
       if (h.indexOf('POS_PLU') >= 0 && h.indexOf('MATCH_STATUS') >= 0 && (h.indexOf('CH2_MASTER_BARCODE') >= 0 || h.indexOf('UHP_MASTER_BARCODE') >= 0)) return true;
     }
     return false;
@@ -812,7 +823,7 @@
     host.querySelectorAll('[data-remove]').forEach(function (b) { b.onclick = function () { removeFile(id, +b.dataset.remove); }; });
     document.querySelectorAll('[data-input]').forEach(function (b) { b.classList.toggle('active', b.dataset.input === id); });
     if (id === 'sup') {
-      host.querySelector('.input-workspace-card').insertAdjacentHTML('beforeend', '<div class="sup-card-link"><button type="button" class="btn small" id="supJump">Open the IN_SUPPLIER sheet ↓</button><span>Edit, paste and check every supplier row in the sheet under the stages.</span></div><div class="sup-scope-lib sup-card-lib" data-lib-sup-host hidden></div>');
+      host.querySelector('.input-workspace-card').insertAdjacentHTML('beforeend', '<div class="sup-card-actions"><div class="sup-card-link"><button type="button" class="btn small" id="supJump">Open the IN_SUPPLIER sheet ↓</button><span title="Edit, paste and check every supplier row in the sheet under the stages.">Edit, paste and check every supplier row in the sheet under the stages.</span></div><div class="sup-scope-lib sup-card-lib" data-lib-sup-host hidden></div></div>');
       host.querySelector('#supJump').onclick = scrollToSupSheet;
       drawLibSup();
     }
@@ -845,7 +856,7 @@
   // and 3 hold their files beneath. Header: number, name, status pill, Run / update button and the fold chevron.
   // v1.17.1 (Task 7 + 8) — each stage header carries a compact numbered pill on its right that runs that stage; the top
   // run strip's pills do the same. Both are real buttons; clicking one never toggles the header's fold.
-  var STAGE_PILL_LABEL = { highlight: 'Run stage 1', build: 'Run stage 2', export: 'Run stage 3' };
+  var STAGE_PILL_LABEL = { highlight: 'Run / update stage 1', build: 'Run / update stage 2', export: 'Run / update stage 3' };
   var STAGE_HAS_FILES = { highlight: false, build: true, export: true };
   function renderStages() {
     var host = $('#mergeGroups'); if (!host) return;
@@ -853,7 +864,7 @@
       var files = STAGE_HAS_FILES[s.id]
         ? '<div class="db-group-files" data-stage-output="' + s.id + '"><div class="empty-output">No files yet — run this stage to create them.</div></div>'
         : '<div class="db-group-nofile">This stage sets the supplier STATUS and feeds the next stage — it produces no download file.</div>';
-      return '<section class="dbgroup" id="mgroup-' + s.id + '" data-acc data-acc-id="mgroup-' + s.id + '"><div class="dbhdr acc-custom-head"><span class="num">' + s.n + '</span><div class="dbhdr-copy"><h3>' + esc(s.title) + '</h3><span class="dbhdr-meta" data-db-meta="' + s.id + '"></span></div><span class="db-mini wait">WAITING</span><span class="db-act"><button type="button" class="phf-step db-build" data-stage="' + s.id + '" data-label="' + STAGE_PILL_LABEL[s.id] + '" disabled title="' + esc(s.title) + '"><span class="num">' + s.n + '</span>' + STAGE_PILL_LABEL[s.id] + '</button></span></div><div class="dbgroup-body"><p class="db-group-desc">' + esc(s.desc) + '</p><div class="stage-scope" data-stage-scope="' + s.id + '" hidden></div><div class="db-group-status info">Waiting for input files.</div>' + files + '</div></section>';
+      return '<section class="dbgroup" id="mgroup-' + s.id + '" data-acc data-acc-id="mgroup-' + s.id + '"><div class="dbhdr acc-custom-head"><span class="num">' + s.n + '</span><div class="dbhdr-copy"><h3>' + esc(s.title) + '</h3><span class="dbhdr-meta" data-db-meta="' + s.id + '"></span></div><span class="db-mini wait">WAITING</span><span class="db-act"><button type="button" class="db-build" data-stage="' + s.id + '" data-label="' + STAGE_PILL_LABEL[s.id] + '" disabled title="' + esc(s.title) + '">' + STAGE_PILL_LABEL[s.id] + '</button></span></div><div class="dbgroup-body"><p class="db-group-desc">' + esc(s.desc) + '</p><div class="stage-scope" data-stage-scope="' + s.id + '" hidden></div><div class="db-group-status info">Waiting for input files.</div>' + files + '</div></section>';
     }).join('');
     host.querySelectorAll('.db-build').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); if (b.disabled) return; runTo(b.dataset.stage); }; });
     renderScopes();
@@ -862,19 +873,20 @@
   // v1.17.0 — run-strip step pill (WAITING / READY / RUNNING / DONE / ERROR).
   var RUN_PILL = { waiting: ['wait', 'WAITING'], ready: ['ready', 'READY'], running: ['run', 'RUNNING'], done: ['done', 'DONE'], error: ['err', 'ERROR'] };
   function setRunPill(id, status) {
-    var p = document.querySelector('[data-run-pill="' + id + '"]'); var m = RUN_PILL[status] || RUN_PILL.waiting;
-    if (p) { p.className = 'st ' + m[0]; p.textContent = m[1]; }
-    var step = document.querySelector('[data-run-step="' + id + '"]');
-    if (step) {
+    var m = RUN_PILL[status] || RUN_PILL.waiting;
+    // v1.21.0: the top strip and the steps row above the sheet carry the same pills — update every copy
+    document.querySelectorAll('[data-run-pill="' + id + '"]').forEach(function (p) { p.className = 'st ' + m[0]; p.textContent = m[1]; });
+    document.querySelectorAll('[data-run-step="' + id + '"]').forEach(function (step) {
       step.classList.toggle('running', status === 'running');
       // the strip pill is a button: usable when the inputs + engine are ready and nothing is running
       var can = !state.busy && status !== 'running' && requiredReady() && !!state.engineInfo;
       step.disabled = !can; step.setAttribute('aria-disabled', can ? 'false' : 'true');
-    }
+    });
   }
   function stageSet(id, status, msg) {
     state.stage[id] = { status: status, msg: msg };
     setRunPill(id, status);
+    if (status === 'done' && Object.keys(railFlags.updated).length) { railFlags.updated = {}; renderInputNav(); }   // v1.21.0 UPDATED → green after the run
     // v1.20.1: the strip's progress row shows whenever a stage is running (animated until a % is known), hides when none is
     (function () { var anyRun = Object.keys(state.stage).some(function (k) { return state.stage[k] && state.stage[k].status === 'running'; });
       var p = $('#globalProgress'), bar = p && p.querySelector('.db-bar'), fill = $('#globalProgressBar'), idle = $('#dbStatLine');
@@ -915,6 +927,7 @@
       else stageSet(s.id, 'waiting', state.engineInfo ? readinessText() : 'Waiting for the merge engine to start…');
     });
     $('#runAllBtn').disabled = !ready || state.busy;
+    document.querySelectorAll('[data-run-all]').forEach(function (b) { b.disabled = !ready || state.busy; });   // v1.21.0 the sheet's steps row
     // v1.5.0: the sheets cannot be edited while a stage runs.
     var gb = state.busy || state.edits.busy;
     if (wb.outGrid) wb.outGrid.busy(gb);
@@ -1312,12 +1325,22 @@
       '<div class="phf-lib-btns"><a class="phf-lib-btn download" href="' + o.url + '" download="' + esc(o.name) + '">Download</a></div>' +
       (o.warn ? '<span class="output-warning">⚠ ' + esc(o.warn) + ' — the file is complete and can be downloaded.</span>' : '') + '</div>';
   }
+  // v1.21.0: each POSActive TXT button names the file it holds (the label used to say POS UPDATE even when the only file was the
+  // POS INSERT one). POS UPDATE first; when a run writes both files, both buttons show — top strip and the sheet's steps row.
+  function txtKind(o) { return /UPDATE/i.test(o.name) ? 'POS UPDATE' : /INSERT/i.test(o.name) ? 'POS INSERT' : 'POS file'; }
   function bindPosUpdate(arr) {
-    var btn = $('#dlPosUpdate'); if (!btn) return;
-    var o = arr.filter(function (x) { return /^txt-/.test(x.key); }).sort(function (a, b) { return a.key < b.key ? -1 : 1; })[0];
-    if (o) { btn.hidden = false; btn.href = o.url; btn.download = o.name; var sz = $('#dlPosUpdateSize'); if (sz) sz.textContent = pretty(o.blob.size); }
-    else btn.hidden = true;
+    var txt = arr.filter(function (x) { return /^txt-/.test(x.key); }).sort(function (a, b) { return (txtKind(a) === 'POS UPDATE' ? 0 : 1) - (txtKind(b) === 'POS UPDATE' ? 0 : 1) || (a.key < b.key ? -1 : 1); });
+    [['#dlPosUpdate', '#dlPosUpdateSize', '#dlPosTxt2', '#dlPosTxt2Size'], ['#wbDlPosUpdate', '#wbDlPosUpdateSize', '#wbDlPosTxt2', '#wbDlPosTxt2Size']].forEach(function (ids) {
+      [0, 1].forEach(function (n) {
+        var btn = $(ids[n * 2]); if (!btn) return; var o = txt[n];
+        if (!o) { btn.hidden = true; return; }
+        btn.hidden = false; btn.href = o.url; btn.download = o.name; btn.title = o.name;
+        var l = btn.querySelector('[data-txt-label]'); if (l) l.textContent = txtKind(o);
+        var sz = $(ids[n * 2 + 1]); if (sz) sz.textContent = pretty(o.blob.size);
+      });
+    });
   }
+
 
   // ------------------------------------------------------ review workbook
   var COL = {
@@ -2386,19 +2409,22 @@
     }).catch(function (e) { console.warn('Library list failed', e); });
   }
   function libSupAdded(kind) { var r = libSupRecs[kind]; return supEntries().some(function (f) { return f.libKind === kind && (!r || f.libSavedAt === r.savedAt); }); }
+  function libSupSrcAdded(src) { return src.kinds.some(function (k) { return libSupAdded(k); }); }
+  // v1.21.0: the row is always there — a button is greyed with a short "build it first" note when its file is not saved yet.
   function libSupButtonsHtml() {
-    var ks = LIB ? LIB_SUP.filter(function (k) { return libSupRecs[k]; }) : [];
-    if (!ks.length) return '';
-    return '<span class="sup-lib-label">From the Library</span>' + ks.map(function (k) {
-      var r = libSupRecs[k], on = libSupAdded(k), stale = LIB.isStale(r), rows = String(r.meta || '').split(' · ')[0];
+    if (!LIB) return '';
+    return '<span class="sup-lib-label">From the Library</span>' + LIB_SUP_SRC.map(function (src) {
+      var k = src.kinds.filter(function (x) { return libSupRecs[x]; })[0], r = k && libSupRecs[k];
+      if (!r) return '<button type="button" class="btn small sup-lib-add is-missing" disabled title="Build the ' + src.name + ' database in Build POS Master Databases — its supplier layout file is saved to the Library for this button">+ Add ' + src.name + ' set<small>not in the Library yet — build ' + src.name + ' in Build POS Master Databases</small></button>';
+      var on = libSupSrcAdded(src), stale = LIB.isStale(r), rows = String(r.meta || '').split(' · ')[0], ap = k === src.kinds[0];
       return '<button type="button" class="btn small sup-lib-add' + (on ? ' is-added' : '') + (stale ? ' is-stale' : '') + '" data-lib-add="' + k + '"' + (on ? ' disabled' : '') +
-        ' title="' + esc(r.name + (r.meta ? ' · ' + r.meta : '') + ' — adds every brand in this file to the merge') + '">' + (on ? '✓ ' : '+ Add ') + esc(LIB.info(k).label) + (on ? ' added' : '') +
-        '<small>' + esc((/rows/.test(rows) ? rows + ' · ' : '') + 'built ' + LIB.when(r) + ' (' + LIB.ago(r) + ')' + (stale ? ' — check it is the latest' : '')) + '</small></button>';
+        ' title="' + esc(r.name + (r.meta ? ' · ' + r.meta : '') + ' — adds every brand in this file to the merge') + '">' + (on ? '✓ ' + src.name + ' set added' : '+ Add ' + src.name + ' set') +
+        '<small>' + esc((/rows/.test(rows) ? rows + ' · ' : '') + (ap ? 'A–P supplier layout · ' : 'full set · ') + 'built ' + LIB.when(r) + ' (' + LIB.ago(r) + ')' + (stale ? ' — check it is the latest' : '')) + '</small></button>';
     }).join('');
   }
   function drawLibSup() {
     var html = libSupButtonsHtml();
-    document.querySelectorAll('[data-lib-sup-host]').forEach(function (h) { h.innerHTML = html; h.hidden = !html; });
+    document.querySelectorAll('[data-lib-sup-host]').forEach(function (h) { h.innerHTML = html; h.hidden = !html; });   // v1.21.0: html is empty only without the Library
     document.querySelectorAll('[data-lib-add]').forEach(function (b) { b.onclick = function () { libSupAdd(b.dataset.libAdd); }; });
   }
   function libSupAdd(kind) {
@@ -3290,9 +3316,10 @@
     renderStages(); renderOutputs(); wireBulkDrop(); wireReview();
     $('#supPanel').innerHTML = supSheetHtml(); wireSupSheet();
     renderTabs(); wbShow('sup', true);
-    $('#runAllBtn').onclick = function () { runTo('export'); };   // v1.17.0 — stage run buttons are wired in renderStages (.db-build)
+    $('#runAllBtn').onclick = function () { runTo('export'); };
+    document.querySelectorAll('[data-run-all]').forEach(function (b) { b.onclick = function () { if (!b.disabled) runTo('export'); }; });   // v1.17.0 — stage run buttons are wired in renderStages (.db-build)
     // v1.17.1 — the run-strip step pills run their stage too (same handler as the stage-header pills)
-    document.querySelectorAll('#dbRunStrip [data-run-step][data-stage]').forEach(function (b) { b.onclick = function () { if (b.disabled) return; runTo(b.dataset.stage); }; });
+    document.querySelectorAll('[data-run-step][data-stage]').forEach(function (b) { b.onclick = function () { if (b.disabled) return; runTo(b.dataset.stage); }; });
     $('#clearAllBtn').onclick = function () { if (state.busy) return; invalidateResults('Results cleared.'); startEngine().then(updateRunButtons); setGlobal('Results cleared. Input files are kept (and stay saved in this browser).', 'info'); };
     $('#railClearSession').onclick = function () {
       removeInputs(M.INPUTS.filter(function (d) { return !d.stored; }).map(function (d) { return d.id; }), 'POS database and supplier rows removed (including rows added in the sheet). Saved reference data is kept.');
