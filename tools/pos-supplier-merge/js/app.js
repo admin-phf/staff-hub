@@ -1,8 +1,13 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.18.0 (20 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.19.0 (20 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
  * three merge stages, downloads and the OUT_MERGED_DATA review table.
+ * v1.19.0 (Staff Hub v21.29.0): rail rows carry the file state (LOADED green · UPDATED blue · INCOMPATIBLE bright yellow with
+ *   the reason on that row · REQUIRED red); the Drop-All list only shows files needing a choice. Brand Name Changes is hidden
+ *   from the rail, readiness and "Missing" text (HIDDEN_INPUTS / visibleInputs) — its input, Library load, Drop-All
+ *   recognition, SRC_POS_BRAND_NAME_CHANGES tab and engine use are unchanged; it no longer gates the run. CLEAR RESULTS /
+ *   CLEAR SESSION FILES / CLEAR SAVED REFERENCE in caps (REQUIRED-pill style); apple home link on the sticky strip.
  * v1.18.0 (Staff Hub v21.28.0): UI/UX refinement package — the RUN strip is above both columns and sticky; its three pills are
  *   buttons that call runTo(stage); each stage header carries a compact numbered "Run stage N" pill on the right (same runTo,
  *   click does not fold the header) replacing the big Run / update buttons; the "Storage protected" and "Saved vs session"
@@ -182,7 +187,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.18.0';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.19.0';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -361,6 +366,14 @@
   }
   function inputDef(id) { return M.inputDef(id); }
   function loaded(id) { var x = state.inputs[id]; return !!(x && x.files && x.files.length); }
+  // v1.18.1: Brand Name Changes is hidden from the page only — not in the rail, the readiness chips, the Missing text or the
+  // run gating. Its input definition, Library load, Drop-All recognition, the SRC_POS_BRAND_NAME_CHANGES tab and every engine
+  // use are unchanged: when a saved / dropped table exists the merge still applies it.
+  var HIDDEN_INPUTS = { brands: true };
+  function visibleInputs() { return M.INPUTS.filter(function (d) { return !HIDDEN_INPUTS[d.id]; }); }
+  // v1.18.1: per-input rail state — updated[id] = a valid file replaced an earlier valid one (blue row);
+  // reject[id] = { name, msg } of a file that failed for that input (yellow row; any earlier valid file stays loaded).
+  var railFlags = { updated: {}, reject: {} };
   function rowsOf(id) { var x = state.inputs[id]; var out = []; (x && x.files || []).forEach(function (f) { out = out.concat(f.data); }); return out; }
   // v1.17.0 — the status line lives in the run strip (idle line + progress line); keep #wbRunStatus for any legacy reads.
   function setGlobal(t, type) {
@@ -541,7 +554,8 @@
     if (def.multi) {
       var files = cur.files.filter(function (f) { return !(f.name === entry.name && f.tab === entry.tab); });
       files.push(entry); cur.files = files;
-    } else cur.files = [entry];
+    } else { if (cur.files.length && !(cur.files[0].name === entry.name && cur.files[0].size === entry.size)) railFlags.updated[id] = true; else delete railFlags.updated[id]; cur.files = [entry]; }
+    delete railFlags.reject[id];
     cur.savedAt = melb();
     state.inputs[id] = cur;
     state.rev++;
@@ -588,6 +602,7 @@
       renderAll(); showInput(id);
       return true;
     }).catch(function (e) {
+      railFlags.reject[id] = { name: file.name, msg: e.message }; renderInputNav();
       setGlobal(def.title + ': ' + e.message, 'error');
       showInput(id, e.message); flashInvalid(id);
       return false;
@@ -633,32 +648,33 @@
             rec.assigned.push(inputDef(id).title + (sheets.length > 1 ? ' (tab ' + sh.name + ')' : '') + ' · ' + fmtN(mp.data.length) + ' rows');
             rec.ids.push(id);
             recognised++;
-          } catch (e) { notes.push(sh.name + ': ' + e.message); }
+          } catch (e) { notes.push(sh.name + ': ' + e.message); railFlags.reject[id] = { name: file.name, msg: e.message }; rec.rejectedFor = id; }
         });
         rec.status = recognised ? 'assigned' : (notes.length ? 'review' : 'unrecognised');
+        // v1.18.1: a file that failed for one identified input is shown on that input's rail row, not in this list
+        if (!recognised && rec.rejectedFor && notes.length === 1) rec.status = 'invalid';
         rec.msg = recognised ? rec.assigned.join(' · ') : (notes.join(' · ') || 'Not recognised from its headings — choose the input it belongs to.');
       }).catch(function (e) { rec.status = 'unreadable'; rec.msg = 'Could not read this file (' + e.message + ').'; })
-        .then(function () { renderBulk(); renderAll(); });
+        .then(function () { state.bulk = state.bulk.filter(function (r) { return r.status !== 'assigned' && r.status !== 'invalid'; }); renderBulk(); renderAll(); });
     });
     Promise.all(jobs).then(function () {
-      var ok = state.bulk.filter(function (r) { return r.status === 'assigned'; }).length;
-      setGlobal(ok ? 'Files assigned. ' + readinessText() : 'No file was recognised — choose the input for each file below.', ok ? 'success' : 'missing');
+      var ok = jobs.length - state.bulk.filter(function (r) { return r.status !== 'reading'; }).length;
+      setGlobal(ok > 0 ? 'Files assigned. ' + readinessText() : 'No file was recognised — choose the input for each file below.', ok > 0 ? 'success' : 'missing');
       updateRunButtons();
     });
   }
   function renderBulk() {
     var host = $('#bulkResults'), badge = $('#bulkCount'), list = state.bulk;
-    var a = list.filter(function (r) { return r.status === 'assigned'; }).length, rv = list.length - a;
-    badge.textContent = list.length ? a + ' READY' + (rv ? ' · ' + rv + ' TO REVIEW' : '') : '0 FILES';
-    badge.className = 'result-badge' + (list.length ? (rv ? ' warn' : ' ok') : '');
+    var rv = list.filter(function (r) { return r.status !== 'reading'; }).length;
+    if (badge) { badge.textContent = rv ? rv + ' TO REVIEW' : '0 FILES'; badge.className = 'result-badge' + (rv ? ' warn' : ''); }
     if (!list.length) { host.innerHTML = ''; return; }
     host.innerHTML = list.map(function (r, i) {
       var cls = r.status === 'assigned' ? 'ok' : r.status === 'reading' ? 'reading' : (r.status === 'unreadable' || r.status === 'unrecognised') ? 'bad' : 'review';
       // v1.17.1 — READY (recognised + checked, waiting to be processed) · UPDATED (a valid replacement) · REVIEW · INCOMPATIBLE
-      var st = r.status === 'assigned' ? (/replac/i.test(r.msg || '') ? 'UPDATED' : 'READY') : r.status === 'reading' ? 'CHECKING' : r.status === 'review' ? 'REVIEW' : 'INCOMPATIBLE';
+      var st = r.status === 'assigned' ? 'READY' : r.status === 'reading' ? 'CHECKING' : 'REVIEW';   // v1.18.1: what stays in this list needs a choice
       var pick = r.status === 'assigned' || r.status === 'reading' ? '' :
         '<select data-bulk-select="' + i + '" aria-label="Input for ' + esc(r.file.name) + '"><option value="">Choose input…</option>' +
-        M.INPUTS.map(function (d) { return '<option value="' + d.id + '">' + esc(d.title) + '</option>'; }).join('') +
+        visibleInputs().map(function (d) { return '<option value="' + d.id + '">' + esc(d.title) + '</option>'; }).join('') +
         '</select><button type="button" class="btn" data-bulk-assign="' + i + '">Assign</button>';
       var full = pretty(r.file.size) + ' · ' + (r.msg || ''), short = full.length > 90 ? full.slice(0, 88).replace(/\s+\S*$/, '') + '…' : full;
       var note = short === full ? '<span>' + esc(full) + '</span>' : '<details><summary>' + esc(short) + '</summary><p>' + esc(full) + '</p></details>';
@@ -668,7 +684,7 @@
       b.onclick = function () {
         var i = +b.dataset.bulkAssign, r = state.bulk[i], sel = host.querySelector('[data-bulk-select="' + i + '"]'), id = sel && sel.value;
         if (!r || !id) return;
-        acceptFile(id, r.file).then(function (ok) { if (ok) { r.status = 'assigned'; r.msg = 'Assigned to ' + inputDef(id).title; r.assigned = [r.msg]; r.ids = [id]; } renderBulk(); });
+        acceptFile(id, r.file).then(function (ok) { if (ok) { r.status = 'assigned'; r.msg = 'Assigned to ' + inputDef(id).title; r.assigned = [r.msg]; r.ids = [id]; } state.bulk = state.bulk.filter(function (o) { return o.status !== 'assigned'; }); if (!ok) state.bulk = state.bulk.filter(function (o) { return o !== r; }); renderBulk(); renderAll(); });
       };
     });
   }
@@ -687,6 +703,8 @@
   function railState(def) {
     var f = loaded(def.id);
     if (f && libStaleFiles(def.id).length) return { cls: 'loaded lib-stale', dot: '!', text: 'CHECK DATE' };
+    if (railFlags.reject[def.id]) return { cls: (f ? 'loaded ' : def.required ? 'missing required ' : 'missing ') + 'incompatible', dot: '!', text: 'INCOMPATIBLE' };
+    if (f && railFlags.updated[def.id]) return { cls: 'loaded updated', dot: '✓', text: 'UPDATED' };
     if (f) return { cls: 'loaded', dot: '✓', text: def.stored ? 'SAVED' : 'LOADED' };
     if (def.required) return { cls: 'missing required', dot: '!', text: 'REQUIRED' };
     if (def.recommended) return { cls: 'missing recommended', dot: '!', text: 'RECOMMENDED' };
@@ -702,12 +720,13 @@
   function renderInputNav() {
     var host = $('#inputNav');
     host.innerHTML = GROUPS.map(function (g) {
-      var items = M.INPUTS.filter(function (d) { return d.group === g; });
+      var items = visibleInputs().filter(function (d) { return d.group === g; });   // v1.18.1: Brand Name Changes not shown
       var title = g === 'Reference data' ? 'Reference data · saved in this browser' : g;
       return '<div class="input-group"><div class="input-group-title">' + esc(title) + '</div>' + items.map(function (d) {
-        var s = railState(d);
-        return '<div class="input-nav-wrap' + (loaded(d.id) ? ' has-del' : '') + '"><button type="button" class="input-nav-item ' + s.cls + '" data-input="' + d.id + '" title="Click to open, or drop the ' + esc(d.title) + ' file here"><span class="input-dot">' + s.dot + '</span><span><strong>' + esc(d.title) + '</strong><small>' + esc(railSub(d)) + '</small></span><span class="input-state">' + s.text + '</span></button>' +
-          (loaded(d.id) ? '<button type="button" class="input-nav-del" data-del="' + d.id + '" title="Remove ' + esc(d.title) + (d.stored ? ' from this browser' : '') + '" aria-label="Remove ' + esc(d.title) + '">✕</button>' : '') + '</div>';
+        var s = railState(d), rj = railFlags.reject[d.id];
+        var note = rj ? '<small class="input-nav-note" title="' + esc(rj.name + ' — ' + rj.msg) + '">' + esc(rj.name + ' — ' + rj.msg) + '</small>' : '';
+        return '<div class="input-nav-wrap' + (loaded(d.id) || rj ? ' has-del' : '') + '"><button type="button" class="input-nav-item ' + s.cls + '" data-input="' + d.id + '" title="Click to open, or drop the ' + esc(d.title) + ' file here"><span class="input-dot">' + s.dot + '</span><span><strong>' + esc(d.title) + '</strong><small>' + esc(railSub(d)) + '</small>' + note + '</span><span class="input-state">' + s.text + '</span></button>' +
+          (loaded(d.id) || rj ? '<button type="button" class="input-nav-del" data-del="' + d.id + '" title="' + (loaded(d.id) ? 'Remove ' + esc(d.title) + (d.stored ? ' from this browser' : '') : 'Dismiss this note') + '" aria-label="Remove ' + esc(d.title) + '">✕</button>' : '') + '</div>';
       }).join('') + '</div>';
     }).join('');
     host.querySelectorAll('[data-input]').forEach(function (b) {
@@ -729,6 +748,7 @@
   // is deleted from this browser too. Drop-list rows that only filled those inputs go as well.
   function removeInputs(ids, message) {
     if (inputsLocked()) return;
+    ids.forEach(function (id) { delete railFlags.updated[id]; delete railFlags.reject[id]; });
     var gone = ids.filter(function (id) { return state.inputs[id]; });
     gone.forEach(function (id) { libForget(id, state.inputs[id].files); delete state.inputs[id]; if (inputDef(id).stored) refDelete(id); });
     if (ids.indexOf('sup') >= 0) { supView.undo = []; supView.sel = null; supView.note = ''; supView.brands = null; }   // v1.6.2: the SUP BRAND filter goes too
@@ -783,15 +803,15 @@
     if (window.PHFAccordion) window.PHFAccordion.refresh(host);
   }
   function readinessText() {
-    var miss = M.INPUTS.filter(function (d) { return d.required && !loaded(d.id); }).map(function (d) { return d.title; });
-    var rec = M.INPUTS.filter(function (d) { return d.recommended && !loaded(d.id); }).map(function (d) { return d.title; });
+    var miss = visibleInputs().filter(function (d) { return d.required && !loaded(d.id); }).map(function (d) { return d.title; });
+    var rec = visibleInputs().filter(function (d) { return d.recommended && !loaded(d.id); }).map(function (d) { return d.title; });
     if (miss.length) return 'Missing: ' + miss.join(', ') + '.';
     return 'Ready to run.' + (rec.length ? ' Reference not loaded: ' + rec.join(', ') + ' — the merge runs without it, but results may differ from the Google Sheet.' : '');
   }
   function renderInputSummary() {
     var host = $('#inputSummary');
     host.innerHTML = GROUPS.map(function (g) {
-      var fs = M.INPUTS.filter(function (d) { return d.group === g; });
+      var fs = visibleInputs().filter(function (d) { return d.group === g; });
       var n = fs.filter(function (d) { return loaded(d.id); }).length;
       var reqMiss = fs.filter(function (d) { return d.required && !loaded(d.id); }).length;
       var recMiss = fs.filter(function (d) { return d.recommended && !loaded(d.id); }).length;
@@ -799,10 +819,10 @@
       var txt = n + '/' + fs.length + ' loaded' + (reqMiss ? ' · required missing' : recMiss ? ' · ' + recMiss + ' recommended missing' : n ? ' · ready' : ' · optional');
       return '<div class="summary-chip ' + cls + '"><strong>' + esc(g) + '</strong><span>' + txt + '</span></div>';
     }).join('');
-    var req = M.INPUTS.filter(function (d) { return d.required; }), ok = req.filter(function (d) { return loaded(d.id); }).length;
+    var req = visibleInputs().filter(function (d) { return d.required; }), ok = req.filter(function (d) { return loaded(d.id); }).length;
     var rc = $('#readyCount'); rc.textContent = ok + ' / ' + req.length + ' REQUIRED'; rc.className = 'result-badge ' + (ok === req.length ? 'ok' : ok ? 'ready' : '');
   }
-  function requiredReady() { return M.INPUTS.every(function (d) { return !d.required || loaded(d.id); }); }
+  function requiredReady() { return visibleInputs().every(function (d) { return !d.required || loaded(d.id); }); }
 
   // ------------------------------------------------------------- stages
   // v1.17.0 — Stages & generated files: one collapsible group per stage. Stage 1 produces no file (status-only); stages 2

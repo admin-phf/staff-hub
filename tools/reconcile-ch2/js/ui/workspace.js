@@ -1,4 +1,13 @@
-/* Reconcile CH2 v2.11.2 (13 Oct 2026) — ✕ on each loaded rail row removes it straight away.
+/* Reconcile CH2 v2.13.0 (20 Oct 2026) — the Build POS Master layout: a full-width sticky run strip (home link, three step
+   pills, Run all, POSActive download, CLEAR FILES, progress + status), Drop All at the top of the rail, and ONE "Steps &
+   generated files" panel — a group per step with its own Run pill in the header; step 3 lists the three downloads.
+   The three steps sit over the UNCHANGED engine in app.js: step 1 (Check inputs) = app.js's own readiness gate
+   (refreshReferenceStatus → #runBtn enabled); step 2 (Reconcile) = app.js run() (the receiving checklist); step 3 (Export files)
+   = the existing download buttons (#downloadBtn, #fullDownloadBtn, #fullCsvDownloadBtn, #keyReviewBtn), which build each file on
+   demand as before. Run all = step 2 (step 1 is implied by its gate), then the POSActive import download. No reconciliation
+   maths, parsing or export code changed. Rail rows carry their state: LOADED green · UPDATED blue · INCOMPATIBLE yellow ·
+   REQUIRED red (v21.29.0 shared phf-ui.css).
+   v2.11.2 (13 Oct 2026) — ✕ on each loaded rail row removes it straight away.
    v2.10.0 (12 Oct 2026) — the discount rules row is the Staff Hub's shared Ongoing Discounts file (Library
    kind lib:ref-discounts): loaded from the Library on open, and a file dropped here is saved there for Build POS Master
    Databases and POS New Product Check Clean too. The POS DB & SUPPLIER MERGE workbook is still accepted.
@@ -24,8 +33,11 @@
     {title:'POS order',ids:['pos'],verb:'loaded'},
     {title:'Supplier invoices',ids:['invoices'],verb:'loaded'}
   ];
-  const OUTPUTS=['#downloadBtn','#fullDownloadBtn','#fullCsvDownloadBtn','#keyReviewBtn'];
+  const OUTPUTS=['#downloadBtn','#fullDownloadBtn','#fullCsvDownloadBtn','#keyReviewBtn'];   // POSActive import first (it is also the strip's download button)
   const ref={master:null,supplier:null,busy:{},invalid:{},message:{}};
+  // v2.13.0: updated[id] = a valid file replaced an earlier valid one (blue row); reject[id] = {name,msg} of a file that failed
+  // for that input (yellow row; an earlier valid file stays loaded). Order-file rejections come from app.js's status text.
+  const flags={updated:{},reject:{}};
   let selected=null,queued=false;
 
   function prettySize(b){b=Number(b)||0;if(b<1024)return `${b} B`;if(b<1048576)return `${(b/1024).toFixed(1)} KB`;return `${(b/1048576).toFixed(1)} MB`;}
@@ -52,9 +64,11 @@
     for(const d of INPUTS){
       if(d.group!==last){if(last)html+='</div>';html+=`<div class="input-group"><div class="input-group-title">${esc(d.group)}</div>`;last=d.group;}
       const s=info(d);
-      const cls=['input-nav-item',s.loaded?'loaded':'missing',d.req?'required':'',selected===d.id?'active':'',s.invalid?'invalid':''].filter(Boolean).join(' ');
-      const state=s.busy?'CHECKING':s.loaded?'LOADED':d.req?'REQUIRED':'OPTIONAL';
-      html+=`<div class="input-nav-wrap${s.loaded?' has-del':''}"><button type="button" class="${cls}" data-input="${d.id}" title="Click to open, or drop the ${esc(d.title)} file${d.multiple?'s':''} directly here"><span class="input-dot">${s.loaded?'✓':d.req?'!':'○'}</span><span><strong>${esc(d.title)}</strong><small>${esc(s.sub)}</small></span><span class="input-state">${state}</span></button>${s.loaded?`<button type="button" class="input-nav-del" data-del="${d.id}" title="Remove ${esc(d.title)}${d.kind==='ref'?(d.id==='supplier'?' from this browser (shared — Build POS Master Databases and POS New Product Check Clean lose it too)':' from this browser'):''}" aria-label="Remove ${esc(d.title)}">✕</button>`:''}</div>`;
+      const rj=flags.reject[d.id]||(s.invalid&&!s.busy?{name:'',msg:ref.message[d.id]||'not accepted'}:null),up=s.loaded&&!s.busy&&flags.updated[d.id];
+      const cls=['input-nav-item',s.loaded?'loaded':'missing',d.req?'required':'',selected===d.id?'active':'',rj?'incompatible':up?'updated':''].filter(Boolean).join(' ');
+      const state=s.busy?'CHECKING':rj?'INCOMPATIBLE':up?'UPDATED':s.loaded?(d.kind==='ref'?'SAVED':'LOADED'):d.req?'REQUIRED':'OPTIONAL';
+      const note=rj?`<small class="input-nav-note" title="${esc((rj.name?rj.name+' — ':'')+rj.msg)}">${esc((rj.name?rj.name+' — ':'')+rj.msg)}</small>`:'';
+      html+=`<div class="input-nav-wrap${s.loaded||rj?' has-del':''}"><button type="button" class="${cls}" data-input="${d.id}" title="Click to open, or drop the ${esc(d.title)} file${d.multiple?'s':''} directly here"><span class="input-dot">${rj?'!':s.loaded?'✓':d.req?'!':'○'}</span><span><strong>${esc(d.title)}</strong><small>${esc(s.sub)}</small>${note}</span><span class="input-state">${state}</span></button>${s.loaded||rj?`<button type="button" class="input-nav-del" data-del="${d.id}" title="Remove ${esc(d.title)}${d.kind==='ref'?(d.id==='supplier'?' from this browser (shared — Build POS Master Databases and POS New Product Check Clean lose it too)':' from this browser'):''}" aria-label="Remove ${esc(d.title)}">✕</button>`:''}</div>`;
     }
     if(last)html+='</div>';
     host.innerHTML=html;
@@ -72,6 +86,7 @@
   // through app.js's own Remove buttons, a reference file from this browser (Ongoing Discounts is the shared Library copy).
   async function removeInput(id){
     const def=INPUTS.find(x=>x.id===id);if(!def)return;
+    delete flags.updated[id];delete flags.reject[id];ref.invalid[id]=false;if(!flags.reject[id]&&!info(def).loaded){ref.message[id]='';render();return;}
     if(def.kind==='order'){
       for(let i=0;i<200;i++){const b=document.querySelector(`${def.list} .file-row button`);if(!b)break;b.click();}
       schedule();return;
@@ -114,24 +129,72 @@
     if(badge){badge.textContent=`${ready} / ${GROUPS.length} READY`;badge.className='result-badge'+(ready===GROUPS.length?' ok':ready?' ready':'');}
   }
 
-  /* ---------- run stage ---------- */
-  function renderStage(){
-    const run=$('#runBtn'),progress=$('#progress'),results=$('#results'),badge=$('#stageBadge'),host=$('#stage-reconcile');if(!run||!badge)return;
-    const running=progress&&!progress.classList.contains('hidden'),done=results&&!results.classList.contains('hidden');
-    const st=running?'running':done?'done':!run.disabled?'ready':'wait';
-    badge.className='small-badge '+st;badge.textContent={running:'RUNNING',done:'DONE',ready:'READY',wait:'WAITING'}[st];
-    if(host){host.classList.remove('ready','running','done','error');if(st!=='wait')host.classList.add(st);}
+  /* ---------- the three steps (v2.13.0) over the unchanged app.js engine ----------
+     step state is READ from the page app.js maintains: #runBtn enabled = inputs + reference ready (step 1 READY → DONE
+     once a run has started), #progress visible = running, #results visible = the checklist is rendered (step 2 DONE,
+     step 3 READY), the download buttons enabled = files can be built (step 3 DONE once one has been downloaded). */
+  const STEPS=[
+    {id:'check',n:1,title:'Check inputs',desc:'The POS back-end order, the supplier invoices and the saved reference data (POS / master, Ongoing Discounts) are all present and readable.',nofile:'This step confirms the inputs — it produces no download file.'},
+    {id:'reconcile',n:2,title:'Reconcile',desc:'Matches the supplier invoice lines to the POS order and builds the receiving checklist shown under this panel (Found quantities, CH2 invoice prices, exceptions).',nofile:'The receiving checklist is shown on this page — the files come from step 3.'},
+    {id:'export',n:3,title:'Export files',desc:'The POSActive import (Found quantities at CH2 invoice prices), the full reconciliation workbook / CSV and the POS key review.'}
+  ];
+  const OUT_META={downloadBtn:{name:'POSActive import',ext:'.txt',meta:'15-column tab-delimited import · ticked / accounted rows with their Found quantities at the CH2 invoice prices'},fullDownloadBtn:{name:'Full reconciliation',ext:'.xlsx',meta:'43-column linked-POS reconciliation workbook'},fullCsvDownloadBtn:{name:'Full reconciliation',ext:'.csv',meta:'the same 43 columns as an Excel-safe CSV'},keyReviewBtn:{name:'POS key review',ext:'.csv',meta:'import-key review for rows that need a look'}};
+  const stepDone={check:false,export:false};
+  function stepState(){
+    const run=$('#runBtn'),progress=$('#progress'),results=$('#results');
+    const running=progress&&!progress.classList.contains('hidden'),done=results&&!results.classList.contains('hidden'),ready=run&&!run.disabled;
+    const bad=Object.keys(flags.reject).length>0;
+    return {
+      check:running||done?'done':ready?(stepDone.check?'done':'ready'):bad?'err':'wait',
+      reconcile:running?'run':done?'done':ready?'ready':'wait',
+      export:done?(stepDone.export?'done':'ready'):'wait'
+    };
   }
-
-  /* ---------- generated output files (mirrors the result download buttons) ---------- */
+  const WORD={wait:'WAITING',ready:'READY',run:'RUNNING',done:'DONE',err:'ERROR'};
+  function setRunPill(id,st){
+    const pill=document.querySelector(`[data-run-step="${id}"]`);if(!pill)return;
+    pill.classList.toggle('running',st==='run');
+    const sp=pill.querySelector('.st');if(sp){sp.className='st '+st;sp.textContent=WORD[st];}
+    const running=st==='run'||document.querySelector('#progress:not(.hidden)');
+    pill.disabled=!!running||st==='wait'||st==='err';pill.setAttribute('aria-disabled',pill.disabled?'true':'false');
+    const hp=document.querySelector(`#stepgroup-${id} .db-build`);if(hp){hp.disabled=pill.disabled;const hs=hp.querySelector('.st');if(hs){hs.className='st '+st;hs.textContent=WORD[st];}}
+    const mini=document.querySelector(`#stepgroup-${id} .db-mini`);if(mini){mini.className='db-mini '+st;mini.textContent=WORD[st];}
+  }
+  async function runStep(id){
+    const app=global.PHFReconcileApp||{},st=stepState();
+    if(id==='check'){if(app.refreshReferenceStatus)await app.refreshReferenceStatus();stepDone.check=!$('#runBtn').disabled;const s=$('#status');if(stepDone.check&&app.setStatus)app.setStatus('Step 1 — inputs checked: POS order, supplier invoices and reference data are ready. Run step 2 to reconcile.','ok');render();return;}
+    if(id==='reconcile'){if(st.reconcile==='run')return;if(app.run)await app.run();else $('#runBtn').click();render();return;}
+    if(id==='export'){if(st.export==='wait'){await runStep('reconcile');}const b=$('#downloadBtn');if(b&&!b.disabled){b.click();stepDone.export=true;}render();}
+  }
+  function renderStage(){
+    const st=stepState();for(const k of Object.keys(st))setRunPill(k,st[k]);
+    const run=$('#runBtn');if(run){run.textContent=st.reconcile==='run'?'Running…':'Run all';}
+    const note=$('#dbDoneNote');if(note)note.textContent=st.reconcile==='run'?'reconciling…':st.export==='done'?'3 of 3 run':st.reconcile==='done'?'2 of 3 run':st.check==='done'?'1 of 3 run':'';
+    const results=$('#results'),on=results&&!results.classList.contains('hidden'),dl=$('#dlPosImport'),src=$('#downloadBtn');
+    if(dl){const show=on&&src&&!src.disabled&&!src.classList.contains('hidden');dl.hidden=!show;const nt=$('#dlPosImportNote');if(nt)nt.textContent=show?'.txt':'';}
+    for(const p of document.querySelectorAll('.builder-workspace .panel,.dbgroup'))p.style.scrollMarginTop=($('#dbRunStrip')?.offsetHeight||56)+8+'px';
+  }
+  function renderStepGroups(){
+    const host=$('#stepGroups');if(!host)return;
+    if(!host.children.length){
+      host.innerHTML=STEPS.map(s=>`<div class="dbgroup" id="stepgroup-${s.id}" data-acc data-acc-id="reconcile-step-${s.id}"><div class="dbhdr acc-custom-head"><span class="num">${s.n}</span><div class="dbhdr-copy"><h3>${esc(s.title)}</h3><span class="dbhdr-meta" data-step-meta></span></div><span class="db-mini wait">WAITING</span><span class="db-act"><button type="button" class="phf-step db-build" data-step-run="${s.id}" disabled title="Run step ${s.n} — ${esc(s.title)}"><span class="num">${s.n}</span> Run step ${s.n} <span class="st wait">WAITING</span></button></span></div><div class="dbgroup-body"><p class="db-group-desc">${esc(s.desc)}</p><div class="db-group-status" data-step-status hidden></div>${s.nofile?`<div class="db-group-nofile">${esc(s.nofile)}</div>`:'<div class="db-group-files" data-step-files><div class="empty-output">Run the reconciliation to create its download files.</div></div>'}</div></div>`).join('');
+      host.querySelectorAll('[data-step-run]').forEach(b=>{b.onclick=e=>{e.preventDefault();e.stopPropagation();if(b.disabled)return;runStep(b.dataset.stepRun);};b.onkeydown=e=>{if(e.key==='Enter'||e.key===' ')e.stopPropagation();};});
+      if(global.PHFAccordion)global.PHFAccordion.refresh(host);
+    }
+  }
+  /* ---------- generated output files → step 3 rows (mirrors the result download buttons) ---------- */
   function renderOutputs(){
-    const host=$('#allOutputs'),count=$('#outputCount');if(!host)return;
+    renderStepGroups();
+    const host=document.querySelector('[data-step-files]'),count=$('#outputCount');if(!host)return;
     const results=$('#results'),on=results&&!results.classList.contains('hidden');
     const btns=on?OUTPUTS.map(s=>$(s)).filter(b=>b&&!b.classList.contains('hidden')):[];
     const ready=btns.filter(b=>!b.disabled).length;
-    host.innerHTML=btns.length?btns.map(b=>`<div class="output-row"><div><code>${esc(b.textContent.replace(/^Download\s+/i,''))}</code><span>${esc(b.title||'')}</span></div><div class="output-actions"><button type="button" class="download-link" data-src="#${b.id}"${b.disabled?' disabled':''}>Download</button></div></div>`).join(''):'<div class="empty-output">Run the reconciliation to create its download files.</div>';
-    host.querySelectorAll('[data-src]').forEach(x=>{x.onclick=()=>{const src=$(x.dataset.src);if(src&&!src.disabled)src.click();};});
-    if(count){count.textContent=`${ready} OUTPUT${ready===1?'':'S'}`;count.className='result-badge'+(ready?' ok':'');}
+    host.innerHTML=btns.length?btns.map(b=>{const m=OUT_META[b.id]||{name:b.textContent.replace(/^Download\s+/i,''),ext:'',meta:b.title||''};return `<div class="frow"><span class="ck">✓</span><div class="nm"><b>${esc(m.name)}</b><code>${esc(b.textContent.replace(/^Download\s+/i,''))}</code><span class="used">${esc(m.meta)}</span></div><span class="dt"></span><span class="sz">${esc(m.ext)}</span><button type="button" class="dl" data-src="#${b.id}"${b.disabled?' disabled':''}>Download</button></div>`;}).join(''):'<div class="empty-output">Run the reconciliation to create its download files.</div>';
+    host.querySelectorAll('[data-src]').forEach(x=>{x.onclick=()=>{const src=$(x.dataset.src);if(src&&!src.disabled){src.click();if(x.dataset.src==='#downloadBtn')stepDone.export=true;render();}};});
+    const meta=document.querySelector('#stepgroup-export [data-step-meta]');if(meta)meta.textContent=btns.length?`· ${btns.length} file${btns.length===1?'':'s'}`:'';
+    const m1=document.querySelector('#stepgroup-check [data-step-meta]');if(m1){const n=INPUTS.map(info).filter(s=>s.loaded).length;m1.textContent=`· ${n} / ${INPUTS.length} inputs ready`;}
+    const m2=document.querySelector('#stepgroup-reconcile [data-step-meta]'),sub=$('#resultSub');if(m2)m2.textContent=on&&sub?`· ${sub.textContent.slice(0,90)}`:'';
+    if(count){count.textContent=`${ready} FILE${ready===1?'':'S'}`;count.className='result-badge'+(ready&&ready===btns.length?' ok':'');}
   }
 
   function render(){renderNav();renderCards();renderSummary();renderStage();renderOutputs();}
@@ -143,6 +206,7 @@
     if(def.kind==='ref'){saveReference(def,files[0]);return;}
     const input=$(def.input);if(!input)return;
     const list=def.multiple?[...files]:[files[0]];
+    if(!def.multiple&&info(def).loaded)flags.updated[id]=true;else if(!def.multiple)delete flags.updated[id];delete flags.reject[id];
     try{const dt=new DataTransfer();list.forEach(f=>dt.items.add(f));input.files=dt.files;}catch(e){input.files=files;}
     input.dispatchEvent(new Event('change',{bubbles:true}));
     select(id);
@@ -158,7 +222,8 @@
   async function saveReference(def,file){
     if(!file)return false;let ok=false;
     select(def.id);
-    if(!/\.(xlsx|xlsm|csv)$/i.test(file.name||'')){ref.invalid[def.id]=true;ref.message[def.id]='Not saved — choose an .xlsx, .xlsm or .csv file.';render();return false;}
+    const hadValid=!!ref[def.id];
+    if(!/\.(xlsx|xlsm|csv)$/i.test(file.name||'')){ref.invalid[def.id]=true;ref.message[def.id]='Not saved — choose an .xlsx, .xlsm or .csv file.';flags.reject[def.id]={name:file.name,msg:'not an .xlsx, .xlsm or .csv file'};render();return false;}
     const store=PHF.referenceStore;if(!store){ref.invalid[def.id]=true;ref.message[def.id]='Not saved — reference store unavailable.';render();return false;}
     ref.busy[def.id]=true;ref.invalid[def.id]=false;ref.message[def.id]=`Checking ${file.name}…`;render();
     try{
@@ -166,10 +231,10 @@
       else{const p=await store.parseSupplierMerge(file);if(!p.info.discountRules)throw new Error('No usable discount rules were found. Load the Ongoing Discounts file (SRC_POS_ONGOING_DISCOUNTS) or the POS DB & SUPPLIER MERGE workbook.');
         const r=await store.saveDiscounts(file);
         ref.message[def.id]=`Validated ${p.info.discountRules.toLocaleString()} discount rules · saved as the shared Ongoing Discounts${r.full?' (its SRC_POS_ONGOING_DISCOUNTS sheet; the workbook is kept for its supplier names)':''}`;}
-      ok=true;
+      ok=true;delete flags.reject[def.id];if(hadValid)flags.updated[def.id]=true;else delete flags.updated[def.id];
       await loadReferenceStatus();
       const app=global.PHFReconcileApp;if(app&&app.refreshReferenceStatus)await app.refreshReferenceStatus();
-    }catch(err){console.error(err);ref.invalid[def.id]=true;ref.message[def.id]=`Not saved — ${err&&err.message?err.message:err}`;}
+    }catch(err){console.error(err);ref.invalid[def.id]=true;ref.message[def.id]=`Not saved — ${err&&err.message?err.message:err}`;flags.reject[def.id]={name:file.name,msg:err&&err.message?err.message:String(err)};}
     finally{ref.busy[def.id]=false;render();}
     return ok;
   }
@@ -233,10 +298,12 @@
     const found=[];for(let i=0;i<files.length;i++){const r=await identify(files[i]);bulk[start+i]=r;found.push(r);renderBulk();}
     for(const single of ['master','supplier','pos']){const rs=found.filter(r=>r.status==='match'&&r.id===single);if(rs.length>1)for(const r of rs){r.status='duplicate';r.choice=single;r.msg=`${rs.length} dropped files look like ${TITLES[single]} — assign the one to use.`;}}
     // Reference data first (saved and validated), then the order, then all invoices together.
-    for(const id of ['master','supplier','pos']){for(const r of found.filter(x=>x.status==='match'&&x.id===id)){r.status=await assign(r,id)?'assigned':'invalid';renderBulk();}}
+    for(const id of ['master','supplier','pos']){for(const r of found.filter(x=>x.status==='match'&&x.id===id)){r.status=await assign(r,id)?'assigned':'invalid';if(r.status==='invalid'&&!flags.reject[id])flags.reject[id]={name:r.file.name,msg:r.msg.replace(/^Not (saved|added) as [^—]*— /,'')};renderBulk();}}
     const inv=found.filter(x=>x.status==='match'&&x.id==='invoices');if(inv.length){acceptFiles('invoices',inv.map(r=>r.file));for(const r of inv){r.status='assigned';r.msg=r.msg.replace(/\.$/,'')+' — added to Supplier invoices.';}}
+    // v2.13.0 — assigned files and files rejected for a known input show on that input's rail row; only files that need a choice stay here
+    for(let i=bulk.length-1;i>=0;i--)if(bulk[i].status==='assigned'||(bulk[i].status==='invalid'&&bulk[i].id))bulk.splice(i,1);
     renderBulk();schedule();
-    const review=found.filter(r=>r.status!=='assigned').length,app=global.PHFReconcileApp,text=`${found.length-review} of ${found.length} dropped file${found.length===1?'':'s'} assigned automatically${review?` · ${review} need${review===1?'s':''} review in Drop All Input Files`:''}. Nothing has been run — press Run reconciliation when ready.`;
+    const review=found.filter(r=>r.status!=='assigned'&&!(r.status==='invalid'&&r.id)).length,app=global.PHFReconcileApp,text=`${found.length-review} of ${found.length} dropped file${found.length===1?'':'s'} assigned automatically${review?` · ${review} need${review===1?'s':''} review in Drop All Input Files`:''}. Nothing has been run — press Run reconciliation when ready.`;
     if(app&&app.setStatus)app.setStatus(text,review?'warn':'info');else{const st=$('#status');if(st){st.className='status '+(review?'warn':'info');st.textContent=text;}}
   }
   async function bulkAssignRow(i){
@@ -245,19 +312,21 @@
     r.status='reading';r.msg=`Adding to ${TITLES[id]}…`;renderBulk();
     const ok=await assign(r,id);r.id=id;r.status=ok?'assigned':'invalid';
     if(ok)for(const o of bulk)if(o!==r&&o.status==='duplicate'&&o.choice===id){o.status='review';o.msg=`Not used — ${r.file.name} was assigned to ${TITLES[id]}.`;}
+    if(!ok&&!flags.reject[id])flags.reject[id]={name:r.file.name,msg:r.msg.replace(/^Not (saved|added) as [^—]*— /,'')};
+    for(let i=bulk.length-1;i>=0;i--)if(bulk[i].status==='assigned'||(bulk[i].status==='invalid'&&bulk[i].id))bulk.splice(i,1);
     renderBulk();schedule();
   }
   function renderBulk(){
     const host=$('#bulkResults'),badge=$('#bulkCount');if(!host)return;
-    const done=bulk.filter(r=>r.status==='assigned').length,review=bulk.filter(r=>!['assigned','reading'].includes(r.status)).length;
-    if(badge){badge.textContent=bulk.length?`${done} ASSIGNED${review?` · ${review} TO REVIEW`:''}`:'0 FILES';badge.className='result-badge'+(bulk.length?(review?' warn':' ok'):'');}
+    const review=bulk.filter(r=>!['assigned','reading'].includes(r.status)).length;
+    if(badge){badge.textContent=review?`${review} TO REVIEW`:'0 FILES';badge.className='result-badge'+(review?' warn':'');}
     if(!bulk.length){host.innerHTML='';return;}
     host.innerHTML=bulk.map((r,i)=>{
       const ok=r.status==='assigned',cls=ok?'ok':r.status==='reading'?'reading':(r.status==='unrecognised'||r.status==='unreadable')?'bad':'review';
-      const chip=ok?'ASSIGNED':r.status==='reading'?'CHECKING':(r.status==='unrecognised'||r.status==='unreadable')?'NOT RECOGNISED':'REVIEW';
+      const chip=ok?'READY':r.status==='reading'?'CHECKING':'REVIEW';   // v2.13.0: what stays in this list needs a choice
       const pick=r.choice||r.id||(r.choices&&r.choices[0])||'';
       const opts='<option value="">Choose input…</option>'+INPUTS.map(d=>`<option value="${d.id}"${pick===d.id?' selected':''}>${esc(d.title)}${r.choices&&r.choices.includes(d.id)&&!ok?' (suggested)':''}</option>`).join('');
-      return `<div class="bulk-row ${cls}"><div class="bulk-file"><strong>${esc(r.file.name)}</strong><span>${prettySize(r.file.size)} · ${esc(r.msg)}</span></div><span class="bulk-state">${chip}</span><div class="bulk-assign">${r.status==='reading'?'':`<select data-bulk-select="${i}" aria-label="Input for ${esc(r.file.name)}">${opts}</select><button type="button" class="btn small" data-bulk-assign="${i}"${ok?' disabled':''}>${ok?'Assigned':'Assign'}</button>`}</div></div>`;
+      return `<div class="bulk-row ${cls}"><span class="bulk-state">${chip}</span><div class="bulk-file"><strong title="${esc(r.file.name)}">${esc(r.file.name)}</strong><span>${prettySize(r.file.size)} · ${esc(r.msg)}</span></div><div class="bulk-assign">${r.status==='reading'?'':`<select data-bulk-select="${i}" aria-label="Input for ${esc(r.file.name)}">${opts}</select><button type="button" class="btn small" data-bulk-assign="${i}"${ok?' disabled':''}>${ok?'Assigned':'Assign'}</button>`}</div></div>`;
     }).join('');
     host.querySelectorAll('[data-bulk-select]').forEach(s=>s.onchange=()=>{const i=+s.dataset.bulkSelect,r=bulk[i],b=host.querySelector(`[data-bulk-assign="${i}"]`);r.choice=s.value;if(b){const same=r.status==='assigned'&&s.value===r.id;b.disabled=same;b.textContent=same?'Assigned':'Assign';}});
     host.querySelectorAll('[data-bulk-assign]').forEach(b=>b.onclick=()=>bulkAssignRow(+b.dataset.bulkAssign));
@@ -276,17 +345,23 @@
   function observe(){
     const mo=new MutationObserver(schedule);
     ['#posFiles','#invoiceFiles'].forEach(s=>{const e=$(s);if(e)mo.observe(e,{childList:true,subtree:true,characterData:true});});
-    ['#runBtn','#progress','#results','#referenceDot',...OUTPUTS].forEach(s=>{const e=$(s);if(e)mo.observe(e,{attributes:true,attributeFilter:['class','disabled','title']});});
+    ['#runBtn','#progress','#results','#referenceDot','#status',...OUTPUTS].forEach(s=>{const e=$(s);if(e)mo.observe(e,{attributes:true,attributeFilter:['class','disabled','title']});});
+    const rs=$('#resultSub');if(rs)mo.observe(rs,{childList:true,characterData:true,subtree:true});
     OUTPUTS.forEach(s=>{const e=$(s);if(e)mo.observe(e,{childList:true,characterData:true,subtree:true});});
   }
 
   /* ---------- clear input files from the rail (v2.9.0) ---------- */
   function wireRailClear(){
     const order=$('#railClearOrder'),all=$('#railClearAll'),clear=$('#clearBtn');
-    if(order)order.onclick=()=>{if(clear)clear.click();bulk.length=0;renderBulk();schedule();};
+    if(order)order.onclick=()=>{if(clear)clear.click();bulk.length=0;flags.updated={};flags.reject={};stepDone.check=stepDone.export=false;renderBulk();schedule();};
+    if(clear)clear.addEventListener('click',()=>{flags.updated.pos=flags.updated.invoices=false;delete flags.reject.pos;delete flags.reject.invoices;stepDone.check=stepDone.export=false;schedule();});
+    document.querySelectorAll('#dbRunStrip [data-run-step]').forEach(b=>{b.onclick=()=>{if(b.disabled)return;runStep(b.dataset.runStep);};});
+    // Run all: the existing run() (step 2; step 1 is its own gate) then the POSActive import download (step 3)
+    const runAll=$('#runBtn');if(runAll){runAll.onclick=async()=>{if(runAll.disabled)return;const app=global.PHFReconcileApp||{};if(app.run)await app.run();else return;const results=$('#results');if(results&&!results.classList.contains('hidden'))await runStep('export');};}
+    const dl=$('#dlPosImport');if(dl)dl.onclick=e=>{e.preventDefault();const src=$('#downloadBtn');if(src&&!src.disabled){src.click();stepDone.export=true;schedule();}};
     if(all)all.onclick=async()=>{
       if(!global.confirm('Clear all input files?\n\nThis removes the POS order and supplier invoices from this session AND the saved POS / master and Ongoing Discounts from this browser (Ongoing Discounts is shared, so Build POS Master Databases and POS New Product Check Clean lose it too). You will need to drop the reference files again before the next run.'))return;
-      if(clear)clear.click();bulk.length=0;renderBulk();
+      if(clear)clear.click();bulk.length=0;flags.updated={};flags.reject={};stepDone.check=stepDone.export=false;renderBulk();
       try{if(PHF.referenceStore)await PHF.referenceStore.clear();}catch(err){console.error(err);}
       ref.message.master=ref.message.supplier='';ref.invalid.master=ref.invalid.supplier=false;
       await loadReferenceStatus();const app=global.PHFReconcileApp;if(app&&app.refreshReferenceStatus)await app.refreshReferenceStatus();render();
@@ -297,5 +372,5 @@
   if(global.PHFLibrary)global.PHFLibrary.onChange(m=>{if(!m||!(m.action==='clear'||REF_KINDS[m.kind]))return;loadReferenceStatus();const app=global.PHFReconcileApp;if(app&&app.refreshReferenceStatus)app.refreshReferenceStatus();});
   wireReferenceDrops();wireBulkDrop();wireRailClear();observe();render();renderBulk();
   (PHF.referenceStore&&PHF.referenceStore.shareLegacy?PHF.referenceStore.shareLegacy():Promise.resolve(false)).then(shared=>{loadReferenceStatus();if(shared){const app=global.PHFReconcileApp;if(app&&app.refreshReferenceStatus)app.refreshReferenceStatus();}});
-  global.PHFReconcileWorkspace={select,render,bulkAccept};
+  global.PHFReconcileWorkspace={select,render,bulkAccept,runStep};
 })(window);

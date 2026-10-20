@@ -1111,3 +1111,30 @@ All implemented stages keep source business files local to the browser and gener
   gone. #storageNote and the "Saved vs session" .sidebar-footer removed from HTML (LIB.persisted() callback already null-guarded).
   renderBulk status words + one-line .frow as above. Workbook / sheet code untouched.
 - Hub badge v21.28.0. Tests and unverified items are listed in docs/GITHUB-RELEASE-v21.28.0.md.
+
+## Staff Hub v21.29.0 (20 Oct 2026 13:15 AEDT)
+- Rail rows carry the file state in all three tools. Per-input flags (pipeline.js `state.updated` / `state.reject`; merge app.js
+  `railFlags`; reconcile workspace.js `flags`) are set in the accept paths (acceptInputFile / acceptFile+addToInput /
+  saveReference+acceptFiles) and cleared on remove / clear. Rail classes `.input-nav-item.updated` (blue, --phf-blue-*) and
+  `.input-nav-item.incompatible` (bright yellow, new --phf-yellow-bg/line/ink at the top of phf-ui.css) + `.input-nav-note`
+  one-line "file — reason" (ellipsis, title). `.bulk-results` now renders ONLY entries that need a choice (unrecognised /
+  unreadable / duplicate / review) as a single yellow REVIEW row with select + Assign; assigned and per-input-rejected files no
+  longer appear there. bulkAccept / bulkAssign logic unchanged.
+- One destructive style `.db-danger` (REQUIRED-pill look) for every CLEAR … button in all three tools (text in caps); ids and
+  handlers kept; db-build Clear session keeps its confirm().
+- `.db-home` apple link (assets/icons/icon-32.png → ../../index.html) at the far left of #dbRunStrip in all three tools.
+- Merge: `HIDDEN_INPUTS = {brands}` + `visibleInputs()` filter the rail, readiness chips/count, readinessText() ("Missing: …"),
+  requiredReady() and the Drop-All select. Input definition, Library load, Drop-All recognition, buildSheetsPayload (the
+  SRC_POS_BRAND_NAME_CHANGES table is still sent to the engine), the workbook tab and persistence are untouched. Consequence:
+  brands no longer gates the run (engine's brand map defaults to {} when absent).
+- Reconcile CH2 Order v2.13.0 on the shared layout: body.phf-page-db + phf-ui.css; `#dbRunStrip` (home, 3 step pills, #runBtn
+  "Run all", #dlPosImport, #clearBtn CLEAR FILES, #progress/#status) as a direct child of <main> above .builder-shell;
+  `.rail-drop` Drop All at the top of the rail; navy Input readiness; `#stepGroups` with a `.dbgroup` per step and a
+  `.phf-step.db-build` "Run step N" header pill (stopPropagation). Step mapping over the unchanged engine: 1 Check inputs =
+  refreshReferenceStatus() + the existing #runBtn gate; 2 Reconcile = app.js run() (exposed on PHFReconcileApp; DONE when
+  #results is shown); 3 Export files = the existing #downloadBtn and sibling downloads (runs step 2 first if needed); Run all =
+  run() then step 3. Old #stage-reconcile card, #allOutputs panel and the "Saved vs session" footer removed; #results untouched.
+- phf-ui.css v1.1.0: !important 10 → 15 (five border-colour overrides because theme.css sets .input-nav-item.loaded/.missing
+  border-color with !important; noted inline). Tool stylesheets untouched (no duplicates re-added).
+- Versions: hub v21.29.0; Build POS Master v21.19.0 (app.css/pipeline.js ?v=21.19.0); merge v1.19.0 (merge.css/app.js ?v=1.19.0);
+  reconcile v2.13.0 (app.js/workspace.js ?v=2.13.0); phf-ui.css ?v=1.1.0 in all three. Tests / unverified in the release note.

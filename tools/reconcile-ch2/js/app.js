@@ -1,3 +1,7 @@
+// v2.13.0 (20 Oct 2026, Staff Hub v21.29.0): the run is surfaced as three clickable steps in the new run strip and the
+// "Steps & generated files" panel (js/ui/workspace.js) — 1 Check inputs = the existing reference / order gate, 2 Reconcile =
+// run() (now exposed on PHFReconcileApp), 3 Export files = the existing download buttons. The reconciliation maths, parsers,
+// outputs and filenames are unchanged; setStatus keeps the strip's status-line class.
 // v2.11.3 (14 Oct 2026): a search box over the result table hides the rows that do not match (section and total rows stay;
 // counts, ticks and downloads are unchanged — it is only what is shown). Esc clears it. Re-applied after every redraw.
 // v2.11.0 (12 Oct 2026): Integrity shows REVIEW (amber) when the invoice footer total or line arithmetic did not check out
@@ -170,7 +174,7 @@
   function money(v,dp=2){return v==null||!Number.isFinite(Number(v))?'—':`$${Number(v).toLocaleString(undefined,{minimumFractionDigits:dp,maximumFractionDigits:dp})}`;}
   function qty(v){return v==null?'—':Number(v).toLocaleString(undefined,{maximumFractionDigits:3});}
   function fileRow(file,onRemove){const div=document.createElement('div');div.className='file-row';const label=document.createElement('span');label.textContent=`✓ ${file.name} · ${prettySize(file.size)}`;const btn=document.createElement('button');btn.type='button';btn.textContent='Remove';btn.onclick=onRemove;div.append(label,btn);return div;}
-  function setStatus(text,type='info'){els.status.className=`status ${type}`;els.status.textContent=text;}
+  function setStatus(text,type='info'){els.status.className=`status ${type}`+(els.status.classList.contains('db-what')||els.status.closest('.db-progrow')?' db-what':'');els.status.textContent=text;}   // v2.13.0: keep the run-strip class
   function cleanText(v){return v==null?'':String(v).replace(/\u00a0/g,' ').trim();}
   function normOrderRef(v){return cleanText(v).toUpperCase().replace(/[−–—]/g,'-').replace(/\s+/g,'');}
   function sameOrderRef(a,b){return !!normOrderRef(a)&&normOrderRef(a)===normOrderRef(b);}
@@ -1395,6 +1399,7 @@
     if(strip){const warn=document.createElement('div');warn.className='notice bad stale-build-notice';warn.textContent=`index.html is older than the loaded scripts (v${PHF.schema&&PHF.schema.BUILD?PHF.schema.BUILD.version:'?'}). Re-upload index.html from the same release so every control and fix loads.`;strip.parentNode.insertBefore(warn,strip);}
   }
   // v2.7.0 — lets the input rail (js/ui/workspace.js) re-check reference data after saving it from the rail.
-  global.PHFReconcileApp=Object.assign(global.PHFReconcileApp||{},{refreshReferenceStatus,setStatus});
+  // v2.13.0: run() exposed for the step pills; Run all = run() then the POSActive import download (workspace.js). The engine is unchanged.
+  global.PHFReconcileApp=Object.assign(global.PHFReconcileApp||{},{refreshReferenceStatus,setStatus,run});
   refreshReferenceStatus();
 })(window);

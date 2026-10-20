@@ -1,6 +1,6 @@
-/* PHF Staff Hub — phf-ui.css v1.0.0 (20 Oct 2026)
-   ONE authoritative component sheet shared by Build POS Master Databases and POS New Product Check Clean
-   (both pages carry body.phf-page-db). Colours, type and spacing come from the --phf-* tokens in theme.css;
+/* PHF Staff Hub — phf-ui.css v1.1.0 (20 Oct 2026)
+   ONE authoritative component sheet shared by Build POS Master Databases, POS New Product Check Clean and Reconcile
+   CH2 Order (all three pages carry body.phf-page-db). Colours, type and spacing come from the --phf-* tokens in theme.css;
    nothing here changes any build, merge, sheet or Library behaviour — it is presentation only.
 
    Contents
@@ -11,12 +11,22 @@
      5. Generated-file rows (.frow — one line at desktop, Saved Files pattern)
      6. Input rail: Drop All zone + compact .bulk-row assignment rows (no character wrapping)
      7. Focus rings and reduced-motion
+     8. v1.1.0: input-row states (LOADED green · UPDATED blue · INCOMPATIBLE yellow · REQUIRED red · OPTIONAL neutral),
+        the CAPS destructive clear buttons (REQUIRED-pill look) and the apple home link at the left of the sticky strip
    Moved here from tools/database-build/css/app.css (v21.17.0 / v21.17.1) and tools/pos-supplier-merge/css/merge.css
    (v1.17.0); those files no longer carry copies. */
+
+/* v1.1.0 tokens that theme.css does not define: a BRIGHT yellow for a file that failed for one input (distinct from the
+   amber used for "Missing …" notes). Blue (updated) reuses --phf-blue-* from theme.css. */
+body.phf-page-db{--phf-yellow-bg:#FFF3B0;--phf-yellow-line:#E6C200;--phf-yellow-ink:#6B5200}
 
 /* ------------------------------------------------------------------ 1. run strip */
 body.phf-page-db .db-runstrip{position:sticky;top:0;z-index:40;background:var(--phf-navy);color:#fff;border-radius:0 0 12px 12px;padding:9px 16px;margin:0 0 14px;box-shadow:0 2px 8px rgba(30,58,95,.22)}
 body.phf-page-db .db-runline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* apple home link — always a way back to the Staff Hub while the strip is pinned */
+body.phf-page-db .db-home{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#fff;border:2px solid transparent;flex:0 0 auto;margin-right:2px}
+body.phf-page-db .db-home img{width:20px;height:20px;display:block}
+body.phf-page-db .db-home:hover,body.phf-page-db .db-home:focus-visible{border-color:var(--phf-gold);outline:none;box-shadow:0 0 0 2px rgba(230,205,116,.35)}
 body.phf-page-db .db-lead{font-weight:800;letter-spacing:.08em;font-size:11px;color:var(--phf-gold);flex:0 0 auto}
 /* the action group sits at the right; it wraps to its own row on narrow screens */
 body.phf-page-db .db-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
@@ -41,8 +51,11 @@ body.phf-page-db .db-pill .ic{font-size:12px}
 /* ghost = secondary on navy; .db-danger = destructive (Clear session / Clear results) */
 body.phf-page-db .db-pill.db-ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.32)}
 body.phf-page-db .db-pill.db-ghost:hover:not(:disabled){background:rgba(255,255,255,.1)}
-body.phf-page-db .db-pill.db-danger{background:transparent;color:#FFB4AB;border-color:rgba(255,180,171,.55)}
-body.phf-page-db .db-pill.db-danger:hover:not(:disabled){background:rgba(197,34,31,.22);color:#fff}
+body.phf-page-db .db-danger,body.phf-page-db .db-pill.db-danger{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 14px;background:#fff;color:var(--phf-red-ink);border:1px solid var(--phf-red-line);border-radius:999px;font:inherit;font-weight:800;font-size:11px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;white-space:nowrap;line-height:1}
+body.phf-page-db .db-danger:hover:not(:disabled),body.phf-page-db .db-pill.db-danger:hover:not(:disabled){background:var(--phf-red-bg)}
+body.phf-page-db .db-danger:disabled{opacity:.5;cursor:not-allowed}
+/* rail clear buttons share the look, a touch shorter */
+body.phf-page-db .sidebar-actions .db-danger{height:30px;font-size:10.5px;flex:1 1 auto}
 
 /* progress + status line inside the strip */
 body.phf-page-db .db-progrow{display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.14)}
@@ -186,7 +199,27 @@ body.phf-page-db .rail-drop .bulk-assign select{flex:1 1 120px;min-width:0;max-w
 body.phf-page-db .rail-drop .bulk-assign .btn{flex:0 0 auto;min-height:28px;height:28px;padding:0 10px;font-size:11px}
 body.phf-page-db .rail-drop .bulk-remove{grid-area:state;justify-self:end;display:none}
 
+/* ------------------------------------------------------------------ 8. input-row states (all three tools) */
+/* The rail row carries the state of its input: green LOADED, blue UPDATED (a valid file replaced an earlier valid one),
+   bright-yellow INCOMPATIBLE (a file dropped for this input failed its check — the note names the file and why; any earlier
+   valid file stays loaded), red REQUIRED, neutral OPTIONAL. The pill words match the colours everywhere. */
+body.phf-page-db .input-nav-item.loaded.updated,body.phf-page-db .input-nav-item.updated{background:var(--phf-blue-bg);border-color:var(--phf-blue-line)!important}   /* !important only on border-color: theme.css sets .loaded border-color with !important */
+body.phf-page-db .input-nav-item.updated .input-dot{background:var(--phf-blue);color:#fff}
+body.phf-page-db .input-nav-item.updated strong{color:var(--phf-blue-ink)}
+body.phf-page-db .input-nav-item.updated .input-state{background:#fff;border:1px solid var(--phf-blue-line);color:var(--phf-blue-ink)}
+body.phf-page-db .input-nav-item.loaded.incompatible,body.phf-page-db .input-nav-item.required.missing.incompatible,body.phf-page-db .input-nav-item.incompatible{background:var(--phf-yellow-bg);border-color:var(--phf-yellow-line)!important}
+body.phf-page-db .input-nav-item.incompatible .input-dot{background:var(--phf-yellow-line);color:var(--phf-yellow-ink)}
+body.phf-page-db .input-nav-item.incompatible strong{color:var(--phf-yellow-ink)}
+body.phf-page-db .input-nav-item.incompatible .input-state{background:#fff;border:1px solid var(--phf-yellow-line);color:var(--phf-yellow-ink)}
+body.phf-page-db .input-nav-note{display:block;font-size:9.5px;line-height:1.25;color:var(--phf-yellow-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;margin-top:2px}
+body.phf-page-db .input-nav-item .input-state{text-transform:uppercase}
+/* files that need a choice / could not be matched: one compact yellow line under the drop zone */
+body.phf-page-db .rail-drop .bulk-row{background:var(--phf-yellow-bg);border:1px solid var(--phf-yellow-line);border-radius:8px;padding:6px 8px!important;margin:0 0 6px}
+body.phf-page-db .rail-drop .bulk-row:first-child{border-top:1px solid var(--phf-yellow-line)}
+body.phf-page-db .rail-drop .bulk-state{background:#fff;color:var(--phf-yellow-ink);border-color:var(--phf-yellow-line)}
+body.phf-page-db .rail-drop .bulk-file strong,body.phf-page-db .rail-drop .bulk-file span,body.phf-page-db .rail-drop .bulk-file details{color:var(--phf-yellow-ink)}
+
 /* ------------------------------------------------------------------ 7. focus + motion */
-body.phf-page-db :is(.phf-step,.db-step,.db-pill,.db-build,.frow .dl,.acc-head,.results-head[role=button],.bulk-assign .btn):focus-visible{outline:2px solid var(--phf-gold);outline-offset:2px}
+body.phf-page-db :is(.phf-step,.db-step,.db-pill,.db-build,.db-danger,.frow .dl,.acc-head,.results-head[role=button],.bulk-assign .btn):focus-visible{outline:2px solid var(--phf-gold);outline-offset:2px}
 body.phf-page-db .dbhdr .phf-step:focus-visible{outline-color:var(--phf-navy)}
 @media(prefers-reduced-motion:reduce){body.phf-page-db .db-bar>div{transition:none}}

@@ -20,24 +20,52 @@
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link rel="stylesheet" href="../../assets/css/theme.css?v=20.4.2">
+<link rel="stylesheet" href="../../assets/css/phf-ui.css?v=1.1.0">
 <link rel="stylesheet" href="../../assets/css/compact-layout.css?v=1.1.0">
 <link rel="stylesheet" href="../../assets/css/library.css?v=2.0.0">
 </head>
-<body class="phf-page-reconcile">
+<body class="phf-page-reconcile phf-page-db">
   <header class="phf-shell-header header-container">
   <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
-  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="Reconcile CH2 Order — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg></span><div class="phf-shell-copy title-row"><h1>Reconcile CH2 Order</h1><p class="phf-shell-version version-text">v2.12.1</p></div></a>
-  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Reconcile CH2 Order</span></nav><p class="phf-shell-updated build-details">Updated 19 Oct 2026 01:00 AEDT</p></div>
+  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="Reconcile CH2 Order — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg></span><div class="phf-shell-copy title-row"><h1>Reconcile CH2 Order</h1><p class="phf-shell-version version-text">v2.13.0</p></div></a>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Reconcile CH2 Order</span></nav><p class="phf-shell-updated build-details">Updated 20 Oct 2026 13:15 AEDT</p></div>
 </header>
-  <main class="wrap phf-full">
+  <main class="wrap phf-full workflow-wrap">
 
-    <div class="builder-shell" id="reconcileWorkspace">
+    <!-- v2.13.0 — full-width sticky run strip above the two columns: home link · three step pills · Run all · POSActive download · CLEAR FILES · progress + status -->
+    <div class="db-runstrip" id="dbRunStrip" aria-label="Run the reconciliation">
+      <div class="db-runline">
+        <a class="db-home" href="../../index.html" title="Back to Staff Hub" aria-label="Back to Staff Hub"><img src="../../assets/icons/icon-32.png?v=21.25.0" alt=""></a>
+        <span class="db-lead">RUN</span>
+        <button type="button" class="db-step phf-step" data-run-step="check" data-step="1" disabled title="Step 1 — check the POS order, invoices and reference data are ready"><span class="num">1</span> Check inputs <span class="st wait" data-run-pill="check">WAITING</span></button>
+        <button type="button" class="db-step phf-step" data-run-step="reconcile" data-step="2" disabled title="Step 2 — reconcile the POS order against the supplier invoices (receiving checklist)"><span class="num">2</span> Reconcile <span class="st wait" data-run-pill="reconcile">WAITING</span></button>
+        <button type="button" class="db-step phf-step" data-run-step="export" data-step="3" disabled title="Step 3 — the POSActive import, full reconciliation and key review files"><span class="num">3</span> Export files <span class="st wait" data-run-pill="export">WAITING</span></button>
+        <div class="db-actions">
+          <button type="button" class="db-pill" id="runBtn" disabled>Run all</button>
+          <a class="db-pill dlbtn" id="dlPosImport" hidden><span class="ic">↓</span> POSActive import <small id="dlPosImportNote"></small></a>
+          <button type="button" class="db-pill db-danger" id="clearBtn" title="Remove the POS order and supplier invoices from this session (saved reference data stays)">CLEAR FILES</button>
+          <span class="db-done-note" id="dbDoneNote"></span>
+        </div>
+      </div>
+      <div class="db-progrow">
+        <span class="db-what status info" id="status">Add one POS order and at least one supplier invoice to continue.</span>
+        <div class="db-bar progress hidden" id="progress"><div id="progressBar"></div></div>
+      </div>
+    </div>
+
+    <div class="builder-shell dashboard-mode" id="reconcileWorkspace">
       <aside class="builder-sidebar" aria-label="Reconciliation input files">
         <div class="sidebar-title">Input files</div>
-        <div class="sidebar-helper">Drop each file onto its matching row, or drop them all together in Drop All Input Files.</div>
+        <div class="sidebar-helper">Drop each file onto its matching row, or drop them all together here.</div>
+        <!-- v2.13.0 — Drop All at the top of the rail; files that need a choice are listed under it, everything else shows on its input row -->
+        <div class="rail-drop" id="bulkDropPanel">
+          <div class="dropzone bulk-dropzone" id="bulkDrop" tabindex="0" role="button" aria-label="Drop or choose all input files"><div><strong>Drop all input files here</strong><small>or click to choose several · PDF / XLS / XLSX / CSV</small></div></div>
+          <input class="hidden" type="file" id="bulkInput" multiple accept=".pdf,.xls,.xlsx,.xlsm,.csv">
+          <div class="bulk-results" id="bulkResults"></div>
+        </div>
         <div id="inputNav"></div>
-        <div class="sidebar-actions" aria-label="Clear input files"><button type="button" class="btn small" id="railClearOrder" title="Remove the POS order and supplier invoices from this session (saved reference data stays)">Clear order files</button><button type="button" class="btn small rail-clear-all" id="railClearAll" title="Remove the order files and the saved POS / master and Ongoing Discounts from this browser (Ongoing Discounts is shared with the other tools)">Clear all input files</button></div>
-        <div class="sidebar-footer"><strong>Saved vs session</strong>Reference data stays saved in this browser. Order files are held in memory for this session only. <a href="./reference-admin.html">Reference admin</a></div>
+        <div class="sidebar-actions" aria-label="Clear input files"><button type="button" class="db-danger" id="railClearOrder" title="Remove the POS order and supplier invoices from this session (saved reference data stays)">CLEAR ORDER FILES</button><button type="button" class="db-danger" id="railClearAll" title="Remove the order files and the saved POS / master and Ongoing Discounts from this browser (Ongoing Discounts is shared with the other tools)">CLEAR ALL INPUT FILES</button></div>
+        <div class="sidebar-footer"><a href="./reference-admin.html">Reference admin</a></div>
       </aside>
 
       <section class="builder-workspace">
@@ -53,15 +81,8 @@
           <a class="admin-link" href="./reference-admin.html">Admin</a>
         </div>
 
-        <!-- v2.9.4 layout (assets/css/compact-layout.css): Drop All · selected input · readiness in one row -->
-        <div class="dash-row dash-row-top">
-          <section class="panel bulk-drop-panel" id="bulkDropPanel" data-acc aria-label="Drop all input files">
-            <div class="results-head"><div><h2>Drop All Input Files Here</h2><p>Drop the POS order, supplier invoices and any reference files together. Each file is identified and assigned to its input; anything unclear is listed for review. Nothing runs until you press Run reconciliation.</p></div><div class="result-badge" id="bulkCount">0 FILES</div></div>
-            <div class="dropzone bulk-dropzone" id="bulkDrop" tabindex="0" role="button" aria-label="Drop or choose all input files"><div><strong>Drop all input files here</strong><small>or click to choose several files · PDF / XLS / XLSX / CSV</small></div></div>
-            <input class="hidden" type="file" id="bulkInput" multiple accept=".pdf,.xls,.xlsx,.xlsm,.csv">
-            <div class="bulk-results" id="bulkResults"></div>
-          </section>
-          <section class="panel input-detail-panel" id="inputDetailPanel">
+        <!-- selected-input editor (shown when a rail row is opened) -->
+        <section class="panel input-detail-panel" id="inputDetailPanel">
             <section class="panel input-workspace-card" data-input-card="master" hidden>
               <div class="input-workspace-head"><div><div class="nav-separator">Reference data</div><h2>POS / master <span>*</span></h2><p>Required · newest merged_alligned_pos_supplier_uhp_full_ file (.xlsx, .xlsm or .csv)</p></div><span class="small-badge" data-badge>REQUIRED</span></div>
               <div class="dropzone" data-ref-drop="master" tabindex="0" role="button"><div><strong data-drop-title>Drop file here</strong><small>or click to choose .xlsx / .xlsm / .csv · saved in this browser</small></div></div>
@@ -94,32 +115,21 @@
               <div class="file-list" id="invoiceFiles"></div>
               <div class="input-meta"><div><strong>Used by</strong>Reconciliation · invoice arithmetic and discount audit</div><div><strong>Storage</strong>Browser memory only</div><div><strong>Status</strong><span data-order-status="invoices">Not loaded</span></div></div>
             </section>
-          </section>
-          <section class="panel dashboard-summary" data-acc>
-            <div class="results-head"><div><h2>Input readiness</h2><p>Each group updates as soon as a file is loaded or saved.</p></div><div class="result-badge" id="readyCount">0 / 3 READY</div></div>
-            <div id="inputSummary" class="input-summary"></div>
-          </section>
-        </div>
+        </section>
 
-        <!-- v2.9.3 compact layout: the reconcile stage and its output files side by side -->
-        <div class="dash-row dash-row-run">
-          <section class="stage-dashboard single" aria-label="Reconciliation action">
-            <div id="stage-reconcile">
-              <section class="panel stage-panel stage-view-card" data-acc data-acc-id="reconcile-stage">
-                <div class="stage-head"><div class="stage-title"><span class="stepnum">1</span><div><h2>Reconcile CH2 order <small>v2.11.0</small></h2></div></div><span class="small-badge wait" id="stageBadge">WAITING</span></div>
-                <p class="stage-description">POS back-end order + supplier invoices → receiving checklist, POSActive import (Found quantities at CH2 invoice prices) and exception report. Price and data checks are review notes; downloads stay available.</p>
-                <div class="status info stage-status" id="status">Add one POS order and at least one supplier invoice to continue.</div>
-                <div class="progress hidden" id="progress"><div id="progressBar"></div></div>
-                <div class="stage-actions"><button class="btn primary stage-build" id="runBtn" disabled>Run reconciliation</button><button class="btn" id="clearBtn">Clear files</button></div>
-              </section>
-            </div>
-          </section>
-          <section class="panel outputs-panel" data-acc>
-            <div class="results-head"><div><h2>Generated output files</h2><p>Downloads from the latest run. The full receiving checklist is shown below.</p></div><div class="result-badge" id="outputCount">0 OUTPUTS</div></div>
-            <div id="allOutputs" class="output-list"><div class="empty-output">Run the reconciliation to create its download files.</div></div>
-          </section>
-          <section class="panel" data-acc data-acc-id="reconcile-library" id="toolLibrary" aria-label="Saved files for this tool"></section>
-        </div>
+        <!-- Input readiness (collapsible, navy head) -->
+        <section class="panel dashboard-summary" data-acc data-acc-id="reconcile-readiness">
+          <div class="results-head acc-custom-head"><div><h2>Input readiness</h2><p>Each group updates as soon as a file is loaded or saved.</p></div><div class="result-badge" id="readyCount">0 / 3 READY</div></div>
+          <div id="inputSummary" class="input-summary"></div>
+        </section>
+
+        <!-- v2.13.0 — Steps & generated files: one collapsible group per step, its Run pill in the header, step 3 lists the downloads -->
+        <section class="panel db-files-panel" data-acc data-acc-id="reconcile-steps">
+          <div class="results-head acc-custom-head"><div><h2>Steps &amp; generated files</h2><p>Run each step, then download its files. The receiving checklist appears under this panel.</p></div><div class="result-badge" id="outputCount">0 FILES</div></div>
+          <div id="stepGroups" class="db-groups"></div>
+        </section>
+
+        <section class="panel" data-acc data-acc-id="reconcile-library" id="toolLibrary" aria-label="Saved files for this tool"></section>
       </section>
     </div>
 
@@ -184,8 +194,8 @@
   <script src="./js/core/linked-pos.js?v=2.8.0"></script>
   <script src="./js/export/pos-import.js?v=2.11.0"></script>
   <script src="./js/export/report.js?v=2.8.0"></script>
-  <script src="./js/app.js?v=2.11.3"></script>
-  <script src="./js/ui/workspace.js?v=2.12.1"></script>
+  <script src="./js/app.js?v=2.13.0"></script>
+  <script src="./js/ui/workspace.js?v=2.13.0"></script>
   <script src="../../assets/js/hub-library.js?v=2.0.0"></script>
   <script src="../../assets/js/phf-accordion.js?v=1.2.2"></script>
   <script>if(window.PHFLibraryPanel)window.PHFLibraryPanel.mount({root:'#toolLibrary',scope:'Reconcile CH2 Order',heading:'Saved files'});if(window.PHFAccordion)window.PHFAccordion.refresh();</script>

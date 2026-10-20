@@ -14,18 +14,18 @@
 <title>POS New Product Check Clean | Prahran Health Foods</title>
 <link rel="stylesheet" href="../../assets/css/shell.css?v=21.6.0">
 <link rel="stylesheet" href="./css/app.css?v=1.0.0-20261010">
-<link rel="stylesheet" href="./css/merge.css?v=1.18.0">
+<link rel="stylesheet" href="./css/merge.css?v=1.19.0">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="../../assets/css/theme.css?v=20.4.2">
 <link rel="stylesheet" href="../../assets/css/compact-layout.css?v=1.1.0">
 <link rel="stylesheet" href="../../assets/css/library.css?v=2.0.0">
-<link rel="stylesheet" href="../../assets/css/phf-ui.css?v=1.0.0">
+<link rel="stylesheet" href="../../assets/css/phf-ui.css?v=1.1.0">
 </head>
 <body class="database-builder-page phf-page-db phf-page-merge">
 <header class="phf-shell-header header-container">
   <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
-  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="POS New Product Check Clean — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg></span><div class="phf-shell-copy title-row"><h1 class="phf-title-long">POS New Product Check Clean</h1><p class="phf-shell-version version-text">v1.18.0</p></div></a>
-  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">POS New Product Check Clean</span></nav><p class="phf-shell-updated build-details">Updated 20 Oct 2026 12:30 AEDT</p><div class="phf-lock-ctl" id="phfLockCtl" aria-live="polite"></div></div>
+  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="POS New Product Check Clean — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg></span><div class="phf-shell-copy title-row"><h1 class="phf-title-long">POS New Product Check Clean</h1><p class="phf-shell-version version-text">v1.19.0</p></div></a>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">POS New Product Check Clean</span></nav><p class="phf-shell-updated build-details">Updated 20 Oct 2026 13:15 AEDT</p><div class="phf-lock-ctl" id="phfLockCtl" aria-live="polite"></div></div>
 </header>
 
 <main class="workflow-wrap full-width-wrap phf-full">
@@ -34,6 +34,7 @@
        the actions (Run all · POS UPDATE · Clear results) are grouped on the right. -->
   <div class="db-runstrip" id="dbRunStrip" aria-label="Run the merge stages">
     <div class="db-runline">
+      <a class="db-home" href="../../index.html" title="Back to Staff Hub" aria-label="Back to Staff Hub"><img src="../../assets/icons/icon-32.png?v=21.25.0" alt=""></a>
       <span class="db-lead">RUN</span>
       <button type="button" class="phf-step db-step" data-run-step="highlight" data-stage="highlight" disabled title="Stage 1 — Highlight New Products + Best Buy (sets the supplier STATUS)"><span class="num">1</span> Highlight + Best Buy <span class="st wait" data-run-pill="highlight">WAITING</span></button>
       <button type="button" class="phf-step db-step" data-run-step="build" data-stage="build" disabled title="Stage 2 — Build OUT_MERGED_DATA (runs stage 1 first if needed)"><span class="num">2</span> Build OUT_MERGED_DATA <span class="st wait" data-run-pill="build">WAITING</span></button>
@@ -42,7 +43,7 @@
       <div class="db-actions">
         <button type="button" class="db-pill" id="runAllBtn" disabled>Run all stages</button>
         <a class="db-pill dlbtn" id="dlPosUpdate" hidden><span class="ic">↓</span> POS UPDATE (TXT) <small id="dlPosUpdateSize"></small></a>
-        <button type="button" class="db-pill db-danger" id="clearAllBtn" title="Clear the stage results and generated files (input files are kept)">Clear results</button>
+        <button type="button" class="db-pill db-danger" id="clearAllBtn" title="Clear the stage results and generated files (input files are kept)">CLEAR RESULTS</button>
       </div>
     </div>
     <div class="db-progrow" id="globalProgress" hidden>
@@ -65,8 +66,8 @@
       <div class="rail-bulk-count" id="bulkCount" hidden></div>
       <div id="inputNav"></div>
       <div class="sidebar-actions" aria-label="Clear input files">
-        <button type="button" class="btn small rail-clear-all" id="railClearSession" title="Remove the POS database and every supplier row, including rows added in the sheet (saved reference data stays)">Clear session files</button>
-        <button type="button" class="btn small" id="railClearReference" title="Remove every reference table saved in this browser">Clear saved reference</button>
+        <button type="button" class="db-danger" id="railClearSession" title="Remove the POS database and every supplier row, including rows added in the sheet (saved reference data stays)">CLEAR SESSION FILES</button>
+        <button type="button" class="db-danger" id="railClearReference" title="Remove every reference table saved in this browser">CLEAR SAVED REFERENCE</button>
       </div>
     </aside>
 
@@ -142,7 +143,7 @@
 <script src="../../assets/js/phf-lock-config.js?v=20261012"></script>
 <script src="../../assets/js/phf-lock.js?v=1.1.0"></script>
 <script src="../../assets/js/phf-accordion.js?v=1.2.2"></script>
-<script src="./js/app.js?v=1.18.0"></script>
+<script src="./js/app.js?v=1.19.0"></script>
 <script>if(window.PHFLibraryPanel)window.PHFLibraryPanel.mount({root:'#toolLibrary',scope:'POS New Product Check Clean',heading:'Saved files'});if(window.PHFAccordion)window.PHFAccordion.refresh();</script>
 </body>
 </html>
