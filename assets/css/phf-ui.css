@@ -1,4 +1,4 @@
-/* PHF Staff Hub — phf-ui.css v1.1.0 (20 Oct 2026)
+/* PHF Staff Hub — phf-ui.css v1.2.0 (20 Oct 2026)
    ONE authoritative component sheet shared by Build POS Master Databases, POS New Product Check Clean and Reconcile
    CH2 Order (all three pages carry body.phf-page-db). Colours, type and spacing come from the --phf-* tokens in theme.css;
    nothing here changes any build, merge, sheet or Library behaviour — it is presentation only.
@@ -24,9 +24,10 @@ body.phf-page-db{--phf-yellow-bg:#FFF3B0;--phf-yellow-line:#E6C200;--phf-yellow-
 body.phf-page-db .db-runstrip{position:sticky;top:0;z-index:40;background:var(--phf-navy);color:#fff;border-radius:0 0 12px 12px;padding:9px 16px;margin:0 0 14px;box-shadow:0 2px 8px rgba(30,58,95,.22)}
 body.phf-page-db .db-runline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 /* apple home link — always a way back to the Staff Hub while the strip is pinned */
-body.phf-page-db .db-home{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#fff;border:2px solid transparent;flex:0 0 auto;margin-right:2px}
-body.phf-page-db .db-home img{width:20px;height:20px;display:block}
-body.phf-page-db .db-home:hover,body.phf-page-db .db-home:focus-visible{border-color:var(--phf-gold);outline:none;box-shadow:0 0 0 2px rgba(230,205,116,.35)}
+/* v1.2.0: just the apple — no disc, no border; a gold ring only on hover / keyboard focus */
+body.phf-page-db .db-home{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:transparent;border:0;flex:0 0 auto;margin-right:2px}
+body.phf-page-db .db-home img{width:26px;height:26px;display:block}
+body.phf-page-db .db-home:hover,body.phf-page-db .db-home:focus-visible{outline:none;box-shadow:0 0 0 2px var(--phf-gold)}
 body.phf-page-db .db-lead{font-weight:800;letter-spacing:.08em;font-size:11px;color:var(--phf-gold);flex:0 0 auto}
 /* the action group sits at the right; it wraps to its own row on narrow screens */
 body.phf-page-db .db-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
@@ -51,11 +52,14 @@ body.phf-page-db .db-pill .ic{font-size:12px}
 /* ghost = secondary on navy; .db-danger = destructive (Clear session / Clear results) */
 body.phf-page-db .db-pill.db-ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.32)}
 body.phf-page-db .db-pill.db-ghost:hover:not(:disabled){background:rgba(255,255,255,.1)}
-body.phf-page-db .db-danger,body.phf-page-db .db-pill.db-danger{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 14px;background:#fff;color:var(--phf-red-ink);border:1px solid var(--phf-red-line);border-radius:999px;font:inherit;font-weight:800;font-size:11px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;white-space:nowrap;line-height:1}
-body.phf-page-db .db-danger:hover:not(:disabled),body.phf-page-db .db-pill.db-danger:hover:not(:disabled){background:var(--phf-red-bg)}
+/* v1.2.0: exactly the REQUIRED pill — pink fill, red ink and line, compact, auto width */
+body.phf-page-db .db-danger,body.phf-page-db .db-pill.db-danger{display:inline-flex;align-items:center;justify-content:center;height:auto;width:auto;padding:5px 10px;background:var(--phf-red-bg);color:var(--phf-red-ink);border:1px solid var(--phf-red-line);border-radius:999px;font:inherit;font-weight:800;font-size:10px;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;white-space:nowrap;line-height:1}
+body.phf-page-db .db-danger:hover:not(:disabled),body.phf-page-db .db-pill.db-danger:hover:not(:disabled){background:#F8D5D1}
 body.phf-page-db .db-danger:disabled{opacity:.5;cursor:not-allowed}
-/* rail clear buttons share the look, a touch shorter */
-body.phf-page-db .sidebar-actions .db-danger{height:30px;font-size:10.5px;flex:1 1 auto}
+/* rail clear buttons: one row, side by side, auto width */
+body.phf-page-db .sidebar-actions{display:flex;flex-wrap:nowrap;gap:6px;align-items:stretch;padding:8px 2px 4px}
+body.phf-page-db .sidebar-actions .db-danger{flex:1 1 0;min-width:0;padding:5px 6px;font-size:9px;letter-spacing:.03em;white-space:normal;text-align:center;line-height:1.15}
+@media(max-width:820px){body.phf-page-db .sidebar-actions{flex-wrap:wrap}body.phf-page-db .sidebar-actions .db-danger{flex:0 0 auto;white-space:nowrap}}
 
 /* progress + status line inside the strip */
 body.phf-page-db .db-progrow{display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.14)}
@@ -219,7 +223,36 @@ body.phf-page-db .rail-drop .bulk-row:first-child{border-top:1px solid var(--phf
 body.phf-page-db .rail-drop .bulk-state{background:#fff;color:var(--phf-yellow-ink);border-color:var(--phf-yellow-line)}
 body.phf-page-db .rail-drop .bulk-file strong,body.phf-page-db .rail-drop .bulk-file span,body.phf-page-db .rail-drop .bulk-file details{color:var(--phf-yellow-ink)}
 
+
+/* ------------------------------------------------------------------ 8. v1.2.0 generated files = Saved Files rows
+   Output lists reuse the Library row markup (.phf-lib-row … from assets/js/hub-library.js + library.css) so both lists are the
+   same table-like row: tick · bold name · filename · made-at · size · provenance · Download. Only the extras live here. */
+body.phf-page-db .db-group-files.phf-lib-list,body.phf-page-db [data-stage-output].phf-lib-list,body.phf-page-db [data-step-files].phf-lib-list{display:grid;gap:0;border:1px solid var(--phf-line);border-radius:10px;overflow:hidden}
+body.phf-page-db .phf-lib-list:has(> .empty-output){border:0;overflow:visible}
+body.phf-page-db .phf-lib-row.has-warning .phf-lib-dot{background:#FCE9B8;color:var(--phf-amber-ink)}
+body.phf-page-db .phf-lib-row .output-warning{grid-column:2/-1;font-size:10.5px;color:var(--phf-amber-ink);line-height:1.3}
+body.phf-page-db .phf-lib-row .phf-lib-flow .lib{color:var(--phf-green-ink);font-weight:700}
+body.phf-page-db .phf-lib-row button.phf-lib-btn.download{font-family:inherit}
+body.phf-page-db .phf-lib-row .phf-lib-when:empty::after{content:"—";color:var(--phf-muted)}
+
+/* ------------------------------------------------------------------ 9. v1.2.0 drop anywhere on INPUT FILES */
+body.phf-page-db .builder-sidebar{position:relative}
+body.phf-page-db .builder-sidebar.rail-drag{box-shadow:inset 0 0 0 3px var(--phf-gold);background:#FFFDF3}
+body.phf-page-db .builder-sidebar.rail-drag::after{content:"Drop to add input files";position:sticky;bottom:8px;display:block;margin:8px auto 0;width:max-content;padding:5px 12px;border-radius:999px;background:var(--phf-navy);color:var(--phf-gold);font-size:11px;font-weight:800;letter-spacing:.05em;pointer-events:none}
+
+/* ------------------------------------------------------------------ 10. v1.2.0 reconcile checklist toolbar on the strip's button system */
+body.phf-page-db .result-actions .db-pill{height:34px}
+body.phf-page-db .result-actions .db-pill::before{content:"↓";font-size:12px;margin-right:2px}
+body.phf-page-db .result-actions .db-pill.view-primary{box-shadow:0 0 0 2px rgba(230,205,116,.45)}
+body.phf-page-db .result-actions .db-pill.hidden{display:none}
+body.phf-page-db .db-outline{display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 13px;background:#fff;color:var(--phf-navy);border:1px solid var(--phf-navy);border-radius:8px;font:inherit;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;line-height:1}
+body.phf-page-db .db-outline:hover:not(:disabled){background:var(--phf-alt)}
+body.phf-page-db .db-outline.active,body.phf-page-db .db-outline[aria-pressed=true]{background:var(--phf-navy);color:#fff}
+body.phf-page-db .db-outline:disabled{opacity:.5;cursor:not-allowed}
+body.phf-page-db .result-actions .db-danger{height:34px;padding:0 13px;font-size:10.5px}
+body.phf-page-db .result-steps{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--phf-navy);border-radius:10px;padding:8px 12px;margin:0 0 10px}
+body.phf-page-db .result-steps .db-lead{font-weight:800;letter-spacing:.08em;font-size:11px;color:var(--phf-gold)}
 /* ------------------------------------------------------------------ 7. focus + motion */
-body.phf-page-db :is(.phf-step,.db-step,.db-pill,.db-build,.db-danger,.frow .dl,.acc-head,.results-head[role=button],.bulk-assign .btn):focus-visible{outline:2px solid var(--phf-gold);outline-offset:2px}
+body.phf-page-db :is(.phf-step,.db-step,.db-pill,.db-build,.db-danger,.db-outline,.frow .dl,.phf-lib-btn,.acc-head,.results-head[role=button],.bulk-assign .btn):focus-visible{outline:2px solid var(--phf-gold);outline-offset:2px}
 body.phf-page-db .dbhdr .phf-step:focus-visible{outline-color:var(--phf-navy)}
 @media(prefers-reduced-motion:reduce){body.phf-page-db .db-bar>div{transition:none}}

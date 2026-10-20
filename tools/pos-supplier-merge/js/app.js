@@ -1,8 +1,10 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.19.0 (20 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.20.0 (20 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
  * three merge stages, downloads and the OUT_MERGED_DATA review table.
+ * v1.20.0 (Staff Hub v21.30.0): generated-file rows use the Saved Files row markup; the whole input rail accepts dropped
+ *   files (wireRailDrop); CLEAR buttons are the REQUIRED-style pill side by side; apple home link without the disc.
  * v1.19.0 (Staff Hub v21.29.0): rail rows carry the file state (LOADED green · UPDATED blue · INCOMPATIBLE bright yellow with
  *   the reason on that row · REQUIRED red); the Drop-All list only shows files needing a choice. Brand Name Changes is hidden
  *   from the rail, readiness and "Missing" text (HIDDEN_INPUTS / visibleInputs) — its input, Library load, Drop-All
@@ -187,7 +189,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.19.0';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.20.0';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -688,7 +690,17 @@
       };
     });
   }
+  // v1.20.0 — the whole INPUT FILES rail accepts dropped files (same path as Drop All); a drop on an input row still goes to that row.
+  function wireRailDrop() {
+    var sb = document.querySelector('.builder-sidebar'); if (!sb) return; var depth = 0;
+    function hasFiles(e) { return e.dataTransfer && Array.prototype.indexOf.call(e.dataTransfer.types || [], 'Files') >= 0; }
+    sb.addEventListener('dragenter', function (e) { if (!hasFiles(e)) return; e.preventDefault(); depth++; sb.classList.add('rail-drag'); });
+    sb.addEventListener('dragover', function (e) { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+    sb.addEventListener('dragleave', function () { depth = Math.max(0, depth - 1); if (!depth) sb.classList.remove('rail-drag'); });
+    sb.addEventListener('drop', function (e) { depth = 0; sb.classList.remove('rail-drag'); if (e.defaultPrevented) return; e.preventDefault(); var f = e.dataTransfer && e.dataTransfer.files; if (f && f.length) bulkAccept(f); });
+  }
   function wireBulkDrop() {
+    wireRailDrop();
     var d = $('#bulkDrop'), i = $('#bulkInput');
     d.onclick = function () { i.click(); };
     d.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); i.click(); } };
@@ -1264,6 +1276,7 @@
       var el = document.querySelector('[data-stage-output="' + s.id + '"]'); if (!el) return;
       var rows = arr.filter(function (o) { return o.stage === s.id; });
       el.innerHTML = rows.length ? rows.map(fileRow).join('') : '<div class="empty-output">No files yet — run this stage to create them.</div>';
+      el.classList.toggle('phf-lib-list', rows.length > 0);
       var meta = document.querySelector('[data-db-meta="' + s.id + '"]'); if (meta) meta.textContent = rows.length ? ('· ' + rows.length + ' file' + (rows.length === 1 ? '' : 's')) : '';
     });
     // top run-strip download: the POS UPDATE file (first export txt), shown only once it exists.
@@ -1278,9 +1291,17 @@
     var t = new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Melbourne', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(ts));
     return '<b>' + esc(t) + '</b> · ' + (ago < 1 ? 'just now' : ago < 60 ? ago + ' min ago' : Math.round(ago / 60) + ' h ago');
   }
+  // v1.20.0 — generated files use the Saved Files (Library) row markup (hub-library.js + library.css) so both lists match.
   function fileRow(o) {
-    var fn = OUT_FRIENDLY[o.key] || cleanTitle(o.name) || o.name;
-    return '<div class="frow' + (o.warn ? ' has-warning' : '') + '"><span class="ck">' + (o.warn ? '!' : '✓') + '</span><div class="nm"><b>' + esc(fn) + '</b><code title="' + esc(o.name) + '">' + esc(o.name) + '</code><span class="used" title="' + esc(o.meta || '') + '">' + esc(o.meta || '') + '</span></div><div class="dt">' + whenText(o.at) + '</div><div class="sz">' + pretty(o.blob.size) + '</div><a class="dl" href="' + o.url + '" download="' + esc(o.name) + '">Download</a>' + (o.warn ? '<span class="output-warning">⚠ ' + esc(o.warn) + ' — the file is complete and can be downloaded.</span>' : '') + '</div>';
+    var fn = OUT_FRIENDLY[o.key] || cleanTitle(o.name) || o.name, w = o.at ? whenText(o.at).split(' · ') : ['', ''];
+    var flow = [o.meta || '', o.lib ? '<span class="lib">saved to Library</span>' : ''].filter(Boolean);
+    return '<div class="phf-lib-row' + (o.warn ? ' has-warning' : '') + '"><span class="phf-lib-dot" aria-hidden="true">' + (o.warn ? '!' : '✓') + '</span>' +
+      '<div class="phf-lib-what"><strong>' + esc(fn) + '</strong><span title="' + esc(o.name) + '">' + esc(o.name) + '</span></div>' +
+      '<div class="phf-lib-when">' + (o.at ? '<strong>' + w[0].replace(/<\/?b>/g, '') + '</strong><span>' + esc(w[1] || '') + '</span>' : '') + '</div>' +
+      '<div class="phf-lib-size">' + pretty(o.blob.size) + '</div>' +
+      '<div class="phf-lib-flow"><strong>Used by</strong>' + flow.map(function (x) { return '<span>' + x + '</span>'; }).join('') + '</div>' +
+      '<div class="phf-lib-btns"><a class="phf-lib-btn download" href="' + o.url + '" download="' + esc(o.name) + '">Download</a></div>' +
+      (o.warn ? '<span class="output-warning">⚠ ' + esc(o.warn) + ' — the file is complete and can be downloaded.</span>' : '') + '</div>';
   }
   function bindPosUpdate(arr) {
     var btn = $('#dlPosUpdate'); if (!btn) return;

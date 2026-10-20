@@ -1,4 +1,8 @@
-/* Reconcile CH2 v2.13.0 (20 Oct 2026) — the Build POS Master layout: a full-width sticky run strip (home link, three step
+/* Reconcile CH2 v2.14.0 (20 Oct 2026) — step 3 lists the four exports as Saved-Files-style rows (each Download runs the same
+   code as its toolbar button; madeAt records when a file was built); the result toolbar uses the strip's buttons (gold
+   downloads, outlined secondaries, CLEAR QTY) with the three step pills in a row above it (setRunPill updates every
+   [data-run-step]); the whole rail accepts drops (wireRailDrop); CLEAR pills side by side; apple home link without the disc.
+   v2.13.0 (20 Oct 2026) — the Build POS Master layout: a full-width sticky run strip (home link, three step
    pills, Run all, POSActive download, CLEAR FILES, progress + status), Drop All at the top of the rail, and ONE "Steps &
    generated files" panel — a group per step with its own Run pill in the header; step 3 lists the three downloads.
    The three steps sit over the UNCHANGED engine in app.js: step 1 (Check inputs) = app.js's own readiness gate
@@ -152,12 +156,10 @@
   }
   const WORD={wait:'WAITING',ready:'READY',run:'RUNNING',done:'DONE',err:'ERROR'};
   function setRunPill(id,st){
-    const pill=document.querySelector(`[data-run-step="${id}"]`);if(!pill)return;
-    pill.classList.toggle('running',st==='run');
-    const sp=pill.querySelector('.st');if(sp){sp.className='st '+st;sp.textContent=WORD[st];}
-    const running=st==='run'||document.querySelector('#progress:not(.hidden)');
-    pill.disabled=!!running||st==='wait'||st==='err';pill.setAttribute('aria-disabled',pill.disabled?'true':'false');
-    const hp=document.querySelector(`#stepgroup-${id} .db-build`);if(hp){hp.disabled=pill.disabled;const hs=hp.querySelector('.st');if(hs){hs.className='st '+st;hs.textContent=WORD[st];}}
+    const pills=[...document.querySelectorAll(`[data-run-step="${id}"]`)];if(!pills.length)return;   // v2.14.0: the strip AND the checklist row
+    const running=st==='run'||document.querySelector('#progress:not(.hidden)'),disabled=!!running||st==='wait'||st==='err';
+    for(const pill of pills){pill.classList.toggle('running',st==='run');const sp=pill.querySelector('.st');if(sp){sp.className='st '+st;sp.textContent=WORD[st];}pill.disabled=disabled;pill.setAttribute('aria-disabled',disabled?'true':'false');}
+    const hp=document.querySelector(`#stepgroup-${id} .db-build`);if(hp){hp.disabled=disabled;const hs=hp.querySelector('.st');if(hs){hs.className='st '+st;hs.textContent=WORD[st];}}
     const mini=document.querySelector(`#stepgroup-${id} .db-mini`);if(mini){mini.className='db-mini '+st;mini.textContent=WORD[st];}
   }
   async function runStep(id){
@@ -183,14 +185,20 @@
     }
   }
   /* ---------- generated output files → step 3 rows (mirrors the result download buttons) ---------- */
+  // v2.14.0: remember when each export was built (the builders download straight away, so this is the "made at" for the row)
+  const madeAt={};
+  function noteMade(id){const t=Date.now();madeAt[id]={t,when:new Intl.DateTimeFormat('en-AU',{timeZone:'Australia/Melbourne',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(t)),size:'',ago(){const m=Math.max(0,Math.round((Date.now()-t)/60000));return m<1?'just now':m<60?m+' min ago':Math.round(m/60)+' h ago';}};}
   function renderOutputs(){
     renderStepGroups();
     const host=document.querySelector('[data-step-files]'),count=$('#outputCount');if(!host)return;
     const results=$('#results'),on=results&&!results.classList.contains('hidden');
     const btns=on?OUTPUTS.map(s=>$(s)).filter(b=>b&&!b.classList.contains('hidden')):[];
     const ready=btns.filter(b=>!b.disabled).length;
-    host.innerHTML=btns.length?btns.map(b=>{const m=OUT_META[b.id]||{name:b.textContent.replace(/^Download\s+/i,''),ext:'',meta:b.title||''};return `<div class="frow"><span class="ck">✓</span><div class="nm"><b>${esc(m.name)}</b><code>${esc(b.textContent.replace(/^Download\s+/i,''))}</code><span class="used">${esc(m.meta)}</span></div><span class="dt"></span><span class="sz">${esc(m.ext)}</span><button type="button" class="dl" data-src="#${b.id}"${b.disabled?' disabled':''}>Download</button></div>`;}).join(''):'<div class="empty-output">Run the reconciliation to create its download files.</div>';
-    host.querySelectorAll('[data-src]').forEach(x=>{x.onclick=()=>{const src=$(x.dataset.src);if(src&&!src.disabled){src.click();if(x.dataset.src==='#downloadBtn')stepDone.export=true;render();}};});
+    // v2.14.0: the Saved Files (Library) row markup. The export builders write each file on demand (they download as they
+    // build), so a row's Download runs the same code as its toolbar button; the size is shown once the file has been built.
+    host.innerHTML=btns.length?btns.map(b=>{const m=OUT_META[b.id]||{name:b.textContent.replace(/^Download\s+/i,''),ext:'',meta:b.title||''};const made=madeAt[b.id];return `<div class="phf-lib-row"><span class="phf-lib-dot" aria-hidden="true">✓</span><div class="phf-lib-what"><strong>${esc(m.name)}</strong><span>${esc(b.textContent.replace(/^Download\s+/i,''))}</span></div><div class="phf-lib-when">${made?`<strong>${esc(made.when)}</strong><span>${esc(made.ago())}</span>`:'<span>not downloaded yet</span>'}</div><div class="phf-lib-size">${made&&made.size?esc(made.size):esc(m.ext)}</div><div class="phf-lib-flow"><strong>Used by</strong><span>${esc(m.meta)}</span></div><div class="phf-lib-btns"><button type="button" class="phf-lib-btn download" data-src="#${b.id}"${b.disabled?' disabled':''}>Download</button></div></div>`;}).join(''):'<div class="empty-output">Run the reconciliation to create its download files.</div>';
+    host.classList.toggle('phf-lib-list',btns.length>0);
+    host.querySelectorAll('[data-src]').forEach(x=>{x.onclick=()=>{const src=$(x.dataset.src);if(src&&!src.disabled){src.click();noteMade(src.id);if(x.dataset.src==='#downloadBtn')stepDone.export=true;render();}};});
     const meta=document.querySelector('#stepgroup-export [data-step-meta]');if(meta)meta.textContent=btns.length?`· ${btns.length} file${btns.length===1?'':'s'}`:'';
     const m1=document.querySelector('#stepgroup-check [data-step-meta]');if(m1){const n=INPUTS.map(info).filter(s=>s.loaded).length;m1.textContent=`· ${n} / ${INPUTS.length} inputs ready`;}
     const m2=document.querySelector('#stepgroup-reconcile [data-step-meta]'),sub=$('#resultSub');if(m2)m2.textContent=on&&sub?`· ${sub.textContent.slice(0,90)}`:'';
@@ -331,7 +339,16 @@
     host.querySelectorAll('[data-bulk-select]').forEach(s=>s.onchange=()=>{const i=+s.dataset.bulkSelect,r=bulk[i],b=host.querySelector(`[data-bulk-assign="${i}"]`);r.choice=s.value;if(b){const same=r.status==='assigned'&&s.value===r.id;b.disabled=same;b.textContent=same?'Assigned':'Assign';}});
     host.querySelectorAll('[data-bulk-assign]').forEach(b=>b.onclick=()=>bulkAssignRow(+b.dataset.bulkAssign));
   }
+  // v2.14.0 — the whole INPUT FILES rail accepts dropped files (same path as Drop All); a drop on an input row still goes to that row.
+  function wireRailDrop(){
+    const sb=document.querySelector('.builder-sidebar');if(!sb)return;let depth=0;const hasFiles=e=>e.dataTransfer&&[...(e.dataTransfer.types||[])].includes('Files');
+    sb.addEventListener('dragenter',e=>{if(!hasFiles(e))return;e.preventDefault();depth++;sb.classList.add('rail-drag');});
+    sb.addEventListener('dragover',e=>{if(!hasFiles(e))return;e.preventDefault();e.dataTransfer.dropEffect='copy';});
+    sb.addEventListener('dragleave',()=>{depth=Math.max(0,depth-1);if(!depth)sb.classList.remove('rail-drag');});
+    sb.addEventListener('drop',e=>{depth=0;sb.classList.remove('rail-drag');if(e.defaultPrevented)return;e.preventDefault();const f=e.dataTransfer&&e.dataTransfer.files;if(f&&f.length)bulkAccept(f);});
+  }
   function wireBulkDrop(){
+    wireRailDrop();
     const zone=$('#bulkDrop'),input=$('#bulkInput');if(!zone||!input)return;
     zone.onclick=()=>input.click();
     zone.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();input.click();}};
@@ -355,7 +372,8 @@
     const order=$('#railClearOrder'),all=$('#railClearAll'),clear=$('#clearBtn');
     if(order)order.onclick=()=>{if(clear)clear.click();bulk.length=0;flags.updated={};flags.reject={};stepDone.check=stepDone.export=false;renderBulk();schedule();};
     if(clear)clear.addEventListener('click',()=>{flags.updated.pos=flags.updated.invoices=false;delete flags.reject.pos;delete flags.reject.invoices;stepDone.check=stepDone.export=false;schedule();});
-    document.querySelectorAll('#dbRunStrip [data-run-step]').forEach(b=>{b.onclick=()=>{if(b.disabled)return;runStep(b.dataset.runStep);};});
+    OUTPUTS.forEach(sel=>{const b=$(sel);if(b)b.addEventListener('click',()=>{if(!b.disabled){noteMade(b.id);schedule();}});});
+    document.querySelectorAll('[data-run-step]').forEach(b=>{b.onclick=()=>{if(b.disabled)return;runStep(b.dataset.runStep);};});
     // Run all: the existing run() (step 2; step 1 is its own gate) then the POSActive import download (step 3)
     const runAll=$('#runBtn');if(runAll){runAll.onclick=async()=>{if(runAll.disabled)return;const app=global.PHFReconcileApp||{};if(app.run)await app.run();else return;const results=$('#results');if(results&&!results.classList.contains('hidden'))await runStep('export');};}
     const dl=$('#dlPosImport');if(dl)dl.onclick=e=>{e.preventDefault();const src=$('#downloadBtn');if(src&&!src.disabled){src.click();stepDone.export=true;schedule();}};

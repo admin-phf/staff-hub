@@ -1138,3 +1138,19 @@ All implemented stages keep source business files local to the browser and gener
   border-color with !important; noted inline). Tool stylesheets untouched (no duplicates re-added).
 - Versions: hub v21.29.0; Build POS Master v21.19.0 (app.css/pipeline.js ?v=21.19.0); merge v1.19.0 (merge.css/app.js ?v=1.19.0);
   reconcile v2.13.0 (app.js/workspace.js ?v=2.13.0); phf-ui.css ?v=1.1.0 in all three. Tests / unverified in the release note.
+
+## Staff Hub v21.30.0 (20 Oct 2026 14:20 AEDT)
+- phf-ui.css v1.2.0: `.db-home` transparent (no disc, gold ring on hover/focus-visible); `.db-danger` = REQUIRED badge look
+  (--phf-red-bg fill, red ink/line, pill, 10px/800 caps, auto width); `.sidebar-actions` flex row (pills flex:1 1 0, wrap
+  ≤820px); `.db-outline` secondary pill (active = navy fill); `.rail-drag` gold inset ring + tag on the sidebar during a drag.
+- Generated-file rows now emit the Library row markup (`.phf-lib-row` › `.phf-lib-dot/-what/-when/-size/-flow/-btns`,
+  `.phf-lib-btn.download`) via `libRow` (pipeline.js, merge app.js) / `renderOutputs` (reconcile workspace.js); hosts get
+  `.phf-lib-list`. `.output-warning` stays a full-width line. No per-file ✕ (outputs have no delete).
+- `wireRailDrop()` in all three tools: `.builder-sidebar` dragenter/over (Files only) → `.rail-drag`; drop → bulkAccept /
+  tool equivalent; row and zone handlers preventDefault+stopPropagation first and the sidebar handler skips defaultPrevented.
+- Reconcile v2.14.0: step 3 group lists the four exports as rows whose Download runs the same code as the toolbar button;
+  `madeAt`/`noteMade` record build time; `#resultSteps` row of `.phf-step` pills above `.result-actions`; `setRunPill` updates
+  every `[data-run-step]`; toolbar downloads `.db-pill` (CSS ↓ prefix so textContent updates survive), secondaries
+  `.db-outline`, Clear qty `.db-danger`. Export sizes unknown until built (builders download as they build) — extension shown
+  until then.
+- Versions: hub v21.30.0; Build POS Master v21.20.0; merge v1.20.0; reconcile v2.14.0; phf-ui.css ?v=1.2.0 in all three.

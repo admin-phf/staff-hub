@@ -20,15 +20,15 @@
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link rel="stylesheet" href="../../assets/css/theme.css?v=20.4.2">
-<link rel="stylesheet" href="../../assets/css/phf-ui.css?v=1.1.0">
+<link rel="stylesheet" href="../../assets/css/phf-ui.css?v=1.2.0">
 <link rel="stylesheet" href="../../assets/css/compact-layout.css?v=1.1.0">
 <link rel="stylesheet" href="../../assets/css/library.css?v=2.0.0">
 </head>
 <body class="phf-page-reconcile phf-page-db">
   <header class="phf-shell-header header-container">
   <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
-  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="Reconcile CH2 Order — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg></span><div class="phf-shell-copy title-row"><h1>Reconcile CH2 Order</h1><p class="phf-shell-version version-text">v2.13.0</p></div></a>
-  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Reconcile CH2 Order</span></nav><p class="phf-shell-updated build-details">Updated 20 Oct 2026 13:15 AEDT</p></div>
+  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="Reconcile CH2 Order — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg></span><div class="phf-shell-copy title-row"><h1>Reconcile CH2 Order</h1><p class="phf-shell-version version-text">v2.14.0</p></div></a>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Reconcile CH2 Order</span></nav><p class="phf-shell-updated build-details">Updated 20 Oct 2026 14:20 AEDT</p></div>
 </header>
   <main class="wrap phf-full workflow-wrap">
 
@@ -150,23 +150,30 @@
         <span class="pos-tools-note">Receiving checklist · Add Qty accumulates in Found · Enter moves to the next Add Qty row · exact Found = invoiced/supplied qty completes automatically · under/over counts stay in Remaining until resolved or manually ticked · if an exact count is later corrected short/over it returns to Remaining; only a left-checkbox manual acceptance stays completed · unticking a row clears Found so a miscount can be restarted · unticked rows are treated as not supplied in the POSActive download · the POSActive download imports each row's Found quantity (overs and unders) with the CH2 invoice prices · a ticked not-invoiced row with Found &gt; 0 is added to the POSActive download as a manual receiving line · Tick all covers POS-order rows; INV rows (billed but not on the POS order) are held in their own section at the top and stay excluded from the TXT until ticked individually · Not on POS order explains why each INV row was not matched · enter 0 to clear Found and account for none supplied · Clear qty is above Add Qty · click sortable column headings to reorder Remaining and Completed sections · Total inc GST = receiving qty × AdjCatPrc + GST · POS Index preserves the original POS-order sequence · CH2 Line identifies supplier invoice lines · Found: red = under, grey = correct, green = over</span>
       </div>
       <div class="pos-balance-panel hidden" id="posBalancePanel" aria-live="polite"></div>
+      <!-- v2.14.0: the three steps right at the checklist (same pills as the strip, same runStep) and the toolbar on the strip's button system -->
+      <div class="result-steps" id="resultSteps" role="group" aria-label="Run the steps">
+        <span class="db-lead">RUN</span>
+        <button type="button" class="db-step phf-step" data-run-step="check" data-step="1" disabled title="Step 1 — check the POS order, invoices and reference data are ready"><span class="num">1</span> Check inputs <span class="st wait" data-run-pill="check">WAITING</span></button>
+        <button type="button" class="db-step phf-step" data-run-step="reconcile" data-step="2" disabled title="Step 2 — reconcile the POS order against the supplier invoices (receiving checklist)"><span class="num">2</span> Reconcile <span class="st wait" data-run-pill="reconcile">WAITING</span></button>
+        <button type="button" class="db-step phf-step" data-run-step="export" data-step="3" disabled title="Step 3 — the POSActive import, full reconciliation and key review files"><span class="num">3</span> Export files <span class="st wait" data-run-pill="export">WAITING</span></button>
+      </div>
       <div class="actions result-actions result-controls-sticky" aria-label="Reconciliation downloads and views">
-        <button class="btn" id="fullDownloadBtn">Download Full Reconciliation.xlsx</button>
-        <button class="btn" id="fullCsvDownloadBtn">Download Full Reconciliation.csv</button>
-        <button class="btn primary view-primary" id="downloadBtn">Download POSActive Import.txt</button>
-        <button class="btn" id="keyReviewBtn" type="button">Download POS key review.csv</button>
+        <button class="db-pill primary view-primary" id="downloadBtn">Download POSActive Import.txt</button>
+        <button class="db-pill" id="fullDownloadBtn">Download Full Reconciliation.xlsx</button>
+        <button class="db-pill" id="fullCsvDownloadBtn">Download Full Reconciliation.csv</button>
+        <button class="db-pill" id="keyReviewBtn" type="button">Download POS key review.csv</button>
         <div class="receiving-actions hidden" id="receivingActions" role="group" aria-label="Receiving checklist">
           <span class="pos-check-progress" id="posCheckProgress">Accounted 0 / 0</span>
-          <button class="btn small" id="tickAllBtn" type="button" title="Tick all — untouched rows use expected CH2 supplied qty">Tick all</button>
-          <button class="btn small" id="clearQtyBtn" type="button" title="Clear all Found quantities and receiving selections">Clear qty</button>
-          <button class="btn small" id="removeNotSuppliedBtn" type="button" title="Move all grey/not-supplied POS rows to the processed section">Remove not supplied</button>
+          <button class="db-outline" id="tickAllBtn" type="button" title="Tick all — untouched rows use expected CH2 supplied qty">Tick all</button>
+          <button class="db-danger" id="clearQtyBtn" type="button" title="Clear all Found quantities and receiving selections">Clear qty</button>
+          <button class="db-outline" id="removeNotSuppliedBtn" type="button" title="Move all grey/not-supplied POS rows to the processed section">Remove not supplied</button>
         </div>
         <div class="table-search" role="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input type="search" id="tableSearch" placeholder="Search the rows — product, PLU, Sub ID, status…" aria-label="Search the result rows" autocomplete="off" spellcheck="false"><span class="table-search-count" id="tableSearchCount" aria-live="polite"></span></div>
         <div class="view-picker" role="group" aria-label="Preview view">
           <span class="view-label">View:</span>
-          <button class="btn small view-btn active" id="viewPosBtn" type="button">POS layout</button>
-          <button class="btn small view-btn" id="viewExceptionsBtn" type="button">Exceptions</button>
-          <button class="btn small view-btn" id="viewAllBtn" type="button">All lines</button>
+          <button class="db-outline view-btn active" id="viewPosBtn" type="button">POS layout</button>
+          <button class="db-outline view-btn" id="viewExceptionsBtn" type="button">Exceptions</button>
+          <button class="db-outline view-btn" id="viewAllBtn" type="button">All lines</button>
         </div>
       </div>
       <div class="table-wrap">
@@ -195,7 +202,7 @@
   <script src="./js/export/pos-import.js?v=2.11.0"></script>
   <script src="./js/export/report.js?v=2.8.0"></script>
   <script src="./js/app.js?v=2.13.0"></script>
-  <script src="./js/ui/workspace.js?v=2.13.0"></script>
+  <script src="./js/ui/workspace.js?v=2.14.0"></script>
   <script src="../../assets/js/hub-library.js?v=2.0.0"></script>
   <script src="../../assets/js/phf-accordion.js?v=1.2.2"></script>
   <script>if(window.PHFLibraryPanel)window.PHFLibraryPanel.mount({root:'#toolLibrary',scope:'Reconcile CH2 Order',heading:'Saved files'});if(window.PHFAccordion)window.PHFAccordion.refresh();</script>
