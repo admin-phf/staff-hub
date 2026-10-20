@@ -1163,3 +1163,24 @@ All implemented stages keep source business files local to the browser and gener
   height:auto;max-height:calc(100vh - var(--db-strip-h) - 22px)}` overrides the tool stylesheets' fixed height/top. Each
   index.html inline script sets `--db-strip-h` from `#dbRunStrip` via ResizeObserver.
 - Versions: hub v21.30.1; db-build v21.20.1; merge v1.20.1; reconcile v2.14.1; phf-ui ?v=1.2.1.
+
+## Staff Hub v21.31.0 (20 Oct 2026 20:30 AEDT) — Reconcile CH2 Order Tasks 12–16
+- Reconcile v2.15.0. index.html: #downloadBtn / #fullDownloadBtn / #fullCsvDownloadBtn / #keyReviewBtn moved into
+  `#resultSteps .result-downloads` (ids, handlers and disabled/hidden logic unchanged; visible labels without "Download",
+  aria-labels keep it — app.js label strings updated accordingly); `#exportNotice` (.phf-notice) between the step row and
+  `.result-actions`; input cards gain data-acc + `.acc-custom-head`, meta boxes folded in `details.input-meta-fold`.
+- app.js: `showExportNotice(message)` renders the export-guard message (first line bold, bullets as a list, dismiss ✕) and
+  replaces `globalThis.alert` in the POS-view export catch (alert kept as fallback if the element is missing; console.warn kept).
+  The guard rule itself (validatePayload / no supplied rows) is untouched.
+- workspace.js: STEPS gain needs / produces / output / how (each claim checked against core/reconcile.js, export/pos-import.js,
+  app.js); `previewHtml('export')` lists PHF.posImport.CONTRACT.headers (15) and PHF.schema.HEADERS (43) at runtime;
+  `renderVersions()` writes the page badge + PHF.schema.BUILD into `#stepsVersion`; header Run pills no longer contain a `.st`
+  status (setRunPill already null-guards it; the `.db-mini` badge carries the status).
+- CSS: app.css `.table-search` max-width 460px → none; workspace.css compact drop zone / meta / intro. phf-ui.css v1.3.0 adds
+  `.result-steps .result-downloads`, `.result-actions` toolbar (search flex:1), `.phf-notice`, `.db-step-facts`, `.master-how`
+  body, `.db-cols`, `.steps-version`, `.input-meta-fold`, one right-edge cluster for `.results-head/.dbhdr/.input-workspace-head`,
+  shared `.dbhdr` order (db-act 1 → db-mini 2 → acc-caret 3) for all three tools, and `.builder-workspace>#toolLibrary`
+  padding override (the only new !important, against theme.css's existing `padding:16px !important`).
+- Regression: real reconciliations of invoices 74147128 and 74154567 on v21.31.0 and the committed v21.30.1 produced
+  byte-identical POSActive TXT, full CSV and POS key review CSV; full .xlsx identical except docProps/core.xml timestamps.
+- Versions: hub v21.31.0; reconcile v2.15.0; Build POS Master v21.20.2; POS New Product Check Clean v1.20.2; phf-ui ?v=1.3.0.

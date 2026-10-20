@@ -1,8 +1,9 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.20.1 (20 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.20.2 (20 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
  * three merge stages, downloads and the OUT_MERGED_DATA review table.
+ * v1.20.2 (Staff Hub v21.31.0): picks up phf-ui.css v1.3.0 — stage headers read [Run stage N] → status badge → chevron.
  * v1.20.1 (Staff Hub v21.30.1): the strip's progress row shows for any running stage with its live message; the INPUT
  *   FILES rail is sized to the real strip height so it no longer overlaps the sheet below.
  * v1.20.0 (Staff Hub v21.30.0): generated-file rows use the Saved Files row markup; the whole input rail accepts dropped
@@ -191,7 +192,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.20.1';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.20.2';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a

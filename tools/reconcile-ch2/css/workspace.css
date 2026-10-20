@@ -1,4 +1,4 @@
-/* Reconcile CH2 v2.7.0 — input rail + workspace layout.
+/* Reconcile CH2 v2.15.0 — input rail + workspace layout (v2.7.0 base; the input cards are compact + collapsible since v2.15.0).
    Same proportions as Build Master Databases (tools/database-build). Colours and states come
    from assets/css/theme.css, which styles both pages with the same rules. */
 body.phf-page-reconcile .wrap{padding-top:16px}
@@ -26,11 +26,11 @@ body.phf-page-reconcile .builder-workspace{min-width:0}
 body.phf-page-reconcile .input-detail-panel{display:none}
 body.phf-page-reconcile .input-detail-panel.is-open{display:block}
 body.phf-page-reconcile .input-workspace-card[hidden]{display:none!important}
-body.phf-page-reconcile .input-workspace-card .dropzone{min-height:150px;display:grid;place-items:center;text-align:center;cursor:pointer}
+body.phf-page-reconcile .input-workspace-card .dropzone{min-height:70px;padding:10px 12px;display:grid;place-items:center;text-align:center;cursor:pointer}   /* v2.15.0: compact */
 body.phf-page-reconcile .input-workspace-card .dropzone strong,
 body.phf-page-reconcile .input-workspace-card .dropzone small{display:block}
 body.phf-page-reconcile .input-workspace-card .file-list{margin-top:12px}
-body.phf-page-reconcile .input-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}
+body.phf-page-reconcile .input-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
 body.phf-page-reconcile .input-meta>div{padding:10px 12px;border-radius:8px;font-size:12px;line-height:1.4}
 body.phf-page-reconcile .input-meta strong{display:block;margin-bottom:3px}
 body.phf-page-reconcile .input-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}
@@ -96,3 +96,6 @@ body.phf-page-reconcile #bulkDrop.dropzone:hover strong,body.phf-page-reconcile 
 body.phf-page-reconcile .sidebar-actions{display:flex;gap:6px;flex-wrap:wrap;padding:6px 10px 10px}
 body.phf-page-reconcile .sidebar-actions .btn{flex:1 1 auto;min-height:32px;padding:6px 10px;font-size:11.5px;white-space:nowrap}
 body.phf-page-reconcile .sidebar-actions .rail-clear-all{color:var(--phf-red-ink);border-color:var(--phf-red-line);background:#fff}
+/* v2.15.0 (Task 14.4): the one-line intro keeps its local-processing note but drops the tall panel padding */
+body.phf-page-reconcile .dashboard-intro{padding:8px 14px;margin-bottom:10px}
+body.phf-page-reconcile .dashboard-intro p{font-size:12px;margin:0}

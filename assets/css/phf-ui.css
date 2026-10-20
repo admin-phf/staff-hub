@@ -1,4 +1,4 @@
-/* PHF Staff Hub — phf-ui.css v1.2.1 (20 Oct 2026)
+/* PHF Staff Hub — phf-ui.css v1.3.0 (20 Oct 2026)
    ONE authoritative component sheet shared by Build POS Master Databases, POS New Product Check Clean and Reconcile
    CH2 Order (all three pages carry body.phf-page-db). Colours, type and spacing come from the --phf-* tokens in theme.css;
    nothing here changes any build, merge, sheet or Library behaviour — it is presentation only.
@@ -267,3 +267,73 @@ body.phf-page-db .builder-shell .builder-sidebar{position:sticky;top:calc(var(--
 body.phf-page-db .db-bar.indet>div{width:38%;animation:db-indet 1.1s ease-in-out infinite alternate}
 @keyframes db-indet{from{margin-left:0}to{margin-left:62%}}
 @media(prefers-reduced-motion:reduce){body.phf-page-db .db-bar.indet>div{animation:none;width:100%;opacity:.5}}
+/* ---- v1.3.0 (20 Oct 2026) — Reconcile CH2 Order Tasks 12–16 -------------------------------------------------------------
+   Shared pieces: downloads on the step row, the work-area toolbar with a full-width search, the on-page export notice, step
+   facts + "How it works", compact collapsible input cards, and a common right-edge cluster (badge → chevron) for every head. */
+/* step row: pills left, downloads grouped right, one 34px pill system; wraps only when the row is too narrow */
+body.phf-page-db .result-steps{gap:8px 10px}
+body.phf-page-db .result-steps .result-downloads{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+body.phf-page-db .result-downloads .db-pill{height:34px}
+body.phf-page-db .result-downloads .db-pill::before{content:"↓";font-size:12px;margin-right:2px}
+body.phf-page-db .result-downloads .db-pill.view-primary{box-shadow:0 0 0 2px rgba(230,205,116,.45)}
+body.phf-page-db .result-downloads .db-pill.hidden{display:none}
+body.phf-page-db .result-downloads .db-pill:disabled{opacity:.5;cursor:not-allowed}
+/* work-area toolbar directly above the table: counter · Tick all · CLEAR QTY · Remove not supplied · search (remaining width) · view */
+body.phf-page-db .result-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-start;margin:0 0 10px}
+body.phf-page-db .result-actions .receiving-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+body.phf-page-db .result-actions .receiving-actions.hidden{display:none}
+body.phf-page-db .result-actions .table-search{flex:1 1 260px;min-width:200px;max-width:none}
+body.phf-page-db .result-actions .table-search input{height:34px;min-height:34px;border-radius:8px}
+body.phf-page-db .result-actions .view-picker{margin-left:auto;flex:0 0 auto}
+body.phf-page-db .result-actions .view-picker .db-outline{height:30px;padding:0 10px;font-size:11.5px}
+@media(max-width:900px){body.phf-page-db .result-actions .view-picker{margin-left:0;width:100%}body.phf-page-db .result-steps .result-downloads{margin-left:0;width:100%}}
+/* the table uses the full content width (the results panel already spans the viewport minus a small gutter) */
+body.phf-page-db .results .table-wrap{width:100%;max-width:none;margin:0}
+/* on-page export notice (replaces window.alert): the guard message, accurate and dismissible */
+body.phf-page-db .phf-notice{display:flex;align-items:flex-start;gap:10px;background:var(--phf-yellow-bg,#FFF3B0);border:1px solid var(--phf-yellow-line,#E6C200);color:var(--phf-yellow-ink,#6B5200);border-radius:9px;padding:9px 12px;margin:0 0 10px;font-size:12.5px;line-height:1.4}
+body.phf-page-db .phf-notice.hidden{display:none}
+body.phf-page-db .phf-notice-body{flex:1 1 auto;min-width:0}
+body.phf-page-db .phf-notice-body strong{display:block;margin-bottom:3px}
+body.phf-page-db .phf-notice-body ul{margin:0;padding-left:18px}
+body.phf-page-db .phf-notice-close{flex:0 0 auto;background:transparent;border:0;color:inherit;font-size:13px;font-weight:800;cursor:pointer;line-height:1;padding:2px 4px;border-radius:6px}
+body.phf-page-db .phf-notice-close:hover{background:rgba(0,0,0,.08)}
+/* step facts + folded detail (same pattern as the other tools' stage notes) */
+body.phf-page-db .db-group-desc strong{color:var(--phf-navy);margin-right:4px}
+body.phf-page-db .db-step-facts{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:3px;font-size:11.5px;color:var(--phf-muted)}
+body.phf-page-db .db-step-facts li strong{display:inline-block;min-width:128px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--phf-navy)}
+body.phf-page-db .master-how{margin:0 0 8px}
+body.phf-page-db .master-how+.master-how{margin-top:-2px}
+body.phf-page-db .master-how-body{padding:4px 12px 10px;font-size:11.5px;line-height:1.45;color:var(--phf-ink)}
+body.phf-page-db .db-cols{margin:0;padding-left:20px;columns:3;column-gap:18px;font-size:11px}
+@media(max-width:900px){body.phf-page-db .db-cols{columns:1}}
+body.phf-page-db .steps-version{display:inline-block;margin-left:6px;font-size:10.5px;font-weight:700;color:var(--phf-gold);letter-spacing:.02em}
+/* compact, collapsible input cards (POS order / Supplier invoices / reference files) — same head as the other tools */
+body.phf-page-db .input-workspace-card .input-workspace-head.acc-custom-head{cursor:pointer}
+body.phf-page-db .input-workspace-card .file-list .file-row{padding:6px 10px;margin-top:6px;font-size:12.5px}
+body.phf-page-db .input-meta-fold{margin-top:8px;border:1px solid var(--phf-line);border-radius:8px;background:var(--phf-soft)}
+body.phf-page-db .input-meta-fold>summary{cursor:pointer;list-style:none;padding:6px 10px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--phf-muted)}
+body.phf-page-db .input-meta-fold>summary::-webkit-details-marker{display:none}
+body.phf-page-db .input-meta-fold>summary::before{content:'▸';display:inline-block;width:12px;color:var(--phf-muted)}
+body.phf-page-db .input-meta-fold[open]>summary::before{content:'▾'}
+body.phf-page-db .input-meta-fold .input-meta{margin:0;padding:0 10px 10px}
+/* one right-edge cluster for every head: badge then chevron, never shrunk or clipped */
+body.phf-page-db :is(.results-head,.dbhdr,.input-workspace-head){overflow:visible}
+body.phf-page-db :is(.results-head,.dbhdr,.input-workspace-head) :is(.result-badge,.small-badge,.db-mini){flex:0 0 auto;white-space:nowrap;min-width:0}
+body.phf-page-db :is(.results-head,.dbhdr,.input-workspace-head) .acc-caret{flex:0 0 auto;margin-left:6px}
+body.phf-page-db .input-workspace-head.acc-custom-head>div{min-width:0;flex:1 1 auto}
+body.phf-page-db .input-workspace-head.acc-custom-head>.small-badge{margin-left:auto}
+/* group headers in every tool: [Run / Build button] → status badge → chevron, so the badge always sits immediately before the
+   chevron at the same right edge as the panel heads (Task 15.3 / Task 3.2); the button keeps margin-left:auto */
+body.phf-page-db .dbhdr>.db-act{order:1}
+body.phf-page-db .dbhdr>.db-mini{order:2}
+body.phf-page-db .dbhdr>.acc-caret{order:3}
+/* Reconcile's Saved files panel is a direct child of the workspace, where theme.css forces `padding:16px !important` on
+   panels; that put its navy band inside a white margin (chevron 33px in, not 17px). Same full-bleed head as the other tools —
+   this !important only overrides that existing one. */
+body.phf-page-db .builder-workspace>#toolLibrary{padding:0!important;margin:0 0 10px!important}
+/* the checklist's step row: a little tighter so the three steps and four downloads share one row from ~1,360 px windows;
+   below that the downloads move together to a second line, right-aligned (never split or clipped) */
+body.phf-page-db .result-steps{gap:6px 8px}
+body.phf-page-db .result-steps .db-step{padding-right:9px}
+body.phf-page-db .result-steps .result-downloads{gap:6px;justify-content:flex-end}
+body.phf-page-db .result-downloads .db-pill{padding:0 11px}

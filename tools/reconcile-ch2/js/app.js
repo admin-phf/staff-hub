@@ -1,3 +1,6 @@
+// v2.15.0 (20 Oct 2026, Staff Hub v21.31.0): the POSActive guard message (no eligible supplied rows) shows as an on-page,
+// dismissible notice (#exportNotice) instead of window.alert — same rule, same text, still no file; shorter visible download
+// labels (the ↓ glyph says download; aria-labels keep "Download …"). No reconciliation or export change.
 // v2.13.0 (20 Oct 2026, Staff Hub v21.29.0): the run is surfaced as three clickable steps in the new run strip and the
 // "Steps & generated files" panel (js/ui/workspace.js) — 1 Check inputs = the existing reference / order gate, 2 Reconcile =
 // run() (now exposed on PHFReconcileApp), 3 Export files = the existing download buttons. The reconciliation maths, parsers,
@@ -217,6 +220,12 @@
   function setProgress(pct){els.progress.classList.remove('hidden');els.progressBar.style.width=`${Math.max(0,Math.min(100,pct))}%`;}
   function hideProgress(){els.progress.classList.add('hidden');els.progressBar.style.width='0%';}
   function hideResults(){els.results.classList.add('hidden');}
+  // v2.15.0 — on-page notice for export guards (replaces window.alert). Returns false when the notice element is missing.
+  function showExportNotice(message){const box=document.querySelector('#exportNotice');if(!box)return false;
+    const lines=String(message||'').split(/\n/).map(l=>l.trim()).filter(Boolean);const head=lines.shift()||'';
+    box.innerHTML=`<div class="phf-notice-body"><strong>${escapeHtml(head)}</strong>${lines.length?`<ul>${lines.map(l=>`<li>${escapeHtml(l.replace(/^[•\-–]\s*/,''))}</li>`).join('')}</ul>`:''}</div><button type="button" class="phf-notice-close" aria-label="Dismiss">✕</button>`;
+    box.classList.remove('hidden');box.querySelector('.phf-notice-close').onclick=()=>box.classList.add('hidden');
+    try{box.scrollIntoView({block:'nearest'});}catch(_e){}return true;}
   function escapeHtml(v){return String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
   function rawValue(pos,key){if(pos&&pos.raw&&Object.prototype.hasOwnProperty.call(pos.raw,key))return pos.raw[key];return '';}
   function refDigits(v){return String(v??'').replace(/\.0+$/,'').replace(/\D+/g,'');}
@@ -988,26 +997,26 @@
     const viewPrimary=state.previewView==='all'?els.fullDownloadBtn:els.downloadBtn;
     for(const b of [els.fullDownloadBtn,els.fullCsvDownloadBtn,els.downloadBtn,els.keyReviewBtn]){if(!b)continue;const on=b===viewPrimary;b.classList.toggle('primary',on);b.classList.toggle('view-primary',on);}
     if(els.fullDownloadBtn){
-      els.fullDownloadBtn.textContent='Download Full Reconciliation.xlsx';
+      els.fullDownloadBtn.textContent='Full Reconciliation.xlsx';els.fullDownloadBtn.setAttribute('aria-label','Download Full Reconciliation.xlsx');   // v2.15.0: the ↓ glyph (CSS) says download; the accessible name keeps it
       els.fullDownloadBtn.disabled=!ready;
       els.fullDownloadBtn.title=ready?'Download the original complete 43-column linked-POS reconciliation workbook. Barcodes are stored as exact text.':'Run the reconciliation first.';
     }
     if(els.fullCsvDownloadBtn){
-      els.fullCsvDownloadBtn.textContent='Download Full Reconciliation.csv';
+      els.fullCsvDownloadBtn.textContent='Full Reconciliation.csv';els.fullCsvDownloadBtn.setAttribute('aria-label','Download Full Reconciliation.csv');
       els.fullCsvDownloadBtn.disabled=!ready;
       els.fullCsvDownloadBtn.title=ready?'Download the same 43-column reconciliation as an Excel-safe UTF-8 CSV. Barcodes use a text formula so leading zeroes remain visible when opened directly in Excel.':'Run the reconciliation first.';
     }
     if(els.keyReviewBtn)els.keyReviewBtn.disabled=!state.result;
     if(!els.downloadBtn)return;
     const orderMismatches=orderLinkMismatches(),orderLinkReady=true;
-    const labels={exceptions:'Download Exceptions.xlsx',pos:'Download POSActive Import.txt'};
+    const labels={exceptions:'Exceptions.xlsx',pos:'POSActive Import.txt'};   // v2.15.0: shorter visible labels so the steps and downloads share one row
     if(state.previewView==='all'){
       els.downloadBtn.classList.add('hidden');
       els.downloadBtn.disabled=true;
       return;
     }
     els.downloadBtn.classList.remove('hidden');
-    els.downloadBtn.textContent=labels[state.previewView]||'Download Current View';
+    els.downloadBtn.textContent=labels[state.previewView]||'Current View';els.downloadBtn.setAttribute('aria-label','Download '+els.downloadBtn.textContent);
     const posLinkBlocked=false;
     els.downloadBtn.disabled=!ready;
     els.downloadBtn.title=!ready?'Run the reconciliation first.':`Download the ${state.previewView==='pos'?'POSActive 15-column tab-delimited import file; ticked/accounted POS Layout rows are imported with their Found quantities (overs and unders) at the CH2 invoice prices':'exceptions workbook'}.`;
@@ -1335,7 +1344,10 @@
       if(state.previewView==='pos'){
         // Only a file that cannot be written correctly reaches here (no supplied rows, unreadable invoice, a
         // 15-column self-check). Show the reason at the point of action — price and data notes never get here.
-        try{globalThis.alert(message);}catch(_e){}
+        // v2.15.0 (Task 12.7): the same guard message, shown on the page under the step row (dismissible) instead of a
+        // browser alert; the rule that an import must contain eligible rows is unchanged. console.warn keeps the trace.
+        console.warn('POSActive import not created:',message);
+        if(!showExportNotice(message)){try{globalThis.alert(message);}catch(_e){}}
       }
     }
     finally{updateDownloadButton();}

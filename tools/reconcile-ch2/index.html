@@ -13,22 +13,22 @@
   <meta name="apple-mobile-web-app-title" content="PHF Staff Hub">
   <title>Prahran Health Foods — Reconcile CH2 Order</title>
   <link rel="stylesheet" href="../../assets/css/shell.css?v=21.6.0">
-  <link rel="stylesheet" href="./css/app.css?v=2.11.3">
-  <link rel="stylesheet" href="./css/workspace.css?v=2.9.0">
+  <link rel="stylesheet" href="./css/app.css?v=2.15.0">
+  <link rel="stylesheet" href="./css/workspace.css?v=2.15.0">
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <link rel="stylesheet" href="../../assets/css/theme.css?v=20.4.2">
-<link rel="stylesheet" href="../../assets/css/phf-ui.css?v=1.2.1">
+<link rel="stylesheet" href="../../assets/css/phf-ui.css?v=1.3.0">
 <link rel="stylesheet" href="../../assets/css/compact-layout.css?v=1.1.0">
 <link rel="stylesheet" href="../../assets/css/library.css?v=2.0.0">
 </head>
 <body class="phf-page-reconcile phf-page-db">
   <header class="phf-shell-header header-container">
   <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
-  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="Reconcile CH2 Order — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg></span><div class="phf-shell-copy title-row"><h1>Reconcile CH2 Order</h1><p class="phf-shell-version version-text">v2.14.1</p></div></a>
-  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Reconcile CH2 Order</span></nav><p class="phf-shell-updated build-details">Updated 20 Oct 2026 14:45 AEDT</p></div>
+  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="Reconcile CH2 Order — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg></span><div class="phf-shell-copy title-row"><h1>Reconcile CH2 Order</h1><p class="phf-shell-version version-text">v2.15.0</p></div></a>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Reconcile CH2 Order</span></nav><p class="phf-shell-updated build-details">Updated 20 Oct 2026 20:30 AEDT</p></div>
 </header>
   <main class="wrap phf-full workflow-wrap">
 
@@ -83,37 +83,37 @@
 
         <!-- selected-input editor (shown when a rail row is opened) -->
         <section class="panel input-detail-panel" id="inputDetailPanel">
-            <section class="panel input-workspace-card" data-input-card="master" hidden>
-              <div class="input-workspace-head"><div><div class="nav-separator">Reference data</div><h2>POS / master <span>*</span></h2><p>Required · newest merged_alligned_pos_supplier_uhp_full_ file (.xlsx, .xlsm or .csv)</p></div><span class="small-badge" data-badge>REQUIRED</span></div>
+            <section class="panel input-workspace-card" data-input-card="master" data-acc data-acc-id="reconcile-input-master" hidden>
+              <div class="input-workspace-head acc-custom-head"><div><div class="nav-separator">Reference data</div><h2>POS / master <span>*</span></h2><p>Required · newest merged_alligned_pos_supplier_uhp_full_ file (.xlsx, .xlsm or .csv)</p></div><span class="small-badge" data-badge>REQUIRED</span></div>
               <div class="dropzone" data-ref-drop="master" tabindex="0" role="button"><div><strong data-drop-title>Drop file here</strong><small>or click to choose .xlsx / .xlsm / .csv · saved in this browser</small></div></div>
               <input class="hidden" type="file" data-ref-input="master" accept=".xlsx,.xlsm,.csv">
-              <div class="input-meta"><div><strong>Used by</strong>Every reconciliation · CH2 code to POS links</div><div><strong>Storage</strong>Saved in this browser</div><div><strong>Status</strong><span data-ref-status="master">Checking…</span></div></div>
+              <details class="input-meta-fold"><summary>Used by · Storage · Status</summary><div class="input-meta"><div><strong>Used by</strong>Every reconciliation · CH2 code to POS links</div><div><strong>Storage</strong>Saved in this browser</div><div><strong>Status</strong><span data-ref-status="master">Checking…</span></div></div></details>
             </section>
-            <section class="panel input-workspace-card" data-input-card="supplier" hidden>
-              <div class="input-workspace-head"><div><div class="nav-separator">Reference data</div><h2>Ongoing Discounts <span>*</span></h2><p>Required · the shared Ongoing Discounts file (SRC_POS_ONGOING_DISCOUNTS, .xlsx or .csv), or the POS DB &amp; SUPPLIER MERGE workbook · loaded once for every tool</p></div><span class="small-badge" data-badge>REQUIRED</span></div>
+            <section class="panel input-workspace-card" data-input-card="supplier" data-acc data-acc-id="reconcile-input-supplier" hidden>
+              <div class="input-workspace-head acc-custom-head"><div><div class="nav-separator">Reference data</div><h2>Ongoing Discounts <span>*</span></h2><p>Required · the shared Ongoing Discounts file (SRC_POS_ONGOING_DISCOUNTS, .xlsx or .csv), or the POS DB &amp; SUPPLIER MERGE workbook · loaded once for every tool</p></div><span class="small-badge" data-badge>REQUIRED</span></div>
               <div class="dropzone" data-ref-drop="supplier" tabindex="0" role="button"><div><strong data-drop-title>Drop file here</strong><small>or click to choose .xlsx / .xlsm / .csv · saved in this browser</small></div></div>
               <input class="hidden" type="file" data-ref-input="supplier" accept=".xlsx,.xlsm,.csv">
-              <div class="input-meta"><div><strong>Used by</strong>Discount and wholesale audit · also Build POS Master Databases and POS New Product Check Clean</div><div><strong>Storage</strong>Saved in this browser · shared Library file</div><div><strong>Status</strong><span data-ref-status="supplier">Checking…</span></div></div>
+              <details class="input-meta-fold"><summary>Used by · Storage · Status</summary><div class="input-meta"><div><strong>Used by</strong>Discount and wholesale audit · also Build POS Master Databases and POS New Product Check Clean</div><div><strong>Storage</strong>Saved in this browser · shared Library file</div><div><strong>Status</strong><span data-ref-status="supplier">Checking…</span></div></div></details>
             </section>
-            <section class="panel input-workspace-card" data-input-card="pos" hidden>
-              <div class="input-workspace-head"><div><div class="nav-separator">Order files</div><h2>POS back-end order <span>*</span></h2><p>Required · one POS order export (.xls, .xlsx or .csv)</p></div><span class="small-badge" data-badge>REQUIRED</span></div>
+            <section class="panel input-workspace-card" data-input-card="pos" data-acc data-acc-id="reconcile-input-pos" hidden>
+              <div class="input-workspace-head acc-custom-head"><div><div class="nav-separator">Order files</div><h2>POS back-end order <span>*</span></h2><p>Required · one POS order export (.xls, .xlsx or .csv)</p></div><span class="small-badge" data-badge>REQUIRED</span></div>
               <div class="dropzone" id="posDrop" tabindex="0" role="button">
                 <strong>Drag the POS Order here</strong>
                 <small>or click to choose an .XLS, .XLSX or .CSV file</small>
               </div>
               <input class="hidden" id="posInput" type="file" accept=".xls,.xlsx,.csv">
               <div class="file-list" id="posFiles"></div>
-              <div class="input-meta"><div><strong>Used by</strong>Reconciliation · receiving checklist · POSActive import</div><div><strong>Storage</strong>Browser memory only</div><div><strong>Status</strong><span data-order-status="pos">Not loaded</span></div></div>
+              <details class="input-meta-fold"><summary>Used by · Storage · Status</summary><div class="input-meta"><div><strong>Used by</strong>Reconciliation · receiving checklist · POSActive import</div><div><strong>Storage</strong>Browser memory only</div><div><strong>Status</strong><span data-order-status="pos">Not loaded</span></div></div></details>
             </section>
-            <section class="panel input-workspace-card" data-input-card="invoices" hidden>
-              <div class="input-workspace-head"><div><div class="nav-separator">Order files</div><h2>Supplier invoices <span>*</span></h2><p>Required · CH2 / supplier invoices (PDF, XLS, XLSX or CSV) · multiple files allowed</p></div><span class="small-badge" data-badge>REQUIRED</span></div>
+            <section class="panel input-workspace-card" data-input-card="invoices" data-acc data-acc-id="reconcile-input-invoices" hidden>
+              <div class="input-workspace-head acc-custom-head"><div><div class="nav-separator">Order files</div><h2>Supplier invoices <span>*</span></h2><p>Required · CH2 / supplier invoices (PDF, XLS, XLSX or CSV) · multiple files allowed</p></div><span class="small-badge" data-badge>REQUIRED</span></div>
               <div class="dropzone" id="invoiceDrop" tabindex="0" role="button">
                 <strong>Drag supplier invoices here</strong>
                 <small>PDF, XLS, XLSX or CSV · multiple files allowed</small>
               </div>
               <input class="hidden" id="invoiceInput" type="file" multiple accept=".pdf,.xls,.xlsx,.csv">
               <div class="file-list" id="invoiceFiles"></div>
-              <div class="input-meta"><div><strong>Used by</strong>Reconciliation · invoice arithmetic and discount audit</div><div><strong>Storage</strong>Browser memory only</div><div><strong>Status</strong><span data-order-status="invoices">Not loaded</span></div></div>
+              <details class="input-meta-fold"><summary>Used by · Storage · Status</summary><div class="input-meta"><div><strong>Used by</strong>Reconciliation · invoice arithmetic and discount audit</div><div><strong>Storage</strong>Browser memory only</div><div><strong>Status</strong><span data-order-status="invoices">Not loaded</span></div></div></details>
             </section>
         </section>
 
@@ -125,7 +125,7 @@
 
         <!-- v2.13.0 — Steps & generated files: one collapsible group per step, its Run pill in the header, step 3 lists the downloads -->
         <section class="panel db-files-panel" data-acc data-acc-id="reconcile-steps">
-          <div class="results-head acc-custom-head"><div><h2>Steps &amp; generated files</h2><p>Run each step, then download its files. The receiving checklist appears under this panel.</p></div><div class="result-badge" id="outputCount">0 FILES</div></div>
+          <div class="results-head acc-custom-head"><div><h2>Steps &amp; generated files</h2><p>Run each step, then download its files. The receiving checklist appears under this panel. <span id="stepsVersion" class="steps-version"></span></p></div><div class="result-badge" id="outputCount">0 FILES</div></div>
           <div id="stepGroups" class="db-groups"></div>
         </section>
 
@@ -156,12 +156,17 @@
         <button type="button" class="db-step phf-step" data-run-step="check" data-step="1" disabled title="Step 1 — check the POS order, invoices and reference data are ready"><span class="num">1</span> Check inputs <span class="st wait" data-run-pill="check">WAITING</span></button>
         <button type="button" class="db-step phf-step" data-run-step="reconcile" data-step="2" disabled title="Step 2 — reconcile the POS order against the supplier invoices (receiving checklist)"><span class="num">2</span> Reconcile <span class="st wait" data-run-pill="reconcile">WAITING</span></button>
         <button type="button" class="db-step phf-step" data-run-step="export" data-step="3" disabled title="Step 3 — the POSActive import, full reconciliation and key review files"><span class="num">3</span> Export files <span class="st wait" data-run-pill="export">WAITING</span></button>
+        <!-- v2.15.0 (Task 12): the four downloads sit on the same row as the step pills, grouped right; same handlers and ids -->
+        <div class="db-actions result-downloads" role="group" aria-label="Reconciliation downloads">
+          <button class="db-pill primary view-primary" id="downloadBtn" aria-label="Download POSActive Import.txt">POSActive Import.txt</button>
+          <button class="db-pill" id="fullDownloadBtn" aria-label="Download Full Reconciliation.xlsx">Full Reconciliation.xlsx</button>
+          <button class="db-pill" id="fullCsvDownloadBtn" aria-label="Download Full Reconciliation.csv">Full Reconciliation.csv</button>
+          <button class="db-pill" id="keyReviewBtn" type="button" aria-label="Download POS key review.csv">POS key review.csv</button>
+        </div>
       </div>
-      <div class="actions result-actions result-controls-sticky" aria-label="Reconciliation downloads and views">
-        <button class="db-pill primary view-primary" id="downloadBtn">Download POSActive Import.txt</button>
-        <button class="db-pill" id="fullDownloadBtn">Download Full Reconciliation.xlsx</button>
-        <button class="db-pill" id="fullCsvDownloadBtn">Download Full Reconciliation.csv</button>
-        <button class="db-pill" id="keyReviewBtn" type="button">Download POS key review.csv</button>
+      <!-- v2.15.0 (Task 12.7): the POSActive guard message shows here instead of a browser alert; the rule itself is unchanged -->
+      <div class="phf-notice hidden" id="exportNotice" role="alert" aria-live="assertive"></div>
+      <div class="actions result-actions result-controls-sticky" aria-label="Receiving checklist tools, search and views">
         <div class="receiving-actions hidden" id="receivingActions" role="group" aria-label="Receiving checklist">
           <span class="pos-check-progress" id="posCheckProgress">Accounted 0 / 0</span>
           <button class="db-outline" id="tickAllBtn" type="button" title="Tick all — untouched rows use expected CH2 supplied qty">Tick all</button>
@@ -201,8 +206,8 @@
   <script src="./js/core/linked-pos.js?v=2.8.0"></script>
   <script src="./js/export/pos-import.js?v=2.11.0"></script>
   <script src="./js/export/report.js?v=2.8.0"></script>
-  <script src="./js/app.js?v=2.13.0"></script>
-  <script src="./js/ui/workspace.js?v=2.14.0"></script>
+  <script src="./js/app.js?v=2.15.0"></script>
+  <script src="./js/ui/workspace.js?v=2.15.0"></script>
   <script src="../../assets/js/hub-library.js?v=2.0.0"></script>
   <script src="../../assets/js/phf-accordion.js?v=1.2.2"></script>
   <script>if(window.PHFLibraryPanel)window.PHFLibraryPanel.mount({root:'#toolLibrary',scope:'Reconcile CH2 Order',heading:'Saved files'});if(window.PHFAccordion)window.PHFAccordion.refresh();(function(){var s=document.getElementById('dbRunStrip');if(!s)return;var set=function(){document.documentElement.style.setProperty('--db-strip-h',s.getBoundingClientRect().height+'px')};set();if(window.ResizeObserver)new ResizeObserver(set).observe(s);window.addEventListener('resize',set)})();</script>

@@ -1,5 +1,6 @@
 (function(){'use strict';
-const VERSION='v21.20.1', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+const VERSION='v21.20.2', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+// v21.20.2 (Staff Hub v21.31.0) — picks up phf-ui.css v1.3.0: group headers read [Build / update] → status badge → chevron.
 // v21.20.1 (Staff Hub v21.30.1) — the strip's progress row shows for ANY running stage (it was only shown by Build All, so a
 // single Build / update showed no bar): animated until Build All supplies a %, with the stage's live message in the strip.
 // The INPUT FILES rail is sized to the real strip height (phf-ui.css, --db-strip-h set by the page) instead of a fixed height.
