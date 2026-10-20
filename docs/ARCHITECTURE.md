@@ -1154,3 +1154,12 @@ All implemented stages keep source business files local to the browser and gener
   `.db-outline`, Clear qty `.db-danger`. Export sizes unknown until built (builders download as they build) — extension shown
   until then.
 - Versions: hub v21.30.0; Build POS Master v21.20.0; merge v1.20.0; reconcile v2.14.0; phf-ui.css ?v=1.2.0 in all three.
+
+## Staff Hub v21.30.1 (20 Oct 2026 14:45 AEDT)
+- Progress row: db-build / merge `stageSet` now toggle `#globalProgress` (+ `.db-bar.indet` animation, `#globalStatus` live
+  message, `#dbStatLine` idle line) from "any stage running", not only from `gpct()` (which only Build All / the merge loop
+  call). `gpct(v>0)` clears `.indet`.
+- Rail: phf-ui.css v1.2.1 `body.phf-page-db .builder-shell .builder-sidebar{position:sticky;top:calc(var(--db-strip-h)+10px);
+  height:auto;max-height:calc(100vh - var(--db-strip-h) - 22px)}` overrides the tool stylesheets' fixed height/top. Each
+  index.html inline script sets `--db-strip-h` from `#dbRunStrip` via ResizeObserver.
+- Versions: hub v21.30.1; db-build v21.20.1; merge v1.20.1; reconcile v2.14.1; phf-ui ?v=1.2.1.

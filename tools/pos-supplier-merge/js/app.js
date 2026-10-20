@@ -1,8 +1,10 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.20.0 (20 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.20.1 (20 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
  * three merge stages, downloads and the OUT_MERGED_DATA review table.
+ * v1.20.1 (Staff Hub v21.30.1): the strip's progress row shows for any running stage with its live message; the INPUT
+ *   FILES rail is sized to the real strip height so it no longer overlaps the sheet below.
  * v1.20.0 (Staff Hub v21.30.0): generated-file rows use the Saved Files row markup; the whole input rail accepts dropped
  *   files (wireRailDrop); CLEAR buttons are the REQUIRED-style pill side by side; apple home link without the disc.
  * v1.19.0 (Staff Hub v21.29.0): rail rows carry the file state (LOADED green · UPDATED blue · INCOMPATIBLE bright yellow with
@@ -189,7 +191,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.20.0';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.20.1';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -385,6 +387,7 @@
   function gpct(v) {
     var p = $('#globalProgress'), b = $('#globalProgressBar'), idle = $('#dbStatLine'); var on = v > 0;
     if (p) p.hidden = on ? false : true; if (idle) idle.hidden = on; if (b) b.style.width = Math.max(0, Math.min(100, v)) + '%';
+    var bar = p && p.querySelector('.db-bar'); if (bar && on) bar.classList.remove('indet');
   }
   function cleanTitle(s) { return String(s || '').replace(/^[^A-Za-z0-9(]+/, '').trim(); }
 
@@ -871,6 +874,11 @@
   function stageSet(id, status, msg) {
     state.stage[id] = { status: status, msg: msg };
     setRunPill(id, status);
+    // v1.20.1: the strip's progress row shows whenever a stage is running (animated until a % is known), hides when none is
+    (function () { var anyRun = Object.keys(state.stage).some(function (k) { return state.stage[k] && state.stage[k].status === 'running'; });
+      var p = $('#globalProgress'), bar = p && p.querySelector('.db-bar'), fill = $('#globalProgressBar'), idle = $('#dbStatLine');
+      if (anyRun) { if (p) p.hidden = false; if (idle) idle.hidden = true; if (status === 'running' && msg) { var w = $('#globalStatus'); if (w) { w.textContent = msg; w.className = 'db-what status running'; } } if (bar) bar.classList.toggle('indet', !(fill && parseFloat(fill.style.width) > 0)); }
+      else { if (bar) bar.classList.remove('indet'); if (fill) fill.style.width = '0%'; if (p) p.hidden = true; if (idle) idle.hidden = false; } })();
     // the stage's group header in Stages & generated files: status pill + status line + Run button label while running
     var g = $('#mgroup-' + id);
     if (g) {

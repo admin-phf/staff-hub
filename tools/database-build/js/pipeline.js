@@ -1,5 +1,8 @@
 (function(){'use strict';
-const VERSION='v21.20.0', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+const VERSION='v21.20.1', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+// v21.20.1 (Staff Hub v21.30.1) — the strip's progress row shows for ANY running stage (it was only shown by Build All, so a
+// single Build / update showed no bar): animated until Build All supplies a %, with the stage's live message in the strip.
+// The INPUT FILES rail is sized to the real strip height (phf-ui.css, --db-strip-h set by the page) instead of a fixed height.
 // v21.20.0 (Staff Hub v21.30.0) — generated-file rows use the Saved Files (Library) row markup (libRow); the whole input rail
 // accepts dropped files (wireRailDrop → bulkAccept; rows keep their own target); CLEAR buttons are the REQUIRED-style pill,
 // side by side; the strip's apple home link has no disc. No build or output change.
@@ -95,7 +98,7 @@ function stamp(){const p=new Intl.DateTimeFormat('en-GB',{timeZone:'Australia/Me
 // v21.17.0 — the status text shows in the run strip. While a build runs it sits on the progress row (#globalStatus);
 // otherwise it sits on the idle line (#globalStatusIdle). Both are kept in step so no message is ever lost.
 function setGlobal(t,type='info'){for(const sel of ['#globalStatus','#globalStatusIdle']){let e=$(sel);if(e){e.className='db-what status '+type;e.textContent=t}}}
-function gpct(v){let p=$('#globalProgress'),b=$('#globalProgressBar'),idle=$('#dbStatLine');let on=v>0;if(p)p.hidden=!on;if(idle)idle.hidden=on;if(b)b.style.width=Math.max(0,Math.min(100,v))+'%'}
+function gpct(v){let p=$('#globalProgress'),b=$('#globalProgressBar'),idle=$('#dbStatLine');let on=v>0;if(p)p.hidden=!on;if(idle)idle.hidden=on;if(b)b.style.width=Math.max(0,Math.min(100,v))+'%';let bar=p&&p.querySelector('.db-bar');if(bar&&on)bar.classList.remove('indet')}
 // v21.12.1: a dropped file is read into memory at once (memFile); later reads never go back to the computer's copy.
 function readErr(file,e){let n=e&&e.name;if(n==='NotFoundError'||n==='NotReadableError')return new Error(`${file&&file.name||'A file'} could not be read — it was moved, renamed, changed or deleted on the computer after it was dropped. Drop it again.`);return e instanceof Error?e:new Error(String(e))}
 async function memFile(f){if(!f||f.__mem)return f;let buf;try{buf=await f.arrayBuffer()}catch(e){throw readErr(f,e)}let m=new File([buf],f.name,{type:f.type||'',lastModified:f.lastModified||Date.now()});m.__mem=true;return m}
@@ -150,7 +153,7 @@ function setRunPill(id,status){let p=document.querySelector(`[data-run-pill="${i
  // v21.17.2 — the step pill is a button: usable when its inputs are ready (or it is already built / errored and can be
  // re-run) and nothing is running; a double click cannot start a second build (buildStage checks state.busy too).
  let can=!state.busy&&status!=='running'&&(status==='ready'||status==='done'||status==='error'||stagePrereqs(id));step.disabled=!can;step.setAttribute('aria-disabled',can?'false':'true')}}
-function stageSet(id,status,msg){state.stageStatus[id]=status;setRunPill(id,status);
+function stageSet(id,status,msg){state.stageStatus[id]=status;setRunPill(id,status);/* v21.20.1: the strip's progress row shows whenever a stage is running (an animated bar until Build All supplies a %), and hides when none is */{let anyRun=Object.values(state.stageStatus).some(x=>x==='running'),p=$('#globalProgress'),bar=p&&p.querySelector('.db-bar'),fill=$('#globalProgressBar'),idle=$('#dbStatLine');if(anyRun){if(p)p.hidden=false;if(idle)idle.hidden=true;if(status==='running'&&msg){let w=$('#globalStatus');if(w){w.textContent=(STAGE_NAMES[id]||id)+' — '+msg;w.className='db-what status running'}}if(bar)bar.classList.toggle('indet',!(fill&&parseFloat(fill.style.width)>0))}else{if(bar)bar.classList.remove('indet');if(fill)fill.style.width='0%';if(p)p.hidden=true;if(idle)idle.hidden=false}}
  // database group header: status pill + status line + Build button label while running. When the database is DONE the
  // header already says so (DONE · n files), so the status line is kept for its detail but shown only while it is useful:
  // running / error / missing. The full completion detail stays in the stage message (title on the pill).
