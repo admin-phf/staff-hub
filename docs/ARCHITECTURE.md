@@ -1059,3 +1059,30 @@ All implemented stages keep source business files local to the browser and gener
 - Rail hardened against narrow-width collapse: `.input-nav-item strong` forced `white-space:nowrap` + ellipsis and
   `.builder-sidebar` given a min-width, so input names no longer wrap one character per line.
 - Headless check: zero console errors; heads render as navy/gold; narrow-viewport input name stays single-line.
+
+## Staff Hub v21.27.0 (20 Oct 2026 11:00 AEDT)
+- POS New Product Check Clean (tools/pos-supplier-merge/) given the same v3 layout as Build POS Master Databases. Layout and
+  render code only — merge engine (v6.3.89 Web Worker + Apps Script files), matching, STATUS, OUT_MERGED_DATA, the POS
+  INSERT / UPDATE TXT outputs and the whole sheet/workbook are unchanged. app.js TOOL_VERSION v1.17.0, merge.css v1.17.0,
+  tool badge v1.17.0.
+- The two run bars merged into one: the old "Run all" panel AND the sticky stepper above the sheet (.wb-runbar / #wbRunBar with
+  its .wb-run buttons) are replaced by one #dbRunStrip-style run strip — 3 step pills (highlight / build / export) with
+  data-run-step, #runAllBtn, #dlPosUpdate (POS UPDATE download, shown when the export txt output exists), #clearAllBtn ghost
+  pill, and #globalProgress / #globalStatus as a progress bar + live status line. The .wb-runbar markup is removed (a hidden
+  #wbRunStatus is kept for any code that referenced it).
+- The three stage cards (#stage-highlight/#stage-build/#stage-export) and the "Generated output files" panel (#allOutputs)
+  become one collapsible navy-head "Stages & generated files" panel (#mergeGroups): a group per stage (#mgroup-highlight,
+  -build, -export) with number, name, status pill, a .db-build "Run / update" button and a chevron. Stage 1 is status-only
+  (no file); stage 2 shows the review workbook (addOutput 'build' / xlsx-review); stage 3 shows the POS TXT files (addOutput
+  'export' / txt-*). renderOutputs rewritten to group by stage.
+- Functions reworked, pipeline untouched: setGlobal / gpct (→ run strip + progress), stageSet / stageMsg (+ setRunPill /
+  updateDoneNote → pills + group headers), updateRunButtons (→ .db-build; .wb-run dropped), renderStages (→ 3 groups),
+  renderOutputs (+ fileRow / bindPosUpdate / OUT_FRIENDLY). runTo, afterStage, the bulk logic and all sheet/workbook code are
+  unchanged.
+- CSS: merge.css gains a copy of Build POS Master's app.css v21.17.0 + v21.17.1 blocks (run strip, .db-pill, .dbgroup/.dbhdr/
+  .frow, navy .results-head heads, styled .summary-chip, borderless status note, rail min-width) plus merge-specific rules
+  (.db-group-nofile, .db-group-status.ready). The body already carries phf-page-db so body.phf-page-db selectors match.
+- Only the run-strip buttons took the shared gold .db-pill style; the in-sheet toolbar buttons (Paste / Add rows / etc.) were
+  left as they were, per the request to keep all sheet options as is.
+- Headless check: zero console errors; one run strip (no .wb-runbar); 3 step pills; POS UPDATE download hidden until built;
+  3 stage groups; 3 readiness chips; workbook + tabs intact; .dashboard-summary>.results-head background computed #1E3A5F.

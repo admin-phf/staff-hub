@@ -1,8 +1,20 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.16.6 (19 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.17.0 (20 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
  * three merge stages, downloads and the OUT_MERGED_DATA review table.
+ * v1.17.0 (Staff Hub v21.27.0): page layout brought in line with Build POS Master Databases (no engine / merge / sheet change).
+ *   The two run bars (the "Run all" panel and the sticky stepper above the sheet) are merged into ONE run strip at the top —
+ *   three step pills (Highlight + Best Buy / Build OUT_MERGED_DATA / Insert + Update & Export), Run all stages, a POS UPDATE
+ *   download button (shown once the export stage has run), Clear results, and a progress bar + live status line. The stage
+ *   cards and the separate "Generated output files" panel become one "Stages & generated files" panel — a collapsible group
+ *   per stage (stage 1 is status-only, stage 2 holds the review workbook, stage 3 the POS TXT files), each with a Run / update
+ *   button and its files beneath in the saved-files row style. Input readiness and each group collapse with the shared chevron;
+ *   panel heads are navy bands with gold uppercase titles. The whole editable workbook (IN_SUPPLIER, OUT_MERGED_DATA review
+ *   table, the SRC_ tabs, the toolbar and every sheet option) is unchanged; only the run-strip buttons take the shared gold
+ *   pill style. Render / wiring functions reworked (setGlobal, gpct, stageSet, renderStages, renderOutputs, updateRunButtons,
+ *   plus setRunPill / updateDoneNote / fileRow / bindPosUpdate); the merge engine, runTo, afterStage, bulk and sheet code are
+ *   untouched.
  * v1.1.0: Supplier Updates sheet on the page (totals bar, 16 headings, paste rows).
  * v1.2.0: the sheet is editable (cells, paste at a cell, add / delete rows, undo), full width under the stages and
  *         always shown; every input in the rail has its own ✕ to remove it.
@@ -166,7 +178,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.16.7';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.17.0';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -346,11 +358,15 @@
   function inputDef(id) { return M.inputDef(id); }
   function loaded(id) { var x = state.inputs[id]; return !!(x && x.files && x.files.length); }
   function rowsOf(id) { var x = state.inputs[id]; var out = []; (x && x.files || []).forEach(function (f) { out = out.concat(f.data); }); return out; }
+  // v1.17.0 — the status line lives in the run strip (idle line + progress line); keep #wbRunStatus for any legacy reads.
   function setGlobal(t, type) {
-    var e = $('#globalStatus'); e.className = 'status ' + (type || 'info'); e.textContent = t;
-    var r = $('#wbRunStatus'); if (r) { r.textContent = t; r.title = t; r.className = 'wb-runbar-status is-' + (type || 'info'); }   // v1.7.1 run bar
+    ['#globalStatus', '#globalStatusIdle'].forEach(function (sel) { var e = $(sel); if (e) { e.className = 'db-what status ' + (type || 'info'); e.textContent = t; } });
+    var r = $('#wbRunStatus'); if (r) { r.textContent = t; r.title = t; }
   }
-  function gpct(v) { var p = $('#globalProgress'), b = $('#globalProgressBar'); p.classList.toggle('hidden', v <= 0); b.style.width = Math.max(0, Math.min(100, v)) + '%'; }
+  function gpct(v) {
+    var p = $('#globalProgress'), b = $('#globalProgressBar'), idle = $('#dbStatLine'); var on = v > 0;
+    if (p) p.hidden = on ? false : true; if (idle) idle.hidden = on; if (b) b.style.width = Math.max(0, Math.min(100, v)) + '%';
+  }
   function cleanTitle(s) { return String(s || '').replace(/^[^A-Za-z0-9(]+/, '').trim(); }
 
   // ------------------------------------------------- saved reference (IndexedDB)
@@ -782,39 +798,62 @@
   function requiredReady() { return M.INPUTS.every(function (d) { return !d.required || loaded(d.id); }); }
 
   // ------------------------------------------------------------- stages
+  // v1.17.0 — Stages & generated files: one collapsible group per stage. Stage 1 produces no file (status-only); stages 2
+  // and 3 hold their files beneath. Header: number, name, status pill, Run / update button and the fold chevron.
+  var STAGE_BUILD_LABEL = { highlight: 'Run / update stage 1', build: 'Run / update stage 2', export: 'Run / update stage 3' };
+  var STAGE_HAS_FILES = { highlight: false, build: true, export: true };
   function renderStages() {
-    STAGES.forEach(function (s) {
-      $('#stage-' + s.id).innerHTML = '<section class="panel stage-panel stage-view-card ready" data-acc data-acc-id="stage-' + s.id + '"><div class="stage-head"><div class="stage-title"><span class="stepnum">' + s.n + '</span><div><h2>' + esc(s.title) + '</h2></div></div><span class="small-badge wait">WAITING</span></div><p class="stage-description">' + esc(s.desc) + '</p><div class="status info stage-status">Waiting for input files.</div><div class="stage-scope" data-stage-scope="' + s.id + '" hidden></div><div class="stage-actions"><button class="btn primary stage-run" data-stage="' + s.id + '" disabled>Run stage ' + s.n + '</button></div><div class="stage-output-inline" data-stage-output="' + s.id + '"></div></section>';
-    });
-    document.querySelectorAll('.stage-run').forEach(function (b) { b.onclick = function () { runTo(b.dataset.stage); }; });
+    var host = $('#mergeGroups'); if (!host) return;
+    host.innerHTML = STAGES.map(function (s) {
+      var files = STAGE_HAS_FILES[s.id]
+        ? '<div class="db-group-files" data-stage-output="' + s.id + '"><div class="empty-output">No files yet — run this stage to create them.</div></div>'
+        : '<div class="db-group-nofile">This stage sets the supplier STATUS and feeds the next stage — it produces no download file.</div>';
+      return '<section class="dbgroup" id="mgroup-' + s.id + '" data-acc data-acc-id="mgroup-' + s.id + '"><div class="dbhdr acc-custom-head"><span class="num">' + s.n + '</span><div class="dbhdr-copy"><h3>' + esc(s.title) + '</h3><span class="dbhdr-meta" data-db-meta="' + s.id + '"></span></div><span class="db-mini wait">WAITING</span><span class="db-act"><button class="db-build" data-stage="' + s.id + '" data-label="' + STAGE_BUILD_LABEL[s.id] + '">' + STAGE_BUILD_LABEL[s.id] + '</button></span></div><div class="dbgroup-body"><p class="db-group-desc">' + esc(s.desc) + '</p><div class="stage-scope" data-stage-scope="' + s.id + '" hidden></div><div class="db-group-status info">Waiting for input files.</div>' + files + '</div></section>';
+    }).join('');
+    host.querySelectorAll('.db-build').forEach(function (b) { b.onclick = function () { runTo(b.dataset.stage); }; });
     renderScopes();
     if (window.PHFAccordion) window.PHFAccordion.refresh();
   }
+  // v1.17.0 — run-strip step pill (WAITING / READY / RUNNING / DONE / ERROR).
+  var RUN_PILL = { waiting: ['wait', 'WAITING'], ready: ['ready', 'READY'], running: ['run', 'RUNNING'], done: ['done', 'DONE'], error: ['err', 'ERROR'] };
+  function setRunPill(id, status) {
+    var p = document.querySelector('[data-run-pill="' + id + '"]'); var m = RUN_PILL[status] || RUN_PILL.waiting;
+    if (p) { p.className = 'st ' + m[0]; p.textContent = m[1]; }
+    var step = document.querySelector('[data-run-step="' + id + '"]'); if (step) step.classList.toggle('running', status === 'running');
+  }
   function stageSet(id, status, msg) {
     state.stage[id] = { status: status, msg: msg };
-    var card = $('#stage-' + id + ' .stage-panel'); if (!card) return;
-    card.classList.remove('ready', 'running', 'done', 'error');
-    card.classList.add(status === 'waiting' ? 'ready' : status);
-    var b = card.querySelector('.small-badge');
-    b.className = 'small-badge ' + ({ waiting: 'wait', ready: 'ready', running: 'running', done: 'done', error: 'error' }[status] || 'wait');
-    b.textContent = { waiting: 'WAITING', ready: 'READY', running: 'RUNNING', done: 'DONE', error: 'ERROR' }[status] || 'WAITING';
-    var rb = document.querySelector('.wb-run[data-run="' + id + '"]');                 // v1.7.1 run bar
-    if (rb) { rb.classList.remove('is-ready', 'is-running', 'is-done', 'is-error'); rb.classList.add('is-' + (status === 'waiting' ? 'waiting' : status)); rb.querySelector('i').textContent = b.textContent; }
-    if (status === 'done' && window.PHFAccordion) window.PHFAccordion.autoClose(card);   // v1.16.1: a finished stage tidies itself away
+    setRunPill(id, status);
+    // the stage's group header in Stages & generated files: status pill + status line + Run button label while running
+    var g = $('#mgroup-' + id);
+    if (g) {
+      var b = g.querySelector('.db-mini');
+      if (b) { var m = RUN_PILL[status] || RUN_PILL.waiting; b.className = 'db-mini ' + m[0]; b.textContent = m[1]; }
+      var run = g.querySelector('.db-build');
+      if (run) { run.disabled = (status === 'running') || run.dataset.block === '1'; run.textContent = status === 'running' ? 'Running…' : run.dataset.label; }
+    }
     stageMsg(id, msg, status);
+    updateDoneNote();
   }
   function stageMsg(id, msg, status) {
-    var st = $('#stage-' + id + ' .stage-status'); if (!st) return;
+    var st = document.querySelector('#mgroup-' + id + ' .db-group-status'); if (!st) return;
     st.textContent = msg || '';
-    st.className = 'status stage-status ' + ({ running: 'running', done: 'ok', error: 'error', ready: 'ready', waiting: 'missing' }[status] || 'info');
+    st.className = 'db-group-status ' + ({ running: 'running', done: 'ok', error: 'error', ready: 'ready', waiting: 'missing' }[status] || 'info');
+  }
+  // Summary on the right of the run strip — how many stages are done.
+  function updateDoneNote() {
+    var n = $('#dbDoneNote'); if (!n) return;
+    var done = STAGES.filter(function (s) { return (state.stage[s.id] || {}).status === 'done'; }).length;
+    var run = STAGES.some(function (s) { return (state.stage[s.id] || {}).status === 'running'; });
+    n.textContent = run ? (done + ' of 3 complete') : (done ? (done + ' of 3 run') : '');
   }
   function updateRunButtons() {
     var ready = requiredReady() && !!state.engineInfo;
     STAGES.forEach(function (s) {
       var cur = state.stage[s.id] || {};
-      var b = document.querySelector('.stage-run[data-stage="' + s.id + '"]');
-      if (b) b.disabled = !ready || state.busy;
-      var rb = document.querySelector('.wb-run[data-run="' + s.id + '"]'); if (rb) rb.disabled = !ready || state.busy;   // v1.7.1
+      var b = document.querySelector('.db-build[data-stage="' + s.id + '"]');   // v1.17.0 — the per-stage Run / update button in its group
+      var block = (!ready || state.busy);
+      if (b) { b.dataset.block = block ? '1' : ''; b.disabled = block || cur.status === 'running'; }
       if (cur.status === 'running' || cur.status === 'done' || cur.status === 'error') return;
       if (ready) stageSet(s.id, 'ready', s.n === 1 ? 'Inputs are ready. This stage can run now.' : 'Ready — earlier stages run first automatically if needed.');
       else stageSet(s.id, 'waiting', state.engineInfo ? readinessText() : 'Waiting for the merge engine to start…');
@@ -1181,9 +1220,27 @@
         : posEd.length ? 'Made before your ' + posEd.join(' / ') + ' edits — use Export TXT again on that tab.'
         : state.edits.ticks ? 'Made before your Upload tick changes — use Export TXT again on the OUT_POS_INSERT / UPDATE tab.' : '';   // v1.13.0
     });
-    var c = $('#outputCount'); c.textContent = arr.length + ' OUTPUT' + (arr.length === 1 ? '' : 'S'); c.className = 'result-badge' + (arr.length ? ' ok' : '');
-    $('#allOutputs').innerHTML = arr.length ? outputRows(arr) : '<div class="empty-output">Run a stage to create its download files.</div>';
-    STAGES.forEach(function (s) { var el = document.querySelector('[data-stage-output="' + s.id + '"]'); if (el) el.innerHTML = outputRows(arr.filter(function (o) { return o.stage === s.id; })).replace('<div class="empty-output">No output files yet.</div>', ''); });
+    var c = $('#outputCount'); if (c) { c.textContent = arr.length ? (arr.length + ' FILE' + (arr.length === 1 ? '' : 'S')) : '0 FILES'; c.className = 'result-badge' + (arr.length ? ' ok' : ''); }
+    STAGES.forEach(function (s) {
+      var el = document.querySelector('[data-stage-output="' + s.id + '"]'); if (!el) return;
+      var rows = arr.filter(function (o) { return o.stage === s.id; });
+      el.innerHTML = rows.length ? rows.map(fileRow).join('') : '<div class="empty-output">No files yet — run this stage to create them.</div>';
+      var meta = document.querySelector('[data-db-meta="' + s.id + '"]'); if (meta) meta.textContent = rows.length ? ('· ' + rows.length + ' file' + (rows.length === 1 ? '' : 's')) : '';
+    });
+    // top run-strip download: the POS UPDATE file (first export txt), shown only once it exists.
+    bindPosUpdate(arr);
+  }
+  // v1.17.0 — one file row in the Library-row style: tick · friendly name + filename + meta · size · Download.
+  var OUT_FRIENDLY = { 'txt-0': 'POS UPDATE', 'txt-1': 'POS INSERT', 'xlsx-review': 'Review workbook' };
+  function fileRow(o) {
+    var fn = OUT_FRIENDLY[o.key] || cleanTitle(o.name) || o.name;
+    return '<div class="frow' + (o.warn ? ' has-warning' : '') + '"><span class="ck">✓</span><div class="nm"><b>' + esc(fn) + '</b><code>' + esc(o.name) + '</code><span class="used">' + esc(o.meta || '') + '</span>' + (o.warn ? '<span class="output-warning">⚠ ' + esc(o.warn) + ' — the file is complete and can be downloaded.</span>' : '') + '</div><div class="sz">' + pretty(o.blob.size) + '</div><a class="dl" href="' + o.url + '" download="' + esc(o.name) + '">Download</a></div>';
+  }
+  function bindPosUpdate(arr) {
+    var btn = $('#dlPosUpdate'); if (!btn) return;
+    var o = arr.filter(function (x) { return /^txt-/.test(x.key); }).sort(function (a, b) { return a.key < b.key ? -1 : 1; })[0];
+    if (o) { btn.hidden = false; btn.href = o.url; btn.download = o.name; var sz = $('#dlPosUpdateSize'); if (sz) sz.textContent = pretty(o.blob.size); }
+    else btn.hidden = true;
   }
 
   // ------------------------------------------------------ review workbook
@@ -3157,8 +3214,7 @@
     renderStages(); renderOutputs(); wireBulkDrop(); wireReview();
     $('#supPanel').innerHTML = supSheetHtml(); wireSupSheet();
     renderTabs(); wbShow('sup', true);
-    $('#runAllBtn').onclick = function () { runTo('export'); };
-    document.querySelectorAll('.wb-run').forEach(function (b) { b.onclick = function () { runTo(b.dataset.run); }; });   // v1.7.1 run bar
+    $('#runAllBtn').onclick = function () { runTo('export'); };   // v1.17.0 — stage run buttons are wired in renderStages (.db-build)
     $('#clearAllBtn').onclick = function () { if (state.busy) return; invalidateResults('Results cleared.'); startEngine().then(updateRunButtons); setGlobal('Results cleared. Input files are kept (and stay saved in this browser).', 'info'); };
     $('#railClearSession').onclick = function () {
       removeInputs(M.INPUTS.filter(function (d) { return !d.stored; }).map(function (d) { return d.id; }), 'POS database and supplier rows removed (including rows added in the sheet). Saved reference data is kept.');
