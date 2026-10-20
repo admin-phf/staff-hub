@@ -532,3 +532,5 @@ body.phf-page-merge .sup-card-actions .sup-card-lib{flex:0 0 auto}
 @media(max-width:1180px){body.phf-page-merge .sup-card-actions{flex-wrap:wrap}body.phf-page-merge .sup-card-actions .sup-card-link>span{white-space:normal}}
 body.phf-page-merge .sup-card-actions .sup-card-link,body.phf-page-merge .sup-card-actions .sup-card-lib{margin-top:0}
 body.phf-page-merge .sup-lib-add.is-missing{opacity:.6;cursor:not-allowed}
+/* v1.22.0 — the Drop All count pill shows only when a file needs a choice (.result-badge display overrode [hidden]) */
+body.phf-page-merge #bulkCount[hidden]{display:none}

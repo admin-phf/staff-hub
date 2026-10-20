@@ -1213,3 +1213,25 @@ All implemented stages keep source business files local to the browser and gener
   `.sup-lib-add.is-missing`; its `.engine-state` rules moved to phf-ui.css.
 - Versions: hub v21.32.0; Build POS Master v21.21.0; POS New Product Check Clean v1.21.0; reconcile v2.16.0;
   phf-ui ?v=1.4.0; phf-library ?v=1.1.3; supplier-layout ?v=1.1.1.
+
+## Staff Hub v21.33.0 (20 Oct 2026 23:00 AEDT) — Supplier Updates guards, Clear Sheet clears files
+- POS New Product Check Clean v1.22.0 (app.js):
+  - `POS_OWN_RE = /^clean_merged_pos_data/i` → `POS_OWN_MSG`, thrown for id 'sup' in `acceptFile` (before mapForInput) and in
+    `bulkAccept` (inside the per-sheet try, so it lands on the rail as INCOMPATIBLE via `railFlags.reject.sup`).
+  - `supSig(entry)` = row count + D–O (barcode … POS MEMBER) of the first / middle / last rows. B is filled by the run, so it
+    is left out. `addToInput('sup')` throws when a non-added entry has the same signature. acceptFile, bulkAccept and
+    libSupAdd already catch. The same name + tab still replaces silently.
+  - `posCopyShare()` → {n, same}: supplier rows whose bc(SUP BARCODE)|tx(SUP PRODUCT) equals a POS row's
+    bc(POS MAIN ID)|tx(POS DESCR). `runTo` asks `window.confirm` when n ≥ 50 and same/n ≥ 0.9, once per `state.rev`
+    (`state.posCopyOk`).
+  - `bulkAccept`: a workbook with a `sheet.master` is skipped whole (one REVIEW note); the closing message counts only
+    this drop's records (`recs`) and names refused files.
+  - `renderBulk`: `#bulkCount.hidden = !rv`; merge.css `#bulkCount[hidden]{display:none}` (the `.result-badge` display
+    beat the attribute).
+  - Clear Sheet (`#supClearAdded`): enabled when `model.items.length`; clear-all empties every supEntries() entry through
+    `supMutate` (snapshot includes the file entries, so Undo restores them; `supCommit` drops empty entries); resets
+    supView.brands / sel and `railFlags.reject.sup` / `updated.sup`. With files and typed rows, Cancel → second confirm
+    for the typed rows only.
+  - `CARD_DESC.sup` overrides the card text (merge-map.js is shared with the engine and stays unchanged).
+- Build POS Master v21.21.1: OUT_META 'pos-db' → "POS products in the A–P layout" · "not a supplier update …". No build change.
+- Versions: hub v21.33.0; POS New Product Check Clean v1.22.0; Build POS Master v21.21.1.

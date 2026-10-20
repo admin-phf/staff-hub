@@ -1,8 +1,16 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.21.0 (20 Oct 2026; was POS Supplier New Product Check and Clean Merge,
+/* PHF Staff Hub — POS New Product Check Clean v1.22.0 (20 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
  * engine (Web Worker running the unchanged Apps Script v6.3.88 files), the
  * three merge stages, downloads and the OUT_MERGED_DATA review table.
+ * v1.22.0 (Staff Hub v21.33.0): Supplier Updates guards — Build POS Master's POS files (clean_merged_pos_data_…, incl. the
+ *   POS products in the A–P layout) are refused as Supplier Updates (POS_OWN_RE); a second copy of rows already loaded (the
+ *   same file renamed "… (1)", or the A–P file and its full set) is refused (supSig in addToInput); before a run, supplier
+ *   rows that are ≥ 90 % exact copies of POS Database rows (barcode + description) ask for confirmation (posCopyShare).
+ *   Drop All leaves a workbook holding the Combined Master alone as a whole (its Ongoing_Discounts_Source tab used to
+ *   replace the shared Ongoing Discounts). Clear Sheet clears the whole sheet — files and Library sets too, with Undo — and
+ *   is enabled whenever the sheet has rows (with typed rows and files, a second question keeps the files). The Drop All
+ *   "0 FILES" pill shows only when a file needs a choice. The Supplier Updates card text names the CH2 / Unique files.
  * v1.21.0 (Staff Hub v21.32.0): the Supplier Updates card always shows "Open the IN_SUPPLIER sheet" and "From the Library
  *   + Add CH2 / + Add Unique" on one row; each Add takes the A–P supplier-layout file Build POS Master saves
  *   (lib:ch2-posdb / lib:uhp-posdb, the clean_…_pos_db output) and falls back to the full set; a button is greyed with a
@@ -200,7 +208,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.21.0';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.22.0';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -212,6 +220,33 @@
   var LIB_SUP_SRC = [{ id: 'ch2', name: 'CH2', kinds: ['lib:ch2-posdb', 'lib:ch2-db'] }, { id: 'uhp', name: 'Unique', kinds: ['lib:uhp-posdb', 'lib:uhp-db'] }];
   var LIB_SUP = ['lib:ch2-posdb', 'lib:uhp-posdb', 'lib:ch2-db', 'lib:uhp-db'];
   var LIB_SHARED = { disc: 'lib:ref-discounts' };
+  // v1.22.0: Supplier Updates guards. Build POS Master's POS files (clean_merged_pos_data_… — the full POS set and the POS
+  // products in the A–P layout) are the POS itself, never a supplier update: merging them compares the POS with itself.
+  var POS_OWN_RE = /^clean_merged_pos_data/i;
+  var POS_OWN_MSG = 'this is your own POS Database (Build POS Master makes it from the POS products — the _pos_db file is the same products in the A–P layout), not a supplier file: merging it would compare the POS with itself. ' +
+    'Supplier Updates are the CH2 / Unique rows — + Add CH2 set / + Add Unique set, or clean_ch2_data_pos_db_… / clean_uhp_data_pos_db_… — or rows pasted into the IN_SUPPLIER sheet.';
+  // The card text (merge-map.js is shared with the engine, so the page's wording is set here).
+  var CARD_DESC = { sup: 'The supplier rows for the brands you are updating: + Add CH2 set / + Add Unique set (from Build POS Master Databases), a CH2 or Unique file — the A–P layout clean_ch2_data_pos_db_… / clean_uhp_data_pos_db_… or the full set clean_ch2_data_… / clean_uhp_data_… — or the IN_SUPPLIER tab. Several supplier files are combined into one list. Not the POS files (clean_merged_pos_data_…).' };
+  // A second copy of rows already loaded (the same file under another name, e.g. "… (1).xlsx", or the A–P file and its
+  // full set) would count every row twice. Signature = row count + barcode…POS MEMBER (D–O) of the first, middle and last
+  // rows — B (POS SUPPLIER NAME) is filled in by the run, so it is left out.
+  function supSig(e) {
+    var d = (e && e.data) || [], n = d.length;
+    if (!n) return '';
+    var pick = function (r) { return (r || []).slice(3, 15).map(function (v) { return String(v == null ? '' : v).trim(); }).join('\u0001'); };
+    return n + '\u0002' + pick(d[0]) + '\u0002' + pick(d[Math.floor(n / 2)]) + '\u0002' + pick(d[n - 1]);
+  }
+  // Supplier rows that are exact copies of POS Database rows (same barcode and description) — { n, same }.
+  function posCopyShare() {
+    var pos = state.inputs.pos, sup = supEntries();
+    if (!pos || !pos.files.length || !sup.length) return null;
+    var bc = function (v) { return String(v == null ? '' : v).replace(/\s+/g, '').replace(/^0+/, ''); };
+    var tx = function (v) { return String(v == null ? '' : v).trim().toUpperCase().replace(/\s+/g, ' '); };
+    var keys = Object.create(null), n = 0, same = 0;
+    pos.files.forEach(function (f) { f.data.forEach(function (r) { var b = bc(r[2]), d = tx(r[6]); if (b && d) keys[b + '|' + d] = 1; }); });
+    sup.forEach(function (e) { e.data.forEach(function (r) { var b = bc(r[3]), d = tx(r[6]); if (!b && !d) return; n++; if (keys[b + '|' + d]) same++; }); });
+    return { n: n, same: same };
+  }
   var M = window.PHFMergeMap;
   var $ = function (s) { return document.querySelector(s); };
   var SHEETS = {
@@ -570,6 +605,9 @@
     var def = inputDef(id), cur = state.inputs[id] || { files: [] };
     if (def.multi) {
       var files = cur.files.filter(function (f) { return !(f.name === entry.name && f.tab === entry.tab); });
+      // v1.22.0: the same rows under another name are refused (they would be merged twice)
+      var sig = id === 'sup' ? supSig(entry) : '', twin = sig && files.filter(function (f) { return !f.added && supSig(f) === sig; })[0];
+      if (twin) throw new Error('these ' + fmtN(entry.data.length) + ' rows are already loaded as ' + twin.name + (twin.tab ? ' (tab ' + twin.tab + ')' : '') + ' — adding them again would count every row twice. Remove that file first (✕ on its row in the Supplier Updates card) to use this one instead.');
       files.push(entry); cur.files = files;
     } else { if (cur.files.length && !(cur.files[0].name === entry.name && cur.files[0].size === entry.size)) railFlags.updated[id] = true; else delete railFlags.updated[id]; cur.files = [entry]; }
     delete railFlags.reject[id];
@@ -611,6 +649,7 @@
     var def = inputDef(id);
     setGlobal('Reading ' + file.name + '…', 'running');
     return readWorkbook(file).then(function (sheets) {
+      if (id === 'sup' && POS_OWN_RE.test(file.name)) throw new Error(POS_OWN_MSG);   // v1.22.0
       var best = mapForInput(id, sheets);
       var entry = fileEntry(file, best.tab, best.mapped);
       addToInput(id, entry);
@@ -645,17 +684,22 @@
     var files = Array.prototype.slice.call(list || []).filter(function (f) { return f && f.size !== undefined; });
     if (!files.length) return;
     setGlobal('Identifying ' + files.length + ' file' + (files.length === 1 ? '' : 's') + '… (nothing will run)', 'running');
+    var recs = [];   // v1.22.0: this drop's files — the closing message is about them, not older rows still in the list
     var jobs = files.map(function (file) {
-      var rec = { file: file, status: 'reading', assigned: [], ids: [], msg: 'Reading…' };
+      var rec = { file: file, status: 'reading', assigned: [], ids: [], msg: 'Reading…' }; recs.push(rec);
       state.bulk.unshift(rec); renderBulk();
       return readWorkbook(file).then(function (sheets) {
         var recognised = 0, notes = [];
-        sheets.forEach(function (sh) {
-          if (sh.master) { notes.push(sh.name + ': ' + MASTER_MSG); return; }   // v1.14.1
+        // v1.22.0: a workbook holding the Combined Master is left alone as a whole — its side tabs (Ongoing_Discounts_Source,
+        // To_Order_Source) used to be taken, replacing the shared Ongoing Discounts with the copy that master was built with.
+        var mst = sheets.filter(function (sh) { return sh.master; })[0];
+        if (mst) notes.push(mst.name + ': ' + MASTER_MSG + ' Nothing was taken from this file — to use its Ongoing_Discounts_Source tab, drop it on the Ongoing Discounts row.');
+        (mst ? [] : sheets).forEach(function (sh) {
           var ids = M.identifyRows(sh.rows);
           if (ids.length !== 1) { if (ids.length > 1) notes.push(sh.name + ': could be ' + ids.map(function (i) { return inputDef(i).title; }).join(' or ')); return; }
           var id = ids[0];
           try {
+            if (id === 'sup' && POS_OWN_RE.test(file.name)) throw new Error(POS_OWN_MSG);   // v1.22.0
             var mp = M.mapTable(sh.rows, inputDef(id).sheet, id);
             if (sh.from) mp.report.from = sh.from;
             if (!mp.data.length) { notes.push(sh.name + ': no data rows'); return; }
@@ -675,15 +719,16 @@
         .then(function () { state.bulk = state.bulk.filter(function (r) { return r.status !== 'assigned' && r.status !== 'invalid'; }); renderBulk(); renderAll(); });
     });
     Promise.all(jobs).then(function () {
-      var ok = jobs.length - state.bulk.filter(function (r) { return r.status !== 'reading'; }).length;
-      setGlobal(ok > 0 ? 'Files assigned. ' + readinessText() : 'No file was recognised — choose the input for each file below.', ok > 0 ? 'success' : 'missing');
+      var ok = recs.filter(function (r) { return r.status === 'assigned'; }).length, bad = recs.filter(function (r) { return r.status === 'invalid'; });
+      if (bad.length) setGlobal((ok ? 'Files assigned except ' : '') + bad.map(function (r) { return inputDef(r.rejectedFor).title + ': ' + r.file.name + ' — ' + r.msg.replace(/^[^:]*: /, ''); }).join(' · ') + (ok ? ' ' + readinessText() : ''), 'error');   // v1.22.0
+      else setGlobal(ok > 0 ? 'Files assigned. ' + readinessText() : 'No file was recognised — choose the input for each file below.', ok > 0 ? 'success' : 'missing');
       updateRunButtons();
     });
   }
   function renderBulk() {
     var host = $('#bulkResults'), badge = $('#bulkCount'), list = state.bulk;
     var rv = list.filter(function (r) { return r.status !== 'reading'; }).length;
-    if (badge) { badge.textContent = rv ? rv + ' TO REVIEW' : '0 FILES'; badge.className = 'result-badge' + (rv ? ' warn' : ''); }
+    if (badge) { badge.textContent = rv ? rv + ' TO REVIEW' : ''; badge.className = 'result-badge' + (rv ? ' warn' : ''); badge.hidden = !rv; }   // v1.22.0: shown only when a file needs a choice
     if (!list.length) { host.innerHTML = ''; return; }
     host.innerHTML = list.map(function (r, i) {
       var cls = r.status === 'assigned' ? 'ok' : r.status === 'reading' ? 'reading' : (r.status === 'unreadable' || r.status === 'unrecognised') ? 'bad' : 'review';
@@ -807,7 +852,7 @@
     var status = problem ? problem : has ? (def.stored ? 'Saved in this browser ' + esc(x.savedAt || '') : 'Loaded ' + esc(x.files[x.files.length - 1].loadedAt || '')) : 'Not loaded';
     $('#inputWorkspace').innerHTML =
       '<section class="panel input-workspace-card ' + (has ? 'is-loaded' : def.required ? 'is-required' : 'is-optional') + '" data-acc data-acc-id="merge-input-detail">' +
-      '<div class="input-workspace-head acc-custom-head"><div><div class="nav-separator" style="margin:0 0 6px">' + esc(def.group) + '</div><h2>' + esc(def.title) + (def.required ? ' <span style="color:#b33">*</span>' : '') + '</h2><p>' + esc(def.desc) + '</p></div><span class="small-badge ' + badgeCls + '">' + s.text + '</span></div>' +
+      '<div class="input-workspace-head acc-custom-head"><div><div class="nav-separator" style="margin:0 0 6px">' + esc(def.group) + '</div><h2>' + esc(def.title) + (def.required ? ' <span style="color:#b33">*</span>' : '') + '</h2><p>' + esc(CARD_DESC[def.id] || def.desc) + '</p></div><span class="small-badge ' + badgeCls + '">' + s.text + '</span></div>' +
       '<div class="dropzone" tabindex="0"><div><strong>' + (def.multi && has ? 'Add another supplier file' : has ? 'Replace file' : 'Drop file here') + '</strong><small>or click to choose · .XLSX / .XLS / .CSV' + (def.multi ? ' · several files are combined' : '') + '</small></div></div>' +
       '<input class="hidden" type="file" accept=".xlsx,.xls,.xlsm,.csv,.txt"' + (def.multi ? ' multiple' : '') + '>' +
       '<div class="file-list">' + files + '</div>' +
@@ -1026,6 +1071,18 @@
     if (state.busy) return Promise.resolve();
     if (sessRestoring) { setGlobal('Your last session is still loading — run again in a moment.', 'missing'); return Promise.resolve(); }
     if (!requiredReady()) { setGlobal(readinessText(), 'missing'); return Promise.resolve(); }
+    // v1.22.0: supplier rows that are mostly exact copies of the POS Database (same barcode and description) are the POS's
+    // own products — a renamed POS file or pasted POS rows. Asked once per set of inputs.
+    if (state.posCopyOk !== state.rev) {
+      var pc = posCopyShare();
+      if (pc && pc.n >= 50 && pc.same / pc.n >= 0.9) {
+        var pct = Math.round(pc.same / pc.n * 100);
+        if (!window.confirm('Check the Supplier Updates before running\n\n' + fmtN(pc.same) + ' of ' + fmtN(pc.n) + ' supplier rows (' + pct + '%) have the same barcode and description as a POS Database row. ' +
+          'That looks like the POS\'s own products (for example clean_merged_pos_data_pos_db_…), not a supplier update — merging them compares the POS with itself and can still produce price changes.\n\n' +
+          'OK = run anyway · Cancel = stop and check the Supplier Updates')) { setGlobal('Not run — ' + pct + '% of the supplier rows are copies of POS Database rows. Check the Supplier Updates (CH2 / Unique rows, not the POS files).', 'missing'); return Promise.resolve(); }
+        state.posCopyOk = state.rev;
+      }
+    }
     var tIdx = STAGES.map(function (s) { return s.id; }).indexOf(target);
     if ((state.stage.highlight || {}).status !== 'done' || tIdx === 0) fillSupNames();   // v1.9.0
     state.busy = true;
@@ -2595,7 +2652,7 @@
       '<button type="button" class="btn small" id="supAdd5" title="Add 5 empty rows at the end — type in them, paste, or fill down (drag the corner of a cell, or Ctrl+D)">Add 5 rows</button>' +
       '<button type="button" class="btn small" id="supClearEmpty" title="Remove every row with nothing from D (barcode) to O — the supplier name / number alone does not count">Clean up empty rows</button>' +
       '<button type="button" class="btn small" id="supDelRows" title="Delete the ticked rows (or the selected rows: click an INDEX number, Shift+click another to select several)">Delete rows</button>' +
-      '<button type="button" class="btn small" id="supClearAdded" title="Clear every row typed or pasted into this sheet (dropped supplier files and saved library files stay). You will be asked to confirm.">Clear Sheet</button>' +
+      '<button type="button" class="btn small" id="supClearAdded" title="Clear every row in this sheet — the supplier files, the Library sets and the rows typed or pasted here. You will be asked to confirm (with both files and typed rows you can keep the files); Undo puts them back.">Clear Sheet</button>' +   // v1.22.0: files too
       '<button type="button" class="btn small" id="supCopyHeads" title="Copy the 16 headings, ready to paste into Excel or Google Sheets as a template">Copy headings</button>' +
       '<div class="sup-opts" id="supOpts"></div></div>' +
       // v1.7.2: heading rows like the other workbook tabs — the column letters (grey, with the SUP BRAND filter), v1.8.0 the
@@ -2652,7 +2709,7 @@
     var badge = $('#supCount'); badge.textContent = (q || bsel ? fmtN(vis.length) + ' OF ' : '') + fmtN(model.items.length) + ' ROWS' + (an ? ' · ' + fmtN(an) + ' ADDED' : ''); badge.className = 'result-badge' + (model.items.length ? ' ok' : '');
     $('#supPage').textContent = q || bsel ? fmtN(vis.length) + ' of ' + fmtN(model.items.length) + ' rows ' + (q && bsel ? 'match the search and the SUP BRAND filter' : q ? 'match the search' : 'in the SUP BRAND filter') : 'All ' + fmtN(model.items.length) + ' row' + (model.items.length === 1 ? '' : 's') + ' · scroll the sheet to see every row';
     $('#supUndo').disabled = !supView.undo.length || state.busy;
-    $('#supClearAdded').disabled = !an || state.busy;
+    $('#supClearAdded').disabled = !model.items.length || state.busy;   // v1.22.0: any rows (files too), not only typed / pasted ones
     ['#supPasteBtn', '#supAdd5'].forEach(function (s) { $(s).disabled = state.busy; });
     $('#supClearEmpty').disabled = state.busy || !model.items.some(function (it) { return supRowEmpty(it.ref.row); });
     supSay(supView.note, supView.noteType);
@@ -3051,10 +3108,28 @@
       if (e.target.closest('.sup-keep,.sup-pick')) e.stopPropagation();
     });
     $('#supClearAdded').onclick = function () {      // v1.17.0: Clear Sheet — confirm before clearing typed / pasted rows
-      var e = addedEntry(false); if (!e) return;
-      var n = e.data.length;
-      if (!window.confirm('Clear the sheet?\n\nThis removes the ' + fmtN(n) + ' row' + (n === 1 ? '' : 's') + ' you typed or pasted here. Dropped supplier files and saved library files are not touched. You can undo this.')) return;
-      supMutate(function () { e.data = []; return { msg: fmtN(n) + ' added row' + (n === 1 ? '' : 's') + ' cleared.', type: 'info' }; });
+      // v1.22.0: it clears the whole sheet — supplier files and Library sets as well as typed / pasted rows (it used to be
+      // greyed out when every row came from a file). With both, a second question still offers the typed rows only.
+      if (state.busy) return;
+      var e = addedEntry(false), n = e ? e.data.length : 0;
+      var files = supEntries().filter(function (f) { return !f.added && f.data.length; });
+      var fn = files.reduce(function (a, f) { return a + f.data.length; }, 0);
+      if (!n && !fn) return;
+      var rowsTxt = function (k) { return fmtN(k) + ' row' + (k === 1 ? '' : 's'); };
+      var names = files.map(function (f) { return '• ' + f.name + ' — ' + rowsTxt(f.data.length); }).join('\n');
+      var all = window.confirm('Clear the sheet?\n\nThis removes all ' + rowsTxt(n + fn) + ':\n' + (files.length ? names + '\n' : '') + (n ? '• ' + rowsTxt(n) + ' you typed or pasted here\n' : '') +
+        '\nRun the stages again afterwards. You can undo this (Undo or Ctrl+Z).' + (files.length && n ? '\n\nOK = clear everything · Cancel = other choices' : ''));
+      if (all) {
+        supMutate(function () {
+          supEntries().forEach(function (f) { f.data = []; });
+          supView.brands = null; supView.sel = null; delete railFlags.reject.sup; delete railFlags.updated.sup;   // an old refusal note no longer applies
+          return { msg: 'Sheet cleared — ' + rowsTxt(n + fn) + (files.length ? ' (' + files.length + ' supplier file' + (files.length === 1 ? '' : 's') + (n ? ' and the typed / pasted rows' : '') + ')' : '') + ' removed. Undo puts them back.', type: 'info' };
+        }) && setGlobal('Supplier Updates sheet cleared (' + rowsTxt(n + fn) + '). ' + readinessText(), requiredReady() ? 'ready' : 'missing');
+        return;
+      }
+      if (!(files.length && n)) return;
+      if (!window.confirm('Clear only the ' + rowsTxt(n) + ' you typed or pasted here?\n\nThe supplier files stay. You can undo this.')) return;
+      supMutate(function () { e.data = []; return { msg: rowsTxt(n) + ' added here cleared — the supplier files stay.', type: 'info' }; });
     };
     $('#supCopyHeads').onclick = function () {
       var txt = SUP_HEADS.join('\t');

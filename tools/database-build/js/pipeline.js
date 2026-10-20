@@ -1,5 +1,7 @@
 (function(){'use strict';
-const VERSION='v21.21.0', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+const VERSION='v21.21.1', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+// v21.21.1 (Staff Hub v21.33.0) — the POS _pos_db row reads "POS products in the A–P layout · not a supplier update" (it was
+// "POS supplier layout" and was being dropped into POS New Product Check Clean as Supplier Updates). No build change.
 // v21.21.0 (Staff Hub v21.32.0) — a replaced input no longer deletes the files already built: they stay in the table,
 // marked "Previous build · inputs updated" (blue, ↻) and still download until that database is rebuilt (markStale /
 // stageRebuilt). UPDATED (blue) on an input row clears stage by stage as each database it feeds is rebuilt, then reads
@@ -135,7 +137,7 @@ function addOutput(stage,key,name,blob,meta,warn){let old=state.outputs.get(key)
 function esc(t){return String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 const OUTPUT_ORDER=['pos-main','pos-db','ch2-main','ch2-db','uhp-main','uhp-db','master-full','master-selected','master-order'];
 // Friendly name + "used by" note for each output, shown in the file row (Library-row style).
-const OUT_META={'pos-main':['POS Database (full set)','used by Reconcile CH2 Order and POS New Product Check Clean'],'pos-db':['POS supplier layout',''],'ch2-main':['CH2 full set',''],'ch2-db':['CH2 supplier layout','used by POS New Product Check Clean (Add CH2)'],'uhp-main':['Unique full set',''],'uhp-db':['Unique supplier layout','used by POS New Product Check Clean (Add Unique)'],'master-full':['Full merged master','used by Reconcile CH2 Order'],'master-selected':['Selected-columns master',''],'master-order':['AV to Order','']};
+const OUT_META={'pos-main':['POS Database (full set)','used by Reconcile CH2 Order and POS New Product Check Clean'],'pos-db':['POS products in the A–P layout','not a supplier update — POS New Product Check Clean refuses it as Supplier Updates'],'ch2-main':['CH2 full set',''],'ch2-db':['CH2 supplier layout','used by POS New Product Check Clean (Add CH2)'],'uhp-main':['Unique full set',''],'uhp-db':['Unique supplier layout','used by POS New Product Check Clean (Add Unique)'],'master-full':['Full merged master','used by Reconcile CH2 Order'],'master-selected':['Selected-columns master',''],'master-order':['AV to Order','']};
 // v21.17.0 — one file row: tick · friendly name + filename + meta (saved to Library / used by) · size · Download.
 // v21.17.2 — ONE line per file (the Saved Files pattern): tick · name · filename · meta · made-at · size · Download.
 // A warning (re-open check) drops to its own line under the row; the file still downloads.
