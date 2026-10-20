@@ -14,20 +14,44 @@
 <title>POS New Product Check Clean | Prahran Health Foods</title>
 <link rel="stylesheet" href="../../assets/css/shell.css?v=21.6.0">
 <link rel="stylesheet" href="./css/app.css?v=1.0.0-20261010">
-<link rel="stylesheet" href="./css/merge.css?v=1.17.0">
+<link rel="stylesheet" href="./css/merge.css?v=1.18.0">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="../../assets/css/theme.css?v=20.4.2">
 <link rel="stylesheet" href="../../assets/css/compact-layout.css?v=1.1.0">
 <link rel="stylesheet" href="../../assets/css/library.css?v=2.0.0">
+<link rel="stylesheet" href="../../assets/css/phf-ui.css?v=1.0.0">
 </head>
 <body class="database-builder-page phf-page-db phf-page-merge">
 <header class="phf-shell-header header-container">
   <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
-  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="POS New Product Check Clean — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg></span><div class="phf-shell-copy title-row"><h1 class="phf-title-long">POS New Product Check Clean</h1><p class="phf-shell-version version-text">v1.17.0</p></div></a>
-  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">POS New Product Check Clean</span></nav><p class="phf-shell-updated build-details">Updated 20 Oct 2026 11:00 AEDT</p><div class="phf-lock-ctl" id="phfLockCtl" aria-live="polite"></div></div>
+  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="POS New Product Check Clean — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></svg></span><div class="phf-shell-copy title-row"><h1 class="phf-title-long">POS New Product Check Clean</h1><p class="phf-shell-version version-text">v1.18.0</p></div></a>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">POS New Product Check Clean</span></nav><p class="phf-shell-updated build-details">Updated 20 Oct 2026 12:30 AEDT</p><div class="phf-lock-ctl" id="phfLockCtl" aria-live="polite"></div></div>
 </header>
 
 <main class="workflow-wrap full-width-wrap phf-full">
+  <!-- v1.17.1 — the primary RUN strip sits ABOVE the two-column layout, full width, stuck to the top of the window.
+       The three step pills are real buttons that run that stage (stage 8 pills in each stage header do the same);
+       the actions (Run all · POS UPDATE · Clear results) are grouped on the right. -->
+  <div class="db-runstrip" id="dbRunStrip" aria-label="Run the merge stages">
+    <div class="db-runline">
+      <span class="db-lead">RUN</span>
+      <button type="button" class="phf-step db-step" data-run-step="highlight" data-stage="highlight" disabled title="Stage 1 — Highlight New Products + Best Buy (sets the supplier STATUS)"><span class="num">1</span> Highlight + Best Buy <span class="st wait" data-run-pill="highlight">WAITING</span></button>
+      <button type="button" class="phf-step db-step" data-run-step="build" data-stage="build" disabled title="Stage 2 — Build OUT_MERGED_DATA (runs stage 1 first if needed)"><span class="num">2</span> Build OUT_MERGED_DATA <span class="st wait" data-run-pill="build">WAITING</span></button>
+      <button type="button" class="phf-step db-step" data-run-step="export" data-stage="export" disabled title="Stage 3 — Generate Insert + Update &amp; Export the POS TXT files (runs stages 1–2 first if needed)"><span class="num">3</span> Insert + Update &amp; Export <span class="st wait" data-run-pill="export">WAITING</span></button>
+      <span class="db-done-note" id="dbDoneNote"></span>
+      <div class="db-actions">
+        <button type="button" class="db-pill" id="runAllBtn" disabled>Run all stages</button>
+        <a class="db-pill dlbtn" id="dlPosUpdate" hidden><span class="ic">↓</span> POS UPDATE (TXT) <small id="dlPosUpdateSize"></small></a>
+        <button type="button" class="db-pill db-danger" id="clearAllBtn" title="Clear the stage results and generated files (input files are kept)">Clear results</button>
+      </div>
+    </div>
+    <div class="db-progrow" id="globalProgress" hidden>
+      <span class="db-what status info" id="globalStatus">Add the POS Database and at least one supplier file to start.</span>
+      <div class="db-bar"><div id="globalProgressBar"></div></div>
+    </div>
+    <div class="db-progrow db-statline" id="dbStatLine"><span class="db-what status info" id="globalStatusIdle">Add the POS Database and at least one supplier file to start.</span></div>
+  </div>
+
   <div class="builder-shell dashboard-mode">
     <aside class="builder-sidebar" aria-label="POS New Product Check Clean input files">
       <div class="sidebar-title">INPUT FILES</div>
@@ -44,8 +68,6 @@
         <button type="button" class="btn small rail-clear-all" id="railClearSession" title="Remove the POS database and every supplier row, including rows added in the sheet (saved reference data stays)">Clear session files</button>
         <button type="button" class="btn small" id="railClearReference" title="Remove every reference table saved in this browser">Clear saved reference</button>
       </div>
-      <div class="sidebar-footer" id="storageNote" hidden></div>
-      <div class="sidebar-footer"><strong>Saved vs session</strong><span>Reference data stays saved in this browser. The POS Database and Ongoing Discounts load from the Staff Hub Library when you open this page. Supplier Updates starts empty: paste or drop only the brands you are merging (the CH2 / Unique imports from the Library are added only with their Add buttons); a SUP BRAND filter on the sheet narrows the merge further. v1.6.0: the session is kept in this browser too — the POS Database, Supplier Updates, the stage results with your edits and the TXT files come back when you open this page, until Clear results, Clear session files or a new run. Edits on the SRC_ tabs are saved straight away. ✕ removes one input straight away.</span></div>
     </aside>
 
     <section class="builder-workspace">
@@ -53,26 +75,6 @@
         <p><strong>Import, Update, Discontinue and Clean Products and/or Supplier information against current POS Database.</strong> Runs the POS DB &amp; SUPPLIER MERGE Google Sheet script (<strong id="engineVersion">v6.3.89</strong>) in this browser: Highlight New Products + Best Buy, Build OUT_MERGED_DATA, then Generate Insert + Update and Export POS Files. It takes the POS Database from Build POS Master Databases and merges only the brands in Supplier Updates. Everything runs locally; nothing is uploaded.</p>
         <div class="engine-state" id="engineState"><span class="phf-pill">Engine starting…</span></div>
       </section>
-
-      <!-- v1.17.0 — run strip: the three stage steps, Run all, POS UPDATE download, Clear results, and a progress bar.
-           Replaces the old "Run all" panel AND the separate sticky stepper that sat above the sheet. -->
-      <div class="db-runstrip" id="dbRunStrip" aria-label="Run the merge stages">
-        <div class="db-runline">
-          <span class="db-lead">RUN</span>
-          <span class="db-step" data-run-step="highlight"><span class="num">1</span> Highlight + Best Buy <span class="st wait" data-run-pill="highlight">WAITING</span></span>
-          <span class="db-step" data-run-step="build"><span class="num">2</span> Build OUT_MERGED_DATA <span class="st wait" data-run-pill="build">WAITING</span></span>
-          <span class="db-step" data-run-step="export"><span class="num">3</span> Insert + Update &amp; Export <span class="st wait" data-run-pill="export">WAITING</span></span>
-          <button class="db-pill" id="runAllBtn" disabled>Run all stages</button>
-          <a class="db-pill dlbtn" id="dlPosUpdate" hidden><span class="ic">↓</span> POS UPDATE (TXT) <small id="dlPosUpdateSize"></small></a>
-          <button class="db-pill db-ghost" id="clearAllBtn">Clear results</button>
-          <span class="db-done-note" id="dbDoneNote"></span>
-        </div>
-        <div class="db-progrow" id="globalProgress" hidden>
-          <span class="db-what status info" id="globalStatus">Add the POS Database and at least one supplier file to start.</span>
-          <div class="db-bar"><div id="globalProgressBar"></div></div>
-        </div>
-        <div class="db-progrow db-statline" id="dbStatLine"><span class="db-what status info" id="globalStatusIdle">Add the POS Database and at least one supplier file to start.</span></div>
-      </div>
 
       <div class="db-grid">
         <div class="db-col-main">
@@ -140,7 +142,7 @@
 <script src="../../assets/js/phf-lock-config.js?v=20261012"></script>
 <script src="../../assets/js/phf-lock.js?v=1.1.0"></script>
 <script src="../../assets/js/phf-accordion.js?v=1.2.2"></script>
-<script src="./js/app.js?v=1.17.0"></script>
+<script src="./js/app.js?v=1.18.0"></script>
 <script>if(window.PHFLibraryPanel)window.PHFLibraryPanel.mount({root:'#toolLibrary',scope:'POS New Product Check Clean',heading:'Saved files'});if(window.PHFAccordion)window.PHFAccordion.refresh();</script>
 </body>
 </html>

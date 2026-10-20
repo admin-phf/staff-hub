@@ -1086,3 +1086,28 @@ All implemented stages keep source business files local to the browser and gener
   left as they were, per the request to keep all sheet options as is.
 - Headless check: zero console errors; one run strip (no .wb-runbar); 3 step pills; POS UPDATE download hidden until built;
   3 stage groups; 3 readiness chips; workbook + tabs intact; .dashboard-summary>.results-head background computed #1E3A5F.
+
+## Staff Hub v21.28.0 (20 Oct 2026 12:30 AEDT) — UI/UX refinement package (Tasks 1–11)
+- New shared component stylesheet assets/css/phf-ui.css v1.0.0 (scoped body.phf-page-db, built on theme.css --phf-* tokens):
+  run strip + .phf-step pills + .db-pill actions (ghost / .db-danger), .phf-badge system (green success only / amber review /
+  red error / neutral waiting + counts), navy .results-head panel heads, .dbgroup/.dbhdr group headers, one-line .frow file
+  rows, rail .bulk-row assignment rows, focus-visible rings. The duplicated v21.17.0/v21.17.1 blocks were REMOVED from
+  tools/database-build/css/app.css and the copied block from tools/pos-supplier-merge/css/merge.css; both index.html files link
+  ../../assets/css/phf-ui.css?v=1.0.0 after theme.css. One authoritative source for shared presentation.
+- Build POS Master Databases v21.18.0 (pipeline.js, app.css, index.html): #dbRunStrip relocated to a direct child of <main>
+  above .builder-shell, full width, position:sticky top:0 z-index:40; main/shell overflow visible so sticky works; panels get
+  scroll-margin-top. Stage pills are <button type=button data-run-step> → buildStage(id); setRunPill sets disabled/aria-disabled
+  from readiness/busy; lockRunControls() disables pills + .db-build during buildStage/buildAll; buildStage refuses when
+  prerequisites are missing. Actions grouped right in .db-actions; #clearAllBtn now confirm()s before reload. renderBulk status
+  words READY / UPDATED / REVIEW / INCOMPATIBLE (classes drive .phf-badge colours); READY rows no longer render the disabled
+  select. addOutput records `at` (whenText) for the one-line .frow (tick · name · filename · meta · made-at · size · Download).
+  Group status line hidden when DONE for pos/ch2/uhp (kept for master = match summary, and for running/error/missing).
+  #autoDownload box removed from HTML + autoDownloadFull/deleteStageOutputs; the automatic download itself unchanged.
+  #outputCount = "n FILES · m IN LIBRARY", neutral unless all stages DONE. Root cause of the one-letter wrapping documented:
+  the old .bulk-row grid (minmax(0,1fr) auto auto + overflow-wrap:anywhere) inside the 300px rail.
+- POS New Product Check Clean v1.18.0 (app.js, merge.css, index.html): same strip relocation + sticky; strip pills are buttons →
+  runTo(stage) with setRunPill disabled handling; each .dbhdr .db-act gets a compact .phf-step.db-build numbered pill
+  ("① Run stage 1") → runTo, e.stopPropagation() so it never toggles the accordion; the big "Run / update stage N" buttons are
+  gone. #storageNote and the "Saved vs session" .sidebar-footer removed from HTML (LIB.persisted() callback already null-guarded).
+  renderBulk status words + one-line .frow as above. Workbook / sheet code untouched.
+- Hub badge v21.28.0. Tests and unverified items are listed in docs/GITHUB-RELEASE-v21.28.0.md.

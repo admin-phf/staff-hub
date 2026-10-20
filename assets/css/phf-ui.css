@@ -1,0 +1,192 @@
+/* PHF Staff Hub — phf-ui.css v1.0.0 (20 Oct 2026)
+   ONE authoritative component sheet shared by Build POS Master Databases and POS New Product Check Clean
+   (both pages carry body.phf-page-db). Colours, type and spacing come from the --phf-* tokens in theme.css;
+   nothing here changes any build, merge, sheet or Library behaviour — it is presentation only.
+
+   Contents
+     1. Run strip (full-width, sticky) · step pills (clickable) · action pills (primary / download / ghost / destructive)
+     2. Status badges (.phf-badge + the legacy .result-badge / .db-mini / .bulk-state / run-pill .st)
+     3. Navy panel heads (.results-head band) and collapsed-panel spacing
+     4. Database / stage groups (.dbgroup / .dbhdr)
+     5. Generated-file rows (.frow — one line at desktop, Saved Files pattern)
+     6. Input rail: Drop All zone + compact .bulk-row assignment rows (no character wrapping)
+     7. Focus rings and reduced-motion
+   Moved here from tools/database-build/css/app.css (v21.17.0 / v21.17.1) and tools/pos-supplier-merge/css/merge.css
+   (v1.17.0); those files no longer carry copies. */
+
+/* ------------------------------------------------------------------ 1. run strip */
+body.phf-page-db .db-runstrip{position:sticky;top:0;z-index:40;background:var(--phf-navy);color:#fff;border-radius:0 0 12px 12px;padding:9px 16px;margin:0 0 14px;box-shadow:0 2px 8px rgba(30,58,95,.22)}
+body.phf-page-db .db-runline{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+body.phf-page-db .db-lead{font-weight:800;letter-spacing:.08em;font-size:11px;color:var(--phf-gold);flex:0 0 auto}
+/* the action group sits at the right; it wraps to its own row on narrow screens */
+body.phf-page-db .db-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto}
+body.phf-page-db .db-done-note{font-size:11.5px;color:var(--phf-band-text);white-space:nowrap}
+body.phf-page-db .db-done-note:empty{display:none}
+
+/* step pill — a real button (Task 4 / Task 7); disabled while prerequisites are missing or a build runs */
+body.phf-page-db .phf-step,body.phf-page-db .db-step{display:inline-flex;align-items:center;gap:7px;height:30px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:999px;padding:0 10px 0 5px;font:inherit;font-size:12px;color:#fff;cursor:pointer;line-height:1;white-space:nowrap}
+body.phf-page-db .phf-step .num,body.phf-page-db .db-step .num{width:20px;height:20px;border-radius:50%;background:var(--phf-gold);color:var(--phf-navy);font-weight:800;font-size:11px;display:grid;place-items:center;flex:0 0 auto}
+body.phf-page-db .phf-step:hover:not(:disabled),body.phf-page-db .db-step:hover:not(:disabled){background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.32)}
+body.phf-page-db .phf-step:disabled,body.phf-page-db .db-step:disabled{cursor:not-allowed;opacity:.72}
+body.phf-page-db .phf-step.running .num,body.phf-page-db .db-step.running .num{background:#fff}
+body.phf-page-db .phf-step .st,body.phf-page-db .db-step .st{font-size:9px;font-weight:800;letter-spacing:.05em;padding:2px 7px;border-radius:999px}
+
+/* the one shared gold pill: Build all / Run all + the download buttons, identical height, padding and font */
+body.phf-page-db .db-pill{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 14px;background:var(--phf-gold);color:var(--phf-navy);border:1px solid transparent;border-radius:8px;font:inherit;font-weight:800;font-size:12px;cursor:pointer;text-decoration:none;line-height:1;white-space:nowrap}
+body.phf-page-db .db-pill:hover:not(:disabled){background:#EFD98A}
+body.phf-page-db .db-pill:disabled{opacity:.5;cursor:not-allowed}
+body.phf-page-db .db-pill[hidden]{display:none}
+body.phf-page-db .db-pill.dlbtn small{font-weight:700;color:var(--phf-navy-2);font-size:10.5px}
+body.phf-page-db .db-pill .ic{font-size:12px}
+/* ghost = secondary on navy; .db-danger = destructive (Clear session / Clear results) */
+body.phf-page-db .db-pill.db-ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.32)}
+body.phf-page-db .db-pill.db-ghost:hover:not(:disabled){background:rgba(255,255,255,.1)}
+body.phf-page-db .db-pill.db-danger{background:transparent;color:#FFB4AB;border-color:rgba(255,180,171,.55)}
+body.phf-page-db .db-pill.db-danger:hover:not(:disabled){background:rgba(197,34,31,.22);color:#fff}
+
+/* progress + status line inside the strip */
+body.phf-page-db .db-progrow{display:flex;align-items:center;gap:10px;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.14)}
+body.phf-page-db .db-progrow[hidden]{display:none}
+body.phf-page-db .db-what{font-size:11.5px;background:transparent!important;color:#fff!important;padding:0!important;margin:0!important;border:0!important;border-radius:0!important;min-width:0}
+body.phf-page-db .db-what.error{color:#FFB4AB!important}
+body.phf-page-db .db-what.success,body.phf-page-db .db-what.ready{color:var(--phf-green-bg)!important}
+body.phf-page-db .db-bar{flex:1 1 140px;height:7px;background:rgba(255,255,255,.14);border-radius:999px;overflow:hidden}
+body.phf-page-db .db-bar>div{height:100%;width:0;background:var(--phf-gold);border-radius:999px;transition:width .2s}
+/* anchors / collapsed sections are not hidden under the sticky strip */
+body.phf-page-db .builder-workspace .panel,body.phf-page-db .dbgroup{scroll-margin-top:64px}
+/* no parent may clip the sticky strip */
+body.phf-page-db main.workflow-wrap,body.phf-page-db .builder-shell{overflow:visible}
+body.phf-page-db .db-grid{display:block}
+body.phf-page-db .db-col-main{min-width:0}
+
+/* ------------------------------------------------------------------ 2. badges */
+/* One badge system. Green = a successful state only (READY / DONE / ok); amber = REVIEW / WARNING; red = ERROR /
+   INCOMPATIBLE; neutral = WAITING / INACTIVE and plain counts. Same height, padding and type everywhere. */
+body.phf-page-db .phf-badge,body.phf-page-db .result-badge,body.phf-page-db .db-mini,body.phf-page-db .bulk-state,body.phf-page-db .db-step .st,body.phf-page-db .phf-step .st{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;line-height:1;border:1px solid transparent;background:var(--phf-wait-bg);color:var(--phf-wait-ink);border-color:var(--phf-line)}
+body.phf-page-db :is(.phf-badge,.result-badge,.db-mini,.bulk-state,.st):is(.ok,.done,.ready,.success){background:var(--phf-green-bg);color:var(--phf-green-ink);border-color:var(--phf-green-line)}
+body.phf-page-db :is(.phf-badge,.result-badge,.db-mini,.bulk-state,.st):is(.warn,.review,.amber){background:var(--phf-amber-bg);color:var(--phf-amber-ink);border-color:var(--phf-amber-line)}
+body.phf-page-db :is(.phf-badge,.result-badge,.db-mini,.bulk-state,.st):is(.err,.error,.bad,.incompatible){background:var(--phf-red-bg);color:var(--phf-red-ink);border-color:var(--phf-red-line)}
+body.phf-page-db :is(.phf-badge,.result-badge,.db-mini,.bulk-state,.st):is(.run,.running){background:var(--phf-gold);color:var(--phf-navy);border-color:var(--phf-gold)}
+body.phf-page-db :is(.phf-badge,.result-badge,.db-mini,.bulk-state,.st):is(.wait,.waiting,.missing,.neutral){background:var(--phf-wait-bg);color:var(--phf-wait-ink);border-color:var(--phf-line)}
+/* on a navy head a neutral badge is drawn light so it reads */
+body.phf-page-db .results-head .result-badge:not(.ok):not(.warn):not(.err):not(.error){background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.22)}
+/* in the run strip a WAITING pill is drawn light too */
+body.phf-page-db .db-step .st.wait,body.phf-page-db .phf-step .st.wait{background:rgba(255,255,255,.14);color:#fff;border-color:transparent}
+
+/* ------------------------------------------------------------------ 3. navy panel heads */
+body.phf-page-db .dashboard-summary,body.phf-page-db .db-files-panel,body.phf-page-db #toolLibrary{padding:0;overflow:hidden;margin:0 0 10px}
+body.phf-page-db .dashboard-summary>.results-head,body.phf-page-db .db-files-panel>.results-head,body.phf-page-db #toolLibrary .lib-head,body.phf-page-db #toolLibrary>.results-head{background:var(--phf-navy);color:#fff;margin:0;padding:9px 16px;min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+body.phf-page-db .dashboard-summary>.results-head h2,body.phf-page-db .db-files-panel>.results-head h2,body.phf-page-db #toolLibrary .lib-head h2,body.phf-page-db #toolLibrary>.results-head h2{color:var(--phf-gold);font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;margin:0}
+body.phf-page-db .dashboard-summary>.results-head p,body.phf-page-db .db-files-panel>.results-head p,body.phf-page-db #toolLibrary .lib-head p,body.phf-page-db #toolLibrary>.results-head p{color:var(--phf-band-text);font-size:11px;margin:3px 0 0}
+body.phf-page-db .dashboard-summary>.results-head>div:first-child,body.phf-page-db .db-files-panel>.results-head>div:first-child{min-width:0;flex:1 1 auto}
+/* badge then chevron, right-aligned at a fixed edge in every head */
+body.phf-page-db .results-head .result-badge{margin-left:auto;flex:0 0 auto}
+body.phf-page-db .results-head .acc-caret{flex:0 0 auto;margin-left:4px}
+body.phf-page-db .dashboard-summary #inputSummary{padding:12px 16px 14px}
+body.phf-page-db .db-files-panel .db-groups{padding:12px 16px 14px;margin-top:0}
+/* collapsed panels sit close together */
+body.phf-page-db .panel.acc-collapsed{margin-bottom:8px}
+body.phf-page-db .panel.acc-collapsed>.results-head{border-radius:inherit}
+/* readiness chips — green when ready, soft when optional, red when a required file is missing */
+body.phf-page-db .summary-chip{border:1px solid var(--phf-line);background:var(--phf-soft);border-radius:9px;padding:9px 11px}
+body.phf-page-db .summary-chip strong{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--phf-muted)}
+body.phf-page-db .summary-chip span{font-size:11px;color:var(--phf-muted)}
+body.phf-page-db .summary-chip.ok{background:var(--phf-green-bg);border-color:var(--phf-green-line)}
+body.phf-page-db .summary-chip.ok strong{color:var(--phf-green-ink)}
+body.phf-page-db .summary-chip.miss{background:var(--phf-red-bg);border-color:var(--phf-red-line)}
+body.phf-page-db .summary-chip.miss strong{color:var(--phf-red-ink)}
+
+/* ------------------------------------------------------------------ 4. database / stage groups */
+body.phf-page-db .dbgroup{border:1px solid var(--phf-line);border-radius:10px;overflow:hidden;margin:0 0 10px}
+body.phf-page-db .dbgroup:last-child{margin-bottom:0}
+body.phf-page-db .dbgroup.acc-collapsed{margin-bottom:6px}
+body.phf-page-db .dbhdr{display:flex;align-items:center;gap:10px;background:var(--phf-alt);padding:8px 12px;min-height:46px}
+body.phf-page-db .dbgroup:not(.acc-collapsed) .dbhdr{border-bottom:1px solid var(--phf-line)}
+body.phf-page-db .dbhdr .num{width:24px;height:24px;border-radius:50%;background:var(--phf-gold);color:var(--phf-navy);font-weight:800;font-size:12px;display:grid;place-items:center;flex:0 0 auto}
+body.phf-page-db .dbhdr-copy{min-width:0;flex:1 1 auto}
+body.phf-page-db .dbhdr-copy h3{font-size:12.5px;margin:0;letter-spacing:.03em;color:var(--phf-navy);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.phf-page-db .dbhdr-meta{font-size:11px;color:var(--phf-muted)}
+body.phf-page-db .dbhdr .db-mini{flex:0 0 auto}
+/* actions: build pill (or the compact stage pill), then the chevron, at a fixed right edge */
+body.phf-page-db .db-act{margin-left:auto;display:flex;gap:8px;align-items:center;flex:0 0 auto}
+body.phf-page-db .db-build{display:inline-flex;align-items:center;height:30px;background:#fff;border:1px solid var(--phf-blue-line);color:var(--phf-blue-ink);border-radius:7px;padding:0 12px;font:inherit;font-weight:700;font-size:11.5px;cursor:pointer;white-space:nowrap}
+body.phf-page-db .db-build:hover:not(:disabled){background:var(--phf-blue-bg)}
+body.phf-page-db .db-build:disabled{opacity:.5;cursor:not-allowed}
+/* a stage-header step pill (Task 8) uses the same step component on the light header */
+body.phf-page-db .dbhdr .phf-step{background:var(--phf-navy);border-color:var(--phf-navy);color:#fff;height:28px}
+body.phf-page-db .dbhdr .phf-step:hover:not(:disabled){background:var(--phf-navy-2)}
+body.phf-page-db .dbgroup-body{padding:10px 12px}
+body.phf-page-db .db-group-desc{margin:0 0 8px;font-size:11.5px;color:var(--phf-muted)}
+body.phf-page-db .db-group-status{font-size:11px;padding:7px 10px;border-radius:7px;margin:0 0 8px;background:var(--phf-alt);color:var(--phf-muted)}
+body.phf-page-db .db-group-status:empty,body.phf-page-db .db-group-status[hidden]{display:none}
+body.phf-page-db .db-group-status.running{background:var(--phf-amber-bg);color:var(--phf-amber-ink)}
+body.phf-page-db .db-group-status.ok{background:var(--phf-green-bg);color:var(--phf-green-ink)}
+body.phf-page-db .db-group-status.ready{background:var(--phf-blue-bg);color:var(--phf-blue-ink)}
+body.phf-page-db .db-group-status.error{background:var(--phf-red-bg);color:var(--phf-red-ink)}
+body.phf-page-db .db-group-status.missing{background:var(--phf-amber-bg);color:var(--phf-amber-ink)}
+body.phf-page-db .db-group-nofile{font-size:11.5px;color:var(--phf-muted);padding:8px 10px;border-radius:7px;background:var(--phf-soft)}
+body.phf-page-db .stage-scope{font-size:11px;color:var(--phf-muted);margin:0 0 8px}
+body.phf-page-db .stage-scope[hidden]{display:none}
+
+/* ------------------------------------------------------------------ 5. generated-file rows (one line, Saved Files pattern) */
+body.phf-page-db .db-group-files .empty-output{font-size:11.5px;color:var(--phf-muted);padding:8px 10px;background:var(--phf-soft);border-radius:7px}
+body.phf-page-db .frow{display:grid;grid-template-columns:18px minmax(0,1fr) auto 72px auto;gap:12px;align-items:center;min-height:40px;padding:6px 2px;border-top:1px solid var(--phf-line)}
+body.phf-page-db .frow:first-child{border-top:0}
+body.phf-page-db .frow .ck{width:18px;height:18px;border-radius:50%;background:var(--phf-green);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center}
+body.phf-page-db .frow.has-warning .ck{background:var(--phf-amber-ink)}
+body.phf-page-db .frow .nm{min-width:0;display:flex;align-items:baseline;gap:6px;flex-wrap:nowrap;overflow:hidden}
+body.phf-page-db .frow .nm b{font-size:12.5px;color:var(--phf-ink);white-space:nowrap;flex:0 0 auto}
+body.phf-page-db .frow .nm code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:var(--phf-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto;min-width:0}
+body.phf-page-db .frow .nm .used{font-size:10.5px;color:var(--phf-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0}
+body.phf-page-db .frow .nm .lib{color:var(--phf-green-ink);font-weight:700}
+body.phf-page-db .frow .nm .output-warning{display:block;font-size:10.5px;color:var(--phf-amber-ink);margin-top:2px;white-space:normal;grid-column:2/-1}
+body.phf-page-db .frow .dt{font-size:10.5px;color:var(--phf-muted);white-space:nowrap;text-align:right}
+body.phf-page-db .frow .dt b{color:var(--phf-ink);font-weight:600}
+body.phf-page-db .frow .sz{font-size:11px;color:var(--phf-muted);white-space:nowrap;text-align:right}
+body.phf-page-db .frow .dl{display:inline-flex;align-items:center;height:30px;background:var(--phf-green);color:#fff;border:0;border-radius:6px;padding:0 14px;font-weight:700;font-size:11.5px;text-decoration:none;white-space:nowrap;justify-self:end}
+body.phf-page-db .frow .dl:hover{background:var(--phf-green-ink)}
+/* a warning becomes its own line under the row (the row stays one line otherwise) */
+body.phf-page-db .frow.has-warning{grid-template-rows:auto auto}
+body.phf-page-db .frow.has-warning .output-warning{grid-row:2;grid-column:2/-1}
+@media(max-width:900px){
+  body.phf-page-db .frow{grid-template-columns:18px minmax(0,1fr) auto;row-gap:4px}
+  body.phf-page-db .frow .nm{flex-wrap:wrap;white-space:normal}
+  body.phf-page-db .frow .nm code,body.phf-page-db .frow .nm .used{white-space:normal;overflow:visible;text-overflow:clip}
+  body.phf-page-db .frow .dt,body.phf-page-db .frow .sz{grid-column:2;text-align:left}
+  body.phf-page-db .frow .dl{grid-column:3;grid-row:1}
+}
+
+/* ------------------------------------------------------------------ 6. input rail: Drop All + assignment rows */
+body.phf-page-db .builder-sidebar{min-width:270px}
+body.phf-page-db .input-nav-item strong{white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis}
+body.phf-page-db .input-nav-item>span:nth-child(2){min-width:0}
+body.phf-page-db .rail-drop{margin:0 8px 10px}
+body.phf-page-db .rail-drop .bulk-dropzone{min-height:58px;padding:12px;margin:0}
+body.phf-page-db .rail-drop .bulk-results{margin-top:8px}
+/* Root fix for the letter-per-line wrapping: in the rail each dropped file is ONE compact row —
+   status · name (min-width 0, one line, ellipsis, full name on hover) · ✕ — with the message and the
+   assign controls on a second row that wraps as a block, never per character. */
+body.phf-page-db .rail-drop .bulk-results{display:block;overflow:visible;column-gap:0}
+body.phf-page-db .rail-drop .bulk-row{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"state name" "msg msg" "assign assign";gap:4px 8px;align-items:center;padding:7px 2px!important;border-top:1px solid var(--phf-line);margin:0}
+body.phf-page-db .rail-drop .bulk-row:first-child{border-top:0}
+body.phf-page-db .rail-drop .bulk-state{grid-area:state;flex:0 0 auto;height:20px;padding:0 7px;font-size:9px}
+body.phf-page-db .rail-drop .bulk-file{grid-area:name;min-width:0;display:contents}
+body.phf-page-db .rail-drop .bulk-file strong{grid-area:name;display:block;min-width:0;font-size:12px;color:var(--phf-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;word-break:normal}
+body.phf-page-db .rail-drop .bulk-file span{grid-area:msg;display:block;min-width:0;font-size:11px;line-height:1.35;color:var(--phf-muted);white-space:normal;overflow-wrap:normal;word-break:normal}
+body.phf-page-db .rail-drop .bulk-file details{grid-area:msg;min-width:0;font-size:11px;color:var(--phf-muted)}
+body.phf-page-db .rail-drop .bulk-file details summary{cursor:pointer;color:var(--phf-blue-ink);font-weight:600;list-style:none}
+body.phf-page-db .rail-drop .bulk-file details summary::-webkit-details-marker{display:none}
+body.phf-page-db .rail-drop .bulk-file details summary::after{content:" ▸ details"}
+body.phf-page-db .rail-drop .bulk-file details[open] summary::after{content:" ▾ less"}
+body.phf-page-db .rail-drop .bulk-file details p{margin:3px 0 0;white-space:normal;overflow-wrap:anywhere}
+body.phf-page-db .rail-drop .bulk-row.review .bulk-file span,body.phf-page-db .rail-drop .bulk-row.bad .bulk-file span{color:var(--phf-ink)}
+body.phf-page-db .rail-drop .bulk-assign{grid-area:assign;display:flex;gap:6px;align-items:center;min-width:0}
+body.phf-page-db .rail-drop .bulk-assign:empty{display:none}
+body.phf-page-db .rail-drop .bulk-assign select{flex:1 1 120px;min-width:0;max-width:none;min-height:28px;height:28px;padding:3px 6px;font-size:11px;border:1px solid var(--phf-line-strong);border-radius:6px;background:#fff}
+body.phf-page-db .rail-drop .bulk-assign .btn{flex:0 0 auto;min-height:28px;height:28px;padding:0 10px;font-size:11px}
+body.phf-page-db .rail-drop .bulk-remove{grid-area:state;justify-self:end;display:none}
+
+/* ------------------------------------------------------------------ 7. focus + motion */
+body.phf-page-db :is(.phf-step,.db-step,.db-pill,.db-build,.frow .dl,.acc-head,.results-head[role=button],.bulk-assign .btn):focus-visible{outline:2px solid var(--phf-gold);outline-offset:2px}
+body.phf-page-db .dbhdr .phf-step:focus-visible{outline-color:var(--phf-navy)}
+@media(prefers-reduced-motion:reduce){body.phf-page-db .db-bar>div{transition:none}}
