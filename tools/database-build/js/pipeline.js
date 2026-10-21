@@ -1,5 +1,7 @@
 (function(){'use strict';
-const VERSION='v21.21.1', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+const VERSION='v21.21.2', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+// v21.21.2 (Staff Hub v21.34.0) — shared phf-ui.css v1.5.0: every control on the RUN strip is 34px and folded panels close up
+// to their header. No build change.
 // v21.21.1 (Staff Hub v21.33.0) — the POS _pos_db row reads "POS products in the A–P layout · not a supplier update" (it was
 // "POS supplier layout" and was being dropped into POS New Product Check Clean as Supplier Updates). No build change.
 // v21.21.0 (Staff Hub v21.32.0) — a replaced input no longer deletes the files already built: they stay in the table,

@@ -1,4 +1,4 @@
-/* PHF Staff Hub — phf-ui.css v1.4.0 (20 Oct 2026)
+/* PHF Staff Hub — phf-ui.css v1.5.0 (21 Oct 2026)
    ONE authoritative component sheet shared by Build POS Master Databases, POS New Product Check Clean and Reconcile
    CH2 Order (all three pages carry body.phf-page-db). Colours, type and spacing come from the --phf-* tokens in theme.css;
    nothing here changes any build, merge, sheet or Library behaviour — it is presentation only.
@@ -87,6 +87,8 @@ body.phf-page-db :is(.phf-badge,.result-badge,.db-mini,.bulk-state,.st):is(.run,
 body.phf-page-db :is(.phf-badge,.result-badge,.db-mini,.bulk-state,.st):is(.wait,.waiting,.missing,.neutral){background:var(--phf-wait-bg);color:var(--phf-wait-ink);border-color:var(--phf-line)}
 /* on a navy head a neutral badge is drawn light so it reads */
 body.phf-page-db .results-head .result-badge:not(.ok):not(.warn):not(.err):not(.error){background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.22)}
+/* v1.5.0: a neutral badge on a WHITE panel head (not the navy band) is the light WAITING pill, not white-on-white */
+body.phf-page-db .panel:not(.dashboard-summary):not(.db-files-panel):not(#toolLibrary)>.results-head .result-badge:is(.idle,.neutral,.wait){background:var(--phf-wait-bg);color:var(--phf-wait-ink);border-color:var(--phf-line)}
 /* in the run strip a WAITING pill is drawn light too */
 body.phf-page-db .db-step .st.wait,body.phf-page-db .phf-step .st.wait{background:rgba(255,255,255,.14);color:#fff;border-color:transparent}
 
@@ -338,3 +340,16 @@ body.phf-page-db .db-pill.is-stale{box-shadow:inset 0 0 0 2px var(--phf-blue)}
 /* the merge sheet's steps row (same pills as the top strip) */
 body.phf-page-db .wb-steps{margin:0 0 10px}
 body.phf-page-db .wb-steps .wb-steps-actions{margin-left:auto}
+/* ---- v1.5.0 (21 Oct 2026) — Reconcile CH2 Order v2.17.0 -----------------------------------------------------------------
+   The RUN row above a results table is the top strip shown a second time (same pills, same buttons), so it is styled as the
+   strip but not pinned. Every control on either row is one 34px height. Header badges are centred on their own line box
+   (theme.css aligns .results-head>div children to the text baseline), and a folded panel closes up to its header (theme.css
+   pads workspace panels 16px !important; this only overrides that for a collapsed panel). */
+body.phf-page-db .db-runstrip.db-runstrip-inline{position:static;top:auto;z-index:auto;border-radius:10px;margin:0 0 10px;box-shadow:none}
+body.phf-page-db .db-runstrip :is(.db-step,.phf-step,.db-pill,.db-pill.db-danger,.db-danger){height:34px}
+body.phf-page-db .db-runstrip .db-home{width:34px;height:34px}
+body.phf-page-db .db-runstrip :is(.db-pill.db-danger,.db-danger){padding:0 14px;font-size:10.5px}
+body.phf-page-db .db-runstrip .result-downloads .db-pill:not(.dlbtn)::before,body.phf-page-db .db-runstrip .result-downloads .db-pill[data-mirror]::before{content:none}
+body.phf-page-db .db-runstrip-inline .result-downloads{margin-left:auto;gap:8px;justify-content:flex-end}
+body.phf-page-db .results-head>.result-badge,body.phf-page-db .results-head>div>.result-badge{align-self:center;align-items:center!important;justify-content:center;text-align:center;line-height:1}
+:is(body.phf-page-db,body.phf-page-reconcile) :is(.builder-workspace,.dash-row,.dash-stack)>.panel.acc-collapsed{padding-bottom:0!important}

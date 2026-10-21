@@ -1235,3 +1235,45 @@ All implemented stages keep source business files local to the browser and gener
   - `CARD_DESC.sup` overrides the card text (merge-map.js is shared with the engine and stays unchanged).
 - Build POS Master v21.21.1: OUT_META 'pos-db' → "POS products in the A–P layout" · "not a supplier update …". No build change.
 - Versions: hub v21.33.0; POS New Product Check Clean v1.22.0; Build POS Master v21.21.1.
+
+## Staff Hub v21.34.0 (21 Oct 2026 20:05 AEDT) — Reconcile result at a glance, Check column, RUN row = top strip
+- Reconcile CH2 v2.17.0 (app.js):
+  - `POS_VIEW_COLUMNS` gains `__check` (kind 'status', after `__invoice_line`); `adjdprce` min 56 → 66.
+    `lineCheck(pos,detail)` (cached per result + refs in `lineCheckCache`) → {kind,label,statuses,expected,actual,qty,
+    ordered,effect,rank,title}. Order lines: `posLineCheck` reads the engine statuses — kind priority notinv > short > over >
+    high > disc > ws > better > nocheck > ok; effect = missedTotal for PRICE HIGH, unitVariance × suppliedQty for BETTER PRICE.
+    INV lines: `invoiceOnlyCheck` — exp = `discountedPosPrice` (CH2 normal W/S less the matched Ongoing Discounts rule via
+    `PHF.linkedPos.expectedPriceForPos`), act = `detail.actualUnit`; PRICE HIGH when act − exp > CHECK_TOL 0.03 (+ DISCOUNT
+    LOW when actual disc + 0.05 < expected), BETTER PRICE when < −0.03, else OK; NO CHECK when either is missing.
+    `posColumnValue` / `posSizingText` return the label; the cell is `.pos-check-chip.ck-<kind>`; `<tr data-check data-pos-src>`.
+    INV `or_qty` shows `detail.suppliedQty` (display only — `tickAllCovers` and the TXT are unchanged).
+  - `renderSummary(r,integ,notes)` fills `#rsGlance` (tiles `[data-show-src]`, chips `[data-check-filter]`, money from
+    `state.lastTotals`), `#rsNeeds` (not OK / better, every INV, `importIssues()` Sub ID problems, LOW matches — MEDIUM is only tagged; sorted
+    by |effect| then rank then POS index; first 15) and `#rsChecks`; opens `#rsMore` when integrity is not a clean PASS or
+    import keys need review. The order link is automatic (`renderOrderOverrideUi` always says auto-linked), so it is always a
+    tick. `wireSummary()` — one delegated click listener on `#results`; `showChecklistLine(src)` clears filter / search, scrolls,
+    `.rs-flash`. `state.checkFilter` ('inv' → `.pos-invoice-only`, else `tr.dataset.check`) is applied in `applyTableSearch`;
+    `renderPosTable` ends with `applyTableSearch()`; `run()` resets it.
+  - `renderReconTable` extras for INV entries: status `NOT ON POS ORDER · <statuses>`, expected / variance / missed from
+    `lineCheck` (on-page only; `PHF.exportView` builds the Exceptions .xlsx from state, not from this table).
+  - `posTotals` returns `includedRows`; `renderPosBalance` badge `idle` → NOTHING TICKED when 0. `showExportNotice` hides
+    `#exportNotice` and writes the message to `#status` ('warn'); `state.exportRefusedNoRows` → the next balance render with
+    rows replaces it. The download handler dispatches `phf:export-made` {id:'downloadBtn', view} after `PHF.exportView`
+    resolves (a guard throw never reaches it).
+  - Footer: label cell 1 col ("inc GST"), Current colspan 2 (Adj CatPrc + Adj DPrc), Adjusted colspan 2 (Adj Qty + Total);
+    `--pos-right-label` = rAdj + w(adjdprce) + w(adjcatprce).
+- workspace.js v2.17.0: `syncMirrors(on)` in `renderStage` — `[data-mirror]` copies disabled + label of its source (download
+  copies hidden unless results are shown and the source is shown), `[data-mirror-text]` / `[data-mirror-status]` copy text and
+  className; one click listener per mirror → `source.click()`. `#status`, `#dbDoneNote`, `#runBtn` observed for text.
+  `stepDone.export` and `noteMade('downloadBtn')` only on `phf:export-made` with view 'pos' (runStep 'export', the step 3
+  `[data-src]` rows and the OUTPUTS listener no longer set them on click).
+- index.html: `#resultSteps` is `.db-runstrip.db-runstrip-inline` (home, RUN, steps, Run all mirror, the four real downloads,
+  CLEAR FILES mirror, done note, `.db-progrow` status mirror); the top strip has four download mirrors; `#tickAllBtn` /
+  `#clearQtyBtn` removed (handlers were already guarded); `#kpis` kept but hidden (`.rs-legacy-kpis`); `#rsMore` wraps
+  `#warningBox`, `.result-pair`, `#posTools`.
+- phf-ui.css v1.5.0: `.db-runstrip-inline` static; strip controls 34 px; no ↓ on non-download pills in a strip;
+  `.results-head` badges centred; `.panel.acc-collapsed` padding-bottom 0 (beats theme.css 16px !important); neutral
+  `.idle/.neutral/.wait` badge on a white panel head is the light WAITING pill. workspace.css: `.rs-*`, `.pos-check-chip.ck-*`,
+  footer total labels, `.pos-balance-status.idle`, gold `.db-what.warn` on the reconcile page only.
+- Versions: hub v21.34.0; reconcile v2.17.0; Build POS Master v21.21.2 and POS New Product Check Clean v1.22.1 (phf-ui
+  buster only); phf-ui ?v=1.5.0.

@@ -1,4 +1,6 @@
-/* Reconcile CH2 v2.15.0 — input rail + workspace layout (v2.7.0 base; the input cards are compact + collapsible since v2.15.0).
+/* Reconcile CH2 v2.17.0 — input rail + workspace layout; v2.17.0 adds the result at a glance, Needs a look, the checks line,
+   the More detail fold, the checklist's Check column chips and the idle POSActive balance badge (end of file).
+   Reconcile CH2 v2.15.0 — input rail + workspace layout (v2.7.0 base; the input cards are compact + collapsible since v2.15.0).
    Same proportions as Build Master Databases (tools/database-build). Colours and states come
    from assets/css/theme.css, which styles both pages with the same rules. */
 body.phf-page-reconcile .wrap{padding-top:16px}
@@ -96,3 +98,116 @@ body.phf-page-reconcile #bulkDrop.dropzone:hover strong,body.phf-page-reconcile 
 body.phf-page-reconcile .sidebar-actions{display:flex;gap:6px;flex-wrap:wrap;padding:6px 10px 10px}
 body.phf-page-reconcile .sidebar-actions .btn{flex:1 1 auto;min-height:32px;padding:6px 10px;font-size:11.5px;white-space:nowrap}
 body.phf-page-reconcile .sidebar-actions .rail-clear-all{color:var(--phf-red-ink);border-color:var(--phf-red-line);background:#fff}
+/* ---- v2.17.0 (21 Oct 2026) — the result at a glance ----------------------------------------------------------------------
+   One colour per Check, shared by the squares, the chips, the Needs a look tags and the checklist's Check column:
+   OK green · better price blue · price high / discount low red · wholesale only, short, over amber · not invoiced grey dashed ·
+   no check grey · INV (billed, not on the POS order) orange, the colour of the INV rows in the checklist. */
+body.phf-page-reconcile{--rs-inv-bg:#FFF1DC;--rs-inv-ink:#8A5200;--rs-inv-line:#E8B65A}
+body.phf-page-reconcile .results #kpis.rs-legacy-kpis{display:none!important}
+body.phf-page-reconcile .db-what.warn{color:var(--phf-gold)!important}
+body.phf-page-reconcile :is(.rs-tile,.rs-chip,.rs-tag,.pos-check-chip){border:1px solid var(--phf-line);background:var(--phf-grey-bg);color:var(--phf-grey-ink)}
+body.phf-page-reconcile :is(.rs-tile,.rs-chip,.rs-tag,.pos-check-chip).ck-ok{background:var(--phf-green-bg);color:var(--phf-green-ink);border-color:var(--phf-green-line)}
+body.phf-page-reconcile :is(.rs-tile,.rs-chip,.rs-tag,.pos-check-chip).ck-better{background:var(--phf-blue-bg);color:var(--phf-blue-ink);border-color:var(--phf-blue-line)}
+body.phf-page-reconcile :is(.rs-tile,.rs-chip,.rs-tag,.pos-check-chip):is(.ck-high,.ck-disc){background:var(--phf-red-bg);color:var(--phf-red-ink);border-color:var(--phf-red-line)}
+body.phf-page-reconcile :is(.rs-tile,.rs-chip,.rs-tag,.pos-check-chip):is(.ck-ws,.ck-short,.ck-over){background:var(--phf-amber-bg);color:var(--phf-amber-ink);border-color:var(--phf-amber-line)}
+body.phf-page-reconcile :is(.rs-tile,.rs-chip,.rs-tag,.pos-check-chip).ck-notinv{background:var(--phf-grey-bg);color:var(--phf-wait-ink);border:1px dashed #8A96A3}
+body.phf-page-reconcile :is(.rs-tile,.rs-chip,.rs-tag,.pos-check-chip).ck-nocheck{background:var(--phf-wait-bg);color:var(--phf-wait-ink);border-color:var(--phf-grey-line)}
+body.phf-page-reconcile :is(.rs-tile,.rs-chip,.rs-tag,.pos-check-chip).ck-inv{background:var(--rs-inv-bg);color:var(--rs-inv-ink);border-color:var(--rs-inv-line)}
+body.phf-page-reconcile .rs-tile.is-inv{box-shadow:inset 0 -3px 0 var(--rs-inv-line)}
+
+body.phf-page-reconcile .rs-glance{display:grid;grid-template-columns:minmax(0,2.3fr) minmax(320px,1fr);gap:14px;margin:0 0 14px}
+body.phf-page-reconcile .rs-glance.hidden,body.phf-page-reconcile .rs-needs.hidden,body.phf-page-reconcile .rs-checks.hidden{display:none}
+body.phf-page-reconcile :is(.rs-lines,.rs-money){border:1px solid var(--phf-line);border-radius:10px;background:#fff;padding:12px 16px;min-width:0}
+body.phf-page-reconcile .rs-lines{display:flex;flex-direction:column;gap:10px}
+body.phf-page-reconcile .rs-lines>small{font-size:12px;color:var(--phf-muted);line-height:1.4}
+body.phf-page-reconcile .rs-lines-head{display:flex;align-items:center;gap:8px 10px;flex-wrap:wrap}
+body.phf-page-reconcile :is(.rs-lines-head,.rs-money)>strong{font-size:12px;letter-spacing:.08em;color:var(--phf-navy);font-weight:800}
+body.phf-page-reconcile .rs-chips{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+body.phf-page-reconcile .rs-chip{display:inline-flex;align-items:center;height:28px;padding:0 10px;border-radius:999px;font:inherit;font-size:12px;font-weight:700;line-height:1;cursor:pointer;white-space:nowrap}
+body.phf-page-reconcile .rs-chip:hover{filter:brightness(.97)}
+body.phf-page-reconcile .rs-chip.is-on{box-shadow:inset 0 0 0 2px currentColor}
+body.phf-page-reconcile .rs-chip.rs-chip-all{background:#fff;color:var(--phf-navy);border:1px solid var(--phf-navy)}
+body.phf-page-reconcile .rs-tiles{display:flex;flex-wrap:wrap;gap:6px}
+body.phf-page-reconcile .rs-tile{width:52px;height:56px;padding:0;border-radius:8px;font:inherit;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer}
+body.phf-page-reconcile .rs-tile b{font-size:16px;font-weight:800;line-height:1}
+body.phf-page-reconcile .rs-tile span{font-size:10.5px;font-weight:700;line-height:1;white-space:nowrap;max-width:49px;overflow:hidden;text-overflow:ellipsis}
+body.phf-page-reconcile .rs-tile:hover{filter:brightness(.96)}
+body.phf-page-reconcile :is(.rs-tile,.rs-chip,.rs-show,.rs-more-btn):focus-visible{outline:2px solid var(--phf-navy);outline-offset:2px}
+body.phf-page-reconcile .rs-money{display:flex;flex-direction:column;gap:7px;font-size:13px}
+body.phf-page-reconcile .rs-money-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+body.phf-page-reconcile .rs-money-row small{font-size:12px;color:var(--phf-muted)}
+body.phf-page-reconcile .rs-money-row strong{font-size:16px;font-weight:800;white-space:nowrap;font-variant-numeric:tabular-nums}
+body.phf-page-reconcile .rs-money-row.is-high{color:var(--phf-red-ink)}
+body.phf-page-reconcile .rs-money-row.is-better{color:var(--phf-blue-ink)}
+body.phf-page-reconcile .rs-money-row.is-muted{color:var(--phf-wait-ink)}
+body.phf-page-reconcile .rs-money-row.is-inv{color:var(--rs-inv-ink)}
+body.phf-page-reconcile :is(.rs-money-row.is-high,.rs-money-row.is-better,.rs-money-row.is-muted,.rs-money-row.is-inv) small{color:inherit}
+body.phf-page-reconcile .rs-money-rule{height:1px;background:var(--phf-grey-bg)}
+
+body.phf-page-reconcile .rs-needs{border:1px solid var(--phf-amber-line);border-radius:10px;overflow:hidden;background:#fff;margin:0 0 12px}
+body.phf-page-reconcile .rs-needs-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--phf-amber-bg);color:var(--phf-amber-ink);padding:9px 16px;border-bottom:1px solid var(--phf-amber-line)}
+body.phf-page-reconcile .rs-needs-head strong{font-size:14px}
+body.phf-page-reconcile .rs-needs-head span{font-size:12px}
+body.phf-page-reconcile .rs-needs-head.is-clear{background:var(--phf-green-bg);color:var(--phf-green-ink);border-bottom:0}
+body.phf-page-reconcile .rs-needs:has(.rs-needs-head.is-clear){border-color:var(--phf-green-line)}
+body.phf-page-reconcile .rs-need{display:grid;grid-template-columns:56px 64px minmax(0,1.4fr) minmax(0,1.5fr) 190px 60px 160px 92px;gap:4px 12px;align-items:center;padding:8px 16px;border-bottom:1px solid var(--phf-grey-bg);font-size:13px}
+body.phf-page-reconcile .rs-need>strong:first-child{font-size:14px}
+body.phf-page-reconcile .rs-need>span:nth-child(2){color:var(--phf-muted)}
+body.phf-page-reconcile .rs-need-product{overflow-wrap:anywhere}
+body.phf-page-reconcile .rs-need.rs-need-cols{padding:6px 16px;font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--phf-muted)}
+body.phf-page-reconcile .rs-need.rs-need-cols>span:nth-child(2){color:inherit}
+body.phf-page-reconcile .rs-tags{display:flex;gap:5px;flex-wrap:wrap}
+body.phf-page-reconcile .rs-tag{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.05em;line-height:1;white-space:nowrap}
+body.phf-page-reconcile .rs-effect{white-space:nowrap;font-variant-numeric:tabular-nums;color:var(--phf-wait-ink)}
+body.phf-page-reconcile .rs-effect.is-high{color:var(--phf-red-ink)}
+body.phf-page-reconcile .rs-effect.is-better{color:var(--phf-blue-ink)}
+body.phf-page-reconcile .rs-show{justify-self:end;background:transparent;border:0;padding:4px 2px;font:inherit;font-size:12.5px;font-weight:700;color:var(--phf-blue);text-decoration:underline;cursor:pointer;white-space:nowrap}
+body.phf-page-reconcile .rs-need-note{grid-column:3/9;margin:0;font-size:12.5px;color:var(--phf-muted);line-height:1.4}
+body.phf-page-reconcile :is(.rs-need-more,.rs-better){padding:8px 16px;font-size:12.5px}
+body.phf-page-reconcile .rs-need-more{color:var(--phf-amber-ink);border-bottom:1px solid var(--phf-grey-bg)}
+body.phf-page-reconcile .rs-better{color:var(--phf-blue-ink);background:#F5F8FD}
+
+body.phf-page-reconcile .rs-checks{display:flex;align-items:center;gap:8px 22px;flex-wrap:wrap;font-size:12.5px;color:var(--phf-ink);padding:2px 4px;margin:0 0 12px}
+body.phf-page-reconcile .rs-check{display:inline-flex;align-items:center;gap:6px}
+body.phf-page-reconcile .rs-check svg{width:14px;height:14px;color:var(--phf-green);flex:0 0 auto}
+body.phf-page-reconcile .rs-check.warn{color:var(--phf-amber-ink)}
+body.phf-page-reconcile .rs-check.bad{color:var(--phf-red-ink)}
+body.phf-page-reconcile .rs-check:is(.warn,.bad)::before{content:"!";display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;background:currentColor;color:#fff;font-size:10px;font-weight:900}
+body.phf-page-reconcile .rs-check.warn::before{background:var(--phf-amber-ink)}
+body.phf-page-reconcile .rs-check.bad::before{background:var(--phf-red-ink)}
+body.phf-page-reconcile .rs-more-btn{margin-left:auto;background:transparent;border:0;padding:4px 2px;font:inherit;font-size:12.5px;font-weight:700;color:var(--phf-blue);text-decoration:underline;cursor:pointer}
+
+body.phf-page-reconcile .rs-more{border:1px solid var(--phf-line);border-radius:10px;background:var(--phf-soft);margin:0 0 12px}
+body.phf-page-reconcile .rs-more>summary{cursor:pointer;list-style:none;padding:8px 12px;font-size:12px;font-weight:800;color:var(--phf-navy)}
+body.phf-page-reconcile .rs-more>summary::-webkit-details-marker{display:none}
+body.phf-page-reconcile .rs-more>summary::before{content:'▸';display:inline-block;width:14px;color:var(--phf-muted)}
+body.phf-page-reconcile .rs-more[open]>summary::before{content:'▾'}
+body.phf-page-reconcile .rs-more[open]{padding:0 12px 4px}
+body.phf-page-reconcile .rs-more[open]>summary{padding-left:0;padding-right:0}
+
+/* the checklist's Check column */
+body.phf-page-reconcile .results .preview-pos td.pos-check-cell{white-space:nowrap}
+body.phf-page-reconcile .pos-check-chip{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;font-size:9.5px;font-weight:800;letter-spacing:.04em;line-height:1;white-space:nowrap}
+body.phf-page-reconcile .results .preview-pos tbody tr.pos-not-supplied td.pos-check-cell,body.phf-page-reconcile .results .preview-pos tbody tr.pos-not-supplied td.pos-check-cell>*{text-decoration-line:none!important}
+/* Show line: the checklist row flashes once */
+body.phf-page-reconcile .results .preview-pos tbody tr.rs-flash>td{animation:rs-flash 1.8s ease-out}
+@keyframes rs-flash{0%,35%{background:#FFF3B0}100%{background:inherit}}
+@media(prefers-reduced-motion:reduce){body.phf-page-reconcile .results .preview-pos tbody tr.rs-flash>td{animation:none;background:#FFF3B0}}
+/* the totals row: each total carries its own small label (Current / Adjusted) and is never cut off */
+body.phf-page-reconcile .results .preview-pos tfoot td:is(.pos-total-current,.pos-total-adjusted){overflow:visible;text-overflow:clip;line-height:1.1;padding-top:4px;padding-bottom:4px}
+body.phf-page-reconcile .results .preview-pos tfoot td:is(.pos-total-current,.pos-total-adjusted) small{display:block;font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;opacity:.85;margin-bottom:1px}
+body.phf-page-reconcile .results .preview-pos tfoot td.pos-total-label{overflow:visible;text-overflow:clip}
+/* the balance badge before anything is ticked */
+body.phf-page-reconcile .pos-balance-status.idle{background:var(--phf-wait-bg);color:var(--phf-wait-ink);border:1px solid var(--phf-grey-line)}
+
+@media(max-width:1200px){
+  body.phf-page-reconcile .rs-glance{grid-template-columns:minmax(0,1fr)}
+  body.phf-page-reconcile .rs-need{grid-template-columns:48px 52px minmax(0,1fr) minmax(0,1fr) 150px 48px 130px 76px}
+}
+@media(max-width:900px){
+  body.phf-page-reconcile .rs-need{grid-template-columns:48px minmax(0,1fr) auto;row-gap:6px}
+  body.phf-page-reconcile .rs-need.rs-need-cols{display:none}
+  body.phf-page-reconcile .rs-need>*{grid-column:auto}
+  body.phf-page-reconcile .rs-need>span:nth-child(2){display:none}
+  body.phf-page-reconcile .rs-need>:is(.rs-tags,.rs-need-note){grid-column:1/-1}
+}

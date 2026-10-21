@@ -1,4 +1,9 @@
-/* /* Reconcile CH2 v2.16.0 (20 Oct 2026, Staff Hub v21.32.0) — the step groups go back to their v2.14 text (the v2.15.0
+/* /* Reconcile CH2 v2.17.0 (21 Oct 2026, Staff Hub v21.34.0) — the RUN row above the checklist is the same row as the top strip:
+   [data-mirror] buttons run (and follow the state and label of) the button they name, so both rows carry Run all, the four
+   downloads and CLEAR FILES; the row's status line and done note copy the strip's (#status / #dbDoneNote are now observed for
+   text too). Export files turns DONE, and the step 3 list records POSActive Import as made, only on the app's phf:export-made
+   event — a refused export (nothing ticked) no longer counts. No reconciliation or export change.
+   Reconcile CH2 v2.16.0 (20 Oct 2026, Staff Hub v21.32.0) — the step groups go back to their v2.14 text (the v2.15.0
    "What this does" / Needs / How it works / column previews are removed); instead the intro at the top carries a short
    summary with the Integrity Engine version and an engine-ready line (renderEngine: READY only when the PDF reader,
    spreadsheet libraries, schema and POS import contract have all loaded). Step headers use the white "Run / update step
@@ -178,15 +183,28 @@
     const app=global.PHFReconcileApp||{},st=stepState();
     if(id==='check'){if(app.refreshReferenceStatus)await app.refreshReferenceStatus();stepDone.check=!$('#runBtn').disabled;const s=$('#status');if(stepDone.check&&app.setStatus)app.setStatus('Step 1 — inputs checked: POS order, supplier invoices and reference data are ready. Run step 2 to reconcile.','ok');render();return;}
     if(id==='reconcile'){if(st.reconcile==='run')return;if(app.run)await app.run();else $('#runBtn').click();render();return;}
-    if(id==='export'){if(st.export==='wait'){await runStep('reconcile');}const b=$('#downloadBtn');if(b&&!b.disabled){b.click();stepDone.export=true;}render();}
+    if(id==='export'){if(st.export==='wait'){await runStep('reconcile');}const b=$('#downloadBtn');if(b&&!b.disabled)b.click();render();}   // v2.17.0: DONE on phf:export-made
   }
   function renderStage(){
     const st=stepState();for(const k of Object.keys(st))setRunPill(k,st[k]);
     const run=$('#runBtn');if(run){run.textContent=st.reconcile==='run'?'Running…':'Run all';}
     const note=$('#dbDoneNote');if(note)note.textContent=st.reconcile==='run'?'reconciling…':st.export==='done'?'3 of 3 run':st.reconcile==='done'?'2 of 3 run':st.check==='done'?'1 of 3 run':'';
-    const results=$('#results'),on=results&&!results.classList.contains('hidden'),dl=$('#dlPosImport'),src=$('#downloadBtn');
-    if(dl){const show=on&&src&&!src.disabled&&!src.classList.contains('hidden');dl.hidden=!show;const nt=$('#dlPosImportNote');if(nt)nt.textContent=show?'.txt':'';}
+    const results=$('#results'),on=results&&!results.classList.contains('hidden');
+    syncMirrors(on);const nt=$('#dlPosImportNote');if(nt)nt.textContent='';
     for(const p of document.querySelectorAll('.builder-workspace .panel,.dbgroup'))p.style.scrollMarginTop=($('#dbRunStrip')?.offsetHeight||56)+8+'px';
+  }
+  // v2.17.0 — the top strip and the RUN row above the checklist are one row shown twice: a [data-mirror] button follows the
+  // button it names (disabled state, label; a download copy shows only while the results are on the page and its button is
+  // shown) and clicking it clicks that button; [data-mirror-text] / [data-mirror-status] copy the done note and status line.
+  function syncMirrors(on){
+    document.querySelectorAll('[data-mirror]').forEach(m=>{const src=$(m.dataset.mirror);if(!src)return;
+      const isDl=/download|keyReview/i.test(src.id);if(isDl)m.hidden=!(on&&!src.classList.contains('hidden')&&!src.hidden);
+      m.disabled=!!src.disabled;m.setAttribute('aria-disabled',src.disabled?'true':'false');
+      const lab=m.querySelector('[data-mirror-label]'),t=src.textContent.replace(/^\s*(Download\s+|↓\s*)/i,'').trim();
+      if(lab){if(t&&lab.textContent!==t)lab.textContent=t;}else if(!isDl&&t&&m.textContent!==t)m.textContent=t;
+    });
+    document.querySelectorAll('[data-mirror-text]').forEach(m=>{const src=$(m.dataset.mirrorText);if(src&&m.textContent!==src.textContent)m.textContent=src.textContent;});
+    document.querySelectorAll('[data-mirror-status]').forEach(m=>{const src=$(m.dataset.mirrorStatus);if(!src)return;if(m.textContent!==src.textContent)m.textContent=src.textContent;const c=src.className;if(m.className!==c)m.className=c;});
   }
   function renderStepGroups(){
     const host=$('#stepGroups');if(!host)return;
@@ -210,7 +228,7 @@
     // build), so a row's Download runs the same code as its toolbar button; the size is shown once the file has been built.
     host.innerHTML=btns.length?btns.map(b=>{const m=OUT_META[b.id]||{name:b.textContent.replace(/^Download\s+/i,''),ext:'',meta:b.title||''};const made=madeAt[b.id];return `<div class="phf-lib-row"><span class="phf-lib-dot" aria-hidden="true">✓</span><div class="phf-lib-what"><strong>${esc(m.name)}</strong><span>${esc(b.textContent.replace(/^Download\s+/i,''))}</span></div><div class="phf-lib-when">${made?`<strong>${esc(made.when)}</strong><span>${esc(made.ago())}</span>`:'<span>not downloaded yet</span>'}</div><div class="phf-lib-size">${made&&made.size?esc(made.size):esc(m.ext)}</div><div class="phf-lib-flow"><strong>Used by</strong><span>${esc(m.meta)}</span></div><div class="phf-lib-btns"><button type="button" class="phf-lib-btn download" data-src="#${b.id}"${b.disabled?' disabled':''}>Download</button></div></div>`;}).join(''):'<div class="empty-output">Run the reconciliation to create its download files.</div>';
     host.classList.toggle('phf-lib-list',btns.length>0);
-    host.querySelectorAll('[data-src]').forEach(x=>{x.onclick=()=>{const src=$(x.dataset.src);if(src&&!src.disabled){src.click();noteMade(src.id);if(x.dataset.src==='#downloadBtn')stepDone.export=true;render();}};});
+    host.querySelectorAll('[data-src]').forEach(x=>{x.onclick=()=>{const src=$(x.dataset.src);if(src&&!src.disabled){src.click();if(src.id!=='downloadBtn')noteMade(src.id);render();}};});   // v2.17.0: POSActive on phf:export-made
     const meta=document.querySelector('#stepgroup-export [data-step-meta]');if(meta)meta.textContent=btns.length?`· ${btns.length} file${btns.length===1?'':'s'}`:'';
     const m1=document.querySelector('#stepgroup-check [data-step-meta]');if(m1){const n=INPUTS.map(info).filter(s=>s.loaded).length;m1.textContent=`· ${n} / ${INPUTS.length} inputs ready`;}
     const m2=document.querySelector('#stepgroup-reconcile [data-step-meta]'),sub=$('#resultSub');if(m2)m2.textContent=on&&sub?`· ${sub.textContent.slice(0,90)}`:'';
@@ -391,6 +409,7 @@
     ['#posFiles','#invoiceFiles'].forEach(s=>{const e=$(s);if(e)mo.observe(e,{childList:true,subtree:true,characterData:true});});
     ['#runBtn','#progress','#results','#referenceDot','#status',...OUTPUTS].forEach(s=>{const e=$(s);if(e)mo.observe(e,{attributes:true,attributeFilter:['class','disabled','title']});});
     const rs=$('#resultSub');if(rs)mo.observe(rs,{childList:true,characterData:true,subtree:true});
+    ['#status','#dbDoneNote','#runBtn'].forEach(s=>{const e=$(s);if(e)mo.observe(e,{childList:true,characterData:true,subtree:true});});   // v2.17.0: mirrored text
     OUTPUTS.forEach(s=>{const e=$(s);if(e)mo.observe(e,{childList:true,characterData:true,subtree:true});});
   }
 
@@ -399,11 +418,13 @@
     const order=$('#railClearOrder'),all=$('#railClearAll'),clear=$('#clearBtn');
     if(order)order.onclick=()=>{if(clear)clear.click();bulk.length=0;flags.updated={};flags.reject={};stepDone.check=stepDone.export=false;renderBulk();schedule();};
     if(clear)clear.addEventListener('click',()=>{flags.updated.pos=flags.updated.invoices=false;delete flags.reject.pos;delete flags.reject.invoices;stepDone.check=stepDone.export=false;schedule();});
-    OUTPUTS.forEach(sel=>{const b=$(sel);if(b)b.addEventListener('click',()=>{if(!b.disabled){noteMade(b.id);schedule();}});});
+    OUTPUTS.forEach(sel=>{const b=$(sel);if(b)b.addEventListener('click',()=>{if(!b.disabled){if(b.id!=='downloadBtn')noteMade(b.id);schedule();}});});
+    // v2.17.0 — only a POSActive import the app actually built counts as made (a refused export does not)
+    document.addEventListener('phf:export-made',e=>{const d=(e&&e.detail)||{};if(d.view==='pos'){noteMade(d.id||'downloadBtn');stepDone.export=true;}schedule();});   // an Exceptions .xlsx is not the POSActive import
     document.querySelectorAll('[data-run-step]').forEach(b=>{b.onclick=()=>{if(b.disabled)return;runStep(b.dataset.runStep);};});
     // Run all: the existing run() (step 2; step 1 is its own gate) then the POSActive import download (step 3)
     const runAll=$('#runBtn');if(runAll){runAll.onclick=async()=>{if(runAll.disabled)return;const app=global.PHFReconcileApp||{};if(app.run)await app.run();else return;const results=$('#results');if(results&&!results.classList.contains('hidden'))await runStep('export');};}
-    const dl=$('#dlPosImport');if(dl)dl.onclick=e=>{e.preventDefault();const src=$('#downloadBtn');if(src&&!src.disabled){src.click();stepDone.export=true;schedule();}};
+    document.querySelectorAll('[data-mirror]').forEach(m=>m.addEventListener('click',e=>{e.preventDefault();const src=$(m.dataset.mirror);if(src&&!src.disabled)src.click();schedule();}));   // v2.17.0
     if(all)all.onclick=async()=>{
       if(!global.confirm('Clear all input files?\n\nThis removes the POS order and supplier invoices from this session AND the saved POS / master and Ongoing Discounts from this browser (Ongoing Discounts is shared, so Build POS Master Databases and POS New Product Check Clean lose it too). You will need to drop the reference files again before the next run.'))return;
       if(clear)clear.click();bulk.length=0;flags.updated={};flags.reject={};stepDone.check=stepDone.export=false;renderBulk();
