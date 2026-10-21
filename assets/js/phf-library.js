@@ -1,4 +1,7 @@
-/* PHF Staff Hub — Library v1.1.3 (20 Oct 2026: the A–P supplier-layout kinds lib:ch2-posdb / lib:uhp-posdb) · v1.1.2 (15 Oct 2026: persisted() — is the site's storage protected from automatic clearing)
+/* PHF Staff Hub — Library v1.2.0 (21 Oct 2026: a delete is a delete everywhere — removing Ongoing Discounts also removes the
+ *         POS DB & Supplier Merge workbook it is rebuilt from (Reconcile CH2 Order made it again from that copy); a remove or
+ *         Delete all also drops any "hidden on this page" marker for that file, so nothing old is kept as hidden.)
+ * v1.1.3 (20 Oct 2026: the A–P supplier-layout kinds lib:ch2-posdb / lib:uhp-posdb) · v1.1.2 (15 Oct 2026: persisted() — is the site's storage protected from automatic clearing)
  * v1.1.1 (12 Oct 2026)
  * v1.1.1: the POS, CH2 and Unique entries are the full sets from Build POS Master Databases v21.14.0 (clean_merged_pos_data,
  *         clean_ch2_data, clean_uhp_data); POS New Product Check Clean makes its supplier rows from the CH2 / Unique ones.
@@ -24,6 +27,9 @@
   var DB_NAME = 'PHFStaffHub', DB_VERSION = 1, STORE = 'referenceFiles';
   var HIDDEN = { parsedReferenceCache: true };
   var PARSED = { posMaster: true, supplierMerge: true, 'lib:ref-discounts': true }; // kinds Reconcile CH2 keeps parsed
+  // v1.2.0: kinds that are one set of data — deleting one deletes the others too (Reconcile CH2 Order makes the Ongoing
+  // Discounts again from a saved POS DB & Supplier Merge workbook, so deleting only the discounts brought them back).
+  var LINKED = { 'lib:ref-discounts': ['supplierMerge'], supplierMerge: ['lib:ref-discounts'] };
   var STALE_MS = 24 * 60 * 60 * 1000;
 
   // kind → what it is, which tool makes it and which tools use it (shown on the home page Library panel).
@@ -112,17 +118,17 @@
     });
   }
   function remove(kind) {
+    var kinds = [kind].concat(LINKED[kind] || []);
     return tx('readwrite', function (store) {
-      store.delete(kind);
-      if (PARSED[kind]) store.delete('parsedReferenceCache');
-    }).then(function () { emit({ action: 'remove', kind: kind }); });
+      kinds.forEach(function (k) { store.delete(k); if (PARSED[k]) store.delete('parsedReferenceCache'); });
+    }).then(function () { kinds.forEach(function (k) { forgetDismissed(k); emit({ action: 'remove', kind: k }); }); });
   }
   // Delete all keeps the kinds marked keep (the Supplier Contacts list); each one's own ✕ deletes it.
   function clearAll() {
     return tx('readwrite', function (store) {
       var req = store.getAllKeys();
       req.onsuccess = function () { (req.result || []).forEach(function (k) { if (!(KINDS[k] && KINDS[k].keep)) store.delete(k); }); };
-    }).then(function () { emit({ action: 'clear' }); });
+    }).then(function () { forgetDismissed(); emit({ action: 'clear' }); });
   }
   function strip(rec) { var o = {}; for (var k in rec) if (k !== 'blob') o[k] = rec[k]; return o; }
   function toFile(rec) {
@@ -165,11 +171,20 @@
   function dismissKey(tool, kind) { return 'phf-lib-dismissed:' + tool + ':' + kind; }
   function dismiss(tool, rec) { try { localStorage.setItem(dismissKey(tool, rec.kind), rec.savedAt || ''); } catch (e) {} }
   function isDismissed(tool, rec) { try { return !!rec && localStorage.getItem(dismissKey(tool, rec.kind)) === (rec.savedAt || ''); } catch (e) { return false; } }
+  // v1.2.0: a deleted file needs no "hidden" marker — drop the markers for one kind (or all of them).
+  function forgetDismissed(kind) {
+    try {
+      var drop = [];
+      for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf('phf-lib-dismissed:') === 0 && (!kind || k.slice(-(kind.length + 1)) === ':' + kind)) drop.push(k); }
+      drop.forEach(function (k) { localStorage.removeItem(k); });
+    } catch (e) {}
+  }
+  function linked(kind) { return [kind].concat(LINKED[kind] || []); }
 
   g.PHFLibrary = {
-    VERSION: 'v1.1.2', KINDS: KINDS, ORDER: ORDER, persisted: persisted,
+    VERSION: 'v1.2.0', KINDS: KINDS, ORDER: ORDER, persisted: persisted,
     put: put, get: get, list: list, remove: remove, clearAll: clearAll,
     toFile: toFile, isStale: isStale, when: when, ago: ago, info: info, displayName: displayName, onChange: onChange, estimate: estimate,
-    dismiss: dismiss, isDismissed: isDismissed
+    dismiss: dismiss, isDismissed: isDismissed, forgetDismissed: forgetDismissed, linked: linked
   };
 })(window);

@@ -1277,3 +1277,37 @@ All implemented stages keep source business files local to the browser and gener
   footer total labels, `.pos-balance-status.idle`, gold `.db-what.warn` on the reconcile page only.
 - Versions: hub v21.34.0; reconcile v2.17.0; Build POS Master v21.21.2 and POS New Product Check Clean v1.22.1 (phf-ui
   buster only); phf-ui ?v=1.5.0.
+
+## Staff Hub v21.35.0 (21 Oct 2026 21:50 AEDT) — a clear or remove deletes the file from this browser in every tool
+- phf-library.js v1.2.0: `LINKED` {lib:ref-discounts ↔ supplierMerge} — `remove(kind)` deletes the kind and its linked kind
+  (+ parsedReferenceCache for PARSED kinds) and emits `remove` for each; `forgetDismissed(kind?)` drops
+  `phf-lib-dismissed:*:<kind>` localStorage markers (on every remove, and all of them on `clearAll`); `linked(kind)` exported.
+  `dismiss` / `isDismissed` stay for the one-time migration below.
+- hub-library.js v2.1.0: Delete all → `window.confirm` first; ✕ on a kind whose linked set includes lib:ref-discounts →
+  confirm naming the three tools.
+- POS New Product Check Clean v1.23.0 (app.js):
+  - `libForget(id, files)` → `LIB.get(kind)` then `LIB.remove(kind)` when the Library record is the one the page holds
+    (`savedAt` equal or the file has none); no more `LIB.dismiss`. Called by `removeInputs`, `removeFile` and (new) Clear
+    Sheet's clear-all, which also strips libKind / libSavedAt from the cleared entries so Undo restores them as page files.
+  - `sharedDeleteOk(ids)` — confirm before removing a Library-linked disc (rail ✕, file-row Remove, CLEAR SAVED REFERENCE).
+  - `flushSession()` — `clearTimeout(sessTimer); saveSession()` after removeInputs, removeFile, Clear Sheet and CLEAR RESULTS.
+  - `libPrune()` in boot between `restoreInputs` and `libLoad`: a lib:pos-db record still marked dismissed for this tool is
+    removed (pre-v1.23.0 "hidden" → deleted); every restored file with `libKind` whose Library record is gone is dropped
+    (stored inputs → refDelete / refSave), names collected into `pruned` and appended to the opening status note.
+  - `libGoneHere(msg)` in the `LIB.onChange` listener (skipped while `sessRestoring`): `clear` → removeInputs of every input;
+    `remove` → drops page files with that libKind, invalidates results, flushes the session, status note.
+  - `fileRow`: TXT rows are named by `txtKind(o)` (file name) instead of `OUT_FRIENDLY['txt-0'/'txt-1']`, which was
+    crossed (the engine writes POS INSERT first).
+  - Opening status names only the inputs actually restored.
+- Build POS Master v21.22.0 (pipeline.js): `SHARED_DISC_MSG` confirm in `removeInput('discounts')` when Library-linked;
+  CLEAR INPUT FILES deletes `LIB_REF` kinds of the loaded reference inputs (confirm) and resets `state.lib`; CLEAR SESSION
+  lists the Library records to delete — `LIB_OUT` kinds whose source is Build (POS) Master Databases and `LIB_REF` kinds of
+  loaded inputs — confirms, `LIB.remove`s them, then reloads; new `LIB.onChange` listener: `remove` / `clear` drops
+  Library-linked reference inputs (`state.lib`) and turns off `o.lib` on output rows.
+- Reconcile CH2 v2.17.1 (app.js): `clearAllStoredReceivingState()` removes every `phf-ch2-unpack(qty)?(-vN)?:*`
+  sessionStorage key on CLEAR FILES.
+- Known (not changed): closing POS New Product Check Clean while its post-run session save is still writing can make the
+  next open read no saved reference tables (`refLoadAll` getAll fails) and `restoreState`'s catch reads `e.message` of a
+  null error.
+- Versions: hub v21.35.0; POS New Product Check Clean v1.23.0; Build POS Master v21.22.0; Reconcile v2.17.1;
+  phf-library ?v=1.2.0; hub-library ?v=2.1.0.

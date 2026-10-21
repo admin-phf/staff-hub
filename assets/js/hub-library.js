@@ -1,4 +1,7 @@
-/* PHF Staff Hub — Library panel v2.0.0 (17 Oct 2026)
+/* PHF Staff Hub — Library panel v2.1.0 (21 Oct 2026: Delete all asks first; ✕ on a file several tools use — Ongoing
+ * Discounts, the POS DB & Supplier Merge workbook — asks first and names the tools that lose it; a delete is a delete in every
+ * tool, see phf-library.js v1.2.0)
+ * v2.0.0 (17 Oct 2026)
  * One shared renderer for the files the tools save in this browser (assets/js/phf-library.js). It can be mounted:
  *   - on the home page as a SUMMARY (file count + storage line) with a "View all files" expander, and
  *   - inside a tool, SCOPED to that tool — only the files that tool makes or uses, with Download / ✕ as before.
@@ -69,7 +72,10 @@
       var all = r.querySelector('#' + uid + 'all'); var self = this;
       if (all) all.onchange = function () { self.showAll = all.checked; self.render(); };
     }
-    if (this.clearEl) { var s = this; this.clearEl.onclick = function () { s.clearEl.disabled = true; L.clearAll().then(clearOtherStores).then(function () { s.render(); }); }; }
+    if (this.clearEl) { var s = this; this.clearEl.onclick = function () {
+      // v2.1.0: one click used to delete everything with no question
+      if (!window.confirm('Delete every saved file from this browser?\n\nBuild POS Master Databases, POS New Product Check Clean and Reconcile CH2 Order lose every file saved here (POS Database, CH2 / Unique sets, masters, Ongoing Discounts, reference files) and POS New Product Check Clean\'s saved reference tables and session. Open tool pages drop them too.\n\nThe Supplier Contacts list stays — it holds your only copy of edits made there (its own ✕ deletes it).')) return;
+      s.clearEl.disabled = true; L.clearAll().then(clearOtherStores).then(function () { s.render(); }); }; }
   };
 
   Panel.prototype.usageLine = function () {
@@ -118,7 +124,11 @@
           '<div class="phf-lib-btns">' + (url ? '<a class="phf-lib-btn download" href="' + url + '" download="' + esc(r.name) + '">Download</a>' : '') +
           '<button type="button" class="phf-lib-btn del" data-del="' + esc(r.kind) + '" title="Delete ' + esc(info.label) + ' from this browser" aria-label="Delete ' + esc(info.label) + '">✕</button></div></div>';
       }).join('');
-      self.listEl.querySelectorAll('[data-del]').forEach(function (b) { b.onclick = function () { b.disabled = true; L.remove(b.dataset.del).then(function () { self.render(); }); }; });
+      self.listEl.querySelectorAll('[data-del]').forEach(function (b) { b.onclick = function () {
+        // v2.1.0: a file several tools use is deleted for all of them (with its linked copy), so ask first
+        var kinds = L.linked ? L.linked(b.dataset.del) : [b.dataset.del];
+        if (kinds.indexOf('lib:ref-discounts') >= 0 && !window.confirm('Delete Ongoing Discounts from this browser?\n\nBuild POS Master Databases, POS New Product Check Clean and Reconcile CH2 Order all use it — they lose it too' + (kinds.length > 1 ? ', and the POS DB & Supplier Merge workbook it is made from goes with it' : '') + '. Drop the file again before the next build, merge or reconciliation.')) return;
+        b.disabled = true; L.remove(b.dataset.del).then(function () { self.render(); }); }; });
       return self.usageLine();
     }).catch(function (e) {
       if (self.sumEl) self.sumEl.textContent = 'Unavailable';

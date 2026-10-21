@@ -1,3 +1,6 @@
+// v2.17.1 (21 Oct 2026, Staff Hub v21.35.0): CLEAR FILES also deletes the saved receiving ticks / Found quantities of every
+// order in this tab (clearAllStoredReceivingState), not only the current order's. Uses Library v1.2.0 — deleting Ongoing
+// Discounts anywhere also deletes the POS DB & Supplier Merge workbook it is made from. No reconciliation or export change.
 // v2.17.0 (21 Oct 2026, Staff Hub v21.34.0): the result reads at a glance — every checklist line as a square in order (coloured
 // by its Check, with its $ effect), filter chips, one money panel, "Needs a look" (where · what · why · $) and one line of
 // checks; the review notes, order link, import keys and checklist how-to keep their full text in a "More detail" fold. New
@@ -646,6 +649,11 @@
       `phf-ch2-unpack:${suffix}`,`phf-ch2-unpackqty:${suffix}`
     ];
     try{for(const key of keys)sessionStorage.removeItem(key);}catch(err){console.warn('Could not clear previous receiving session',err);}
+  }
+  // v2.17.1 — CLEAR FILES deletes the saved receiving ticks and Found quantities of every order in this tab, not only the
+  // current one (they are written per order number and were left behind for earlier orders).
+  function clearAllStoredReceivingState(){
+    try{const drop=[];for(let i=0;i<sessionStorage.length;i++){const k=sessionStorage.key(i);if(k&&/^phf-ch2-unpack(qty)?(-v\d+)?:/.test(k))drop.push(k);}drop.forEach(k=>sessionStorage.removeItem(k));}catch(err){console.warn('Could not clear the receiving session',err);}
   }
   function resetReceivingState({clearStorage=true,orderId=''}={}){
     clearTimeout(posReceivingRenderTimer);posReceivingRenderTimer=0;
@@ -1437,7 +1445,7 @@
   // v2.11.0: receiving counts and ticks live only on this page — the browser asks before a reload or a link leaves it.
   window.addEventListener('beforeunload',e=>{if(state.result&&(state.unpackCounts.size||state.unpackChecked.size)){e.preventDefault();e.returnValue='';}});
   wireDrop(els.posDrop,els.posInput,addPos);wireDrop(els.invoiceDrop,els.invoiceInput,addInvoices);
-  els.clearBtn.onclick=()=>{resetReceivingState({clearStorage:true});state.pos=null;state.invoices=[];state.result=null;state.docs=[];state.posParsed=null;state.previewView='pos';state.runIntegrity=null;state.unpackChecked=new Set();state.unpackManualChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;state.receivingMigratedFrom266=false;state.orderOverrides=new Map();els.posInput.value='';els.invoiceInput.value='';hideResults();hideProgress();renderFiles();};
+  els.clearBtn.onclick=()=>{resetReceivingState({clearStorage:true});clearAllStoredReceivingState();state.pos=null;state.invoices=[];state.result=null;state.docs=[];state.posParsed=null;state.previewView='pos';state.runIntegrity=null;state.unpackChecked=new Set();state.unpackManualChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;state.receivingMigratedFrom266=false;state.orderOverrides=new Map();els.posInput.value='';els.invoiceInput.value='';hideResults();hideProgress();renderFiles();};
   els.runBtn.onclick=run;
   if(els.fullDownloadBtn)els.fullDownloadBtn.onclick=async()=>{
     if(!state.result||!state.docs.length||!state.refs)return;

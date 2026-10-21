@@ -1,4 +1,12 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.22.1 (21 Oct 2026; v1.22.1: shared phf-ui.css v1.5.0 — 34px RUN strip
+/* PHF Staff Hub — POS New Product Check Clean v1.23.0 (21 Oct 2026, Staff Hub v21.35.0): a file removed here is deleted from
+ * this browser. ✕, Remove, CLEAR SESSION FILES and Clear Sheet delete the Library copy of what they remove (the POS Database,
+ * CH2 / Unique sets — before, a removed POS Database was only hidden on this page and the sets stayed); the saved session is
+ * written at once (no 1.2 s wait). On open, a file that came from the Library and has since been deleted there is dropped
+ * (libPrune) — so after Build POS Master's CLEAR SESSION this page no longer opens READY with an old POS Database — and a POS
+ * Database hidden here before v1.23.0 is deleted. A file deleted in another tool, or by the home page's Delete all, goes
+ * from this page while it is open (libGoneHere). Removing the shared Ongoing Discounts asks first. The stage 3 file rows name
+ * each TXT from its file name — they said POS UPDATE beside the POS INSERT file and the other way round. No merge change.
+ * v1.22.1 (21 Oct 2026; v1.22.1: shared phf-ui.css v1.5.0 — 34px RUN strip
  * controls, folded panels close up to their header; no merge change. v1.22.0: 20 Oct 2026; was POS Supplier New Product Check and Clean Merge,
  * before that POS Supplier Merge)
  * Page controller: input rail + drag and drop, saved reference data, the
@@ -209,7 +217,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.22.1';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.23.0';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -668,6 +676,7 @@
   function removeFile(id, idx) {
     if (inputsLocked()) return;
     var cur = state.inputs[id]; if (!cur) return;
+    if (!sharedDeleteOk([id])) return;   // v1.23.0
     libForget(id, cur.files.slice(idx, idx + 1));
     cur.files.splice(idx, 1);
     if (id === 'sup') supView.undo = [];
@@ -675,6 +684,7 @@
     else if (inputDef(id).stored) refSave(id);
     state.rev++;
     invalidateResults('Inputs changed — run the stages again.');
+    flushSession();   // v1.23.0
     renderAll(); showInput(id);
   }
   function flashInvalid(id) { var b = document.querySelector('[data-input="' + id + '"]'); if (b) { b.classList.add('invalid'); setTimeout(function () { b.classList.remove('invalid'); }, 2500); } }
@@ -799,7 +809,7 @@
         var s = railState(d), rj = railFlags.reject[d.id];
         var note = rj ? '<small class="input-nav-note" title="' + esc(rj.name + ' — ' + rj.msg) + '">' + esc(rj.name + ' — ' + rj.msg) + '</small>' : '';
         return '<div class="input-nav-wrap' + (loaded(d.id) || rj ? ' has-del' : '') + '"><button type="button" class="input-nav-item ' + s.cls + '" data-input="' + d.id + '" title="Click to open, or drop the ' + esc(d.title) + ' file here"><span class="input-dot">' + s.dot + '</span><span><strong>' + esc(d.title) + '</strong><small>' + esc(railSub(d)) + '</small>' + note + '</span><span class="input-state">' + s.text + '</span></button>' +
-          (loaded(d.id) || rj ? '<button type="button" class="input-nav-del" data-del="' + d.id + '" title="' + (loaded(d.id) ? 'Remove ' + esc(d.title) + (d.stored ? ' from this browser' : '') : 'Dismiss this note') + '" aria-label="Remove ' + esc(d.title) + '">✕</button>' : '') + '</div>';
+          (loaded(d.id) || rj ? '<button type="button" class="input-nav-del" data-del="' + d.id + '" title="' + (loaded(d.id) ? 'Remove ' + esc(d.title) + ' from this browser' + (LIB ? ' (a Library copy is deleted too)' : '') : 'Dismiss this note') + '" aria-label="Remove ' + esc(d.title) + '">✕</button>' : '') + '</div>';
       }).join('') + '</div>';
     }).join('');
     host.querySelectorAll('[data-input]').forEach(function (b) {
@@ -814,7 +824,7 @@
         list.reduce(function (p, f) { return p.then(function () { return acceptFile(id, f); }); }, Promise.resolve());
       };
     });
-    host.querySelectorAll('[data-del]').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); removeInputs([b.dataset.del]); }; });
+    host.querySelectorAll('[data-del]').forEach(function (b) { b.onclick = function (e) { e.stopPropagation(); if (!sharedDeleteOk([b.dataset.del])) return; removeInputs([b.dataset.del]); }; });
     if (state.activeInput) { var a = host.querySelector('[data-input="' + state.activeInput + '"]'); if (a) a.classList.add('active'); }
   }
   // v1.2.0: remove inputs straight away — the ✕ beside a rail row, or the two clear buttons. A saved reference table
@@ -835,6 +845,7 @@
     renderBulk();
     state.rev++;
     invalidateResults('Inputs changed — run the stages again.');
+    flushSession();   // v1.23.0
     renderAll();
     if (state.activeInput) showInput(state.activeInput);
     var names = gone.map(function (id) { return inputDef(id).title; });
@@ -1373,7 +1384,9 @@
   }
   // v1.20.0 — generated files use the Saved Files (Library) row markup (hub-library.js + library.css) so both lists match.
   function fileRow(o) {
-    var fn = OUT_FRIENDLY[o.key] || cleanTitle(o.name) || o.name, w = o.at ? whenText(o.at).split(' · ') : ['', ''];
+    // v1.23.0: a TXT row is named from its file (the engine writes POS INSERT first, so 'txt-0' was labelled POS UPDATE
+    // beside the POS INSERT file and the other way round)
+    var fn = /^txt-/.test(o.key) ? txtKind(o) : (OUT_FRIENDLY[o.key] || cleanTitle(o.name) || o.name), w = o.at ? whenText(o.at).split(' · ') : ['', ''];
     var flow = [o.meta || '', o.lib ? '<span class="lib">saved to Library</span>' : ''].filter(Boolean);
     return '<div class="phf-lib-row' + (o.warn ? ' has-warning' : '') + '"><span class="phf-lib-dot" aria-hidden="true">' + (o.warn ? '!' : '✓') + '</span>' +
       '<div class="phf-lib-what"><strong>' + esc(fn) + '</strong><span title="' + esc(o.name) + '">' + esc(o.name) + '</span></div>' +
@@ -3118,19 +3131,22 @@
       if (!n && !fn) return;
       var rowsTxt = function (k) { return fmtN(k) + ' row' + (k === 1 ? '' : 's'); };
       var names = files.map(function (f) { return '• ' + f.name + ' — ' + rowsTxt(f.data.length); }).join('\n');
+      var libSets = files.filter(function (f) { return f.libKind; });   // v1.23.0: their Library copies are deleted too
       var all = window.confirm('Clear the sheet?\n\nThis removes all ' + rowsTxt(n + fn) + ':\n' + (files.length ? names + '\n' : '') + (n ? '• ' + rowsTxt(n) + ' you typed or pasted here\n' : '') +
-        '\nRun the stages again afterwards. You can undo this (Undo or Ctrl+Z).' + (files.length && n ? '\n\nOK = clear everything · Cancel = other choices' : ''));
+        (libSets.length ? '\nThe ' + libSets.map(function (f) { return LIB ? LIB.info(f.libKind).label : f.name; }).join(' and ') + ' from the Library ' + (libSets.length === 1 ? 'is' : 'are') + ' deleted from this browser too — build ' + (libSets.length === 1 ? 'it' : 'them') + ' again in Build POS Master Databases to use + Add again.\n' : '') +
+        '\nRun the stages again afterwards. You can undo this (Undo or Ctrl+Z)' + (libSets.length ? ' — Undo puts the rows back in the sheet, not in the Library.' : '.') + (files.length && n ? '\n\nOK = clear everything · Cancel = other choices' : ''));
       if (all) {
         supMutate(function () {
+          libForget('sup', libSets); libSets.forEach(function (f) { delete f.libKind; delete f.libSavedAt; delete f.libWhen; });   // Undo brings the rows back as this page's own
           supEntries().forEach(function (f) { f.data = []; });
           supView.brands = null; supView.sel = null; delete railFlags.reject.sup; delete railFlags.updated.sup;   // an old refusal note no longer applies
           return { msg: 'Sheet cleared — ' + rowsTxt(n + fn) + (files.length ? ' (' + files.length + ' supplier file' + (files.length === 1 ? '' : 's') + (n ? ' and the typed / pasted rows' : '') + ')' : '') + ' removed. Undo puts them back.', type: 'info' };
-        }) && setGlobal('Supplier Updates sheet cleared (' + rowsTxt(n + fn) + '). ' + readinessText(), requiredReady() ? 'ready' : 'missing');
+        }) && (flushSession(), setGlobal('Supplier Updates sheet cleared (' + rowsTxt(n + fn) + ')' + (libSets.length ? ' — the ' + libSets.map(function (f) { return LIB ? LIB.info(f.libKind).label : f.name; }).join(' and ') + ' ' + (libSets.length === 1 ? 'is' : 'are') + ' deleted from the Library too' : '') + '. ' + readinessText(), requiredReady() ? 'ready' : 'missing'));
         return;
       }
       if (!(files.length && n)) return;
       if (!window.confirm('Clear only the ' + rowsTxt(n) + ' you typed or pasted here?\n\nThe supplier files stay. You can undo this.')) return;
-      supMutate(function () { e.data = []; return { msg: rowsTxt(n) + ' added here cleared — the supplier files stay.', type: 'info' }; });
+      supMutate(function () { e.data = []; return { msg: rowsTxt(n) + ' added here cleared — the supplier files stay.', type: 'info' }; }) && flushSession();
     };
     $('#supCopyHeads').onclick = function () {
       var txt = SUP_HEADS.join('\t');
@@ -3229,15 +3245,77 @@
     var rec = { savedAt: f.libSavedAt }, stale = !LIB_SHARED[id] && LIB.isStale(rec);
     return '<em class="lib-from' + (stale ? ' stale' : '') + '">' + (LIB_SHARED[id] ? 'Saved in the Library ' : 'From the Library · built ') + esc(LIB.when(rec)) + ' (' + esc(LIB.ago(rec)) + ')' + (stale ? ' — over a day old: check it is the latest build' : '') + '</em>';
   }
-  // Inputs removed from this page: a Library file is not loaded here again until a newer copy is saved; the shared
-  // Ongoing Discounts file is one saved copy for every tool, so removing it deletes it from the Library.
+  // v1.23.0 — a file removed from this page is deleted from this browser: its Library copy goes for every tool (the POS
+  // Database and the CH2 / Unique sets used to be only hidden here, so they came back). Only the copy this page holds is
+  // deleted; a newer build saved since stays, and is what loads next time. Ongoing Discounts is one copy shared by every
+  // tool — the callers ask first (sharedDeleteOk).
   function libForget(id, files) {
     if (!LIB) return;
     (files || []).forEach(function (f) {
       if (!f || !f.libKind) return;
-      if (LIB_SHARED[id]) LIB.remove(f.libKind).catch(function () {});
-      else LIB.dismiss(LIB_TOOL, { kind: f.libKind, savedAt: f.libSavedAt });
+      var kind = f.libKind, at = f.libSavedAt;
+      LIB.get(kind).then(function (rec) { if (rec && (!at || rec.savedAt === at)) return LIB.remove(kind); }).catch(function (e) { console.warn('Library delete failed', kind, e); });
     });
+  }
+  function sharedDeleteOk(ids) {
+    var d = state.inputs.disc;
+    if (ids.indexOf('disc') < 0 || !d || !d.files.some(function (f) { return f.libKind; })) return true;
+    return window.confirm('Delete Ongoing Discounts from this browser?\n\nBuild POS Master Databases, POS New Product Check Clean and Reconcile CH2 Order all use the same saved copy — they lose it too. Drop the file again before the next build, merge or reconciliation.');
+  }
+  // v1.23.0 — the session is written at once after a clear or remove (a page closed within the 1.2 s wait kept the old one)
+  function flushSession() { if (sessRestoring) return; clearTimeout(sessTimer); saveSession(); }
+  // v1.23.0 — on open: a file this page got from the Library (restored from the session or the saved reference tables) that
+  // has since been deleted there is dropped; a POS Database only hidden here before v1.23.0 is deleted now. Returns what went.
+  function libPrune() {
+    if (!LIB) return Promise.resolve([]);
+    var gone = [];
+    return LIB.get('lib:pos-db').then(function (rec) {
+      if (rec && LIB.isDismissed(LIB_TOOL, rec)) return LIB.remove('lib:pos-db').then(function () { gone.push(LIB.info('lib:pos-db').label + ' you removed here before'); });
+    }).then(function () {
+      var checks = [];
+      M.INPUTS.forEach(function (d) {
+        var x = state.inputs[d.id]; if (!x || !x.files) return;
+        x.files.forEach(function (f) { if (f && f.libKind) checks.push(LIB.get(f.libKind).then(function (rec) { if (!rec) f.__libGone = true; })); });
+      });
+      return Promise.all(checks);
+    }).then(function () {
+      M.INPUTS.forEach(function (d) {
+        var x = state.inputs[d.id]; if (!x || !x.files) return;
+        var keep = x.files.filter(function (f) { if (f && f.__libGone) { gone.push(LIB.info(f.libKind).label); return false; } return true; });
+        if (keep.length === x.files.length) return;
+        x.files = keep;
+        if (!keep.length) { delete state.inputs[d.id]; if (d.stored) refDelete(d.id); } else if (d.stored) refSave(d.id);
+        state.rev++; sessInputsDirty = true;
+      });
+      return gone;
+    }).catch(function (e) { console.warn('Library check failed', e); return gone; });
+  }
+  // v1.23.0 — a file deleted from the Library in another tool, or by the home page's Delete all, goes from this page too.
+  function libGoneHere(msg) {
+    if (sessRestoring || !msg) return;   // while the page opens, libPrune does this
+    if (msg.action === 'clear') {
+      var all = M.INPUTS.map(function (d) { return d.id; }).filter(function (id) { return state.inputs[id]; });
+      if (!all.length) return;
+      if (inputsLocked()) { setGlobal('Every saved file was deleted from this browser (Delete all on the home page). A stage is running — use CLEAR SESSION FILES and CLEAR SAVED REFERENCE when it finishes.', 'missing'); return; }
+      removeInputs(all, ' ');
+      setGlobal('Every saved file was deleted from this browser (Delete all on the home page), so this page\'s files and saved reference tables are cleared too. ' + readinessText(), 'missing');
+      return;
+    }
+    if (msg.action !== 'remove') return;
+    var hit = M.INPUTS.filter(function (d) { var x = state.inputs[d.id]; return x && x.files.some(function (f) { return f.libKind === msg.kind; }); }).map(function (d) { return d.id; });
+    if (!hit.length) return;
+    var label = LIB.info(msg.kind).label;
+    if (inputsLocked()) { setGlobal(label + ' was deleted from the Library. A stage is running — remove it here when it finishes.', 'missing'); return; }
+    hit.forEach(function (id) {
+      var x = state.inputs[id]; x.files = x.files.filter(function (f) { return f.libKind !== msg.kind; });
+      if (!x.files.length) { delete state.inputs[id]; if (inputDef(id).stored) refDelete(id); } else if (inputDef(id).stored) refSave(id);
+      if (id === 'sup') supView.undo = [];
+    });
+    state.rev++;
+    invalidateResults('Inputs changed — run the stages again.');
+    renderAll(); if (state.activeInput) showInput(state.activeInput);
+    flushSession();
+    setGlobal(label + ' was deleted from the Library in another tool, so it is removed here too. ' + readinessText(), requiredReady() ? 'ready' : 'missing');
   }
   function libLoad() {
     if (!LIB) return Promise.resolve([]);
@@ -3396,11 +3474,12 @@
     document.querySelectorAll('[data-run-all]').forEach(function (b) { b.onclick = function () { if (!b.disabled) runTo('export'); }; });   // v1.17.0 — stage run buttons are wired in renderStages (.db-build)
     // v1.17.1 — the run-strip step pills run their stage too (same handler as the stage-header pills)
     document.querySelectorAll('[data-run-step][data-stage]').forEach(function (b) { b.onclick = function () { if (b.disabled) return; runTo(b.dataset.stage); }; });
-    $('#clearAllBtn').onclick = function () { if (state.busy) return; invalidateResults('Results cleared.'); startEngine().then(updateRunButtons); setGlobal('Results cleared. Input files are kept (and stay saved in this browser).', 'info'); };
+    $('#clearAllBtn').onclick = function () { if (state.busy) return; invalidateResults('Results cleared.'); flushSession(); startEngine().then(updateRunButtons); setGlobal('Results cleared. Input files are kept (and stay saved in this browser).', 'info'); };
     $('#railClearSession').onclick = function () {
       removeInputs(M.INPUTS.filter(function (d) { return !d.stored; }).map(function (d) { return d.id; }), 'POS database and supplier rows removed (including rows added in the sheet). Saved reference data is kept.');
     };
     $('#railClearReference').onclick = function () {
+      if (!sharedDeleteOk(['disc'])) return;   // v1.23.0: Ongoing Discounts is shared
       removeInputs(M.INPUTS.filter(function (d) { return d.stored; }).map(function (d) { return d.id; }), 'Saved reference data removed from this browser.');
     };
     renderAll();
@@ -3411,16 +3490,19 @@
         : '<strong>Storage not protected</strong><span>The browser may clear this site\'s saved files (reference tables, the Library, the session) when disk space is short. To protect them, install the Staff Hub as an app (Chrome menu ⋮ → Cast, save and share → Install page as app) or bookmark it, then reload.</span>';
       el.className = 'sidebar-footer' + (p ? ' is-ok' : ' is-warn');
     });
-    var hadInputs = false;
-    refLoadAll().then(restoreInputs).then(function (had) { hadInputs = had; renderAll(); return libLoad(); }).then(function (got) {
+    var hadInputs = false, pruned = [];
+    refLoadAll().then(restoreInputs).then(function (had) { hadInputs = had; return libPrune(); }).then(function (g) {
+      pruned = g || []; if (!state.inputs.pos && !state.inputs.sup) hadInputs = false;   // v1.23.0
+      renderAll(); return libLoad(); }).then(function (got) {
       renderAll();
       var saved = M.INPUTS.filter(function (d) { return d.stored && loaded(d.id); }).length;
-      setGlobal((got && got.length ? 'From the Library: ' + got.join(' · ') + '. ' : '') + (hadInputs ? (got && got.some(function (g) { return g.indexOf('replaces') >= 0; }) ? 'Your Supplier Updates from last time are back. ' : 'Your POS Database and Supplier Updates from last time are back. ') : '') + (saved ? saved + ' saved reference table' + (saved === 1 ? '' : 's') + ' loaded from this browser. ' : '') + readinessText(), requiredReady() ? 'ready' : 'missing');
+      setGlobal((got && got.length ? 'From the Library: ' + got.join(' · ') + '. ' : '') + (hadInputs ? (got && got.some(function (g) { return g.indexOf('replaces') >= 0; }) ? 'Your Supplier Updates from last time are back. ' : 'Your ' + [state.inputs.pos && 'POS Database', state.inputs.sup && 'Supplier Updates'].filter(Boolean).join(' and ') + ' from last time ' + (state.inputs.pos && state.inputs.sup ? 'are' : 'is') + ' back. ') : '') + (saved ? saved + ' saved reference table' + (saved === 1 ? '' : 's') + ' loaded from this browser. ' : '') + readinessText(), requiredReady() ? 'ready' : 'missing');
       if (state.activeInput) showInput(state.activeInput);
       return restoreState();
     }).then(function (r) {
       sessRestoring = false;
       return newerPosNote().then(function (note) {
+        if (pruned.length) note = (note || '') + ' Deleted from the Library since last time, so removed here too: ' + pruned.join(' · ') + '.';   // v1.23.0
         if (r && r.at && !r.changed) setGlobal('Your last session is back (saved ' + r.at + ') — results, edits and TXT files. It stays until Clear results, Clear session files or a new run.' + note, 'success');
         else if (r && r.changed) setGlobal('Your input files are back, but they changed since the results were saved (' + r.at + ') — run the stages again.' + note, 'missing');
         else if (r && r.failed) setGlobal('Your input files are back; the saved results could not be put back (' + r.failed + ') — run the stages again.' + note, 'missing');
@@ -3430,6 +3512,7 @@
     });
     libSupRefresh();
     if (LIB) LIB.onChange(function (msg) {
+      libGoneHere(msg);   // v1.23.0: deleted elsewhere → gone from this page too
       if (msg.action === 'clear' || LIB_SUP.indexOf(msg.kind) >= 0) { libSupRefresh(); return; }
       var use = LIB_LOAD.filter(function (j) { return j.kind === msg.kind; })[0];
       if (msg.action !== 'put' || !use || LIB_SHARED[use.id]) return;
