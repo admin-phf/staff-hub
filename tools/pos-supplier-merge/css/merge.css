@@ -534,3 +534,6 @@ body.phf-page-merge .sup-card-actions .sup-card-link,body.phf-page-merge .sup-ca
 body.phf-page-merge .sup-lib-add.is-missing{opacity:.6;cursor:not-allowed}
 /* v1.22.0 — the Drop All count pill shows only when a file needs a choice (.result-badge display overrode [hidden]) */
 body.phf-page-merge #bulkCount[hidden]{display:none}
+/* v1.23.1 — Supplier Updates that are the POS's own products: the notice in the Supplier Updates panel and its two buttons */
+body.phf-page-merge .sup-copy-block{margin:10px 0 0}
+body.phf-page-merge .sup-copy-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}

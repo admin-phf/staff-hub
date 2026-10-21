@@ -1311,3 +1311,21 @@ All implemented stages keep source business files local to the browser and gener
   null error.
 - Versions: hub v21.35.0; POS New Product Check Clean v1.23.0; Build POS Master v21.22.0; Reconcile v2.17.1;
   phf-library ?v=1.2.0; hub-library ?v=2.1.0.
+
+## Staff Hub v21.35.1 (22 Oct 2026 08:20 AEDT) — POS copies in Supplier Updates are not ready to run
+- POS New Product Check Clean v1.23.1 (app.js):
+  - `posCopyShare()` also returns `per` [{e, n, same}] per supplier entry. `posCopyNow()` caches it per `state.rev`;
+    `posCopyKey()` = supSig of every entry + posSig(); `posCopyBlocked()` → the share when n ≥ 50 and same/n ≥ 0.9 and
+    `state.posCopyOkKey !== posCopyKey()`, else null; `posCopyText(pc)`.
+  - `requiredReady()` is false while blocked (so updateRunButtons, the stage pills, restoreState and runTo all follow);
+    `readinessText()` returns the "Not ready — …" reason; `railState('sup')` → INCOMPATIBLE; `#readyCount` amber.
+  - `runTo` no longer asks `window.confirm`; when blocked it sets the status and opens the Supplier Updates panel.
+  - `showInput('sup')` adds `.phf-notice.sup-copy-block` with `#supCopyRemove` (removes entries with same/n ≥ 0.9 — all
+    entries if none qualifies — via libForget, rev++, invalidateResults, flushSession) and `#supCopyUse`
+    (`state.posCopyOkKey = posCopyKey()`, page memory only).
+  - `posOwnPrune()` in boot after `libPrune`: non-added supplier entries whose name matches `POS_OWN_RE` are removed
+    (sessInputsDirty) and named in the opening note.
+  - Success statuses that include `readinessText()` (Drop All, file loaded, rows added, Library live load) use 'missing'
+    while blocked.
+- merge.css: `.sup-copy-block`, `.sup-copy-actions`.
+- Versions: hub v21.35.1; POS New Product Check Clean v1.23.1 (app.js / merge.css ?v=1.23.1).
