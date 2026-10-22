@@ -1,4 +1,11 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.23.2 (22 Oct 2026, Staff Hub v21.35.2): a POS clean-up run is allowed on
+/* PHF Staff Hub — POS New Product Check Clean v1.23.3 (22 Oct 2026, Staff Hub v21.35.3): the POS check is information only.
+ * The same merge is a clean-up (discontinued, Sub IDs, PLUs), a check of what you stock, or a buy-better comparison — the
+ * Update in POS ticks and the Discontinue switch decide what changes. Supplier rows that match POS products (by file name or
+ * ≥ 90 % barcode + description) no longer stop the run (no CHOOSE, no choice to make): the row reads POS MATCH (blue), and the
+ * status line and the Supplier Updates panel say how many rows match and what this run will change in POS (posOwnNote, from
+ * the ticks and Discontinue), with Remove these rows in the panel. The same rows twice are still refused. The status line is
+ * refreshed when a paste or edit in the sheet changes whether the page is ready (state.readyKey). No merge change.
+ * v1.23.2 (22 Oct 2026, Staff Hub v21.35.2): a POS clean-up run is allowed on
  * purpose. The POS's own file (clean_merged_pos_data… / _pos_db) can be Supplier Updates again — dropped, Drop All or from the
  * saved session (no longer refused or removed on open). When the Supplier Updates are the POS's own products (by file name or
  * ≥ 90 % copies) the Supplier Updates panel offers "Run as a POS clean-up" or "Remove these rows" (no pop-up); the choice is
@@ -229,7 +236,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.23.2';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.23.3';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -245,7 +252,7 @@
   // products in the A–P layout) are the POS itself, never a supplier update: merging them compares the POS with itself.
   var POS_OWN_RE = /^clean_merged_pos_data/i;
   // v1.23.2: no longer refused as Supplier Updates — a POS clean-up run checks the POS against itself on purpose; the file is
-  // recognised by name (and by its rows, posCopyShare) so the page asks which it is (posCopyBlocked).
+  // recognised by name (and by its rows, posCopyShare) so the page can say so (posOwnState, v1.23.3: information only).
   // The card text (merge-map.js is shared with the engine, so the page's wording is set here).
   var CARD_DESC = { sup: 'The supplier rows for the brands you are updating: + Add CH2 set / + Add Unique set (from Build POS Master Databases), a CH2 or Unique file — the A–P layout clean_ch2_data_pos_db_… / clean_uhp_data_pos_db_… or the full set clean_ch2_data_… / clean_uhp_data_… — or the IN_SUPPLIER tab. Several supplier files are combined into one list. For a POS clean-up run (the POS checked against itself), the POS file clean_merged_pos_data_pos_db_… — the page asks you to confirm it.' };
   // A second copy of rows already loaded (the same file under another name, e.g. "… (1).xlsx", or the A–P file and its
@@ -268,27 +275,28 @@
     sup.forEach(function (e) { var en = 0, es = 0; e.data.forEach(function (r) { var b = bc(r[3]), d = tx(r[6]); if (!b && !d) return; n++; en++; if (keys[b + '|' + d]) { same++; es++; } }); per.push({ e: e, n: en, same: es }); });
     return { n: n, same: same, per: per };
   }
-  // v1.23.1 — the check runs whenever the inputs change (cached per state.rev), not only when Run is pressed: Supplier Updates
-  // that are ≥ 90 % (and at least 50 rows) exact copies of POS Database rows are not ready to run, until they are removed or
-  // "Run as a POS clean-up" is chosen for exactly these rows (posCopyOkKey, v1.23.2).
+  // v1.23.3 — information only: supplier rows that match POS products (cached per state.rev). Never stops a run — the same
+  // merge is a clean-up, a check of what you stock or a buy-better comparison, and the Update in POS ticks decide what changes.
   var posCopyCache = { rev: -1, res: null };
   function posCopyNow() { if (posCopyCache.rev !== state.rev) posCopyCache = { rev: state.rev, res: posCopyShare() }; return posCopyCache.res; }
-  function posCopyKey() { return supEntries().map(supSig).join('\u0003') + '#' + posSig(); }
-  // v1.23.2: the POS's own products as Supplier Updates — by file name (clean_merged_pos_data…) or ≥ 90 % copies of POS rows.
-  // Fine for a POS clean-up run (chosen in the Supplier Updates panel, posCopyOkKey); until then the page is not ready.
   function posOwnState() {
     var pc = posCopyNow(), named = supEntries().filter(function (e) { return e && !e.added && POS_OWN_RE.test(e.name || ''); });
     var copy = !!(pc && pc.n >= 50 && pc.same / pc.n >= 0.9);
     return copy || named.length ? { pc: pc, named: named, copy: copy } : null;
   }
-  function posCopyBlocked() { var o = posOwnState(); return o && state.posCopyOkKey !== posCopyKey() ? o : null; }
-  function posCleanup() { var o = posOwnState(); return !!(o && state.posCopyOkKey === posCopyKey()); }
   function posCopyText(o) {
     var bits = [];
+    if (o.pc && o.pc.n) bits.push(fmtN(o.pc.same) + ' of ' + fmtN(o.pc.n) + ' supplier rows (' + Math.round(o.pc.same / o.pc.n * 100) + '%) match POS products by barcode and description');
     if (o.named.length) bits.push(o.named.map(function (e) { return e.name; }).join(', ') + ' is the POS\'s own file');
-    if (o.pc && o.pc.n) bits.push(fmtN(o.pc.same) + ' of ' + fmtN(o.pc.n) + ' supplier rows (' + Math.round(o.pc.same / o.pc.n * 100) + '%) match POS Database rows (barcode + description)');
-    return 'The Supplier Updates are the POS\'s own products (' + bits.join('; ') + ').';
+    return 'The Supplier Updates match the POS — ' + bits.join('; ') + '.';
   }
+  // what this run changes in POS for matched products — from the Update in POS ticks and the Discontinue switch
+  function updateNote() {
+    var off = keptGroups(), k = off.filter(function (g) { return !g.use; }), u = off.filter(function (g) { return g.use; });
+    return 'Update in POS: ' + (k.length ? 'keeping POS\'s ' + k.map(function (g) { return g.what; }).join(', ') : 'every ticked heading — nothing kept') + (u.length ? '; not using ' + u.map(function (g) { return g.what; }).join(', ') : '') +
+      ' · Discontinue missing products: ' + (state.opts.discontinue ? 'on' : 'off') + '.';
+  }
+  function posOwnNote() { var o = posOwnState(); return o ? posCopyText(o) + ' Fine for a clean-up, a check of what you stock or a buy-better comparison — ' + updateNote() : ''; }
   var M = window.PHFMergeMap;
   var $ = function (s) { return document.querySelector(s); };
   var SHEETS = {
@@ -695,8 +703,8 @@
       var entry = fileEntry(file, best.tab, best.mapped);
       addToInput(id, entry);
       shareToLib(id, file, sheets, best.tab, entry);
-      var blk = posCopyBlocked();   // v1.23.1: say straight away when the supplier rows are POS copies
-      setGlobal(def.title + ': ' + file.name + ' loaded — ' + fmtN(best.mapped.report.rows) + ' rows.' + (blk ? ' ' + readinessText() : ''), blk ? 'missing' : 'success');
+      var own = posOwnNote();   // v1.23.3: say what was found (information only)
+      setGlobal(def.title + ': ' + file.name + ' loaded — ' + fmtN(best.mapped.report.rows) + ' rows.' + (own ? ' ' + own : ''), 'success');
       renderAll(); showInput(id);
       return true;
     }).catch(function (e) {
@@ -764,7 +772,7 @@
     Promise.all(jobs).then(function () {
       var ok = recs.filter(function (r) { return r.status === 'assigned'; }).length, bad = recs.filter(function (r) { return r.status === 'invalid'; });
       if (bad.length) setGlobal((ok ? 'Files assigned except ' : '') + bad.map(function (r) { return inputDef(r.rejectedFor).title + ': ' + r.file.name + ' — ' + r.msg.replace(/^[^:]*: /, ''); }).join(' · ') + (ok ? ' ' + readinessText() : ''), 'error');   // v1.22.0
-      else setGlobal(ok > 0 ? 'Files assigned. ' + readinessText() : 'No file was recognised — choose the input for each file below.', ok > 0 && !posCopyBlocked() ? 'success' : 'missing');   // v1.23.1: not green when the rows are POS copies
+      else setGlobal(ok > 0 ? 'Files assigned. ' + readinessText() : 'No file was recognised — choose the input for each file below.', ok > 0 ? 'success' : 'missing');
       updateRunButtons();
     });
   }
@@ -817,10 +825,9 @@
   function libStaleFiles(id) { var x = state.inputs[id]; return ((x && x.files) || []).filter(function (f) { return f.libSavedAt && !LIB_SHARED[id] && LIB && LIB.isStale({ savedAt: f.libSavedAt }); }); }
   function railState(def) {
     var f = loaded(def.id);
-    if (f && def.id === 'sup' && posCopyBlocked()) return { cls: 'loaded incompatible', dot: '!', text: 'CHOOSE' };   // v1.23.2: POS's own products — clean-up or remove
-    if (f && def.id === 'sup' && posCleanup()) return { cls: 'loaded updated', dot: '✓', text: 'CLEAN-UP' };
     if (f && libStaleFiles(def.id).length) return { cls: 'loaded lib-stale', dot: '!', text: 'CHECK DATE' };
     if (railFlags.reject[def.id]) return { cls: (f ? 'loaded ' : def.required ? 'missing required ' : 'missing ') + 'incompatible', dot: '!', text: 'INCOMPATIBLE' };
+    if (f && def.id === 'sup' && posOwnState()) return { cls: 'loaded updated', dot: '✓', text: 'POS MATCH' };   // v1.23.3: information only
     if (f && railFlags.updated[def.id]) return { cls: 'loaded updated', dot: '✓', text: 'UPDATED' };
     if (f) return { cls: 'loaded', dot: '✓', text: def.stored ? 'SAVED' : 'LOADED' };
     if (def.required) return { cls: 'missing required', dot: '!', text: 'REQUIRED' };
@@ -913,17 +920,11 @@
     d.ondrop = function (e) { e.preventDefault(); d.classList.remove('drag'); take(e.dataTransfer && e.dataTransfer.files); };
     host.querySelectorAll('[data-remove]').forEach(function (b) { b.onclick = function () { removeFile(id, +b.dataset.remove); }; });
     document.querySelectorAll('[data-input]').forEach(function (b) { b.classList.toggle('active', b.dataset.input === id); });
-    if (id === 'sup' && has && (posCopyBlocked() || posCleanup())) {   // v1.23.2: the POS's own products — clean-up run or remove
-      var own = posOwnState(), chosen = posCleanup();
-      host.querySelector('.file-list').insertAdjacentHTML('beforebegin', chosen
-        ? '<div class="phf-notice sup-copy-block is-cleanup" role="status"><div class="phf-notice-body"><strong>POS clean-up run</strong>' + esc(posCopyText(own)) +
-          ' You chose to run the merge on them — the POS checked against itself (discontinued products, unique PLUs), not a supplier update. It stays chosen until these rows or the POS Database change.' +
-          '<div class="sup-copy-actions"><button type="button" class="btn small" id="supCopyUndo">Not a clean-up — ask again</button><button type="button" class="btn small" id="supCopyRemove">Remove these rows</button></div></div></div>'
-        : '<div class="phf-notice sup-copy-block" role="alert"><div class="phf-notice-body"><strong>Choose: POS clean-up run, or remove these rows</strong>' + esc(posCopyText(own)) +
-          ' That is right for a POS clean-up run (the POS checked against itself — discontinued products, unique PLUs). For a supplier update, remove them and add the CH2 / Unique rows (+ Add CH2 set / + Add Unique set) instead.' +
-          '<div class="sup-copy-actions"><button type="button" class="btn small primary" id="supCopyUse" title="Run the merge with the POS\'s own products as the Supplier Updates — kept until these rows or the POS Database change">Run as a POS clean-up</button><button type="button" class="btn small" id="supCopyRemove">Remove these rows</button></div></div></div>');
-      var rmBtn = host.querySelector('#supCopyRemove'), useBtn = host.querySelector('#supCopyUse'), undoBtn = host.querySelector('#supCopyUndo');
-      rmBtn.onclick = function () {
+    if (id === 'sup' && has && posOwnState()) {   // v1.23.3: information only — what was found and what this run changes
+      host.querySelector('.file-list').insertAdjacentHTML('beforebegin', '<div class="phf-notice sup-copy-block is-cleanup" role="status"><div class="phf-notice-body"><strong>These supplier rows match the POS</strong>' + esc(posCopyText(posOwnState())) +
+        ' That is fine for a clean-up, a check of what you stock or a buy-better comparison — the Update in POS ticks on the sheet headings and the Discontinue switch decide what changes. ' + esc(updateNote()) +
+        '<div class="sup-copy-actions"><button type="button" class="btn small" id="supCopyRemove">Remove these rows</button></div></div></div>');
+      host.querySelector('#supCopyRemove').onclick = function () {
         if (inputsLocked()) return;
         var o = posOwnState(), cur = state.inputs.sup; if (!cur) return;
         var drop = cur.files.filter(function (e) { if (o && o.named.indexOf(e) >= 0) return true; var p = o && o.pc && (o.pc.per || []).filter(function (x) { return x.e === e; })[0]; return !!(p && p.n && p.same / p.n >= 0.9); });
@@ -932,17 +933,9 @@
         var names = drop.map(function (e) { return e.added ? 'the rows typed or pasted here' : e.name; });
         cur.files = cur.files.filter(function (e) { return drop.indexOf(e) < 0; });
         if (!cur.files.length) delete state.inputs.sup;
-        state.posCopyOkKey = null; supView.undo = []; supView.sel = null; supView.brands = null;
+        supView.undo = []; supView.sel = null; supView.brands = null;
         state.rev++; invalidateResults('Inputs changed — run the stages again.'); flushSession(); renderAll(); showInput('sup');
-        setGlobal('Removed from Supplier Updates: ' + names.join(', ') + ' (the POS\'s own products). ' + readinessText(), requiredReady() ? 'ready' : 'missing');
-      };
-      if (useBtn) useBtn.onclick = function () {
-        state.posCopyOkKey = posCopyKey(); sessInputsDirty = true; flushSession(); renderAll(); showInput('sup');
-        setGlobal('POS clean-up run chosen — the Supplier Updates are the POS\'s own products, so the merge checks the POS against itself. ' + readinessText(), requiredReady() ? 'ready' : 'missing');
-      };
-      if (undoBtn) undoBtn.onclick = function () {
-        state.posCopyOkKey = null; sessInputsDirty = true; flushSession(); renderAll(); showInput('sup');
-        setGlobal(readinessText(), requiredReady() ? 'ready' : 'missing');
+        setGlobal('Removed from Supplier Updates: ' + names.join(', ') + '. ' + readinessText(), requiredReady() ? 'ready' : 'missing');
       };
     }
     if (id === 'sup') {
@@ -956,8 +949,7 @@
     var miss = visibleInputs().filter(function (d) { return d.required && !loaded(d.id); }).map(function (d) { return d.title; });
     var rec = visibleInputs().filter(function (d) { return d.recommended && !loaded(d.id); }).map(function (d) { return d.title; });
     if (miss.length) return 'Missing: ' + miss.join(', ') + '.';
-    var blk = posCopyBlocked(); if (blk) return 'Not ready — ' + posCopyText(blk) + ' Open Supplier Updates and choose Run as a POS clean-up (the POS checked against itself) or Remove these rows.';   // v1.23.2
-    if (posCleanup()) return 'Ready to run — POS clean-up run: the Supplier Updates are the POS\'s own products (the POS checked against itself).';
+    var own = posOwnNote(); if (own) return 'Ready to run. ' + own;   // v1.23.3: information only
     return 'Ready to run.' + (rec.length ? ' Reference not loaded: ' + rec.join(', ') + ' — the merge runs without it, but results may differ from the Google Sheet.' : '');
   }
   function renderInputSummary() {
@@ -972,9 +964,9 @@
       return '<div class="summary-chip ' + cls + '"><strong>' + esc(g) + '</strong><span>' + txt + '</span></div>';
     }).join('');
     var req = visibleInputs().filter(function (d) { return d.required; }), ok = req.filter(function (d) { return loaded(d.id); }).length;
-    var rc = $('#readyCount'); rc.textContent = ok + ' / ' + req.length + ' REQUIRED'; rc.className = 'result-badge ' + (ok === req.length ? (posCopyBlocked() ? 'warn' : 'ok') : ok ? 'ready' : '');
+    var rc = $('#readyCount'); rc.textContent = ok + ' / ' + req.length + ' REQUIRED'; rc.className = 'result-badge ' + (ok === req.length ? 'ok' : ok ? 'ready' : '');
   }
-  function requiredReady() { return visibleInputs().every(function (d) { return !d.required || loaded(d.id); }) && !posCopyBlocked(); }   // v1.23.1: POS copies block
+  function requiredReady() { return visibleInputs().every(function (d) { return !d.required || loaded(d.id); }); }
 
   // ------------------------------------------------------------- stages
   // v1.17.0 — Stages & generated files: one collapsible group per stage. Stage 1 produces no file (status-only); stages 2
@@ -1153,7 +1145,7 @@
     // v1.23.1: supplier rows that are mostly exact copies of the POS Database (the POS's own products — a renamed POS file or
     // pasted POS rows) make requiredReady() false; the Supplier Updates panel explains and offers Remove / Use anyway
     // (v1.22.0 asked with a browser question at this point instead).
-    if (!requiredReady()) { setGlobal(readinessText(), 'missing'); if (posCopyBlocked()) showInput('sup'); return Promise.resolve(); }
+    if (!requiredReady()) { setGlobal(readinessText(), 'missing'); return Promise.resolve(); }
     var tIdx = STAGES.map(function (s) { return s.id; }).indexOf(target);
     if ((state.stage.highlight || {}).status !== 'done' || tIdx === 0) fillSupNames();   // v1.9.0
     state.busy = true;
@@ -2337,7 +2329,9 @@
     if (x) { x.files = x.files.filter(function (e) { return e.data.length; }); if (!x.files.length) delete state.inputs.sup; else x.savedAt = melb(); }
     state.rev++;
     invalidateResults('Supplier rows changed — run the stages again.');
+    var rk = state.readyKey;
     renderAll();
+    if (rk !== state.readyKey) setGlobal(readinessText(), requiredReady() ? 'ready' : 'missing');   // v1.23.3: no stale "Missing" after a paste
     if (state.activeInput === 'sup') showInput('sup');
     if (msg !== undefined) { supView.note = msg; supView.noteType = type || 'info'; }
     drawSup();
@@ -2378,7 +2372,7 @@
       return { msg: fmtN(m.data.length) + ' row' + (m.data.length === 1 ? '' : 's') + ' added ' + m.how + '.' + (m.warn.length ? ' Check: ' + m.warn.join(' · ') + '.' : ''), type: m.warn.length ? 'warn' : 'success' };
     });
     supGoTo(startRow, 1);
-    setGlobal('Supplier Updates: ' + fmtN(m.data.length) + ' row' + (m.data.length === 1 ? '' : 's') + ' added — ' + fmtN(rowsOf('sup').length) + ' supplier rows in total. ' + readinessText(), m.warn.length || posCopyBlocked() ? 'missing' : 'success');
+    setGlobal('Supplier Updates: ' + fmtN(m.data.length) + ' row' + (m.data.length === 1 ? '' : 's') + ' added — ' + fmtN(rowsOf('sup').length) + ' supplier rows in total. ' + readinessText(), m.warn.length ? 'missing' : 'success');
   }
   function pasteAtCell(rows, sel) {
     var r0 = Math.min(sel.r, sel.r2), c0 = Math.max(1, Math.min(sel.c, sel.c2)), vis = supView.vis;
@@ -2512,6 +2506,7 @@
   function optsChanged() {
     if ((state.stage.export || {}).status === 'done') { state.edits.optsAfter3 = true; stageMsg('export', 'Update in POS / Discontinue options changed — run stage 3 again to use them.', 'ready'); }
     drawSup(); renderScopes(); renderOutputs(); renderOutActions();
+    if (posOwnState()) { setGlobal(readinessText(), requiredReady() ? 'ready' : 'missing'); if (state.activeInput === 'sup') showInput('sup'); state.readyKey = readyKey(); }   // v1.23.3: the note names the ticks
     // v1.6.1: OUT_MERGED_DATA shows POS's values in the kept columns, so it is drawn again (and the review workbook made again).
     if (state.review && state.results[SHEETS.OUT]) { renderReview(true); scheduleWorkbook(); }
     saveSessionSoon();
@@ -3441,7 +3436,7 @@
     var jobs = [];
     if (sessInputsDirty) {
       sessInputsDirty = false;
-      var ps = posSig(), rin = { id: SESSION_IN, savedAt: melb(), sup: state.inputs.sup || null, brands: supView.brands, pos: ps, posCleanup: state.posCopyOkKey || null };   // v1.23.2: the clean-up choice
+      var ps = posSig(), rin = { id: SESSION_IN, savedAt: melb(), sup: state.inputs.sup || null, brands: supView.brands, pos: ps };
       jobs.push(dbTx('readwrite', function (st) { st.put(rin); }));
       // The POS Database (tens of thousands of rows) is written only when it changes.
       if (ps !== savedPosSig) { var rp = { id: SESSION_POS, pos: state.inputs.pos || null }; jobs.push(dbTx('readwrite', function (st) { st.put(rp); }).then(function () { savedPosSig = ps; })); }
@@ -3475,7 +3470,6 @@
       if (rpos && rpos.pos && rpos.pos.files && rpos.pos.files.length) { state.inputs.pos = rpos.pos; any = true; savedPosSig = posSig(); }
       else savedPosSig = '';
       supView.brands = rin.brands && rin.brands.length ? rin.brands : null;
-      state.posCopyOkKey = rin.posCleanup || null;   // v1.23.2: a POS clean-up run chosen last time (holds only for the same rows)
       state.rev++;
       return any;
     }).catch(function (e) { console.warn('Saved session inputs unavailable', e); return false; });
@@ -3525,7 +3519,9 @@
   }
 
   // ----------------------------------------------------------------- boot
-  function renderAll() { renderInputNav(); renderInputSummary(); updateRunButtons(); renderTabs(); if (wb.active !== 'sup' && wb.active !== 'out') wbShow(wb.active, true); }
+  function renderAll() { renderInputNav(); renderInputSummary(); updateRunButtons(); renderTabs(); if (wb.active !== 'sup' && wb.active !== 'out') wbShow(wb.active, true); state.readyKey = readyKey(); }
+  // v1.23.3 — whether the page can run, and what the POS check says; a paste or edit in the sheet that changes it refreshes the status line
+  function readyKey() { return requiredReady() + '|' + loaded('sup') + '|' + posOwnNote(); }
   function boot() {
     renderStages(); renderOutputs(); wireBulkDrop(); wireReview();
     $('#supPanel').innerHTML = supSheetHtml(); wireSupSheet();

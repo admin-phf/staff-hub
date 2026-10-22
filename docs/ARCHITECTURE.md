@@ -1345,3 +1345,16 @@ All implemented stages keep source business files local to the browser and gener
   - The duplicate guard (`supSig` in addToInput) is unchanged.
 - merge.css: `.sup-copy-block.is-cleanup` (blue).
 - Versions: hub v21.35.2; POS New Product Check Clean v1.23.2 (app.js / merge.css ?v=1.23.2).
+
+## Staff Hub v21.35.3 (22 Oct 2026 12:15 AEDT) — the POS check is information only
+- POS New Product Check Clean v1.23.3 (app.js): `posCopyBlocked`, `posCleanup`, `posCopyKey`, `state.posCopyOkKey` and the
+  session field `posCleanup` are removed; `requiredReady()` no longer depends on the POS check (files only, as before
+  v1.23.1); runTo's block and the card-badge amber are gone.
+  - `posOwnState()` (name or ≥ 90 % copies) is information only: `railState('sup')` → POS MATCH ('loaded updated', after the
+    reject / stale checks); `posCopyText(o)`, `updateNote()` (keptGroups + Discontinue) and `posOwnNote()` feed
+    `readinessText()` ("Ready to run. …"), the file-loaded status and the Supplier Updates panel note (`.sup-copy-block
+    .is-cleanup`, `#supCopyRemove` only).
+  - `optsChanged()` refreshes the status line / panel when the POS check applies.
+  - `renderAll()` records `state.readyKey = readyKey()` (requiredReady | loaded('sup') | posOwnNote); `supCommit` refreshes
+    the status line when a sheet edit or paste changes it.
+- Versions: hub v21.35.3; POS New Product Check Clean v1.23.3 (app.js ?v=1.23.3; merge.css stays ?v=1.23.2).
