@@ -1,4 +1,10 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.23.4 (22 Oct 2026, Staff Hub v21.35.4): OUT_MERGED_DATA's SUP PRODUCT (Q) is
+/* PHF Staff Hub — POS New Product Check Clean v1.24.0 (22 Oct 2026, Staff Hub v21.36.0): the RUN row above the sheet tabs is
+ * the top strip shown again — home, the three pills, the done note, Run all stages, the two TXT downloads, CLEAR RESULTS and
+ * the status line with its progress bar (syncWbRow follows the strip). Duplicates removed: "Run stage 3" above
+ * OUT_MERGED_DATA, "Run all stages" above the SRC_ tabs (the RUN row does both), the old hidden status line #wbRunStatus,
+ * the "Click a cell to edit" note (the sheet's heading says it) and the second "+ Add CH2 / Unique set" buttons on the
+ * Supplier Updates input card (the sheet's scope line has them). No merge change.
+ * v1.23.4 (22 Oct 2026, Staff Hub v21.35.4): OUT_MERGED_DATA's SUP PRODUCT (Q) is
  * read-only, like ORIGINAL POS DESCR (O) — across O · P · Q you see what POS has, what goes to POS (POS DESCR, the one to edit)
  * and what the supplier sent. Sell-through rows keep the supplier's text in Q exactly as uploaded (engine-host v1.7.5). No
  * merge change.
@@ -240,7 +246,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.23.4';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.24.0';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -480,10 +486,22 @@
   // reject[id] = { name, msg } of a file that failed for that input (yellow row; any earlier valid file stays loaded).
   var railFlags = { updated: {}, reject: {} };
   function rowsOf(id) { var x = state.inputs[id]; var out = []; (x && x.files || []).forEach(function (f) { out = out.concat(f.data); }); return out; }
-  // v1.17.0 — the status line lives in the run strip (idle line + progress line); keep #wbRunStatus for any legacy reads.
+  // v1.17.0 — the status line lives in the run strip (idle line + progress line). v1.24.0: #wbRunStatus is gone — the RUN row
+  // above the sheet tabs shows the strip's own status line (syncWbRow).
   function setGlobal(t, type) {
     ['#globalStatus', '#globalStatusIdle'].forEach(function (sel) { var e = $(sel); if (e) { e.className = 'db-what status ' + (type || 'info'); e.textContent = t; } });
-    var r = $('#wbRunStatus'); if (r) { r.textContent = t; r.title = t; }
+  }
+  // v1.24.0 — the RUN row above the sheet tabs follows the top strip: done note, status line (idle or running, with the bar)
+  // and CLEAR RESULTS. The pills, Run all stages and the downloads already share the strip's state.
+  function syncWbRow() {
+    var row = $('#wbSteps'); if (!row) return;
+    row.querySelectorAll('[data-mirror-text]').forEach(function (m) { var s = $(m.dataset.mirrorText); if (s && m.textContent !== s.textContent) m.textContent = s.textContent; });
+    row.querySelectorAll('[data-mirror-status]').forEach(function (m) { var s = $(m.dataset.mirrorStatus); if (!s) return; if (m.textContent !== s.textContent) m.textContent = s.textContent; if (m.className !== s.className) m.className = s.className; m.title = s.textContent; });
+    var gp = $('#globalProgress'), idle = $('#dbStatLine'), mp = row.querySelector('[data-mirror-prog]'), mi = row.querySelector('[data-mirror-idle]');
+    if (mp && gp) mp.hidden = gp.hidden; if (mi && idle) mi.hidden = idle.hidden;
+    var gb = gp && gp.querySelector('.db-bar'), mb = mp && mp.querySelector('.db-bar'), gf = $('#globalProgressBar'), mf = row.querySelector('[data-mirror-bar]');
+    if (mb && gb) mb.classList.toggle('indet', gb.classList.contains('indet')); if (mf && gf) mf.style.width = gf.style.width;
+    row.querySelectorAll('[data-mirror]').forEach(function (m) { var s = $(m.dataset.mirror); if (s) m.disabled = !!s.disabled; });
   }
   function gpct(v) {
     var p = $('#globalProgress'), b = $('#globalProgressBar'), idle = $('#dbStatLine'); var on = v > 0;
@@ -943,9 +961,8 @@
       };
     }
     if (id === 'sup') {
-      host.querySelector('.input-workspace-card').insertAdjacentHTML('beforeend', '<div class="sup-card-actions"><div class="sup-card-link"><button type="button" class="btn small" id="supJump">Open the IN_SUPPLIER sheet ↓</button><span title="Edit, paste and check every supplier row in the sheet under the stages.">Edit, paste and check every supplier row in the sheet under the stages.</span></div><div class="sup-scope-lib sup-card-lib" data-lib-sup-host hidden></div></div>');
+      host.querySelector('.input-workspace-card').insertAdjacentHTML('beforeend', '<div class="sup-card-actions"><div class="sup-card-link"><button type="button" class="btn small" id="supJump">Open the IN_SUPPLIER sheet ↓</button><span title="Edit, paste and check every supplier row in the sheet under the stages.">Edit, paste and check every supplier row in the sheet under the stages.</span></div></div>');   // v1.24.0: + Add CH2 / Unique set is on the sheet's scope line only
       host.querySelector('#supJump').onclick = scrollToSupSheet;
-      drawLibSup();
     }
     if (window.PHFAccordion) window.PHFAccordion.refresh(host);
   }
@@ -1773,13 +1790,12 @@
     var after3 = state.edits.outAfter3, done3 = (state.stage.export || {}).status === 'done';
     host.innerHTML =
       (n ? '<button type="button" class="btn small primary" data-act="refresh"' + (busy ? ' disabled' : '') + ' title="Check the UPDATED SUPPLIER (G) changes against the supplier upload — the Sheet menu REFRESH SUPPLIER CHANGES">Refresh supplier changes (' + fmtN(n) + ')</button>' : '') +
-      '<button type="button" class="btn small' + (after3 || !done3 ? ' primary' : '') + '" data-act="stage3"' + (busy ? ' disabled' : '') + ' title="Generate OUT_POS_INSERT / OUT_POS_UPDATE from this OUT_MERGED_DATA and export the TXT files (supplier changes are refreshed first)">' + (done3 ? 'Run stage 3 again' : 'Run stage 3') + '</button>' +
-      '<span class="out-actions-note">' + esc(n ? fmtN(n) + ' UPDATED SUPPLIER change' + (n === 1 ? '' : 's') + ' waiting — refresh to check ' + (n === 1 ? 'it' : 'them') + ' (stage 3 refreshes first).' : after3 ? 'OUT_MERGED_DATA was edited after stage 3 — run stage 3 again to put the edits in the POS files.' : state.edits.optsAfter3 ? 'Update in POS / Discontinue options changed — run stage 3 again to use them.' : 'Click a cell to edit it, as in the Google Sheet. FINAL SHELF RRP follows RRP / MARKUP OVERRIDE.') + '</span>' +
+      // v1.24.0: no "Run stage 3" here — pill 3 in the RUN row above runs it; the "click a cell" note is the sheet heading's
+      '<span class="out-actions-note">' + esc(n ? fmtN(n) + ' UPDATED SUPPLIER change' + (n === 1 ? '' : 's') + ' waiting — refresh to check ' + (n === 1 ? 'it' : 'them') + ' (stage 3 refreshes first).' : after3 ? 'OUT_MERGED_DATA was edited after stage 3 — run stage 3 again (pill 3 in the RUN row) to put the edits in the POS files.' : state.edits.optsAfter3 ? 'Update in POS / Discontinue options changed — run stage 3 again (pill 3 in the RUN row) to use them.' : 'FINAL SHELF RRP follows RRP / MARKUP OVERRIDE.') + '</span>' +
       (function () { var v = outView(); return v && v.filtered ? '<span class="out-actions-filter">Filtered — stage 3 uses only the ' + fmtN(v.rows.length) + ' of ' + fmtN(v.total) + ' rows shown.</span>' : ''; })();
     host.querySelectorAll('[data-act]').forEach(function (b) {
       b.onclick = function () {
         if (b.dataset.act === 'refresh') runExtra(['refresh'], 'Refresh supplier changes');
-        if (b.dataset.act === 'stage3') runTo('export');
       };
     });
   }
@@ -1920,13 +1936,12 @@
         (pv ? '<span class="out-actions-filter">Filtered — the ' + esc(t.id === 'upd' ? 'POS UPDATE' : 'POS INSERT') + ' TXT will have only the ' + fmtN(pv.rows.length) + ' of ' + fmtN(pv.total) + ' rows shown.</span>' : '') +
         (function () { var c = uploadCounts(t.sheet); return c.off ? '<span class="out-actions-filter">' + fmtN(c.off) + ' row' + (c.off === 1 ? ' is' : 's are') + ' unticked (held) — not in the TXT until ticked.</span>' : ''; })();   // v1.13.0
     } else if (t.input && !t.readOnly && loaded(t.input)) {
-      html = '<button type="button" class="btn small" data-act="rerun"' + (busy || !requiredReady() ? ' disabled' : '') + ' title="Run stages 1 → 3 with this table as it is now">Run all stages</button><span class="out-actions-note">Changes here are saved in this browser straight away. Run the stages again to use them.</span>';
+      html = '<span class="out-actions-note">Changes here are saved in this browser straight away. Run the stages again to use them (Run all stages in the RUN row).</span>';   // v1.24.0: the RUN row has Run all stages
     }
     host.innerHTML = html;
     host.querySelectorAll('[data-act]').forEach(function (b) {
       b.onclick = function () {
         if (b.dataset.act === 'reexport') runExtra(['export'], 'Export TXT again');
-        if (b.dataset.act === 'rerun') runTo('export');
       };
     });
   }
@@ -3535,6 +3550,11 @@
     document.querySelectorAll('[data-run-all]').forEach(function (b) { b.onclick = function () { if (!b.disabled) runTo('export'); }; });   // v1.17.0 — stage run buttons are wired in renderStages (.db-build)
     // v1.17.1 — the run-strip step pills run their stage too (same handler as the stage-header pills)
     document.querySelectorAll('[data-run-step][data-stage]').forEach(function (b) { b.onclick = function () { if (b.disabled) return; runTo(b.dataset.stage); }; });
+    // v1.24.0 — the RUN row above the tabs: CLEAR RESULTS runs the strip's button; done note / status line follow the strip
+    document.querySelectorAll('#wbSteps [data-mirror]').forEach(function (b) { b.onclick = function () { var s = $(b.dataset.mirror); if (s && !s.disabled) s.click(); }; });
+    (function () { var strip = $('#dbRunStrip'); if (!strip || !window.MutationObserver) return; var q = 0;
+      new MutationObserver(function () { if (q) return; q = requestAnimationFrame(function () { q = 0; syncWbRow(); }); }).observe(strip, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['hidden', 'class', 'style', 'disabled'] });
+      syncWbRow(); })();
     $('#clearAllBtn').onclick = function () { if (state.busy) return; invalidateResults('Results cleared.'); flushSession(); startEngine().then(updateRunButtons); setGlobal('Results cleared. Input files are kept (and stay saved in this browser).', 'info'); };
     $('#railClearSession').onclick = function () {
       removeInputs(M.INPUTS.filter(function (d) { return !d.stored; }).map(function (d) { return d.id; }), 'POS database and supplier rows removed (including rows added in the sheet). Saved reference data is kept.');

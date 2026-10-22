@@ -1,3 +1,9 @@
+// v2.18.0 (22 Oct 2026, Staff Hub v21.36.0): the checklist works like the merge sheets. Every heading (not ALL / Add Qty)
+// has the same sort and filter menu (A to Z / Z to A or Highest / Lowest, Sort off, Show values with counts); filters show as
+// chips beside the search. Cells select like a sheet and Ctrl + C copies. Adj WSPrc, Adj CatPrc / Adj DPrc and Adj Qty can be
+// changed — type, paste a block, Ctrl + D or drag the corner square; changed cells are orange, Delete restores, Ctrl + Z
+// undoes — and the changes go into the POSActive TXT (Normal WS, Unit Price ex GST with Disc % following, quantity = Found)
+// and the totals / balance. The toolbar and headings stay under the RUN strip when the page scrolls.
 // v2.17.1 (21 Oct 2026, Staff Hub v21.35.0): CLEAR FILES also deletes the saved receiving ticks / Found quantities of every
 // order in this tab (clearAllStoredReceivingState), not only the current order's. Uses Library v1.2.0 — deleting Ongoing
 // Discounts anywhere also deletes the POS DB & Supplier Merge workbook it is made from. No reconciliation or export change.
@@ -28,7 +34,7 @@
 (function(global){
   'use strict';
   const PHF=global.PHFReconcile||{};
-  const state={pos:null,invoices:[],result:null,previewView:'pos',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackManualChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null,receivingMigratedFrom266:false,orderOverrides:new Map(),importKeys:new Map(),importKeyReviews:new Map(),posSortKey:'__pos_order_index',posSortDir:'asc',posSortExplicit:false,dockOffset:0};
+  const state={pos:null,invoices:[],result:null,previewView:'pos',docs:[],refs:null,referenceReady:false,posParsed:null,runIntegrity:null,unpackChecked:new Set(),unpackManualChecked:new Set(),unpackKey:null,unpackCounts:new Map(),unpackCountsKey:null,receivingMigratedFrom266:false,orderOverrides:new Map(),importKeys:new Map(),importKeyReviews:new Map(),posSortKey:'__pos_order_index',posSortDir:'asc',posSortExplicit:false,dockOffset:0,adjEdits:new Map(),adjQtyEdits:new Map(),adjUndo:[],colFilters:new Map(),cellSel:null,posRowLookup:new Map()};
   const els={
     referenceReady:document.querySelector('#referenceReady'),referenceDot:document.querySelector('#referenceDot'),buildLabel:document.querySelector('#buildLabel'),
     posDrop:document.querySelector('#posDrop'),posInput:document.querySelector('#posInput'),posFiles:document.querySelector('#posFiles'),invoiceDrop:document.querySelector('#invoiceDrop'),invoiceInput:document.querySelector('#invoiceInput'),invoiceFiles:document.querySelector('#invoiceFiles'),runBtn:document.querySelector('#runBtn'),clearBtn:document.querySelector('#clearBtn'),status:document.querySelector('#status'),progress:document.querySelector('#progress'),progressBar:document.querySelector('#progressBar'),results:document.querySelector('#results'),resultSub:document.querySelector('#resultSub'),kpis:document.querySelector('#kpis'),warningBox:document.querySelector('#warningBox'),orderOverrideBox:document.querySelector('#orderOverrideBox'),tableWrap:document.querySelector('.table-wrap'),table:document.querySelector('#resultTable'),tableHead:document.querySelector('#resultTableHead'),tableBody:document.querySelector('#resultTable tbody'),tableFoot:document.querySelector('#resultTableFoot'),fullDownloadBtn:document.querySelector('#fullDownloadBtn'),fullCsvDownloadBtn:document.querySelector('#fullCsvDownloadBtn'),downloadBtn:document.querySelector('#downloadBtn'),viewExceptionsBtn:document.querySelector('#viewExceptionsBtn'),viewAllBtn:document.querySelector('#viewAllBtn'),viewPosBtn:document.querySelector('#viewPosBtn'),posTools:document.querySelector('#posTools'),posBalancePanel:document.querySelector('#posBalancePanel'),keyReviewBtn:document.querySelector('#keyReviewBtn'),importKeySummary:document.querySelector('#importKeySummary'),posCheckProgress:document.querySelector('#posCheckProgress'),clearChecksBtn:document.querySelector('#clearChecksBtn'),clearCountsBtn:document.querySelector('#clearCountsBtn'),removeNotSuppliedBtn:document.querySelector('#removeNotSuppliedBtn'),resultControls:document.querySelector('.result-controls-sticky'),receivingActions:document.querySelector('#receivingActions'),tickAllBtn:document.querySelector('#tickAllBtn'),clearQtyBtn:document.querySelector('#clearQtyBtn')
@@ -220,7 +226,9 @@
       else if(selected)receivingBySourceRow[sourceKey]=expected;
       else receivingBySourceRow[sourceKey]=0;
     }
-    return {importKeysBySourceRow:Object.fromEntries(state.importKeys),orderOverrides:Object.fromEntries(state.orderOverrides),autoLinkPosOrder:true,receivingBySourceRow,selectedBySourceRow,uncheckedMeansNotSupplied:true};
+    // v2.18.0 — prices changed in the checklist: Adj WSPrc → Normal WS, Adj CatPrc / DPrc → Unit Price ex GST.
+    const priceBySourceRow={};for(const [src,e] of state.adjEdits)if(e&&(e.ws!=null||e.unit!=null))priceBySourceRow[src]={ws:e.ws??null,unit:e.unit??null};
+    return {importKeysBySourceRow:Object.fromEntries(state.importKeys),orderOverrides:Object.fromEntries(state.orderOverrides),autoLinkPosOrder:true,receivingBySourceRow,selectedBySourceRow,uncheckedMeansNotSupplied:true,priceBySourceRow};
   }
   function renderOrderOverrideUi(){
     const box=els.orderOverrideBox;if(!box)return;const mismatches=orderLinkMismatches();
@@ -278,7 +286,7 @@
     // Before staff count a row, show the reconciled CH2 supplied quantity. Once Found
     // has been entered, the row total follows that physical receiving quantity live.
     const rowQty=touched?unpackCountFor(pos):(numberValue(detail&&detail.suppliedQty)??numberValue(rawValue(pos,'qty'))??numberValue(pos.orderedQty)??0);
-    const unit=numberValue(discountedPosPrice(pos,detail));
+    const edit=adjEditFor(pos),unit=edit&&edit.unit!=null?edit.unit:numberValue(discountedPosPrice(pos,detail));   // v2.18.0: a changed Adj CatPrc
     const gstPct=Math.max(0,numberValue(rawValue(pos,'gst_tax_pc'))??numberValue(pos.gstPct)??0);
     if(unit==null||rowQty==null)return '';
     return Math.round((unit*Number(rowQty)*(1+gstPct/100)+Number.EPSILON)*100)/100;
@@ -394,8 +402,12 @@
     const kind=st[0]==='PRICE HIGH'?'high':st[0]==='BETTER PRICE'?'better':'ok',effect=kind==='high'||kind==='better'?Math.round(v*qty*100)/100:0;
     return checkResult(kind,st,{qty,ordered:0,variance:v,effect,expected:exp,actual:act,expDisc,actDisc});
   }
-  function posColumnValue(pos,c,detail=null){
+  function posColumnValue(pos,c,detail=null,orig=false){
     if(!pos||!c)return '';
+    if(!orig&&ADJ_EDIT_KEYS.has(c.key)){   // v2.18.0: a value changed in the checklist (orig = the value before the change)
+      if(c.key==='or_qty'){if(adjCellEdited(pos,'or_qty'))return unpackCountFor(pos);}
+      else{const e=adjEditFor(pos);if(e&&c.key==='adjwsprce'&&e.ws!=null)return e.ws;if(e&&c.key!=='adjwsprce'&&e.unit!=null)return e.unit;}
+    }
     if(c.key==='__check')return lineCheck(pos,detail).label;   // v2.17.0
     if(c.key==='or_qty'&&pos.invoiceOnly){const q=numberValue(detail&&detail.suppliedQty);return q!=null?q:rawValue(pos,'or_qty');}   // v2.17.0: invoiced qty
     if(c.key==='__import_sub_id')return importIdentityFor(pos,detail).importSubId;
@@ -540,7 +552,8 @@
       const gstPct=Math.max(0,numberValue(raw.gst_tax_pc)??numberValue(pos.gstPct)??0);
       notInvoicedTotal+=currentPrice*qtyNow*(1+gstPct/100);
     }
-    return {includedRows:records.length,posActive,current,matchedCurrent,adjusted,adjustedEx,adjustedGst,supplierInvoiceTotal,invoiceOnlyCount:invoiceOnlyRows.length,invoiceOnlyTotal,invoiceOnlyReceivedCount:receivedInvoiceOnly.length,invoiceOnlyReceivedTotal,matchCheck,
+    const priced=records.filter(r=>r&&r.priceEdited),priceEditEffect=Math.round(priced.reduce((a,r)=>a+((numberValue(r.total)||0)-(numberValue(r.atInvoice&&r.atInvoice.total)||0)),0)*100)/100;   // v2.18.0
+    return {priceEditCount:priced.length,priceEditEffect,includedRows:records.length,posActive,current,matchedCurrent,adjusted,adjustedEx,adjustedGst,supplierInvoiceTotal,invoiceOnlyCount:invoiceOnlyRows.length,invoiceOnlyTotal,invoiceOnlyReceivedCount:receivedInvoiceOnly.length,invoiceOnlyReceivedTotal,matchCheck,
       invoiceOnlyAll:invoiceOnlyEntries().map(e=>({line:e.inv&&e.inv.invoiceLine,invoiceNumber:e.inv&&e.inv.invoiceNumber,description:cleanText(e.pos&&e.pos.description)||cleanText(e.inv&&e.inv.description),total:numberValue(e.inv&&e.inv.totalIncGst)||0,ticked:receivedInvoiceOnlyKeys.has(String(e.pos&&e.pos.sourceRow)),qty:numberValue(e.inv&&e.inv.qtySupplied),code:cleanText(e.inv&&e.inv.productCode),subId:(()=>{const id=importIdentityFor(e.pos,e.detail);return id?id.importSubId:'';})(),diagnosis:e.pos&&e.pos.orderDiagnosis||null,tickAll:tickAllCovers(e.pos),supplierNote:e.pos&&e.pos.supplierMismatch?`set to ${e.pos.posSupplierLabel} in POSActive; this order is ${e.pos.orderSupplierLabel}`:(e.pos&&!e.pos.inMaster?'not in POS master':'')})),notInvoicedCount,notInvoicedTotal,manualCount:manualRecords.length,manualTotal,recordCount:records.length};
   }
 
@@ -551,6 +564,8 @@
     if(state.exportRefusedNoRows&&!idle){state.exportRefusedNoRows=false;setStatus(`${totals.includedRows} line${totals.includedRows===1?'':'s'} in the POSActive import — POSActive Import.txt can now be downloaded.`,'info');}   // v2.17.0: nothing in the TXT yet → NOTHING TICKED, not a green FILE BALANCES
     const exportBalances=totals.adjusted!=null&&totals.adjustedEx!=null&&totals.adjustedGst!=null&&Math.abs((totals.adjustedEx+totals.adjustedGst)-totals.adjusted)<=.02;
     const cautions=[];
+    // v2.18.0 — prices changed in the checklist are in the TXT, so its total differs from the invoice by their effect.
+    if(totals.priceEditCount)cautions.push(`${totals.priceEditCount} line${totals.priceEditCount===1?' in the TXT carries a price':'s in the TXT carry prices'} changed in the checklist (orange): ${signedMoney(totals.priceEditEffect)} inc GST against the invoice prices for the same quantities. That is part of the difference to the supplier invoice total. Ctrl + Z or Clear changes puts the invoice prices back.`);
     if(totals.invoiceOnlyCount)cautions.push(`${totals.invoiceOnlyCount} billed invoice-only product${totals.invoiceOnlyCount===1?' is':'s are'} not on the POS order and not ticked, so ${totals.invoiceOnlyCount===1?'it is':'they are'} omitted from the POSActive import (${money(totals.invoiceOnlyTotal)} inc GST). Tick the INV rows in POS Layout to include them — this is the difference to the supplier invoice total. See “Not on POS order” above for why each one was not matched.`);
     if(totals.invoiceOnlyReceivedCount)cautions.push(`${totals.invoiceOnlyReceivedCount} invoice-only product${totals.invoiceOnlyReceivedCount===1?' is':'s are'} included (${money(totals.invoiceOnlyReceivedTotal)} inc GST) although not on the POS order. POSActive can only apply ${totals.invoiceOnlyReceivedCount===1?'it':'them'} if the product is on the open order; add ${totals.invoiceOnlyReceivedCount===1?'it':'them'} to the order first if the import rejects ${totals.invoiceOnlyReceivedCount===1?'it':'them'}.`);
     if(totals.manualCount)cautions.push(`${totals.manualCount} not-invoiced POS-order product${totals.manualCount===1?' was':'s were'} manually received with a Found quantity and ${totals.manualCount===1?'is':'are'} included in the TXT and totals (${money(totals.manualTotal)} inc GST) using POS master CH2_WHOLESALE_EX_GST / POS pricing. Confirm with the supplier that ${totals.manualCount===1?'it was':'they were'} delivered.`);
@@ -664,6 +679,7 @@
     state.unpackCounts=new Map();
     state.receivingMigratedFrom266=false;
     state.posSortKey='__pos_order_index';state.posSortDir='asc';state.posSortExplicit=false;state.dockOffset=0;
+    state.adjEdits=new Map();state.adjQtyEdits=new Map();state.adjUndo=[];state.cellSel=null;state.colFilters=new Map();   // v2.18.0
     completionStamps.clear();
     state.unpackKey=unpackStorageKey();
     state.unpackCountsKey=unpackCountsStorageKey();
@@ -882,6 +898,7 @@
     clearTimeout(posReceivingRenderTimer);
     posReceivingRenderTimer=setTimeout(()=>{
       posReceivingRenderTimer=0;
+      if(cellEditor&&!cellEditor.done){scheduleReceivingRender(delay);return;}   // v2.18.0: wait until the cell being typed in is done
       let focus=null;const active=document.activeElement;
       if(active&&active.classList){
         if(active.classList.contains('unpack-qty-input'))focus={kind:'add',key:active.dataset.unpackQtyKey||''};
@@ -925,7 +942,7 @@
     const v=posColumnValue(pos,c,detail);
     if(c.kind==='bool')return boolValue(v)?'✓':'';
     if(c.kind==='number'){
-      let text=fixed(v,c.dp??2);
+      let text=fixed(v,posCellDp(pos,c,v));
       const target=comparisonTarget(pos,detail,c.key),move=c.key==='__invoice_discount'?discountMove(v,target):priceMove(v,target);
       if(move&&!notSupplied)text+=` ${move.symbol}`;
       return text;
@@ -1110,9 +1127,11 @@
     // If Found totals were migrated from the v2.6.6 regression, deliberately rebuild the
     // completion state once: exact counts and explicit zero are complete; partial/over
     // counts remain in Remaining so staff can continue counting or manually tick them.
-    let stateChanged=false;
+    let stateChanged=false;state.posRowLookup=new Map();
     for(let i=0;i<baseRows.length;i++){
       const pos=baseRows[i],detail=detailBySourceRow.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(i),key=unpackIdentity(pos),expected=unpackExpectedQty(pos,detail);
+      state.posRowLookup.set(posSrcKey(pos),{pos,detail});   // v2.18.0: filters, selection and changes find the row by its source row
+      if(state.adjQtyEdits.has(key)&&!state.unpackCounts.has(key))state.adjQtyEdits.delete(key);   // unticked / Clear qty: Adj Qty is the order's again
       if(state.receivingMigratedFrom266&&state.unpackCounts.has(key)){
         const found=unpackCountFor(pos),complete=(Math.abs(found)<=.0005&&expected>.0005)||receivingCountMatches(found,expected);
         if(complete)state.unpackChecked.add(key);else state.unpackChecked.delete(key);stateChanged=true;
@@ -1131,8 +1150,9 @@
       if(!withControls&&c.kind==='qtyinput')return `<th class="${cls}" scope="col">${escapeHtml(c.label)}</th>`;
       if(c.kind==='check')return `<th class="${cls}" title="Tick all / untick all POS rows for the POSActive download"><div class="pos-header-stack"><button type="button" class="unpack-check unpack-check-all ${allSelected?'checked':''} ${partSelected?'partial':''}" data-toggle-all aria-pressed="${allSelected?'true':'false'}" title="${allSelected?'Untick all — clear all Found quantities and return rows to Remaining':'Tick all — untouched rows use expected CH2 supplied qty'}"><span aria-hidden="true">${allSelected?'✓':partSelected?'−':''}</span></button><span class="pos-header-mini-label">All</span></div></th>`;
       if(c.kind==='qtyinput')return `<th class="${cls}"><div class="pos-header-stack"><span>${escapeHtml(c.label)}</span><button type="button" class="pos-header-action" data-clear-qty title="Clear all Found quantities and receiving selections">Clear qty</button></div></th>`;
-      const sortable=c.sortable!==false,active=sortable&&state.posSortKey===c.key,arrow=active?(state.posSortDir==='desc'?'▼':'▲'):'↕';
-      return `<th${cls?` class="${cls}"`:''}>${sortable?`<button type="button" class="pos-sort-button ${active?'active':''}" data-sort-key="${escapeHtml(c.key)}" title="Sort by ${escapeHtml(String(c.label).replace(/\u200b/g,''))}">${escapeHtml(c.label)}<span aria-hidden="true">${arrow}</span></button>`:escapeHtml(c.label)}</th>`;
+      // v2.18.0: the label sorts (click again to reverse) and the ≡ button opens the sort and filter menu, as in the merge sheets.
+      const sortable=c.sortable!==false,active=sortable&&state.posSortKey===c.key,arrow=active?(state.posSortDir==='desc'?'▼':'▲'):'',label=escapeHtml(String(c.label).replace(/\u200b/g,'')),filtOn=state.colFilters.has(c.key)||(active&&state.posSortExplicit);
+      return `<th${cls?` class="${cls}"`:''}>${sortable?`<div class="pos-th-wrap"><button type="button" class="pos-sort-button ${active?'active':''}" data-sort-key="${escapeHtml(c.key)}" title="Sort by ${label} — click again to reverse">${escapeHtml(c.label)}<span aria-hidden="true">${arrow}</span></button><button type="button" class="pos-filt${filtOn?' is-on':''}" data-filter-key="${escapeHtml(c.key)}" aria-label="Sort and filter ${label}" title="Sort and filter ${label}${state.colFilters.has(c.key)?' (filtered)':''}">${FILTER_SVG}</button></div>`:escapeHtml(c.label)}</th>`;
     };
     els.tableHead.innerHTML=`<tr>${POS_VIEW_COLUMNS.map(c=>headerCell(c,true)).join('')}</tr>`;
     const sections=posPreviewSections(detailBySourceRow);
@@ -1165,13 +1185,13 @@
         }else if(c.kind==='status'){const ck=lineCheck(pos,detail);html=`<span class="pos-check-chip ck-${ck.kind}">${escapeHtml(ck.label)}</span>`;title=ck.title;extraCls=' pos-check-cell';   // v2.17.0
         }else if(c.kind==='bool'){const checked=boolValue(v);html=`<span class="pos-checkbox ${c.flag||''} ${checked?'checked':''}" aria-label="${checked?'Checked':'Not checked'}">${checked?'✓':''}</span>`;}
         else if(c.kind==='number'){
-          html=escapeHtml(fixed(v,c.dp??2));const target=comparisonTarget(pos,detail,c.key),move=c.key==='__invoice_discount'?discountMove(v,target):priceMove(v,target);
+          html=escapeHtml(fixed(v,posCellDp(pos,c,v)));const target=comparisonTarget(pos,detail,c.key),move=c.key==='__invoice_discount'?discountMove(v,target):priceMove(v,target);
           if(c.key==='gst_tax_pc'){
             const g=gstReview().map.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''));
             if(g){extraCls=' pos-gst-diff';html=`<span class="pos-gst-value">${html}</span><span class="pos-gst-chip">INV ${escapeHtml(g.invRate)}</span>`;title=gstReviewText(g);}
           }else if(c.key==='__row_total_inc_gst'){
             const rowQty=state.unpackCounts.has(checkKey)?unpackCountFor(pos):(numberValue(detail&&detail.suppliedQty)??numberValue(rawValue(pos,'qty'))??numberValue(pos.orderedQty)??0);
-            title=`${displayUnpackCount(rowQty)} × AdjCatPrc ${fixed(discountedPosPrice(pos,detail),2) || '—'} plus GST ${fixed(rawValue(pos,'gst_tax_pc')||pos.gstPct||0,0)}%`;
+            title=`${displayUnpackCount(rowQty)} × AdjCatPrc ${fixed(posColumnValue(pos,{key:'adjcatprce'},detail),2) || '—'} plus GST ${fixed(rawValue(pos,'gst_tax_pc')||pos.gstPct||0,0)}%`;
           }else if(c.key==='__invoice_discount'&&!notSupplied){
             const actual=numberValue(v),expected=numberValue(target);
             if(move){
@@ -1186,6 +1206,7 @@
             title=`${targetLabel}: ${Number(move.target).toFixed(2)} · ${move.symbol} ${Math.abs(move.diff).toFixed(2)}`;
             html=`<span class="pos-price-value">${html}</span><span class="price-arrow" aria-hidden="true">${move.symbol}</span>`;
           }
+          if(ADJ_EDIT_KEYS.has(c.key)){const ed=adjCellEdited(pos,c.key);extraCls+=` pos-edit-cell${ed?' is-edited':''}`;title=adjCellTitle(pos,c,detail,v)+(title&&!ed?` · ${title}`:'');}   // v2.18.0
         } else {
           html=escapeHtml(v);if(v)title=String(v);
           if(c.key==='descr'&&pos&&pos.invoiceOnly){
@@ -1221,6 +1242,7 @@
       renderPosTable();
     };
     els.tableBody.onclick=e=>{
+      const sectionFilt=e.target.closest('[data-filter-key]');if(sectionFilt){e.preventDefault();e.stopPropagation();openColFilter(String(sectionFilt.dataset.filterKey||''),sectionFilt);return;}   // v2.18.0
       const sectionSort=e.target.closest('[data-sort-key]');if(sectionSort){e.preventDefault();e.stopPropagation();sortPosBy(String(sectionSort.dataset.sortKey||''));return;}
       const jump=e.target.closest('[data-jump-completed]');if(jump){e.preventDefault();jumpCompletedSection();return;}
       const btn=e.target.closest('.unpack-check');if(!btn)return;e.preventDefault();e.stopPropagation();
@@ -1233,6 +1255,7 @@
       scheduleReceivingRender();
     };
     els.tableHead.onclick=e=>{
+      const filt=e.target.closest('[data-filter-key]');if(filt){e.preventDefault();e.stopPropagation();openColFilter(String(filt.dataset.filterKey||''),filt);return;}   // v2.18.0
       const toggle=e.target.closest('[data-toggle-all]'),clear=e.target.closest('[data-clear-qty]'),sort=e.target.closest('[data-sort-key]');
       if(toggle){
         e.preventDefault();e.stopPropagation();
@@ -1288,25 +1311,322 @@
       }
       else{els.tableFoot.innerHTML='';renderPosBalance(null);}
     }
-    ensurePosResizeObserver();schedulePosColumnSizing();updateStickyOffsets();ensureStickyTracking();applyTableSearch();
+    ensurePosResizeObserver();schedulePosColumnSizing();updateStickyOffsets();ensureStickyTracking();applyTableSearch();wireGrid();paintSel();
   }
-  function renderPreview(r){if(state.previewView==='pos')renderPosTable();else renderReconTable(r);setViewButtons();applyTableSearch();}
+  // v2.18.0 — the checklist works like the sheets in POS New Product Check Clean.
+  // 1) Every heading (not ALL / Add Qty) has a sort and filter menu: A to Z / Z to A (Highest / Lowest for numbers), Sort off,
+  //    and "Show" — the values in that column with their counts. Filters show as chips beside the search; ✕ removes one.
+  // 2) Cells select like a sheet (click, Shift + click, drag, arrows) and Ctrl + C copies them. Adj WSPrc, Adj CatPrc /
+  //    Adj DPrc and Adj Qty can be changed: type, Enter / F2 / double-click, Ctrl + V (a block from Excel), Ctrl + D or the
+  //    corner square (fill down). A changed cell is orange. Delete restores the value, Ctrl + Z undoes.
+  //    What POSActive gets: Adj WSPrc → Normal WS; Adj CatPrc and Adj DPrc are one price → Unit Price ex GST (Disc % follows);
+  //    Adj Qty → the imported quantity, the same number as Found. Adj RRPrc is not in the import, so it stays read-only.
+  const FILTER_SVG='<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M4.5 8h7M7 12h2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
+  const ADJ_EDIT_KEYS=new Set(['adjwsprce','adjcatprce','adjdprce','or_qty']);
+  const SEL_KINDS=new Set(['text','number','status','bool']);
+  function posSrcKey(pos){return String(pos&&pos.sourceRow!=null?pos.sourceRow:'');}
+  function adjEditFor(pos){return state.adjEdits.get(posSrcKey(pos))||null;}
+  function adjCellEdited(pos,key){
+    if(!ADJ_EDIT_KEYS.has(key))return false;
+    if(key==='or_qty'){const k=unpackIdentity(pos);return state.adjQtyEdits.has(k)&&state.unpackCounts.has(k);}
+    const e=adjEditFor(pos);if(!e)return false;
+    return key==='adjwsprce'?e.ws!=null:e.unit!=null;
+  }
+  function editDp(v,min,max=4){const x=Number(v);if(!Number.isFinite(x))return min;for(let d=min;d<max;d++)if(Math.abs(Math.round(x*10**d)/10**d-x)<1e-9)return d;return max;}
+  function posCellDp(pos,c,v){const dp=c.dp??2;return adjCellEdited(pos,c.key)?editDp(v,dp,c.key==='or_qty'?3:4):dp;}
+  // One text per cell for the filter list, the filter test and Ctrl + C.
+  function posFilterText(pos,c,detail){
+    if(c.kind==='qtytotal')return displayUnpackCount(unpackCountFor(pos));
+    if(c.kind==='status')return lineCheck(pos,detail).label;
+    const v=posColumnValue(pos,c,detail);
+    if(c.kind==='bool')return boolValue(v)?'✓':'';
+    if(c.kind==='number')return fixed(v,posCellDp(pos,c,v));
+    return String(v??'').replace(/\s+/g,' ').trim();
+  }
+  function adjEditHint(key){return key==='adjwsprce'?'Normal WS':key==='or_qty'?'the imported quantity (the same as Found)':'Unit Price ex GST (Adj CatPrc and Adj DPrc change together)';}
+  function adjCellTitle(pos,c,detail,v){
+    const label=String(c.label).replace(/​/g,''),dp=c.dp??2;
+    if(!adjCellEdited(pos,c.key))return `${label}: click and type to change it — POSActive gets it as ${adjEditHint(c.key)}. Ctrl + V pastes, the corner square fills down.`;
+    const was=posColumnValue(pos,c,detail,true),wasText=fixed(was,dp)||'blank';
+    return `Changed from ${wasText} — the POSActive TXT imports ${fixed(v,posCellDp(pos,c,v))} as ${adjEditHint(c.key)}. Delete puts ${wasText} back.`;
+  }
+
+  // ------------------------------------------------------------------ sort and filter menu (same as the merge sheets)
+  let colPk=null;
+  function closeColPicker(){if(!colPk)return;const p=colPk;colPk=null;p.el.remove();document.removeEventListener('mousedown',p.away,true);}
+  function colPicker(o){
+    closeColPicker();
+    const vals=o.values||[],on=new Map(),el=document.createElement('div');
+    vals.forEach(x=>on.set(x.v,!o.selected||o.selected.has(x.v)));
+    el.className='rs-pop rs-pick';el.setAttribute('role','dialog');el.setAttribute('aria-label',`Sort and filter ${o.title||''}`);
+    const so=o.sort,sLab=so.numeric?['Highest to lowest','Lowest to highest',-1,1]:['A to Z','Z to A',1,-1];
+    el.innerHTML=`<div class="rs-ptitle">${escapeHtml(o.title||'')}</div><div class="rs-psort"><button type="button" class="rs-plink${so.dir===sLab[2]?' is-on':''}" data-psort="${sLab[2]}">${sLab[0]}</button><button type="button" class="rs-plink${so.dir===sLab[3]?' is-on':''}" data-psort="${sLab[3]}">${sLab[1]}</button>${so.dir?'<button type="button" class="rs-plink" data-psort="0">Sort off</button>':''}</div>`+
+      '<div class="rs-ptitle rs-ptitle2">Show</div><input type="search" class="rs-psearch" placeholder="Search values…" aria-label="Search values" autocomplete="off" spellcheck="false">'+
+      '<div class="rs-plinks"><button type="button" class="rs-plink" data-pall>Select all</button><button type="button" class="rs-plink" data-pnone>Clear</button><span class="rs-pcount"></span></div>'+
+      '<div class="rs-plist"></div><div class="rs-pfoot"><button type="button" class="rs-pbtn" data-pcancel>Cancel</button><button type="button" class="rs-pbtn primary" data-pok>OK</button></div>';
+    const list=el.querySelector('.rs-plist'),ps=el.querySelector('.rs-psearch'),cnt=el.querySelector('.rs-pcount');
+    const shown=()=>{const q=String(ps.value||'').toUpperCase();return vals.filter(x=>!q||String(x.v).toUpperCase().indexOf(q)>=0);};
+    const draw=()=>{
+      const sh=shown();
+      list.innerHTML=sh.slice(0,500).map(x=>`<label class="rs-pv${on.get(x.v)?' is-on':''}"><input type="checkbox" data-pi="${vals.indexOf(x)}"${on.get(x.v)?' checked':''}><span>${escapeHtml(x.v||'(Blanks)')}</span><b>${Number(x.n||0).toLocaleString('en-AU')}</b></label>`).join('')||'<div class="rs-pnone">No values match.</div>';
+      const n=vals.filter(x=>on.get(x.v)).length;cnt.textContent=`${n} of ${vals.length}`;el.querySelector('[data-pok]').disabled=!n;
+    };
+    el.addEventListener('change',ev=>{const cb=ev.target.closest('[data-pi]');if(!cb)return;on.set(vals[+cb.dataset.pi].v,cb.checked);draw();});
+    el.addEventListener('click',ev=>{
+      const s=ev.target.closest('[data-psort]');if(s){closeColPicker();o.onSort(+s.dataset.psort);return;}
+      if(ev.target.closest('[data-pall]')){shown().forEach(x=>on.set(x.v,true));draw();return;}
+      if(ev.target.closest('[data-pnone]')){shown().forEach(x=>on.set(x.v,false));draw();return;}
+      if(ev.target.closest('[data-pcancel]')){closeColPicker();return;}
+      if(ev.target.closest('[data-pok]')){const pick=vals.filter(x=>on.get(x.v)).map(x=>x.v);closeColPicker();o.onApply(pick.length===vals.length?null:pick);}
+    });
+    el.addEventListener('keydown',ev=>{if(ev.key==='Escape'){ev.stopPropagation();closeColPicker();}if(ev.key==='Enter'&&ev.target===ps)ev.preventDefault();ev.stopPropagation();});
+    ps.oninput=draw;document.body.appendChild(el);draw();
+    const r=o.anchor?o.anchor.getBoundingClientRect():{left:20,bottom:20,right:20},w=el.offsetWidth||300,h=el.offsetHeight||360;
+    el.style.left=`${Math.max(6,Math.min(r.right-w,global.innerWidth-w-6))}px`;el.style.top=`${Math.max(6,Math.min(r.bottom+4,global.innerHeight-h-6))}px`;
+    const away=ev=>{if(colPk&&!colPk.el.contains(ev.target)&&!(o.anchor&&o.anchor.contains(ev.target)))closeColPicker();};
+    colPk={el,away,key:o.key};document.addEventListener('mousedown',away,true);ps.focus();
+  }
+  function openColFilter(key,btn){
+    if(colPk&&colPk.key===key){closeColPicker();return;}
+    const c=POS_VIEW_COLUMNS.find(x=>x.key===key);if(!c)return;
+    const counts=new Map(),details=posDetailMap(),rows=sortedPosRows();
+    rows.forEach((pos,i)=>{const v=posFilterText(pos,c,details.get(posSrcKey(pos))||posDetailAt(i));counts.set(v,(counts.get(v)||0)+1);});
+    const values=[...counts.entries()].sort((a,b)=>b[1]-a[1]||posSortCollator.compare(a[0],b[0])).map(([v,n])=>({v,n}));
+    const numeric=c.kind==='number'||c.kind==='qtytotal',dir=state.posSortExplicit&&state.posSortKey===key?(state.posSortDir==='desc'?-1:1):0;
+    colPicker({key,anchor:btn,title:String(c.label).replace(/​/g,''),values,selected:state.colFilters.get(key)||null,sort:{numeric,dir},
+      onSort:d=>{if(!d){state.posSortKey='__pos_order_index';state.posSortDir='asc';state.posSortExplicit=false;}else{state.posSortKey=key;state.posSortDir=d<0?'desc':'asc';state.posSortExplicit=true;}renderPosTable();},
+      onApply:vals=>{if(vals)state.colFilters.set(key,new Set(vals));else state.colFilters.delete(key);if(els.tableWrap)els.tableWrap.scrollTop=0;renderPosTable();}});
+  }
+  function renderColFilterChips(){
+    const host=document.querySelector('#posColFilters');if(!host)return;
+    const list=state.previewView==='pos'?[...state.colFilters.entries()]:[];host.hidden=!list.length;
+    host.innerHTML=list.map(([k,set])=>{const c=POS_VIEW_COLUMNS.find(x=>x.key===k),label=c?String(c.label).replace(/​/g,''):k,v=[...set];
+      return `<button type="button" class="rs-fchip" data-fx="${escapeHtml(k)}" title="Remove this filter">${escapeHtml(v.length===1?`${label}: ${v[0]||'(Blanks)'}`:`${label}: ${v.length} values`)} ✕</button>`;}).join('');
+  }
+  {const host=document.querySelector('#posColFilters');if(host)host.addEventListener('click',e=>{const b=e.target.closest('[data-fx]');if(!b)return;state.colFilters.delete(b.dataset.fx);if(state.previewView==='pos')renderPosTable();else applyTableSearch();});}
+
+  // ------------------------------------------------------------------ cell selection, editing, copy / paste, fill down
+  function selColumns(){return POS_VIEW_COLUMNS.map((c,i)=>SEL_KINDS.has(c.kind)?i:-1).filter(i=>i>=0);}
+  function gridRows(){return els.tableBody?[...els.tableBody.querySelectorAll('tr[data-pos-src]:not(.search-miss)')]:[];}
+  function gridLook(src){return state.posRowLookup.get(String(src))||null;}
+  function selRect(rows=gridRows()){
+    const s=state.cellSel;if(!s||state.previewView!=='pos')return null;
+    const ri=src=>rows.findIndex(tr=>tr.dataset.posSrc===src),a=ri(s.a.src),f=ri(s.f.src);if(a<0||f<0)return null;
+    return {rows,r1:Math.min(a,f),r2:Math.max(a,f),c1:Math.min(s.a.col,s.f.col),c2:Math.max(s.a.col,s.f.col)};
+  }
+  function rectCols(r){return selColumns().filter(i=>i>=r.c1&&i<=r.c2);}
+  function editableIndex(i){const c=POS_VIEW_COLUMNS[i];return !!c&&ADJ_EDIT_KEYS.has(c.key);}
+  function paintSel(){
+    if(!els.tableBody)return;
+    els.tableBody.querySelectorAll('td.cs-sel,td.cs-anchor,td.cs-fill').forEach(td=>td.classList.remove('cs-sel','cs-anchor','cs-fill'));
+    els.tableBody.querySelectorAll('.rs-fill').forEach(x=>x.remove());
+    const r=selRect();if(!r){renderEditTools();return;}
+    const cols=rectCols(r);
+    for(let i=r.r1;i<=r.r2;i++){const tr=r.rows[i];for(const ci of cols){const td=tr.children[ci];if(td)td.classList.add('cs-sel');}}
+    const atr=r.rows.find(tr=>tr.dataset.posSrc===state.cellSel.a.src),atd=atr&&atr.children[state.cellSel.a.col];if(atd)atd.classList.add('cs-anchor');
+    const ed=cols.filter(editableIndex);
+    if(ed.length){const td=r.rows[r.r2].children[ed[ed.length-1]];if(td){const h=document.createElement('span');h.className='rs-fill';h.title='Drag down to fill (Ctrl + D fills down the selection)';td.appendChild(h);}}
+    renderEditTools();
+  }
+  function setSel(a,f,{scroll=true}={}){
+    state.cellSel={a,f:f||a};paintSel();
+    if(scroll){const tr=gridRows().find(x=>x.dataset.posSrc===state.cellSel.f.src),td=tr&&tr.children[state.cellSel.f.col];if(td)td.scrollIntoView({block:'nearest',inline:'nearest'});}
+  }
+  function cellText(src,ci){const look=gridLook(src),c=POS_VIEW_COLUMNS[ci];return look&&c?posFilterText(look.pos,c,look.detail):'';}
+  function copySel(){const r=selRect();if(!r)return '';const cols=rectCols(r),out=[];for(let i=r.r1;i<=r.r2;i++)out.push(cols.map(ci=>cellText(r.rows[i].dataset.posSrc,ci)).join('\t'));return out.join('\r\n');}
+  function copyText(txt){
+    const legacy=()=>{const ta=document.createElement('textarea'),prev=document.activeElement;ta.value=txt;ta.setAttribute('readonly','');ta.style.cssText='position:fixed;left:-9999px;top:0;opacity:0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(_){}ta.remove();if(prev&&prev.focus)prev.focus({preventScroll:true});};
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(txt).catch(legacy);else legacy();
+  }
+  function parseEditNumber(text){const t=String(text??'').replace(/[$,\s]/g,'');if(!t)return {blank:true};const v=Number(t);return Number.isFinite(v)&&v>=0?{value:v}:{bad:true};}
+  // Apply a set of changes as one undo step. Each change: {src, key, value} — value null puts the original back.
+  function applyAdjEdits(changes,{say=true}={}){
+    const batch=new Map(),qtyRows=new Set();let priceChanged=false,n=0;
+    const snap=src=>{
+      if(batch.has(src))return;const look=gridLook(src),k=look?unpackIdentity(look.pos):'';
+      batch.set(src,{src,price:state.adjEdits.has(src)?{...state.adjEdits.get(src)}:null,k,qty:k?{edit:state.adjQtyEdits.has(k)?state.adjQtyEdits.get(k):undefined,had:state.unpackCounts.has(k),count:state.unpackCounts.get(k),checked:state.unpackChecked.has(k),manual:state.unpackManualChecked.has(k)}:null});
+    };
+    for(const ch of changes){
+      const look=gridLook(ch.src);if(!look||!ADJ_EDIT_KEYS.has(ch.key))continue;snap(ch.src);n++;
+      if(ch.key==='or_qty'){
+        const k=unpackIdentity(look.pos),expected=unpackExpectedQty(look.pos,look.detail);qtyRows.add(ch.src);
+        if(ch.value==null){const prev=state.adjQtyEdits.get(k);if(prev){if(prev.had)state.unpackCounts.set(k,prev.count);else state.unpackCounts.delete(k);if(prev.checked)state.unpackChecked.add(k);else state.unpackChecked.delete(k);if(prev.manual)state.unpackManualChecked.add(k);else state.unpackManualChecked.delete(k);}state.adjQtyEdits.delete(k);continue;}
+        if(!state.adjQtyEdits.has(k))state.adjQtyEdits.set(k,{had:state.unpackCounts.has(k),count:state.unpackCounts.get(k),checked:state.unpackChecked.has(k),manual:state.unpackManualChecked.has(k)});
+        const total=Math.max(0,Math.round(Number(ch.value)*1000)/1000);state.unpackCounts.set(k,total);   // the same as typing it in Found
+        const complete=state.unpackManualChecked.has(k)||(Math.abs(total)<=.0005&&Number(expected)>.0005)||receivingCountMatches(total,expected);
+        if(complete)state.unpackChecked.add(k);else state.unpackChecked.delete(k);
+        continue;
+      }
+      priceChanged=true;const e={...(state.adjEdits.get(ch.src)||{})},field=ch.key==='adjwsprce'?'ws':'unit';
+      if(ch.value==null)delete e[field];else e[field]=field==='ws'?Math.round(Number(ch.value)*100)/100:Math.round(Number(ch.value)*10000)/10000;
+      if(e.ws==null&&e.unit==null)state.adjEdits.delete(ch.src);else state.adjEdits.set(ch.src,e);
+    }
+    if(!n)return 0;
+    state.adjUndo.push([...batch.values()]);if(state.adjUndo.length>100)state.adjUndo.shift();
+    if(qtyRows.size){saveUnpackCounts();saveUnpackChecklist();}
+    if(say){const restored=changes.every(ch=>ch.value==null);setStatus(restored?`${n} cell${n===1?'':'s'} put back to the original value.`:`${n} cell${n===1?'':'s'} changed — the POSActive TXT and the totals use the new values. Ctrl + Z undoes.`,'info');}
+    if(priceChanged)renderPosTable();
+    else{for(const src of qtyRows)refreshQtyRow(src);paintSel();scheduleReceivingRender();}   // Adj Qty = Found: rows move after the usual short delay
+    return n;
+  }
+  function refreshQtyRow(src){
+    const tr=els.tableBody&&[...els.tableBody.querySelectorAll('tr[data-pos-src]')].find(x=>x.dataset.posSrc===String(src)),look=gridLook(src);if(!tr||!look)return;
+    const ci=POS_VIEW_COLUMNS.findIndex(c=>c.key==='or_qty'),c=POS_VIEW_COLUMNS[ci],td=tr.children[ci],k=unpackIdentity(look.pos),v=posColumnValue(look.pos,c,look.detail);
+    if(td){td.textContent=fixed(v,posCellDp(look.pos,c,v));td.classList.toggle('is-edited',adjCellEdited(look.pos,'or_qty'));td.title=adjCellTitle(look.pos,c,look.detail,v);}
+    const out=tr.querySelector('.unpack-qty-total');if(out)updateUnpackTotalElement(out,k,unpackCountFor(look.pos),unpackExpectedQty(look.pos,look.detail));
+    updateRowSelectionVisual(tr,state.unpackChecked.has(k));updateManualReceivedVisual(tr,unpackCountFor(look.pos));
+  }
+  function undoAdjEdit(){
+    const batch=state.adjUndo.pop();if(!batch){setStatus('Nothing to undo.','info');return;}
+    for(const b of batch){
+      if(b.price)state.adjEdits.set(b.src,b.price);else state.adjEdits.delete(b.src);
+      if(b.qty&&b.k){const q=b.qty;if(q.edit!==undefined)state.adjQtyEdits.set(b.k,q.edit);else state.adjQtyEdits.delete(b.k);
+        if(q.had)state.unpackCounts.set(b.k,q.count);else state.unpackCounts.delete(b.k);
+        if(q.checked)state.unpackChecked.add(b.k);else state.unpackChecked.delete(b.k);
+        if(q.manual)state.unpackManualChecked.add(b.k);else state.unpackManualChecked.delete(b.k);}
+    }
+    saveUnpackCounts();saveUnpackChecklist();setStatus(`Undone — ${batch.length} row${batch.length===1?'':'s'} back as before.`,'info');renderPosTable();
+  }
+  function clearAdjEdits(){
+    const changes=[];for(const src of state.adjEdits.keys()){changes.push({src,key:'adjwsprce',value:null},{src,key:'adjcatprce',value:null});}
+    for(const [src,look] of state.posRowLookup)if(state.adjQtyEdits.has(unpackIdentity(look.pos)))changes.push({src,key:'or_qty',value:null});
+    if(changes.length)applyAdjEdits(changes,{say:false});setStatus('Every changed price and Adj Qty is back to its original value (Ctrl + Z undoes).','info');
+  }
+  function renderEditTools(){
+    const box=document.querySelector('#posEditTools');if(!box)return;
+    let qty=0;for(const look of state.posRowLookup.values())if(adjCellEdited(look.pos,'or_qty'))qty++;
+    const rows=new Set(state.adjEdits.keys());for(const [src,look] of state.posRowLookup)if(adjCellEdited(look.pos,'or_qty'))rows.add(src);
+    box.hidden=state.previewView!=='pos'||(!rows.size&&!state.adjUndo.length);
+    const count=box.querySelector('[data-adj-count]');if(count)count.textContent=rows.size?`${rows.size} row${rows.size===1?'':'s'} changed`:'No changes';
+    const u=box.querySelector('[data-adj-undo]');if(u)u.disabled=!state.adjUndo.length;
+    const c=box.querySelector('[data-adj-clear]');if(c)c.disabled=!rows.size;
+  }
+  {const box=document.querySelector('#posEditTools');if(box)box.addEventListener('click',e=>{if(e.target.closest('[data-adj-undo]'))undoAdjEdit();else if(e.target.closest('[data-adj-clear]'))clearAdjEdits();});}
+  function selEditableCells(r=selRect()){if(!r)return [];const out=[];const cols=rectCols(r).filter(editableIndex);for(let i=r.r1;i<=r.r2;i++)for(const ci of cols)out.push({src:r.rows[i].dataset.posSrc,ci,key:POS_VIEW_COLUMNS[ci].key});return out;}
+  function cellNumber(src,ci){const look=gridLook(src),c=POS_VIEW_COLUMNS[ci];return look&&c?numberValue(posColumnValue(look.pos,c,look.detail)):null;}
+  function fillDown(r,toRow){
+    // Copy the selected rows' values (repeating) into the rows below, editable columns only.
+    const cols=rectCols(r).filter(editableIndex),h=r.r2-r.r1+1,changes=[];
+    const last=toRow!=null?toRow:r.r2,first=toRow!=null?r.r2+1:r.r1+1,srcRows=toRow!=null?h:1;
+    for(let i=first;i<=last;i++)for(const ci of cols){const from=r.rows[r.r1+((i-first)%srcRows)].dataset.posSrc,v=cellNumber(from,ci);changes.push({src:r.rows[i].dataset.posSrc,key:POS_VIEW_COLUMNS[ci].key,value:v});}
+    if(!changes.length){setStatus('Fill down works on Adj WSPrc, Adj CatPrc, Adj DPrc and Adj Qty.','info');return;}
+    applyAdjEdits(changes.filter(ch=>ch.value!=null));
+  }
+  function pasteText(txt){
+    const r=selRect();if(!r)return;
+    const lines=String(txt).replace(/\r\n?/g,'\n').replace(/\n$/,'').split('\n').map(l=>l.split('\t'));
+    const sel=selColumns(),startCol=Math.max(0,sel.indexOf(r.c1)),changes=[];let bad=0,skipped=0;
+    const add=(src,ci,text)=>{if(!editableIndex(ci)){skipped++;return;}const p=parseEditNumber(text);if(p.bad){bad++;return;}changes.push({src,key:POS_VIEW_COLUMNS[ci].key,value:p.blank?null:p.value});};
+    if(lines.length===1&&lines[0].length===1){for(const cell of selEditableCells(r))add(cell.src,cell.ci,lines[0][0]);if(!selEditableCells(r).length)skipped++;}
+    else for(let i=0;i<lines.length;i++){const tr=r.rows[r.r1+i];if(!tr)break;for(let j=0;j<lines[i].length;j++){const ci=sel[startCol+j];if(ci==null)break;add(tr.dataset.posSrc,ci,lines[i][j]);}}
+    const n=changes.length?applyAdjEdits(changes,{say:false}):0;
+    setStatus(n?`Pasted into ${n} cell${n===1?'':'s'} — the POSActive TXT and the totals use the new values. Ctrl + Z undoes.${bad?` ${bad} value${bad===1?' was':'s were'} not a number and left out.`:''}${skipped?' Only Adj WSPrc, Adj CatPrc, Adj DPrc and Adj Qty take pasted values.':''}`:`Nothing pasted.${bad?` ${bad} value${bad===1?' was':'s were'} not a number.`:''} Only Adj WSPrc, Adj CatPrc, Adj DPrc and Adj Qty take pasted values.`,n?'info':'warn');
+  }
+  let cellEditor=null;
+  function startCellEdit(initial){
+    const r=selRect();if(!r)return;const s=state.cellSel.f;if(!editableIndex(s.col)){setStatus('Only Adj WSPrc, Adj CatPrc, Adj DPrc and Adj Qty can be changed here.','info');return;}
+    const tr=r.rows.find(x=>x.dataset.posSrc===s.src),td=tr&&tr.children[s.col],look=gridLook(s.src);if(!td||!look)return;
+    const c=POS_VIEW_COLUMNS[s.col],v=posColumnValue(look.pos,c,look.detail),inp=document.createElement('input');
+    inp.type='text';inp.className='rs-cell-input';inp.inputMode='decimal';inp.autocomplete='off';inp.spellcheck=false;inp.setAttribute('aria-label',`Change ${String(c.label).replace(/​/g,'')}`);
+    inp.value=initial!=null?initial:(numberValue(v)!=null?fixed(v,posCellDp(look.pos,c,v)):'');
+    td.classList.add('is-editing');td.appendChild(inp);cellEditor={inp,td,src:s.src,ci:s.col,done:false};
+    inp.focus();if(initial==null)inp.select();else inp.setSelectionRange(inp.value.length,inp.value.length);
+    const finish=(commit,move)=>{
+      if(!cellEditor||cellEditor.inp!==inp||cellEditor.done)return;cellEditor.done=true;
+      const ed=cellEditor;cellEditor=null;let target=null;
+      if(move){const rows=gridRows(),ri=rows.findIndex(x=>x.dataset.posSrc===ed.src),sel=selColumns(),ci=sel.indexOf(ed.ci);
+        if(move==='down'&&rows[ri+1])target={src:rows[ri+1].dataset.posSrc,col:ed.ci};else if(move==='up'&&rows[ri-1])target={src:rows[ri-1].dataset.posSrc,col:ed.ci};
+        else if(move==='right'&&sel[ci+1]!=null)target={src:ed.src,col:sel[ci+1]};else if(move==='left'&&sel[ci-1]!=null)target={src:ed.src,col:sel[ci-1]};}
+      inp.remove();td.classList.remove('is-editing');
+      if(commit){const p=parseEditNumber(inp.value);if(p.bad)setStatus(`"${inp.value}" is not a number of 0 or more — the cell is unchanged.`,'warn');else applyAdjEdits([{src:ed.src,key:POS_VIEW_COLUMNS[ed.ci].key,value:p.blank?null:p.value}]);}
+      if(target)setSel(target);else paintSel();
+      if(els.tableWrap)els.tableWrap.focus({preventScroll:true});
+    };
+    inp.addEventListener('keydown',e=>{
+      e.stopPropagation();
+      if(e.key==='Enter'){e.preventDefault();finish(true,e.shiftKey?'up':'down');}
+      else if(e.key==='Tab'){e.preventDefault();finish(true,e.shiftKey?'left':'right');}
+      else if(e.key==='Escape'){e.preventDefault();finish(false,null);}
+    });
+    inp.addEventListener('blur',()=>finish(true,null));
+    inp.addEventListener('mousedown',e=>e.stopPropagation());
+  }
+  let gridWired=false,dragSel=false,filling=null;
+  function wireGrid(){
+    if(gridWired||!els.tableWrap||!els.tableBody)return;gridWired=true;
+    if(!els.tableWrap.hasAttribute('tabindex'))els.tableWrap.setAttribute('tabindex','-1');
+    const cellAt=target=>{const td=target&&target.closest&&target.closest('td');const tr=td&&td.parentElement;if(!td||!tr||!tr.dataset||tr.dataset.posSrc==null||state.previewView!=='pos')return null;const ci=td.cellIndex,c=POS_VIEW_COLUMNS[ci];return c&&SEL_KINDS.has(c.kind)?{src:tr.dataset.posSrc,col:ci,td,tr}:null;};
+    els.tableBody.addEventListener('mousedown',e=>{
+      if(e.button!==0||state.previewView!=='pos')return;
+      if(e.target.classList&&e.target.classList.contains('rs-fill')){const r=selRect();if(r){e.preventDefault();e.stopPropagation();filling={r,to:r.r2};}return;}
+      if(e.target.closest('input,button,a,select,textarea,label,.pos-sort-button,.pos-filt'))return;
+      const cell=cellAt(e.target);if(!cell)return;
+      e.preventDefault();if(cellEditor)cellEditor.inp.blur();
+      if(e.shiftKey&&state.cellSel)setSel(state.cellSel.a,{src:cell.src,col:cell.col},{scroll:false});else setSel({src:cell.src,col:cell.col},null,{scroll:false});
+      dragSel=true;els.tableWrap.focus({preventScroll:true});
+    });
+    els.tableBody.addEventListener('mouseover',e=>{
+      if(filling){const tr=e.target.closest&&e.target.closest('tr[data-pos-src]');if(!tr)return;const i=filling.r.rows.indexOf(tr);if(i<0)return;filling.to=Math.max(filling.r.r2,i);
+        els.tableBody.querySelectorAll('td.cs-fill').forEach(td=>td.classList.remove('cs-fill'));const cols=rectCols(filling.r).filter(editableIndex);
+        for(let k=filling.r.r2+1;k<=filling.to;k++)for(const ci of cols){const td=filling.r.rows[k].children[ci];if(td)td.classList.add('cs-fill');}return;}
+      if(!dragSel||!state.cellSel)return;const cell=cellAt(e.target);if(cell&&(cell.src!==state.cellSel.f.src||cell.col!==state.cellSel.f.col))setSel(state.cellSel.a,{src:cell.src,col:cell.col},{scroll:false});
+    });
+    document.addEventListener('mouseup',()=>{
+      dragSel=false;if(!filling)return;const f=filling;filling=null;els.tableBody.querySelectorAll('td.cs-fill').forEach(td=>td.classList.remove('cs-fill'));
+      if(f.to>f.r.r2){fillDown(f.r,f.to);const rows=gridRows(),last=f.r.rows[f.to];if(last&&rows.includes(last))setSel(state.cellSel.a,{src:last.dataset.posSrc,col:state.cellSel.f.col},{scroll:false});}
+    });
+    els.tableBody.addEventListener('dblclick',e=>{const cell=cellAt(e.target);if(!cell||e.target.closest('input,button'))return;setSel({src:cell.src,col:cell.col},null,{scroll:false});startCellEdit(null);});
+    els.tableWrap.addEventListener('keydown',e=>{
+      if(e.target!==els.tableWrap||!state.cellSel||state.previewView!=='pos')return;
+      const r=selRect();if(!r){state.cellSel=null;return;}
+      const mod=e.ctrlKey||e.metaKey,sel=selColumns(),f=state.cellSel.f,ri=r.rows.findIndex(x=>x.dataset.posSrc===f.src),ci=sel.indexOf(f.col);
+      const go=(dr,dc,extend=e.shiftKey)=>{const nr=Math.max(0,Math.min(r.rows.length-1,ri+dr)),nc=sel[Math.max(0,Math.min(sel.length-1,ci+dc))],to={src:r.rows[nr].dataset.posSrc,col:nc};if(extend)setSel(state.cellSel.a,to);else setSel(to);};
+      if(e.key==='ArrowDown'){e.preventDefault();go(1,0);return;}
+      if(e.key==='ArrowUp'){e.preventDefault();go(-1,0);return;}
+      if(e.key==='ArrowRight'){e.preventDefault();go(0,1);return;}
+      if(e.key==='ArrowLeft'){e.preventDefault();go(0,-1);return;}
+      if(e.key==='Tab'){e.preventDefault();go(0,e.shiftKey?-1:1,false);return;}
+      if(e.key==='Escape'){state.cellSel=null;paintSel();return;}
+      if(mod&&(e.key==='c'||e.key==='C')){e.preventDefault();const t=copySel();copyText(t);const n=(r.r2-r.r1+1)*rectCols(r).length;setStatus(`Copied ${n} cell${n===1?'':'s'}.`,'info');return;}
+      if(mod&&(e.key==='z'||e.key==='Z')){e.preventDefault();undoAdjEdit();return;}
+      if(mod&&(e.key==='d'||e.key==='D')){e.preventDefault();if(r.r2>r.r1)fillDown(r,null);else setStatus('Select the cell to copy and the cells below it, then Ctrl + D.','info');return;}
+      if(mod&&(e.key==='a'||e.key==='A')){e.preventDefault();const s=selColumns();setSel({src:r.rows[0].dataset.posSrc,col:s[0]},{src:r.rows[r.rows.length-1].dataset.posSrc,col:s[s.length-1]},{scroll:false});return;}
+      if(e.key==='Enter'||e.key==='F2'){e.preventDefault();if(editableIndex(f.col))startCellEdit(null);else go(e.shiftKey?-1:1,0,false);return;}
+      if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();const cells=selEditableCells(r);if(cells.length)applyAdjEdits(cells.map(x=>({src:x.src,key:x.key,value:null})));return;}
+      if(!mod&&!e.altKey&&e.key.length===1&&e.key!==' '){
+        if(editableIndex(f.col)&&r.r1===r.r2&&rectCols(r).length===1){e.preventDefault();startCellEdit(e.key);}
+        else if(!editableIndex(f.col)){const c=POS_VIEW_COLUMNS[f.col];setStatus(c&&c.key==='adjrrprce'?'Adj RRPrc is not in the POSActive import, so it is not changed here. Adj WSPrc, Adj CatPrc, Adj DPrc and Adj Qty can be changed.':'Only Adj WSPrc, Adj CatPrc, Adj DPrc and Adj Qty can be changed in the checklist.','info');}
+      }
+    });
+    els.tableWrap.addEventListener('paste',e=>{
+      if(e.target!==els.tableWrap||!state.cellSel||state.previewView!=='pos')return;
+      const txt=e.clipboardData&&e.clipboardData.getData('text/plain');if(!txt)return;e.preventDefault();pasteText(txt);
+    });
+    els.tableWrap.addEventListener('copy',e=>{
+      if(e.target!==els.tableWrap||!state.cellSel)return;const t=copySel();if(!t)return;e.clipboardData.setData('text/plain',t);e.preventDefault();
+    });
+  }
+  function renderPreview(r){if(state.previewView==='pos')renderPosTable();else{closeColPicker();renderReconTable(r);}setViewButtons();applyTableSearch();renderEditTools();}
   // v2.11.3 — search over the rows on the page: every word must appear in the row's text (cells, inputs, pills)
   function rowSearchText(tr){const parts=[tr.textContent||''];tr.querySelectorAll('input,textarea,select').forEach(i=>{parts.push(i.value||'');});tr.querySelectorAll('[title]').forEach(e=>{parts.push(e.getAttribute('title')||'');});return parts.join(' ').toLowerCase().replace(/\s+/g,' ');}
   function applyTableSearch(){
     const box=document.querySelector('#tableSearch'),count=document.querySelector('#tableSearchCount');if(!box||!els.tableBody)return;
     const words=String(box.value||'').toLowerCase().split(/\s+/).filter(Boolean),on=words.length>0;
     const fk=state.checkFilter||null;   // v2.17.0: a filter chip shows only the lines with that Check (inv = not on the POS order)
-    els.table.classList.toggle('is-searching',on||!!fk);
+    // v2.18.0: the column filters from the heading menus (POS layout only)
+    const cf=state.previewView==='pos'?[...state.colFilters.entries()].map(([k,set])=>({c:POS_VIEW_COLUMNS.find(x=>x.key===k),set})).filter(x=>x.c):[];
+    const colHit=tr=>{if(!cf.length)return true;const look=state.posRowLookup.get(tr.dataset.posSrc||'');if(!look)return true;return cf.every(f=>f.set.has(posFilterText(look.pos,f.c,look.detail)));};
+    els.table.classList.toggle('is-searching',on||!!fk||cf.length>0);
     let shown=0,total=0;
     for(const tr of els.tableBody.querySelectorAll('tr')){
       const dataRow=!tr.classList.contains('pos-section-row')&&!tr.classList.contains('pos-total-row')&&!tr.querySelector('td[colspan]');
       if(!dataRow){tr.classList.remove('search-miss');continue;}
       total++;
-      const hit=(!on||(()=>{const t=rowSearchText(tr);return words.every(w=>t.indexOf(w)>=0);})())&&(!fk||(fk==='inv'?tr.classList.contains('pos-invoice-only'):tr.dataset.check===fk));
+      const hit=(!on||(()=>{const t=rowSearchText(tr);return words.every(w=>t.indexOf(w)>=0);})())&&(!fk||(fk==='inv'?tr.classList.contains('pos-invoice-only'):tr.dataset.check===fk))&&colHit(tr);
       tr.classList.toggle('search-miss',!hit);if(hit)shown++;
     }
-    if(count)count.textContent=on||fk?`${shown} of ${total}`:'';
+    if(count)count.textContent=on||fk||cf.length?`${shown} of ${total}`:'';
+    renderColFilterChips();if(state.previewView==='pos')paintSel();
   }
   {const box=document.querySelector('#tableSearch');if(box){let t=0;box.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(applyTableSearch,80);});box.addEventListener('keydown',e=>{if(e.key==='Escape'){box.value='';applyTableSearch();}});}}
 
@@ -1387,6 +1707,7 @@
   }
   function showChecklistLine(src){
     let changed=false;if(state.checkFilter){state.checkFilter=null;changed=true;}const box=document.querySelector('#tableSearch');if(box&&box.value){box.value='';changed=true;}
+    if(state.colFilters.size){state.colFilters=new Map();changed=true;if(state.previewView==='pos'){renderPosTable();changed=false;}}   // v2.18.0
     if(state.previewView!=='pos')setPreviewView('pos');else if(changed)applyTableSearch();
     if(changed&&state.lastSummaryArgs)renderSummary(...state.lastSummaryArgs);
     const tr=els.tableBody&&[...els.tableBody.querySelectorAll('tr[data-pos-src]')].find(t=>t.dataset.posSrc===String(src));if(!tr)return;
@@ -1443,7 +1764,7 @@
   }
 
   // v2.11.0: receiving counts and ticks live only on this page — the browser asks before a reload or a link leaves it.
-  window.addEventListener('beforeunload',e=>{if(state.result&&(state.unpackCounts.size||state.unpackChecked.size)){e.preventDefault();e.returnValue='';}});
+  window.addEventListener('beforeunload',e=>{if(state.result&&(state.unpackCounts.size||state.unpackChecked.size||state.adjEdits.size)){e.preventDefault();e.returnValue='';}});
   wireDrop(els.posDrop,els.posInput,addPos);wireDrop(els.invoiceDrop,els.invoiceInput,addInvoices);
   els.clearBtn.onclick=()=>{resetReceivingState({clearStorage:true});clearAllStoredReceivingState();state.pos=null;state.invoices=[];state.result=null;state.docs=[];state.posParsed=null;state.previewView='pos';state.runIntegrity=null;state.unpackChecked=new Set();state.unpackManualChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;state.receivingMigratedFrom266=false;state.orderOverrides=new Map();els.posInput.value='';els.invoiceInput.value='';hideResults();hideProgress();renderFiles();};
   els.runBtn.onclick=run;

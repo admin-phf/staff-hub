@@ -1,3 +1,7 @@
+// Reconcile CH2 v2.18.0 — 22 Oct 2026: prices edited in POS Layout go into the TXT. options.priceBySourceRow (POS row →
+// {ws, unit}) sets Normal WS (Adj WSPrc) and Unit Price ex GST (Adj CatPrc / Adj DPrc) for that row's lines; Disc % is
+// recalculated from them, and Extended / GST / Total are recalculated at the edited unit price. Each edited line is
+// listed in a PRICE EDITED note with its effect against the invoice prices. No edits = the same file as before.
 // Reconcile CH2 v2.11.0 — 12 Oct 2026: one product CH2 billed on several lines of the same invoice for the same POS order
 // row (same Sub ID) is one TXT line with the quantities and amounts added, when the lines have the same unit price, Disc %,
 // Normal W/S and GST — POSActive keeps only the last line with a Sub ID on that row, so it received only that line before.
@@ -264,6 +268,14 @@
     return {touched:true,value:n(map[key])};
   }
 
+  // v2.18.0 — a price edited in POS Layout: {ws, unit} for this POS row (either may be null = not edited).
+  function priceOverride(options,pos){
+    const map=options&&options.priceBySourceRow,key=sourceRowKey(pos);if(!map||!key)return null;
+    const v=map instanceof Map?map.get(key):(Object.prototype.hasOwnProperty.call(map,key)?map[key]:null);if(!v)return null;
+    const ws=n(v.ws),unit=n(v.unit),out={ws:ws!=null&&ws>=0?round(ws,2):null,unit:unit!=null&&unit>=0?round(unit,4):null};
+    return out.ws==null&&out.unit==null?null:out;
+  }
+
   function selectedOverride(options,pos){
     const map=options&&options.selectedBySourceRow,key=sourceRowKey(pos);if(!map||!key)return null;
     if(map instanceof Map)return map.has(key)?!!map.get(key):null;
@@ -405,10 +417,14 @@
       else{normalWs=0;wsSource='NOT AVAILABLE';pushIssue(warnings,`${label}: MANUAL RECEIVING — no Normal W/S or cost is available from the POS master or POS order, so this line is exported at 0.00. Key the cost in POSActive.`);}
     }
     // Same 2dp cost the POS Layout shows as AdjCatPrc, so the row total and the TXT agree.
-    const unit=round(normalWs*(1-disc/100),2),ext=round(unit*found,2);
+    // v2.18.0 — an edited Adj WSPrc is the Normal WS and an edited Adj CatPrc / DPrc the unit; Disc % follows from them.
+    const po=priceOverride(options,pos),before={normalWs:round(normalWs,2),unit:round(normalWs*(1-disc/100),2),disc:round(disc,2)};
+    let unit=before.unit;
+    if(po){if(po.unit!=null){unit=po.unit;discSource='edited in POS Layout';}if(po.ws!=null){normalWs=po.ws;wsSource='edited in POS Layout';}disc=normalWs>0?round((1-unit/normalWs)*100,2):0;}
+    const ext=round(unit*found,2);
     let gstRate=n(pos&&pos.gstPct);if(gstRate==null)for(const r of recs){const g=n(r&&r.POS_GST_TAX_PC);if(g!=null){gstRate=g;break;}}
     if(gstRate==null){gstRate=0;pushIssue(warnings,`${label}: MANUAL RECEIVING — GST % is not available on the POS order or master; exported with 0% GST.`);}
-    const gst=round(ext*gstRate/100,2),total=round(ext+gst,2);
+    const gst=round(ext*gstRate/100,2),total=round(ext+gst,2),extAt=round(before.unit*found,2),gstAt=round(extAt*gstRate/100,2);
     const id=resolveImportIdentity(pos,refs,[],options),masterCodes=[...new Set(recs.map(r=>digits(r&&r.MASTER_CODE)).filter(Boolean))],masterCode=masterCodes.length===1?masterCodes[0]:'';
     let subId=id.importSubId,keySource=id.source;
     if(!subId&&typeof (pos&&pos.subIdRaw)!=='string'){
@@ -423,7 +439,8 @@
     return {
       invoiceNo:invoiceNoValue,line:String(lineNo),ch2Code:masterCode||subId,supplierCode:sanitizeDataText(subId),subId,description,
       qty:found,qtySupplied:found,normalWs:round(normalWs,2),unitPrice:unit,rebate:0,extended:ext,gst,total,disc,
-      sourceQty:0,receivingAdjusted:true,manualReceiving:true,pos,importIdentity:{...id,importSubId:subId,source:keySource}
+      sourceQty:0,receivingAdjusted:true,manualReceiving:true,pos,importIdentity:{...id,importSubId:subId,source:keySource},
+      ...(po?{priceEdited:true,unitEdited:Math.abs(unit-before.unit)>0.00005,before,atInvoice:{extended:extAt,gst:gstAt,total:round(extAt+gstAt,2)}}:{})
     };
   }
 
@@ -494,7 +511,13 @@
       // Extended, GST and Total are recalculated at the invoice unit price when the quantity differs. Found 0 omits the line.
       const outQty=allocation.has(key)?allocation.get(key):originalQty;
       if(outQty<=0){if(originalQty>0)omittedNotSupplied.push({inv,ctx,selected:selectedOverride(options,ctx.pos)});continue;}
-      const adjusted=Math.abs(outQty-originalQty)>0.0005,ext=adjusted?round(unit*outQty,2):round(inv.extendedExGst,2),gstRate=n(inv.gstPct)!=null?n(inv.gstPct):((n(inv.gstAmount)||0)>0?10:0),gst=adjusted?round(ext*gstRate/100,2):round(inv.gstAmount,2),total=adjusted?round(ext+gst,2):round(inv.totalIncGst,2);
+      // v2.18.0 — a price edited in POS Layout replaces Normal WS and / or the unit price; Disc % follows from them, and
+      // Extended, GST and Total are recalculated at the edited unit price. Without an edit every value is as before.
+      const po=priceOverride(options,ctx.pos),before={normalWs:round(normalWs,2),unit,disc:round(disc,2)};let unitOut=unit;
+      if(po){if(po.unit!=null)unitOut=po.unit;if(po.ws!=null)normalWs=po.ws;disc=normalWs>0?round((1-unitOut/normalWs)*100,2):0;}
+      const unitEdited=!!po&&Math.abs(unitOut-unit)>0.00005;
+      const adjusted=Math.abs(outQty-originalQty)>0.0005,extAt=adjusted?round(unit*outQty,2):round(inv.extendedExGst,2),gstRate=n(inv.gstPct)!=null?n(inv.gstPct):((n(inv.gstAmount)||0)>0?10:0),gstAt=adjusted?round(extAt*gstRate/100,2):round(inv.gstAmount,2),totalAt=adjusted?round(extAt+gstAt,2):round(inv.totalIncGst,2);
+      const ext=unitEdited?round(unitOut*outQty,2):extAt,gst=unitEdited?round(ext*gstRate/100,2):gstAt,total=unitEdited?round(ext+gst,2):totalAt;
       const importIdentity=resolveImportIdentity(ctx.pos,refs,ctx.invRows,options);
       const ch2Code=digits(inv.productCode),subId=String(importIdentity.importSubId??'').replace(/[\t\r\n]+/g,' '),rawSupplierCode=clean(inv.supplierSku),rawDescription=clean(inv.description),supplierCode=sanitizeDataText(rawSupplierCode),description=sanitizeDataText(rawDescription);
       for(const issue of importIdentity.issues)pushIssue(warnings,`Invoice line ${lineText(inv.invoiceLine)} · ${lineLabel(ctx.pos,ctx.index)} · Import Sub ID "${subId}" (${importIdentity.source}): ${issue}`);
@@ -514,8 +537,9 @@
       else if(Math.abs(wsDiff)>0.0001)warnings.push(`Invoice line ${lineText(inv.invoiceLine)}: POSActive WS is expected to round to ${predWs.toFixed(2)} vs invoice Normal W/S ${wsRounded.toFixed(2)} (1c rounding).`);
       records.push({
         invoiceNo:invoiceNo(inv)||group.number,line:lineText(inv.invoiceLine),ch2Code,supplierCode,subId,description,
-        qty:outQty,qtySupplied:outQty,normalWs:wsRounded,unitPrice:unit,rebate:0,extended:ext,gst,total,disc,
-        sourceQty:originalQty,receivingAdjusted:adjusted,pos:ctx.pos,importIdentity,invoiceOnly:!!ctx.invoiceOnly
+        qty:outQty,qtySupplied:outQty,normalWs:wsRounded,unitPrice:unitOut,rebate:0,extended:ext,gst,total,disc,
+        sourceQty:originalQty,receivingAdjusted:adjusted,pos:ctx.pos,importIdentity,invoiceOnly:!!ctx.invoiceOnly,
+        ...(po?{priceEdited:true,unitEdited,before,atInvoice:{extended:extAt,gst:gstAt,total:totalAt}}:{})
       });
     }
 
@@ -547,8 +571,10 @@
         const parts=g.map(r=>`invoice ${r.invoiceNo} line ${r.line} qty ${qtyText(r.qty)}`).join(' + ');
         if(sameInv&&sameTerms){
           const sum=k=>g.reduce((a,r)=>a+(n(r[k])||0),0),qty=round(sum('qty'),3);
+          const at=k=>round(g.reduce((a,r)=>a+(n(r.atInvoice?r.atInvoice[k]:r[k])||0),0),2);   // v2.18.0
           merged.push({...f,qty,qtySupplied:qty,extended:round(sum('extended'),2),gst:round(sum('gst'),2),total:round(sum('total'),2),sourceQty:round(sum('sourceQty'),3),
-            receivingAdjusted:g.some(r=>r.receivingAdjusted),mergedFrom:g.map(r=>({invoiceNo:r.invoiceNo,line:r.line,qty:r.qty,extended:r.extended,gst:r.gst,total:r.total,receivingAdjusted:r.receivingAdjusted}))});
+            receivingAdjusted:g.some(r=>r.receivingAdjusted),mergedFrom:g.map(r=>({invoiceNo:r.invoiceNo,line:r.line,qty:r.qty,extended:r.extended,gst:r.gst,total:r.total,receivingAdjusted:r.receivingAdjusted})),
+            ...(g.some(r=>r.priceEdited)?{priceEdited:true,unitEdited:g.some(r=>r.unitEdited),atInvoice:{extended:at('extended'),gst:at('gst'),total:at('total')}}:{})});
           warnings.push(`MERGED LINES — ${f.description}: CH2 billed it on ${parts} for the same POS order row (Sub ID "${f.subId}"). They are one TXT line (line ${f.line}, qty ${qtyText(qty)}) because POSActive keeps only the last line with that Sub ID.`);
         }else{
           merged.push(...g);
@@ -568,8 +594,24 @@
 
     const totals={qty:round(records.reduce((a,r)=>a+r.qtySupplied,0),3),ext:round(records.reduce((a,r)=>a+r.extended,0),2),gst:round(records.reduce((a,r)=>a+r.gst,0),2),total:round(records.reduce((a,r)=>a+r.total,0),2)};
     if(Math.abs(round(totals.ext+totals.gst-totals.total,2))>0.02)pushIssue(warnings,`PRICE CHECK — Invoice ${group.number}: POSActive import totals do not balance (${totals.ext.toFixed(2)} + GST ${totals.gst.toFixed(2)} ≠ ${totals.total.toFixed(2)}). The printed invoice line values are kept; review only, download remains available.`);
+    // v2.18.0 — prices edited in POS Layout: the TXT carries them, so its total differs from the invoice by their effect.
+    const priced=records.filter(r=>r.priceEdited),eff=k=>round(priced.reduce((a,r)=>a+((n(r[k])||0)-(n(r.atInvoice&&r.atInvoice[k])||0)),0),2);
+    const priceEffect={ext:eff('extended'),gst:eff('gst'),total:eff('total')};
+    if(priced.length){
+      const sm=v=>`${v<0?'−':'+'}${Math.abs(v).toFixed(2)}`;
+      warnings.push(`PRICE EDITED — ${priced.length} line${priced.length===1?' carries':'s carry'} prices changed in POS Layout. The TXT imports your prices: ${sm(priceEffect.total)} inc GST against the invoice prices for the same quantities (import total ${totals.total.toFixed(2)}). The full reconciliation workbook keeps the invoice prices.`);
+      for(const r of priced.slice(0,12)){const b=r.before||{},parts=[];
+        if(b.normalWs!=null&&Math.abs(b.normalWs-r.normalWs)>0.0001)parts.push(`Normal WS ${fixed(b.normalWs,2)} → ${fixed(r.normalWs,2)}`);
+        if(b.unit!=null&&Math.abs(b.unit-r.unitPrice)>0.00005)parts.push(`Unit Price ${fixed(b.unit,4)} → ${fixed(r.unitPrice,4)}`);
+        if(b.disc!=null&&Math.abs(b.disc-r.disc)>0.0001)parts.push(`Disc % ${fixed(b.disc,2)} → ${fixed(r.disc,2)}`);
+        const d=round(r.total-(n(r.atInvoice&&r.atInvoice.total)||0),2);
+        warnings.push(`Invoice ${r.invoiceNo} line ${r.line} · ${r.description}: ${parts.join(' · ')||'same values as the invoice'}${Math.abs(d)>0.004?` · ${sm(d)} inc GST`:''}.`);
+        if(r.disc<0)pushIssue(warnings,`PRICE EDITED — Invoice ${r.invoiceNo} line ${r.line} · ${r.description}: Unit Price ${fixed(r.unitPrice,4)} is above Normal WS ${fixed(r.normalWs,2)}, so Disc % is ${fixed(r.disc,2)}. Check this line in POSActive.`);
+      }
+    }
     if(!receivingChanges.length){
-      if(Math.abs(totals.qty-sourceTotals.qty)>0.001||Math.abs(totals.ext-sourceTotals.ext)>0.02||Math.abs(totals.gst-sourceTotals.gst)>0.02||Math.abs(totals.total-sourceTotals.total)>0.02){
+      const tq=totals.qty,te=round(totals.ext-priceEffect.ext,2),tg=round(totals.gst-priceEffect.gst,2),tt=round(totals.total-priceEffect.total,2);   // v2.18.0: at the invoice prices
+      if(Math.abs(tq-sourceTotals.qty)>0.001||Math.abs(te-sourceTotals.ext)>0.02||Math.abs(tg-sourceTotals.gst)>0.02||Math.abs(tt-sourceTotals.total)>0.02){
         const msg=`Invoice ${group.number}: generated file totals do not equal the parsed invoice totals.`;
         if(invoiceOnlyOmitted.length)pushIssue(warnings,`${msg} This is expected because ${invoiceOnlyOmitted.length} invoice-only line${invoiceOnlyOmitted.length===1?' was':'s were'} omitted.`);else pushIssue(warnings,`PRICE CHECK — ${msg} (TXT ${totals.total.toFixed(2)} vs invoice ${sourceTotals.total.toFixed(2)}). Review only; download remains available.`);
       }
@@ -587,7 +629,7 @@
     if(matchCheck.mismatches.length){
       warnings.unshift(`POSACTIVE MATCH CHECK — ${matchCheck.mismatches.length} of ${matchCheck.total} TXT line${matchCheck.total===1?'':'s'} ${matchCheck.mismatches.length===1?'has a Sub ID':'have Sub IDs'} that ${matchCheck.mismatches.length===1?'is':'are'} not on POS order ${matchCheck.orderNumber}. POSActive will report ${matchCheck.mismatches.length===1?'it':'them'} as not matching the supplier order: ${matchCheck.mismatches.map(m=>`line ${m.line} ${m.description} [${m.subId||'blank'}] — ${m.reason}`).join('; ')}.`);
     }
-    return {group,rows,records,text,totals,sourceTotals,receivingChanges,errors,warnings,matchCheck};
+    return {group,rows,records,text,totals,sourceTotals,receivingChanges,priceEdits:priced.length,priceEffect,errors,warnings,matchCheck};
   }
 
   // Every TXT line is matched by POSActive against the Sub IDs on the open supplier order.
@@ -736,9 +778,9 @@
         const invs=r.mergedFrom.map(m=>(sources.get(clean(m.invoiceNo)+'|'+lineText(m.line))||[]).filter(inv=>digits(inv.productCode)===digits(r.ch2Code)));
         if(invs.some(l=>l.length!==1)){pushIssue(warnings,`INVOICE CHECK — Invoice ${r.invoiceNo} merged lines ${r.mergedFrom.map(m=>m.line).join(' + ')} CH2 ${r.ch2Code||'(blank)'}: not every source invoice line could be found to compare the exported values with. Review this line in POSActive.`);continue;}
         const srcs=invs.map(l=>l[0]),chk=(label,value,source,dp,inv)=>{if(n(source)!=null&&fixed(value,dp)!==fixed(source,dp))pushIssue(warnings,`INVOICE CHECK — ${wholesaleReviewLabel(inv)}: exported ${label} ${fixed(value,dp)} differs from the invoice ${fixed(source,dp)}. Review only; download remains available.`);};
-        for(const inv of srcs){chk('Unit Price',r.unitPrice,inv.unitPriceExGst,4,inv);if(!wsBackfilled(inv))chk('Normal W/S',r.normalWs,inv.normalWholesale,2,inv);chk('Disc %',r.disc,inv.discountPct,2,inv);}
+        if(!r.priceEdited)for(const inv of srcs){chk('Unit Price',r.unitPrice,inv.unitPriceExGst,4,inv);if(!wsBackfilled(inv))chk('Normal W/S',r.normalWs,inv.normalWholesale,2,inv);chk('Disc %',r.disc,inv.discountPct,2,inv);}   // v2.18.0: an edited price is yours, not the invoice's
         const tot=k=>srcs.reduce((a,inv)=>a+(n(inv[k])||0),0);
-        if(r.receivingAdjusted){if(fixed(round(r.extended+r.gst,2),2)!==fixed(r.total,2))pushIssue(warnings,`INVOICE CHECK — ${wholesaleReviewLabel(srcs[0])}: exported Extended + GST does not equal Total.`);}
+        if(r.receivingAdjusted||r.unitEdited){if(fixed(round(r.extended+r.gst,2),2)!==fixed(r.total,2))pushIssue(warnings,`INVOICE CHECK — ${wholesaleReviewLabel(srcs[0])}: exported Extended + GST does not equal Total.`);}
         else{chk('Qty',r.qty,tot('qtySupplied'),3,srcs[0]);chk('Extended ex GST',r.extended,round(tot('extendedExGst'),2),2,srcs[0]);chk('GST',r.gst,round(tot('gstAmount'),2),2,srcs[0]);chk('Total inc GST',r.total,round(tot('totalIncGst'),2),2,srcs[0]);}
         continue;
       }
@@ -746,10 +788,12 @@
       const matches=list.filter(inv=>digits(inv.productCode)===digits(r.ch2Code));
       if(matches.length!==1){pushIssue(warnings,`INVOICE CHECK — Invoice ${r.invoiceNo} line ${r.line} CH2 ${r.ch2Code||'(blank)'}: no single source invoice line could be found to compare the exported values with. Review this line in POSActive.`);continue;}
       const inv=matches[0],check=(label,value,source,dp)=>{if(n(source)!=null&&fixed(value,dp)!==fixed(source,dp))pushIssue(warnings,`INVOICE CHECK — ${wholesaleReviewLabel(inv)}: exported ${label} ${fixed(value,dp)} differs from the invoice ${fixed(source,dp)}. Review only; download remains available.`);};
-      check('Unit Price',r.unitPrice,inv.unitPriceExGst,4);
-      if(!wsBackfilled(inv))check('Normal W/S',r.normalWs,inv.normalWholesale,2);
-      check('Disc %',r.disc,inv.discountPct,2);
-      if(r.receivingAdjusted){
+      if(!r.priceEdited){   // v2.18.0: an edited price is yours, not the invoice's
+        check('Unit Price',r.unitPrice,inv.unitPriceExGst,4);
+        if(!wsBackfilled(inv))check('Normal W/S',r.normalWs,inv.normalWholesale,2);
+        check('Disc %',r.disc,inv.discountPct,2);
+      }
+      if(r.receivingAdjusted||r.unitEdited){
         if(fixed(round(r.unitPrice*r.qty,2),2)!==fixed(r.extended,2))pushIssue(warnings,`INVOICE CHECK — ${wholesaleReviewLabel(inv)}: Found ${qtyText(r.qty)} × Unit ${fixed(r.unitPrice,4)} does not equal exported Extended ${fixed(r.extended,2)}.`);
         if(fixed(round(r.extended+r.gst,2),2)!==fixed(r.total,2))pushIssue(warnings,`INVOICE CHECK — ${wholesaleReviewLabel(inv)}: exported Extended + GST does not equal Total.`);
       }else{

@@ -1368,3 +1368,51 @@ All implemented stages keep source business files local to the browser and gener
   IN_SUPPLIER (the script writes Q upper-cased and trimmed). Readers of Q (refineTypes, refineSizes / sizeFrom, upload checks)
   upper-case it themselves.
 - Versions: hub v21.35.4; POS New Product Check Clean v1.23.4; engine-host / engine-worker v1.7.5.
+
+## Staff Hub v21.36.0 (22 Oct 2026 13:35 AEDT) — the Reconcile checklist works like the merge sheets; one RUN row in the merge
+- Reconcile CH2 Order v2.18.0 (app.js, js/export/pos-import.js, css/workspace.css, index.html):
+  - Heading menus: `headerCell` puts each sortable label in `.pos-th-wrap` with a `.pos-filt[data-filter-key]` button (the
+    merge sheets' FILTER_SVG). The label still toggles the sort; the ▲ / ▼ moved to the left gutter (no ↕ when idle).
+    `openColFilter(key)` → `colPicker()` (a port of sheet-grid's picker, `.rs-pop.rs-pick`): A to Z / Z to A (Highest /
+    Lowest for number and Found columns) set `posSortKey / posSortDir / posSortExplicit`; Sort off returns to POS Index.
+    Show = the column's values (`posFilterText`, counted over every POS + INV row) → `state.colFilters` Map(key → Set).
+    `applyTableSearch` ANDs them with the search and the Check chip; `renderColFilterChips()` fills `#posColFilters`.
+    Not on ALL / Add Qty. Reset with the receiving state (`resetReceivingState`) and by "Show line".
+  - Cells: `wireGrid()` (once) — mousedown / Shift / drag select over the text, number, status and bool columns
+    (`state.cellSel` = {a, f} as {src, col}; `paintSel()` repaints after every render); keys on `.table-wrap`
+    (tabindex −1): arrows, Tab, Enter / F2, typing, Delete / Backspace (put back), Ctrl + C (clipboard API, then the
+    hidden-text-box fallback), Ctrl + V (paste event, TSV block or one value into every selected cell), Ctrl + D, Ctrl + Z,
+    Ctrl + A; double-click edits; `.rs-fill` drag fills down (repeating the selected rows).
+  - Changes: `ADJ_EDIT_KEYS` adjwsprce / adjcatprce / adjdprce / or_qty. `state.adjEdits` Map(sourceRow → {ws, unit})
+    — Adj CatPrc and Adj DPrc are one `unit`. `state.adjQtyEdits` Map(identity → what Found was) — Adj Qty sets Found the
+    same way `commitFoundInput` does (completion, `saveUnpackCounts`), and Delete / Clear changes put Found back; an
+    untick / Clear qty drops the flag (renderPosTable). `applyAdjEdits(changes)` is one undo step (`state.adjUndo`, per-row
+    snapshots); price changes re-render at once, Adj Qty refreshes the row and uses `scheduleReceivingRender` (which waits
+    while a cell is being typed in). `posColumnValue(pos, c, detail, orig)` returns the changed value unless `orig`;
+    `posRowTotalIncGst` uses the changed unit; `posCellDp` shows up to 4 dp (3 for Adj Qty) on a changed cell. Changed cells
+    get `.is-edited` (#E37400 on #FEF3E2, bold, as `.wbg-table td.is-edited` in the merge) and say what POSActive gets.
+    `#posEditTools`: "N rows changed · Undo · Clear changes". Nothing is saved across a reload (as Found); beforeunload asks.
+  - Export: `posExportOptions().priceBySourceRow` {src: {ws, unit}}. pos-import `priceOverride(options, pos)`: in
+    `buildInvoicePayload`, after the Normal W/S / Disc % fill, `unitOut` = the changed unit, `normalWs` = the changed WS,
+    `disc` = round((1 − unit / WS) × 100, 2); Extended / GST / Total are recalculated at `unitOut` only when the unit changed
+    (`extAt / gstAt / totalAt` = the invoice-price values, kept on the record as `atInvoice`, with `before`, `priceEdited`,
+    `unitEdited`). `manualReceivingRecord` does the same (its unit before a change is the AdjCatPrc it showed). Merged lines
+    sum `atInvoice`. `priceEffect` {ext, gst, total} on the payload; the "totals do not equal the invoice" check compares the
+    invoice-price totals; PRICE EDITED notes list each line (Normal WS / Unit Price / Disc % before → after, $ effect) and a
+    negative Disc % is a review note. `validateInvoiceAccuracy` skips the price comparisons on a changed line and checks
+    Unit × Qty = Extended when the unit changed. With no changes the TXT is byte-identical.
+  - `posTotals` → `priceEditCount / priceEditEffect`; `renderPosBalance` adds the caution first.
+  - Sticky: workspace.css `.result-controls-sticky{top:calc(var(--db-strip-h,0px) + 6px)}` — the toolbar sits under the
+    sticky #dbRunStrip (it used top: 6px and slid behind it); `updateStickyOffsets` already puts the headings under it.
+- POS New Product Check Clean v1.24.0 (index.html, app.js, merge.css):
+  - `#wbSteps` is now `.db-runstrip.db-runstrip-inline` with the strip's DOM: home, RUN, the three pills, done note
+    (`[data-mirror-text]`), Run all stages, the two TXT downloads, CLEAR RESULTS (`[data-mirror="#clearAllBtn"]`) and both
+    status rows (`[data-mirror-prog]` with the bar, `[data-mirror-idle]`). `syncWbRow()` copies the done note, status text /
+    class, which row shows, the bar width / indet and the mirrored button's disabled state; a MutationObserver on #dbRunStrip
+    calls it (one rAF).
+  - Removed: `#wbRunStatus` (and `.wb-runbar-status` in merge.css; setGlobal no longer writes it), the "Run stage 3"
+    button in `renderOutActions` (the note keeps the stage 3 hints, its default is "FINAL SHELF RRP follows RRP / MARKUP
+    OVERRIDE."), the SRC_ tabs' "Run all stages" in `renderWbActions`, and the input card's `[data-lib-sup-host]` (the
+    sheet's `.sup-scope` keeps it; drawLibSup fills whatever hosts exist).
+- Versions: hub v21.36.0; Reconcile CH2 Order v2.18.0 (app.js / pos-import.js / workspace.css ?v=2.18.0); POS New Product
+  Check Clean v1.24.0 (app.js / merge.css ?v=1.24.0).
