@@ -1,4 +1,7 @@
-/* PHF Staff Hub — Library panel v2.1.0 (21 Oct 2026: Delete all asks first; ✕ on a file several tools use — Ongoing
+/* PHF Staff Hub — Library panel v2.2.0 (23 Oct 2026: when Google Drive is set up (assets/js/phf-drive.js), a Google Drive line —
+ * Save to Google Drive (this panel's files into the "PHF Staff Hub" folder, one copy per file, replaced each time), Get from Google
+ * Drive (newer copies from that folder into this browser's Library, so another PC gets the same files) and Sign out)
+ * v2.1.0 (21 Oct 2026: Delete all asks first; ✕ on a file several tools use — Ongoing
  * Discounts, the POS DB & Supplier Merge workbook — asks first and names the tools that lose it; a delete is a delete in every
  * tool, see phf-library.js v1.2.0)
  * v2.0.0 (17 Oct 2026)
@@ -39,6 +42,7 @@
     this.opts = opts; this.root = root; this.scope = opts.scope || ''; this.summaryOnly = !!opts.summaryOnly;
     this.showAll = false; this.urls = [];
     this.build();
+    this.buildDrive();   // v2.2.0
     var self = this;
     this.onChange = function () { self.render(); };
     L.onChange(this.onChange);
@@ -76,6 +80,43 @@
       // v2.1.0: one click used to delete everything with no question
       if (!window.confirm('Delete every saved file from this browser?\n\nBuild POS Master Databases, POS New Product Check Clean and Reconcile CH2 Order lose every file saved here (POS Database, CH2 / Unique sets, masters, Ongoing Discounts, reference files) and POS New Product Check Clean\'s saved reference tables and session. Open tool pages drop them too.\n\nThe Supplier Contacts list stays — it holds your only copy of edits made there (its own ✕ deletes it).')) return;
       s.clearEl.disabled = true; L.clearAll().then(clearOtherStores).then(function () { s.render(); }); }; }
+  };
+
+  // v2.2.0 — Google Drive line (only when Google Drive is set up). Sign-in is Google's own window, opened from the click.
+  Panel.prototype.buildDrive = function () {
+    var D = window.PHFDrive, self = this; if (!D || !D.configured() || !this.bodyEl || this.driveEl) return;
+    var bar = document.createElement('div'); bar.className = 'phf-lib-drive';
+    bar.innerHTML = '<span class="phf-lib-drive-what"><b>Google Drive</b> <span data-drive-state></span></span>' +
+      '<button type="button" class="phf-lib-btn" data-drive-save title="Save ' + (this.scope ? 'this tool\'s' : 'all the') + ' saved files to the ' + esc(D.FOLDER) + ' folder in your Google Drive — one copy per file, replaced each time">Save to Google Drive</button>' +
+      '<button type="button" class="phf-lib-btn" data-drive-get title="Copy the newer files from the ' + esc(D.FOLDER) + ' folder in Google Drive into this browser">Get from Google Drive</button>' +
+      '<button type="button" class="phf-lib-btn" data-drive-out hidden title="Sign out of Google Drive on this page">Sign out</button>' +
+      '<span class="phf-lib-drive-msg" aria-live="polite"></span>';
+    this.bodyEl.insertBefore(bar, this.bodyEl.firstChild); this.driveEl = bar;
+    var state = bar.querySelector('[data-drive-state]'), out = bar.querySelector('[data-drive-out]'), msg = bar.querySelector('.phf-lib-drive-msg');
+    var say = function (t, bad) { msg.textContent = t; msg.className = 'phf-lib-drive-msg' + (bad ? ' is-error' : ''); };
+    var paint = function () { var on = D.signedIn(); state.textContent = on ? '· signed in' : '· not signed in'; out.hidden = !on; };
+    D.onChange(paint); paint();
+    var busy = function (on) { bar.querySelectorAll('button').forEach(function (b) { b.disabled = on; }); };
+    bar.querySelector('[data-drive-save]').onclick = function () {
+      busy(true); say(D.signedIn() ? 'Saving…' : 'Signing in to Google…');
+      D.signIn().then(function () { return L.list(); }).then(function (recs) {
+        var list = (self.scope && !self.showAll) ? recs.filter(function (r) { return relevant(r, self.scope); }) : recs;
+        if (!list.length) { say('No saved files here to save yet.'); return; }
+        var n = 0;
+        return list.reduce(function (p, r) { return p.then(function () { say('Saving ' + (++n) + ' of ' + list.length + ' to Google Drive…'); return D.saveRecord(r); }); }, Promise.resolve())
+          .then(function () { say('Saved ' + list.length + ' file' + (list.length === 1 ? '' : 's') + ' to Google Drive › ' + D.FOLDER + '.'); });
+      }).catch(function (e) { say(e.message || String(e), true); }).then(function () { busy(false); });
+    };
+    bar.querySelector('[data-drive-get]').onclick = function () {
+      busy(true); say(D.signedIn() ? 'Checking Google Drive…' : 'Signing in to Google…');
+      D.signIn().then(function () { return D.getLatest(L); }).then(function (r) {
+        if (!r.total) say('Nothing saved in Google Drive yet — use Save to Google Drive on the PC that has the files.');
+        else if (!r.got.length) say('Up to date — this browser already has the newest ' + r.total + ' file' + (r.total === 1 ? '' : 's') + '.');
+        else say('Got ' + r.got.length + ' newer file' + (r.got.length === 1 ? '' : 's') + ' from Google Drive (' + r.got.map(function (f) { return (L.info(f.kind) || {}).label || f.name; }).join(', ') + ')' + (r.same ? ' · ' + r.same + ' already up to date' : '') + '. Reload a tool that is open to use them.');
+        self.render();
+      }).catch(function (e) { say(e.message || String(e), true); }).then(function () { busy(false); });
+    };
+    out.onclick = function () { D.signOut(); say('Signed out of Google Drive on this page.'); };
   };
 
   Panel.prototype.usageLine = function () {

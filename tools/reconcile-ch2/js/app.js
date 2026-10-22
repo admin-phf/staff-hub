@@ -1,3 +1,8 @@
+// v2.22.0 (23 Oct 2026, Staff Hub v21.40.0): a line to fix in POSActive stays in its place in the list, tinted orange, with an orange
+// warning row straight above it (what is wrong and what to change; the cell to fix stays red) — no copies at the top. Ticking a
+// not-invoiced line receives the ordered quantity (Found, a manual line in the TXT and the totals); ALL leaves those lines for a
+// deliberate decision, like billed-not-on-order lines. Totals, Found total, progress, row total, Check and the chips update the
+// moment you tick, count or change something. Matching and exports unchanged.
 // v2.21.0 (22 Oct 2026, Staff Hub v21.39.0): lines to fix in POSActive stay in the main list (Remaining → Completed) for
 // balancing; the "Fix in POSActive" flag at the top of the checklist is a copy of each such line in the same columns (red cell to
 // fix; click → the line). The sticky footer carries the totals: Current · Adjusted (the TXT, vs the invoice) · Not invoiced ·
@@ -689,7 +694,11 @@
   // order (INV rows) stay unticked and excluded from the POSActive TXT until deliberately ticked.
   // The one exception is an INV line for a product whose row IS on the order (already matched to
   // another invoice line) — that product is on the order, so Tick all includes it.
-  function tickAllCovers(pos){return !(pos&&pos.invoiceOnly)||!!(pos.orderDiagnosis&&pos.orderDiagnosis.orderRow);}
+  // v2.22.0: nor a not-invoiced POS line — a tick there means it arrived, so it is a deliberate tick (or Add Qty 0), like INV.
+  function tickAllCovers(pos){
+    if(pos&&pos.invoiceOnly)return !!(pos.orderDiagnosis&&pos.orderDiagnosis.orderRow);
+    const k=posSrcKey(pos),look=state.posRowLookup&&state.posRowLookup.get(k);return !isNotInvoiced(pos,look?look.detail:posDetailMap().get(k));
+  }
   function invoiceOnlyEntries(){
     if(!state.result||!state.posParsed||!PHF.posImport||typeof PHF.posImport.invoiceOnlyEntries!=='function')return [];
     if(invoiceOnlyCache.result!==state.result)invoiceOnlyCache={result:state.result,entries:PHF.posImport.invoiceOnlyEntries(state.result,state.refs,state.posParsed)};
@@ -785,9 +794,10 @@
     saveUnpackCounts();return next;
   }
   function unpackExpectedQty(pos,detail){
-    // The physical receiving target is what CH2 says it supplied. A cancelled/not-
-    // invoiced POS line therefore expects zero, while a short supply expects the
-    // supplier quantity rather than the original ordered quantity.
+    // The physical receiving target is what CH2 says it supplied, while a short supply expects the supplier quantity rather
+    // than the original ordered quantity. v2.22.0: a POS-order line CH2 did not invoice expects what was ordered — ticking it
+    // means it arrived (it goes into the TXT as a manual line); Add Qty 0 marks it not supplied.
+    if(isNotInvoiced(pos,detail)){const o=numberValue(detail&&detail.orderedQty)??numberValue(rawValue(pos,'qty'))??numberValue(pos&&pos.orderedQty);return Math.max(0,o||0);}
     const supplied=detail?numberValue(detail.suppliedQty):null;
     if(supplied!=null)return Math.max(0,supplied);
     return 0;
@@ -924,6 +934,7 @@
     if(out&&total!=null)updateUnpackTotalElement(out,key,total,expected);
     updateRowSelectionVisual(tr,complete);if(total!=null)updateManualReceivedVisual(tr,total);
     {const look=tr&&state.posRowLookup.get(tr.dataset.posSrc||'');if(look)refreshCheckCell(tr,look.pos,look.detail);}   // v2.20.0
+    refreshLiveTotals();   // v2.22.0
     // Under/over counts remain in Remaining. Exact counts (or explicit zero) move only
     // after the short delay, giving staff time to correct a mistaken entry first.
     scheduleReceivingRender();
@@ -943,6 +954,7 @@
     saveUnpackChecklist();updateUnpackTotalElement(input,key,total,expected);
     updateRowSelectionVisual(input.closest('tr'),complete);updateManualReceivedVisual(input.closest('tr'),total);
     {const tr=input.closest('tr'),look=tr&&state.posRowLookup.get(tr.dataset.posSrc||'');if(look)refreshCheckCell(tr,look.pos,look.detail);}   // v2.20.0
+    refreshLiveTotals();   // v2.22.0
     scheduleReceivingRender();
     return true;
   }
@@ -1104,6 +1116,8 @@
     const w=k=>Math.round(widths[POS_VIEW_COLUMNS.findIndex(c=>c.key===k)]||0),rTot=w('__row_total_inc_gst'),rAdj=rTot+w('or_qty'),rCur=rAdj+w('adjdprce')+w('adjcatprce');   // v2.17.0: Current spans Adj CatPrc + Adj DPrc
     els.table.classList.toggle('pos-overflow',total>available+1);
     els.table.style.setProperty('--pos-right-total','0px');els.table.style.setProperty('--pos-right-current',`${rAdj}px`);els.table.style.setProperty('--pos-right-label',`${rCur}px`);
+    // v2.22.0 — a warning row's text stays inside the visible table (left of the pinned Total column on a narrow window)
+    els.table.style.setProperty('--pos-note-w',`${Math.max(320,Math.round(available-w('__unpack')-w('__pos_order_index')-w('__invoice_line')-(total>available+1?rTot:0)-28))}px`);
   }
   function schedulePosColumnSizing(){
     clearTimeout(posResizeTimer);posResizeTimer=setTimeout(()=>requestAnimationFrame(measurePosColumns),35);
@@ -1261,7 +1275,7 @@
           const found=unpackCountFor(pos),expectedQty=unpackExpectedQty(pos,detail),status=unpackCountStatus(checkKey,found,expectedQty);
           html=`<input class="unpack-qty-total found-${status.kind}" type="number" step="any" min="0" inputmode="decimal" autocomplete="off" data-unpack-total-key="${escapeHtml(encodeURIComponent(checkKey))}" data-unpack-expected="${escapeHtml(expectedQty)}" value="${escapeHtml(displayUnpackCount(found))}" title="${escapeHtml(`Expected: ${displayUnpackCount(expectedQty)} · Found: ${displayUnpackCount(found)} · ${status.label}. Edit this total directly to override the running count.`)}" aria-label="${escapeHtml(`Found ${displayUnpackCount(found)}. ${status.label}. Editable total.`)}">`;
         }else if(c.kind==='status'){const ck=lineCheck(pos,detail);html=`<span class="pos-check-chip ck-${ck.kind}">${escapeHtml(ck.label)}</span>`;title=ck.title;extraCls=' pos-check-cell';   // v2.17.0
-          if(ni){const exp=numberValue(discountedPosPrice(pos,detail)),d=expectedDiscountForPos(pos,detail),ws=normalWholesaleForPos(pos,detail);title=`Not invoiced — ordered ${displayUnpackCount(numberValue(detail&&detail.orderedQty)??numberValue(rawValue(pos,'qty'))??0)}, CH2 billed none.${exp!=null?` Expected $${exp.toFixed(2)} each${ws!=null?` (CH2 W/S $${Number(ws).toFixed(2)}${d!=null?` less ${d.toFixed(2)}%`:''})`:''}.`:''} If it arrived, count it in Found and it goes into the TXT at that price.`;}   // v2.19.0
+          if(ni){const exp=numberValue(discountedPosPrice(pos,detail)),d=expectedDiscountForPos(pos,detail),ws=normalWholesaleForPos(pos,detail),got=state.unpackCounts.has(checkKey)?unpackCountFor(pos):null;title=`Not invoiced — ordered ${displayUnpackCount(numberValue(detail&&detail.orderedQty)??numberValue(rawValue(pos,'qty'))??0)}, CH2 billed none.${exp!=null?` Expected $${exp.toFixed(2)} each${ws!=null?` (CH2 W/S $${Number(ws).toFixed(2)}${d!=null?` less ${d.toFixed(2)}%`:''})`:''}.`:''} ${got!=null&&got>0?`Received ${displayUnpackCount(got)} — in the TXT as a manual line at that price.`:got===0?'Marked not supplied.':'Tick it if it arrived (the ordered quantity goes into the TXT) or count it; enter 0 if it did not.'}`;}   // v2.19.0 / v2.22.0
         }else if(c.kind==='bool'){const checked=boolValue(v);html=`<span class="pos-checkbox ${c.flag||''} ${checked?'checked':''}" aria-label="${checked?'Checked':'Not checked'}">${checked?'✓':''}</span>`;}
         else if(c.kind==='number'){
           html=escapeHtml(fixed(v,posCellDp(pos,c,v)));const target=comparisonTarget(pos,detail,c.key),move=c.key==='__invoice_discount'?discountMove(v,target):priceMove(v,target);
@@ -1311,17 +1325,16 @@
       const rowTitle=manualReceived?' title="Manually received — not on the CH2 invoice. Added to the POSActive TXT and totals using POS master CH2_WHOLESALE_EX_GST / POS pricing and the matched discount rule."':pos&&pos.invoiceOnly?` title="${escapeHtml(`Invoice only — billed by CH2 but not on the POS order. ${pos.orderDiagnosis?pos.orderDiagnosis.detail:''} Ticked rows (or Found) are included in the POSActive TXT and totals; POSActive can only apply them if the product is on the open order.`)}"`:'';
       const ckRow=lineCheck(pos,detail),fx=state.fixMap&&state.fixMap.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''));
       if(ref)return `<tr class="${rowClasses} pos-fix-ref" data-ref-src="${escapeHtml(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))}" title="Also in the list below — click to go to that line">${cells}</tr>`;
-      return `<tr${rowClasses?` class="${rowClasses}"`:''} data-check="${ckRow.kind}" data-pos-src="${escapeHtml(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))}"${notSupplied?' data-not-supplied="1"':''}${ni?' data-ni="1"':''}${fx?' data-fix="1"':''}${manualReceived?' data-manual-received="1"':''}${completeIndex!=null?` data-complete-index="${completeIndex}"`:''}${rowTitle}>${cells}</tr>`;
+      // v2.22.0 — the orange warning row straight above a line to fix (not in the Completed dock, which only holds rows)
+      const fixNote=fx&&completeIndex==null?`<tr class="pos-fix-note" data-note-for="${escapeHtml(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))}"><td colspan="3" class="pos-fix-note-pad"></td><td colspan="${POS_VIEW_COLUMNS.length-3}" class="pos-fix-note-cell"><div class="pos-fix-note-in">${fx.map(f=>`<span class="pos-fix-tag">${escapeHtml(f.chip)}</span><span class="pos-fix-text">${escapeHtml(f.note)}</span>`).join('')}</div></td></tr>`:'';
+      return `${fixNote}<tr${rowClasses?` class="${rowClasses}${fx?' pos-fix-row':''}"`:fx?' class="pos-fix-row"':''} data-check="${ckRow.kind}" data-pos-src="${escapeHtml(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))}"${notSupplied?' data-not-supplied="1"':''}${ni?' data-ni="1"':''}${fx?' data-fix="1"':''}${manualReceived?' data-manual-received="1"':''}${completeIndex!=null?` data-complete-index="${completeIndex}"`:''}${rowTitle}>${cells}</tr>`;
     };
     const sectionHtml=[];let zebraIndex=0;
-    // v2.21.0 — the Fix in POSActive flag: a copy of each line to fix, in the same columns (the cell to fix is red, its hover says what
-    // to change). The lines themselves stay in the list below, so the checklist still balances; click a copy to go to its line.
-    {const list=state.fixMap&&state.fixMap.size?baseRows.filter(pos=>state.fixMap.has(posSrcKey(pos))):[];
-     if(list.length){const n=list.length;sectionHtml.push(`<tr class="pos-section-row pos-section-notonorder pos-section-fix"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Fix in POSActive</strong><span>${n} item${n===1?'':'s'} · also in the list below · find ${n===1?'it':'each'} in POSActive by barcode, PLU or brand and correct the red cell — hover it for what to change</span></td></tr>`);for(const pos of list)sectionHtml.push(renderPosRow(pos,zebraIndex++,false,null,true));}}
+    // v2.22.0 — no copies at the top: a line to fix carries an orange warning row straight above it (renderPosRow).
     if(sections.notOnOrder&&sections.notOnOrder.length){const n=sections.notOnOrder.length,ticked=sections.notOnOrder.filter(pos=>state.unpackChecked.has(unpackIdentity(pos))).length,orderNo=cleanText(state.posParsed&&state.posParsed.orderNumber);sectionHtml.push(`<tr class="pos-section-row pos-section-notonorder"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Invoiced · not on POS order</strong><span>${n} item${n===1?'':'s'} · billed by CH2 but not on POS order${orderNo?` ${escapeHtml(orderNo)}`:''} · ${ticked?`${ticked} ticked — included in the POSActive TXT${ticked<n?` · ${n-ticked} excluded unless ticked`:''}`:'excluded from the POSActive TXT unless ticked'} · reason on hover and in Details · Not on POS order</span></td></tr>`);for(const pos of sections.notOnOrder)sectionHtml.push(renderPosRow(pos,zebraIndex++));}
     // v2.19.0 — POS-order lines CH2 did not invoice: their own section, laid out like every other row, ticked or not.
     if(sections.notInvoiced&&sections.notInvoiced.length){const list=sections.notInvoiced,n=list.length,orderNo=cleanText(state.posParsed&&state.posParsed.orderNumber),value=list.reduce((a,pos)=>a+(notInvoicedValue(pos)||0),0),counted=list.filter(pos=>state.unpackCounts.has(unpackIdentity(pos))&&unpackCountFor(pos)>0).length;
-      sectionHtml.push(`<tr class="pos-section-row pos-section-notonorder pos-section-notinv"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Not invoiced · on POS order${orderNo?` ${escapeHtml(orderNo)}`:''}, not billed by CH2</strong><span>${n} item${n===1?'':'s'} · ${escapeHtml(money(value))} at the ordered value · if it arrived, count it in Found and it goes into the TXT; if not, set it to 0 or untick it in POSActive${counted?` · ${counted} counted — in the TXT`:''}</span></td></tr>`);
+      sectionHtml.push(`<tr class="pos-section-row pos-section-notonorder pos-section-notinv"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Not invoiced · on POS order${orderNo?` ${escapeHtml(orderNo)}`:''}, not billed by CH2</strong><span>${n} item${n===1?'':'s'} · ${escapeHtml(money(value))} at the ordered value · tick it if it arrived (the ordered quantity goes into the TXT) or count it; if not, enter 0 in Add Qty · ALL leaves these for you${counted?` · ${counted} received — in the TXT`:''}</span></td></tr>`);
       for(const pos of list)sectionHtml.push(renderPosRow(pos,zebraIndex++));}
     if(sections.remaining.length){sectionHtml.push(`<tr class="pos-section-row pos-section-remaining"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Remaining / to check</strong><span>${sections.remaining.length} item${sections.remaining.length===1?'':'s'}</span></td></tr>`);for(const pos of sections.remaining)sectionHtml.push(renderPosRow(pos,zebraIndex++));}
     if(sections.complete.length){sectionHtml.push(`<tr class="pos-section-row pos-section-complete pos-dock-member" data-jump-completed="1" title="Click to jump between Completed / accounted rows and the top of Remaining"><td colspan="${POS_VIEW_COLUMNS.length}"><strong>Completed / accounted</strong><span>${sections.complete.length} item${sections.complete.length===1?'':'s'}${state.posSortExplicit?'':' · most recently checked first'} · scroll over the docked rows to browse · click this bar to jump ↕<em class="dock-window"></em></span></td></tr>`);sectionHtml.push(`<tr class="pos-section-head pos-dock-member" aria-label="Completed section column headings">${POS_VIEW_COLUMNS.map(c=>headerCell(c,false)).join('')}</tr>`);
@@ -1346,6 +1359,8 @@
       const checked=!state.unpackChecked.has(key),tr=btn.closest('tr');
       setUnpackComplete(pos,detail,checked);updateRowSelectionVisual(tr,checked);
       if(!checked){const found=tr&&tr.querySelector('.unpack-qty-total');if(found)updateUnpackTotalElement(found,key,0,unpackExpectedQty(pos,detail));updateManualReceivedVisual(tr,0);}
+      else{const found=tr&&tr.querySelector('.unpack-qty-total');if(found)updateUnpackTotalElement(found,key,unpackCountFor(pos),unpackExpectedQty(pos,detail));updateManualReceivedVisual(tr,unpackCountFor(pos));}   // v2.22.0: Found shows what the tick received
+      refreshCheckCell(tr,pos,detail);refreshLiveTotals();   // v2.22.0
       scheduleReceivingRender();
     };
     els.tableHead.onclick=e=>{
@@ -1369,6 +1384,7 @@
         saveUnpackCounts();saveUnpackChecklist();
         for(const tr of els.tableBody.querySelectorAll('tr')){const b=tr.querySelector('.unpack-check[data-unpack-key]');if(!b)continue;const k=decodeUnpackKey(b.dataset.unpackKey||'');updateRowSelectionVisual(tr,state.unpackChecked.has(k));}
         if(els.tickAllBtn)els.tickAllBtn.textContent=selectAll?'Untick all':'Tick all';
+        refreshLiveTotals();   // v2.22.0
         toggle.classList.toggle('checked',selectAll);toggle.classList.remove('partial');toggle.setAttribute('aria-pressed',selectAll?'true':'false');const mark=toggle.querySelector('span');if(mark)mark.textContent=selectAll?'✓':'';
         scheduleReceivingRender();
         return;
@@ -1571,7 +1587,7 @@
     if(qtyRows.size){saveUnpackCounts();saveUnpackChecklist();}
     if(say){const restored=changes.every(ch=>ch.value==null);setStatus(restored?`${n} cell${n===1?'':'s'} put back to the original value.`:`${n} cell${n===1?'':'s'} changed — the POSActive TXT and the totals use the new values. Ctrl + Z undoes.`,'info');}
     if(priceChanged)renderPosTable();
-    else{for(const src of qtyRows)refreshQtyRow(src);paintSel();scheduleReceivingRender();}   // Adj Qty = Found: rows move after the usual short delay
+    else{for(const src of qtyRows)refreshQtyRow(src);paintSel();refreshLiveTotals();scheduleReceivingRender();}   // Adj Qty = Found: rows move after the usual short delay · v2.22.0 totals at once
     return n;
   }
   function refreshQtyRow(src){
@@ -1588,6 +1604,18 @@
   function refreshCheckCell(tr,pos,detail){
     if(!tr||!pos)return;const ci=POS_VIEW_COLUMNS.findIndex(c=>c.kind==='status'),td=tr.children[ci];if(!td)return;const ck=lineCheck(pos,detail);
     td.innerHTML=`<span class="pos-check-chip ck-${ck.kind}">${escapeHtml(ck.label)}</span>`;td.title=ck.title;tr.dataset.check=ck.kind;
+    const ti=POS_VIEW_COLUMNS.findIndex(c=>c.key==='__row_total_inc_gst'),tt=tr.children[ti];if(tt)tt.textContent=fixed(posRowTotalIncGst(pos,detail),2);   // v2.22.0: the row total too
+  }
+  // v2.22.0 — the footer totals, Found total, progress, POSActive balance and the summary chips, straight after a tick / count /
+  // change (the rows still move after the usual short pause).
+  function refreshLiveTotals(){
+    if(state.previewView!=='pos'||!els.tableFoot||!state.result)return;
+    const rows=sortedPosRows(),d=posDetailMap(),totals=posTotals(rows,d);
+    const block=els.tableFoot.querySelector('td.pos-total-block');if(block)block.outerHTML=posTotalsBlock(totals,block.colSpan);
+    const fv=els.tableFoot.querySelector('.pos-found-total-value');if(fv)fv.textContent=displayUnpackCount(rows.reduce((a,p)=>a+(state.unpackCounts.has(unpackIdentity(p))?unpackCountFor(p):0),0));
+    const prog=updateChecklistUi(rows,d),pe=els.tableFoot.querySelector('[data-check-progress]');if(pe)pe.textContent=`accounted ${prog.checked}/${prog.total} · unchecked ${prog.remaining}`;
+    renderPosBalance(totals);
+    if(state.lastSummaryArgs&&state.lastSummaryArgs[0]===state.result)renderSummary(...state.lastSummaryArgs);
   }
   function undoAdjEdit(){
     const batch=state.adjUndo.pop();if(!batch){setStatus('Nothing to undo.','info');return;}
@@ -1732,6 +1760,7 @@
     els.table.classList.toggle('is-searching',on||!!fk||cf.length>0);
     let shown=0,total=0;
     for(const tr of els.tableBody.querySelectorAll('tr')){
+      if(tr.classList.contains('pos-fix-note'))continue;   // v2.22.0: set after the loop, from its line
       if(tr.classList.contains('pos-fix-ref')||tr.classList.contains('pos-section-fix')){tr.classList.toggle('search-miss',on||!!fk||cf.length>0);continue;}   // v2.21.0: the Fix copies hide while searching / filtering
       const dataRow=!tr.classList.contains('pos-section-row')&&!tr.classList.contains('pos-total-row')&&!tr.querySelector('td[colspan]');
       if(!dataRow){tr.classList.remove('search-miss');continue;}
@@ -1740,6 +1769,7 @@
       tr.classList.toggle('search-miss',!hit);if(hit)shown++;
     }
     if(count)count.textContent=on||fk||cf.length?`${shown} of ${total}`:'';
+    for(const n of els.tableBody.querySelectorAll('tr.pos-fix-note')){const row=n.nextElementSibling;n.classList.toggle('search-miss',!!(row&&row.classList.contains('search-miss')));}   // v2.22.0
     renderColFilterChips();if(state.previewView==='pos')paintSel();
   }
   {const box=document.querySelector('#tableSearch');if(box){let t=0;box.addEventListener('input',()=>{clearTimeout(t);t=setTimeout(applyTableSearch,80);});box.addEventListener('keydown',e=>{if(e.key==='Escape'){box.value='';applyTableSearch();}});}}

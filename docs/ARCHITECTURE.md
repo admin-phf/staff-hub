@@ -1480,3 +1480,38 @@ All implemented stages keep source business files local to the browser and gener
   - Summary card: the TXT figure is removed (the footer's Adjusted). Details: `#rsMoney` is no longer filled (hidden).
   - CSS: `.unpack-qty-total.found-over` and `td.qty-over` a deeper green (#B7E1C1, 2 px #1E8E3E, #0D652D).
 - Versions: hub v21.39.0; Reconcile CH2 Order v2.21.0 (app.js / workspace.css ?v=2.21.0).
+
+## Staff Hub v21.40.0 (23 Oct 2026 10:30 AEDT) — Fix lines in place with a warning row, ticking a not-invoiced line receives it, live totals, Google Drive (optional)
+- Reconcile CH2 Order v2.22.0 (app.js, css/workspace.css, index.html). Display and receiving only — matching unchanged; exports
+  unchanged with no edits (a ticked not-invoiced line is in the TXT as before, now with the ordered quantity filled in).
+  - Fix lines: the v2.21 copies (`tr.pos-fix-ref`) and their bar are gone. `renderPosRow` puts `tr.pos-fix-note[data-note-for=src]`
+    (3 blank cells + one cell spanning the rest: an orange `.pos-fix-tag` chip and the note per `state.fixMap` entry) straight before
+    a line with fixes that is not completed; the line itself gets `.pos-fix-row` (orange tint, orange left bar) and keeps its red
+    `.pos-fix-cell`. `.pos-fix-note-in` is capped at `--pos-note-w` (set in `measurePosColumns`: visible width less the pinned
+    Total column when the table scrolls) so the text stays in view. `applyTableSearch` skips note rows and hides each with its line.
+    The "Fix in POSActive" summary chip is orange (`.rs-chip.ck-fix`).
+  - Not invoiced: `unpackExpectedQty` = the ordered quantity (`detail.orderedQty` → `qty` → `pos.orderedQty`), so the left tick
+    seeds Found with it (the tick handler also writes the Found input) and the TXT gets the manual receiving line at once.
+    `tickAllCovers(pos)` is false for not-invoiced lines: ALL leaves them (like INV lines), and Add Qty 0 marks one not supplied.
+    Section bar and Check hover say so ("Received N — in the TXT…", "Marked not supplied.").
+  - Live totals: `refreshLiveTotals()` re-draws the footer `td.pos-total-block` (`posTotalsBlock(posTotals())`), the Found total,
+    `[data-check-progress]`, `renderPosBalance` and `renderSummary`. Called from `commitQtyInput`, `commitFoundInput`, the tick
+    handler, the ALL toggle and the Adj Qty path of `applyAdjEdits`, so nothing waits for the re-render. `refreshCheckCell` also
+    updates the row's Total inc GST.
+- Google Drive (optional; hidden until `assets/js/phf-drive-config.js` has clientId, apiKey and appId — docs/GOOGLE-DRIVE-SETUP.md).
+  - `assets/js/phf-drive.js` v1.0.0 → `window.PHFDrive`. Google Identity Services token model (`initTokenClient`, scope
+    `drive.file` only; token in memory, ~1 h; `signOut` revokes); the GIS and Picker scripts load only when configured, and the
+    token client is prepared on load so `requestAccessToken` runs inside the click. `pick` = Google Picker (`setAppId` = project
+    number, `setOAuthToken`, `setDeveloperKey`, DocsView in LIST mode, multiselect). `download` = Drive v3 `?alt=media`
+    (a Google Sheet → export as .xlsx) → File. `saveRecord(rec)` = multipart upload into the app folder "PHF Staff Hub"
+    (`appProperties.phfFolder='1'`), one file per Library kind (`appProperties phfKind / phfSource / phfSavedAt`; PATCH when it
+    exists). `getLatest(Library)` copies Drive files newer than the Library's `savedAt` with `Library.put(kind, blob, {meta:
+    'from Google Drive'})`.
+  - `wireDropButtons()` adds `.phf-drive-row` (From Google Drive + `.phf-drive-note`) after `#bulkDrop` and feeds the picked files
+    to `#bulkInput` (DataTransfer + change), so each tool's own drop handler recognises and checks them.
+  - `assets/js/hub-library.js` v2.2.0: `Panel.buildDrive()` puts `.phf-lib-drive` (state · Save to Google Drive (the panel's
+    scoped records, one by one) · Get from Google Drive · Sign out · message) at the top of the panel body, only when configured.
+    `assets/css/library.css` v2.1.0 styles both.
+  - Loaded after `phf-library.js` on the hub and the three tools (`phf-drive-config.js`, `phf-drive.js`, ?v=1.0.0).
+- Versions: hub v21.40.0; Reconcile CH2 Order v2.22.0; Build POS Master Databases v21.23.0 and POS New Product Check Clean v1.25.0
+  (version and script tags only); hub-library.js ?v=2.2.0; library.css ?v=2.1.0.

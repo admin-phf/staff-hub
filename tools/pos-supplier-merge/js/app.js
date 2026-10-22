@@ -1,4 +1,7 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.24.0 (22 Oct 2026, Staff Hub v21.36.0): the RUN row above the sheet tabs is
+/* PHF Staff Hub — POS New Product Check Clean v1.25.0 (23 Oct 2026, Staff Hub v21.40.0): version only — the page loads the shared
+ * Google Drive helper (From Google Drive under Drop all input files here; Save to / Get from Google Drive in Saved files, once
+ * Google Drive is set up). No merge change.
+ * v1.24.0 (22 Oct 2026, Staff Hub v21.36.0): the RUN row above the sheet tabs is
  * the top strip shown again — home, the three pills, the done note, Run all stages, the two TXT downloads, CLEAR RESULTS and
  * the status line with its progress bar (syncWbRow follows the strip). Duplicates removed: "Run stage 3" above
  * OUT_MERGED_DATA, "Run all stages" above the SRC_ tabs (the RUN row does both), the old hidden status line #wbRunStatus,
@@ -246,7 +249,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.24.0';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.25.0';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a

@@ -1,4 +1,5 @@
-/* Reconcile CH2 v2.21.0 — a stronger green for over counts, the Fix in POSActive copies, the footer's four totals (end of file).
+/* Reconcile CH2 v2.22.0 — a line to fix: orange tint and the orange warning row above it (end of file).
+   Reconcile CH2 v2.21.0 — a stronger green for over counts, the Fix in POSActive copies, the footer's four totals (end of file).
    Reconcile CH2 v2.20.0 — changed cells in the table's colours with an orange corner, the orange POS Index pill of a changed
    line, the Fix in POSActive section and its red cells, the Fix chip (end of file).
    Reconcile CH2 v2.19.0 — the result in a few lines: summary card, Action needed, Details (end of file).
@@ -324,7 +325,7 @@ body.phf-page-reconcile .results .preview-pos .pos-edited-pill{display:inline-bl
 body.phf-page-reconcile .results .preview-pos tbody tr.pos-section-fix>td strong{color:#FFB4A9!important}
 body.phf-page-reconcile .results .preview-pos tbody td.pos-fix-cell{background:#FCE8E6!important;color:#A50E0E!important;font-weight:800;box-shadow:inset 0 0 0 1px #F28B82}
 body.phf-page-reconcile .results .preview-pos tbody td.pos-fix-cell *{color:#A50E0E!important}
-body.phf-page-reconcile .rs-chip.ck-fix{background:#C5221F;color:#fff;border-color:#C5221F}
+body.phf-page-reconcile .rs-chip.ck-fix{background:#E37400;color:#fff;border-color:#E37400}   /* v2.22.0: orange, as the warning rows */
 /* the toolbar's "N rows changed" filters those lines */
 body.phf-page-reconcile .rs-edit-tools .rs-edit-count{background:transparent;border:0;padding:4px 2px;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
 body.phf-page-reconcile .rs-edit-tools .rs-edit-count.is-on{background:#FEF3E2;border-radius:6px;padding:4px 8px;text-decoration:none;box-shadow:inset 0 0 0 1px #E37400}
@@ -354,3 +355,14 @@ body.phf-page-reconcile .results .preview-pos .pos-tot.adj{background:#ef1982}
 body.phf-page-reconcile .results .preview-pos .pos-tot.ni{background:#5F6368}
 body.phf-page-reconcile .results .preview-pos .pos-tot.comb{background:#1E3A5F;color:#E6CD74}
 body.phf-page-reconcile .results table.pos-preview-table.pos-overflow tfoot td.pos-total-block{position:sticky;right:0;z-index:7;box-shadow:-2px 0 4px rgba(15,35,60,.12)}
+
+/* v2.22.0 — a line to fix in POSActive stays in its place: the row is tinted orange with an orange edge, and an orange warning row
+   straight above it says what is wrong and what to change (the cell to fix stays red). */
+body.phf-page-reconcile .results .preview-pos tbody tr.pos-fix-row{background:#FFF4E2!important}
+body.phf-page-reconcile .results .preview-pos tbody tr.pos-fix-row>td:first-child,
+body.phf-page-reconcile .results .preview-pos tbody tr.pos-fix-note>td:first-child{box-shadow:inset 4px 0 0 #E37400!important}
+body.phf-page-reconcile .results .preview-pos tbody tr.pos-fix-note>td{background:#FFE9C7!important;height:auto!important;padding:4px 8px!important;white-space:normal!important;overflow:visible!important;text-overflow:clip!important;border-top:1px solid #F0C27A!important}
+body.phf-page-reconcile .results .preview-pos tbody tr.pos-fix-note td.pos-fix-note-cell{text-align:left!important;color:#6B4400;font-size:11.5px;font-weight:600;line-height:1.35}
+body.phf-page-reconcile .results .preview-pos .pos-fix-tag{display:inline-flex;align-items:center;height:18px;padding:0 8px;margin-right:8px;border-radius:999px;background:#E37400;color:#fff;font-size:10px;font-weight:800;letter-spacing:.04em;vertical-align:1px;white-space:nowrap}
+body.phf-page-reconcile .results .preview-pos .pos-fix-text+.pos-fix-tag{margin-left:14px}
+body.phf-page-reconcile .results .preview-pos .pos-fix-note-in{max-width:var(--pos-note-w,100%)}

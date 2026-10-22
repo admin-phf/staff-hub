@@ -1,3 +1,4 @@
+/* v2.1.0 (23 Oct 2026): the Google Drive line in the Library panel and the From Google Drive button (end of file). */
 /* PHF Staff Hub — Library panel on the home page v1.1.0 (14 Oct 2026). Navy / gold band from theme.css. v1.1.0: compact table rows; the explanation sits behind "What is this?". */
 .phf-lib{margin-top:16px}
 .phf-lib-body{padding:10px 14px 12px}
@@ -44,3 +45,19 @@
 .phf-lib-viewall>.phf-lib-list{margin-top:8px}
 .phf-lib-row.off-scope{opacity:.62}
 .phf-lib-row.off-scope .phf-lib-what strong::after{content:" · other tool";font-weight:400;font-size:10px;color:var(--phf-muted,#5B6672)}
+
+/* v2.1.0 (23 Oct 2026) — Google Drive (assets/js/phf-drive.js): the Library panel's Google Drive line and the "From Google Drive"
+   button under each tool's "Drop all input files here". Both only appear once Google Drive is set up. */
+.phf-lib-drive{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 10px;padding:7px 10px;border:1px solid var(--phf-line,#DDE3EA);border-radius:8px;background:#F6F9FC;font-size:12px;color:var(--phf-navy,#1E3A5F)}
+.phf-lib-drive-what b{font-weight:800}
+.phf-lib-drive-what span{color:var(--phf-muted,#5F6B76);font-weight:600}
+.phf-lib-drive-msg{flex:1 1 220px;min-width:0;color:var(--phf-muted,#5F6B76);font-weight:600}
+.phf-lib-drive-msg.is-error{color:var(--phf-red,#C5221F)}
+.phf-lib-drive .phf-lib-btn:disabled{opacity:.55;cursor:default}
+.phf-drive-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:8px 0 0}
+.phf-drive-btn{display:inline-flex;align-items:center;gap:7px;min-height:32px;padding:4px 12px;border-radius:8px;border:1px solid var(--phf-navy,#1E3A5F);background:#fff;color:var(--phf-navy,#1E3A5F);font:700 12px/1 var(--phf-font,inherit);cursor:pointer}
+.phf-drive-btn svg{width:16px;height:16px}
+.phf-drive-btn:hover:not(:disabled){background:#EEF3F9}
+.phf-drive-btn:disabled{opacity:.55;cursor:default}
+.phf-drive-note{flex:1 1 160px;min-width:0;font-size:11.5px;font-weight:600;color:var(--phf-muted,#5F6B76);overflow-wrap:anywhere}
+.phf-drive-note.is-error{color:var(--phf-red,#C5221F)}
