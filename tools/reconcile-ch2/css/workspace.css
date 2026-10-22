@@ -1,4 +1,6 @@
-/* Reconcile CH2 v2.19.0 — the result in a few lines: summary card, Action needed, Details (end of file).
+/* Reconcile CH2 v2.20.0 — changed cells in the table's colours with an orange corner, the orange POS Index pill of a changed
+   line, the Fix in POSActive section and its red cells, the Fix chip (end of file).
+   Reconcile CH2 v2.19.0 — the result in a few lines: summary card, Action needed, Details (end of file).
    Reconcile CH2 v2.18.0 — the checklist's sort and filter menus, filter chips, cell selection, changed (orange) cells and the
    corner fill square, as in the merge sheets; the toolbar sticks under the RUN strip (end of file).
    Reconcile CH2 v2.17.0 — input rail + workspace layout; v2.17.0 adds the result at a glance, Needs a look, the checks line,
@@ -267,9 +269,9 @@ body.phf-page-reconcile #resultTable.pos-preview-table tbody tr[data-pos-src]>td
 body.phf-page-reconcile .results .preview-pos tbody td.pos-edit-cell{position:relative}
 body.phf-page-reconcile .results .preview-pos tbody td.cs-sel{background-color:#D3E3FD!important;background-image:none!important}
 body.phf-page-reconcile .results .preview-pos tbody td.cs-anchor{box-shadow:inset 0 0 0 2px #1A73E8!important;background-color:#E8F0FE!important}
-body.phf-page-reconcile .results .preview-pos tbody td.is-edited{background-color:#FEF3E2!important;color:#E37400!important;font-weight:700;text-decoration:none!important;opacity:1!important}
-body.phf-page-reconcile .results .preview-pos tbody td.is-edited *{color:#E37400!important;text-decoration:none!important;opacity:1!important}
-body.phf-page-reconcile .results .preview-pos tbody td.is-edited.cs-anchor{box-shadow:inset 0 0 0 2px #E37400!important}
+/* v2.20.0: a changed cell keeps the table's colours (set by price-up / price-down / qty-*) and gets an orange corner */
+body.phf-page-reconcile .results .preview-pos tbody td.is-edited{font-weight:800;text-decoration:none!important;opacity:1!important}
+body.phf-page-reconcile .results .preview-pos tbody td.is-edited::after{content:'';position:absolute;top:0;right:0;width:0;height:0;border-style:solid;border-width:0 8px 8px 0;border-color:transparent #E37400 transparent transparent;pointer-events:none}
 body.phf-page-reconcile .results .preview-pos tbody td .rs-fill{position:absolute;right:0;bottom:0;width:7px;height:7px;background:#1A73E8;border:1px solid #fff;cursor:crosshair;z-index:2;box-sizing:content-box}
 body.phf-page-reconcile .results .preview-pos tbody td.cs-fill{box-shadow:inset 0 0 0 1px #1A73E8!important;background-image:repeating-linear-gradient(45deg,rgba(26,115,232,.08) 0 4px,transparent 4px 8px)!important}
 body.phf-page-reconcile .results .preview-pos tbody td.is-editing{padding:0!important;overflow:visible!important;z-index:6}
@@ -310,3 +312,21 @@ body.phf-page-reconcile .rs-act-note{line-height:1.35}
 body.phf-page-reconcile .rs-more .rs-money{margin:2px 0 10px;max-width:520px}
 body.phf-page-reconcile .rs-more .rs-money[hidden]{display:none}
 body.phf-page-reconcile .rs-more .pos-balance-panel{margin:0 0 10px}
+
+/* v2.20.0 — changed Adj Qty against the billed quantity, as Found: more green, less red, the same grey */
+body.phf-page-reconcile .results .preview-pos tbody td.qty-over{background:#E6F4EA!important;color:#2E7D32!important}
+body.phf-page-reconcile .results .preview-pos tbody td.qty-under{background:#FDE8E6!important;color:#C62828!important}
+body.phf-page-reconcile .results .preview-pos tbody td.qty-exact{background:#ECEFF1!important;color:#5F6368!important}
+/* a changed line: its POS Index in an orange pill */
+body.phf-page-reconcile .results .preview-pos .pos-edited-pill{display:inline-block;min-width:22px;padding:1px 6px;border-radius:999px;background:#E37400;color:#fff;font-weight:800;line-height:1.3}
+/* Fix in POSActive: the section bar's label and the cell to fix */
+body.phf-page-reconcile .results .preview-pos tbody tr.pos-section-fix>td strong{color:#FFB4A9!important}
+body.phf-page-reconcile .results .preview-pos tbody td.pos-fix-cell{background:#FCE8E6!important;color:#A50E0E!important;font-weight:800;box-shadow:inset 0 0 0 1px #F28B82}
+body.phf-page-reconcile .results .preview-pos tbody td.pos-fix-cell *{color:#A50E0E!important}
+body.phf-page-reconcile .rs-chip.ck-fix{background:#C5221F;color:#fff;border-color:#C5221F}
+/* the toolbar's "N rows changed" filters those lines */
+body.phf-page-reconcile .rs-edit-tools .rs-edit-count{background:transparent;border:0;padding:4px 2px;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+body.phf-page-reconcile .rs-edit-tools .rs-edit-count.is-on{background:#FEF3E2;border-radius:6px;padding:4px 8px;text-decoration:none;box-shadow:inset 0 0 0 1px #E37400}
+body.phf-page-reconcile .rs-edit-tools .rs-edit-count:disabled{cursor:default;text-decoration:none}
+/* Details: the checks line sits at its top */
+body.phf-page-reconcile .rs-more .rs-checks{margin:4px 0 10px;padding:0}

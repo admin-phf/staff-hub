@@ -1441,3 +1441,26 @@ All implemented stages keep source business files local to the browser and gener
   - "Remove not supplied" (`#removeNotSuppliedBtn` and its handler) is removed; ALL or a tick accounts for not-invoiced lines.
   - `gstReview()` no longer lists an INV line twice (sortedPosRows already includes it), so its count and $ effect are right.
 - Versions: hub v21.37.0; Reconcile CH2 Order v2.19.0 (app.js / workspace.css ?v=2.19.0).
+
+## Staff Hub v21.38.0 (22 Oct 2026 22:15 AEDT) — Fix in POSActive in the table, changed cells in the table's colours, live Check
+- Reconcile CH2 Order v2.20.0 (app.js, css/workspace.css, index.html). Display and receiving only — matching and exports unchanged.
+  - Summary card: POS order dropped (it is in Details · money); a red "Fix in POSActive · N" chip first (filter `fix` →
+    `tr[data-fix]`). `#rsNeeds` (Action needed) is no longer drawn. `#rsChecks` moved into `#rsMore` and is always drawn there.
+    `renderSummary` also runs at the end of `renderPosTable` (`state.lastSummaryArgs` is set before `renderPreview`), so the
+    chips and their $ follow counts and changes.
+  - `computeFixMap()` (per checklist render → `state.fixMap`, Map(sourceRow → [{cell, chip, note}])): `importIssues` → cell
+    'sub', LOW `matchConfidence` → 'ch2', `gstReview().map` → 'gst'. `posPreviewSections` holds non-INV, non-not-invoiced rows
+    with an entry in a `fix` section first ("Fix in POSActive", ticked or not); the problem cell gets `.pos-fix-cell` (red) and the
+    note as its hover, in any section (an INV row keeps its own section).
+  - Live Check: the old `lineCheck` is `lineCheckBase` (cached, the run's result; used by `isNotInvoiced` and the Exceptions /
+    All lines rows). `lineCheck` overlays: a changed unit (`adjEdits.unit`) vs `base.expected` → high / better / ok with
+    effect = diff × (received ?? billed), title "your price"; a count ≠ billed (`detail.suppliedQty`) → over / short (effect
+    scaled to the received quantity). NOT INVOICED stays. `refreshCheckCell()` updates the cell and `data-check` straight after
+    Found / Add Qty / Adj Qty (the row re-render follows after the short pause).
+  - `receivingCountComplete(found, expected)` = found ≥ expected: an exact or over count completes the row (commitQtyInput,
+    commitFoundInput, syncUnpackCompletion, the v2.6.6 migration and Adj Qty). `receivingCountMatches` stays for the labels.
+  - Changed cells: `editedCellCls` — a price vs its value before the change (`editMove`: price-down blue ↓ / price-up red ↑ /
+    price-same) and Adj Qty vs `unpackExpectedQty` (qty-over green / qty-under red / qty-exact grey); `.is-edited` is now an
+    orange corner (::after) instead of an orange cell. A row with a change gets `.pos-row-edited` and its POS Index an orange
+    `.pos-edited-pill` (refreshQtyRow keeps both current). The toolbar's `[data-adj-count]` is a button: filter `edited`.
+- Versions: hub v21.38.0; Reconcile CH2 Order v2.20.0 (app.js / workspace.css ?v=2.20.0).
