@@ -1416,3 +1416,28 @@ All implemented stages keep source business files local to the browser and gener
     sheet's `.sup-scope` keeps it; drawLibSup fills whatever hosts exist).
 - Versions: hub v21.36.0; Reconcile CH2 Order v2.18.0 (app.js / pos-import.js / workspace.css ?v=2.18.0); POS New Product
   Check Clean v1.24.0 (app.js / merge.css ?v=1.24.0).
+
+## Staff Hub v21.37.0 (22 Oct 2026 16:05 AEDT) — Reconcile's result in a few lines; not-invoiced lines in their own section
+- Reconcile CH2 Order v2.19.0 (app.js, css/workspace.css, index.html). Display only — matching and every export unchanged.
+  - `renderSummary` now draws:
+    - `#rsGlance` = one `.rs-sum` card: order (hover = `#resultSub`), invoice lines matched, Invoice / POS order (`state.lastTotals`),
+      POSActive TXT (`[data-sum-txt]`, kept current by `updateSummaryTxt()` from `renderPosBalance`), the checks state
+      (✓ Checks passed, or a `[data-open-more]` warning) and Details ▸; then the Check chips (`data-check-filter`) with the
+      $ total on Price high / Better price.
+    - `#rsNeeds` = Action needed (`.rs-act-row`), only: `importIssues` (Sub ID with % $ ", blank, shared), LOW-confidence
+      matches and `gstReview()` differences; hidden when empty. Price, short / over, not-invoiced and INV lines are in the checklist.
+    - `#rsChecks` only when a check needs you (integrity not passed / under review, or import keys to review).
+    - `#rsMore` "Details" now holds `#rsMoney` (the money rows), `#posBalancePanel` (moved in from below the fold), the review
+      notes, order link, import keys and the how-to. It opens by itself only when integrity fails; `[data-open-more]` scrolls to
+      it under the sticky RUN strip.
+  - Removed from view: the squares (`.rs-tile`), the Needs a look price rows, the better-price line and the navy
+    `#results>.results-head` bar (CSS; `#resultSub` is still written and is the order's hover).
+  - Not-invoiced lines (`isNotInvoiced` = a POS-order row whose Check is NOT INVOICED) are a `notInvoiced` section in
+    `posPreviewSections`, between "Invoiced · not on POS order" and Remaining, ticked or not. Rows render like the others
+    (`.pos-not-invoiced`, `data-ni`, no `.pos-not-supplied` grey / strike; `updateManualReceivedVisual` keeps them so). Values:
+    CH2 Line "—", CH2 ITEM CODE = `masterCh2Code()` (`posImport.masterRecordsForPos` MASTER_CODE, the code a manual receiving
+    line exports), Disc % = `expectedDiscountForPos` (the Ongoing Discounts rule); the Check hover gives the expected price.
+    The section bar gives the count, the ordered value (`notInvoicedValue`) and how many are counted into the TXT.
+  - "Remove not supplied" (`#removeNotSuppliedBtn` and its handler) is removed; ALL or a tick accounts for not-invoiced lines.
+  - `gstReview()` no longer lists an INV line twice (sortedPosRows already includes it), so its count and $ effect are right.
+- Versions: hub v21.37.0; Reconcile CH2 Order v2.19.0 (app.js / workspace.css ?v=2.19.0).
