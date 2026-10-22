@@ -1358,3 +1358,13 @@ All implemented stages keep source business files local to the browser and gener
   - `renderAll()` records `state.readyKey = readyKey()` (requiredReady | loaded('sup') | posOwnNote); `supCommit` refreshes
     the status line when a sheet edit or paste changes it.
 - Versions: hub v21.35.3; POS New Product Check Clean v1.23.3 (app.js ?v=1.23.3; merge.css stays ?v=1.23.2).
+
+## Staff Hub v21.35.4 (22 Oct 2026 12:45 AEDT) — O and Q on OUT_MERGED_DATA as they came
+- POS New Product Check Clean v1.23.4 (app.js): `OUT_CURRENT['SUP PRODUCT']` — Q is read-only on OUT_MERGED_DATA (via
+  `outReadOnly`), like ORIGINAL POS DESCR / OLD BRAND / POS SUPPLIER. Engine frame / worker ?v=1.7.5.
+- engine-host v1.7.5: `noteSellThru` keeps the uploaded text (origBc / origText) in Q instead of rebuilding
+  "<TEXT> *SELL THROUGH, NEW SKU …*"; new `restoreSupText()` runs last after build / refresh — for each OUT row, Q is replaced
+  by the IN_SUPPLIER G text whose upper-cased, space-collapsed form equals Q's, only when that form has one spelling on
+  IN_SUPPLIER (the script writes Q upper-cased and trimmed). Readers of Q (refineTypes, refineSizes / sizeFrom, upload checks)
+  upper-case it themselves.
+- Versions: hub v21.35.4; POS New Product Check Clean v1.23.4; engine-host / engine-worker v1.7.5.

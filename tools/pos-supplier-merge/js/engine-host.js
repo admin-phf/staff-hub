@@ -1,4 +1,10 @@
-/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.7.4 (16 Oct 2026)
+/* PHF Staff Hub — POS New Product Check Clean · engine-host.js v1.7.5 (22 Oct 2026)
+ * v1.7.5: OUT_MERGED_DATA's Q (SUP PRODUCT) is the supplier's text exactly as uploaded: on sell-through rows it used
+ *   to be rewritten as "<TEXT> *SELL THROUGH, NEW SKU …*" in capitals, and the script writes every Q in capitals with the
+ *   ends trimmed — restoreSupText puts the IN_SUPPLIER text back wherever it is the same text apart from case / spaces
+ *   (never another row's text). The sell-through marker stays on POS DESCR (the "*") and in NOTES (AF). Nothing else
+ *   changes: matching, descriptions, prices and the TXT files read the same values as before.
+ * v1.7.4 (16 Oct 2026)
  * v1.7.4: more description clean-up from the second 16 Oct review — a ZZ marker glued to a word in a ZZZZ description
  *   (ZZZZ ZZSHARK CARTILAGE → ZZZZ SHARK CARTILAGE 100C); a prefix word repeated right after the prefix block (NOW FOODS
  *   NOW VIT D3, ETH NUTS ETH GLUC, CATHAY HERBAL PRACT HERBAL …, BYRON BAY TALLOW BAY — not SOW N SOW, KIN KIN, PROT SUPP PEA PROT); a phrase repeated
@@ -422,24 +428,41 @@
     var sup = shim && shim.ss._find(SUP_SHEET), out = shim && shim.ss._find('OUT_MERGED_DATA'); if (!sup || !out) return 0;
     // By the supplier barcode first; by the product text only when every supplier row with that text carries the note (the
     // replacement SKU often has the same name without it — EAGLE TRESOS B PRO 60T: old barcode sell-through, new barcode not).
-    var byBc = {}, byText = {}, any = false, n = 0;
+    var byBc = {}, byText = {}, origBc = {}, origText = {}, any = false, n = 0;
     for (var r = 2; r < sup.cells.length; r++) {
       var row = sup.cells[r], g = row && row[6] != null ? String(row[6]) : '', sn = sellNote(g), k = bcKey(row && row[3]), t = String(stripNote(g)).toUpperCase();
       if (!t) continue;
-      if (sn) { any = true; if (k) byBc[k] = sn; if (byText[t] === undefined) byText[t] = sn; }
+      if (sn) { any = true; if (k) { byBc[k] = sn; origBc[k] = g.trim(); } if (byText[t] === undefined) { byText[t] = sn; origText[t] = g.trim(); } }
       else { byText[t] = null; }                                                           // the same name without the note: text is not enough
     }
     if (!any) return 0;
     for (var o = 2; o < out.cells.length; o++) {
       var orow = out.cells[o], q = orow && orow[16] != null ? String(orow[16]).trim() : '', key = String(stripNote(q)).toUpperCase();
-      var sn2 = byBc[bcKey(orow && orow[10])] || (key ? byText[key] : null);
+      var bk = bcKey(orow && orow[10]), sn2 = byBc[bk] || (key ? byText[key] : null);
       if (!sn2 || /DISCONTINUED/.test(up(orow[1]))) continue;
-      if (!sellNote(q)) orow[16] = key + ' *' + sellText(sn2).replace(' — new SKU', ', NEW SKU').toUpperCase() + '*';
+      // v1.7.5: Q is the supplier's text exactly as uploaded (the script read it without the note)
+      if (!sellNote(q)) orow[16] = (byBc[bk] ? origBc[bk] : origText[key]) || q;
       var p = up(orow[15]);
       if (p && !/^Z{3,}/.test(p) && !/\*$/.test(p)) { orow[15] = markStar(p); orow[45] = orow[15]; orow[46] = posDescOf(orow[15]); }
       var note = String(orow[31] == null ? '' : orow[31]).trim(), txt = sellText(sn2);
       if (note.toUpperCase().indexOf('SELL THROUGH') < 0) orow[31] = note ? note + ' | ' + txt : txt;
       n++;
+    }
+    return n;
+  }
+  // v1.7.5 — after stage 2 / Refresh (last): OUT_MERGED_DATA's Q shows the supplier's text exactly as typed on IN_SUPPLIER.
+  // Only where the two are the same text apart from case and spaces, and only when that text has one spelling there.
+  function restoreSupText() {
+    var sup = shim && shim.ss._find(SUP_SHEET), out = shim && shim.ss._find('OUT_MERGED_DATA'); if (!sup || !out) return 0;
+    var orig = {}, n = 0, norm = function (v) { return String(v == null ? '' : v).toUpperCase().replace(/\s+/g, ' ').trim(); };
+    for (var r = 2; r < sup.cells.length; r++) {
+      var g = sup.cells[r] && sup.cells[r][6]; if (g == null || g === '') continue;
+      var k = norm(g), was = orig[k]; g = String(g);
+      orig[k] = was === undefined || was === g ? g : null;                                  // two spellings of one text: leave Q alone
+    }
+    for (var o = 2; o < out.cells.length; o++) {
+      var orow = out.cells[o], q = orow && orow[16]; if (q == null || q === '') continue;
+      var t = orig[norm(q)]; if (t && t !== String(q)) { orow[16] = t; n++; }
     }
     return n;
   }
@@ -963,7 +986,7 @@
         var ret;
         try { ret = step === 'export' && msg.only ? withOnlyRows(msg.only, function () { return G[fnName](); }) : G[fnName](); }
         finally { runOpts = null; }
-        if (step === 'build' || step === 'refresh') { refineTypes(); refineSizes(); refineForms(); noteSellThru(); }   // v1.3.0 / v1.4.0 / v1.6.0 / v1.7.0 (forms before the sell-through "*")
+        if (step === 'build' || step === 'refresh') { refineTypes(); refineSizes(); refineForms(); noteSellThru(); restoreSupText(); }   // v1.7.5: Q as uploaded   // v1.3.0 / v1.4.0 / v1.6.0 / v1.7.0 (forms before the sell-through "*")
         var files = [];
         if (step === 'export' && ret && ret.length) {
           files = ret.map(function (f) { return { label: f.label, filename: f.filename, rowCount: f.rowCount, base64: f.base64 }; });

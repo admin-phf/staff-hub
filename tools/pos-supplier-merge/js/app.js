@@ -1,4 +1,8 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.23.3 (22 Oct 2026, Staff Hub v21.35.3): the POS check is information only.
+/* PHF Staff Hub — POS New Product Check Clean v1.23.4 (22 Oct 2026, Staff Hub v21.35.4): OUT_MERGED_DATA's SUP PRODUCT (Q) is
+ * read-only, like ORIGINAL POS DESCR (O) — across O · P · Q you see what POS has, what goes to POS (POS DESCR, the one to edit)
+ * and what the supplier sent. Sell-through rows keep the supplier's text in Q exactly as uploaded (engine-host v1.7.5). No
+ * merge change.
+ * v1.23.3 (22 Oct 2026, Staff Hub v21.35.3): the POS check is information only.
  * The same merge is a clean-up (discontinued, Sub IDs, PLUs), a check of what you stock, or a buy-better comparison — the
  * Update in POS ticks and the Discontinue switch decide what changes. Supplier rows that match POS products (by file name or
  * ≥ 90 % barcode + description) no longer stop the run (no CHOOSE, no choice to make): the row reads POS MATCH (blue), and the
@@ -236,7 +240,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.23.3';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.23.4';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
@@ -543,12 +547,12 @@
       kind = 'in-page';
       frame = document.createElement('iframe');
       frame.hidden = true; frame.title = 'POS New Product Check Clean engine';
-      frame.src = './engine-frame.html?v=1.7.4';
+      frame.src = './engine-frame.html?v=1.7.5';
       window.addEventListener('message', frameListener);
       document.body.appendChild(frame);
     }
     try {
-      worker = new Worker('./js/engine-worker.js?v=1.7.4');
+      worker = new Worker('./js/engine-worker.js?v=1.7.5');
       kind = 'worker';
       worker.onmessage = function (ev) { onMsg(ev.data); };
       worker.onerror = function (ev) {
@@ -1706,7 +1710,8 @@
   var OUT_CURRENT = {
     'POS SUPPLIER': 'the supplier POS has now (read-only). Change UPDATED SUPPLIER (G) instead — it is checked against POS Suppliers',
     'OLD BRAND': 'the brand POS has now (read-only). Change POS BRAND instead',
-    'ORIGINAL POS DESCR': 'the description POS has now (read-only). Change POS DESCR instead'
+    'ORIGINAL POS DESCR': 'the description POS has now (read-only). Change POS DESCR instead',
+    'SUP PRODUCT': 'what the supplier sent (read-only). Change POS DESCR instead — to correct the supplier\'s text, edit SUP PRODUCT on the IN_SUPPLIER sheet and run stage 2 again'   // v1.23.4
   };   // v1.15.2: the CURRENT price columns are editable (their pair's tick decides which price goes to POS)
   // v1.15.1: the price pairs keep their CURRENT / NEW ticks (v1.14.0 rules): one of the two is ticked — NEW = the merge's
   // price goes to POS, CURRENT = matched products keep POS's own (grey). The same setting as the supplier sheet's J / K.
