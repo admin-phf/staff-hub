@@ -1,4 +1,5 @@
-/* Reconcile CH2 v2.20.0 — changed cells in the table's colours with an orange corner, the orange POS Index pill of a changed
+/* Reconcile CH2 v2.21.0 — a stronger green for over counts, the Fix in POSActive copies, the footer's four totals (end of file).
+   Reconcile CH2 v2.20.0 — changed cells in the table's colours with an orange corner, the orange POS Index pill of a changed
    line, the Fix in POSActive section and its red cells, the Fix chip (end of file).
    Reconcile CH2 v2.19.0 — the result in a few lines: summary card, Action needed, Details (end of file).
    Reconcile CH2 v2.18.0 — the checklist's sort and filter menus, filter chips, cell selection, changed (orange) cells and the
@@ -330,3 +331,26 @@ body.phf-page-reconcile .rs-edit-tools .rs-edit-count.is-on{background:#FEF3E2;b
 body.phf-page-reconcile .rs-edit-tools .rs-edit-count:disabled{cursor:default;text-decoration:none}
 /* Details: the checks line sits at its top */
 body.phf-page-reconcile .rs-more .rs-checks{margin:4px 0 10px;padding:0}
+
+/* v2.21.0 — more units than billed stand out: a deeper green fill, darker number and a solid border (Found and a changed Adj Qty) */
+body.phf-page-reconcile .preview-pos .unpack-qty-total.found-over,
+body.phf-page-reconcile .preview-pos tbody tr.pos-not-supplied .unpack-qty-total.found-over{background:#B7E1C1!important;border:2px solid #1E8E3E!important;color:#0D652D!important;font-weight:900}
+body.phf-page-reconcile .results .preview-pos tbody td.qty-over{background:#B7E1C1!important;color:#0D652D!important;box-shadow:inset 0 0 0 2px #1E8E3E}
+/* the Fix in POSActive copies: same columns as the list; click one to go to its line */
+body.phf-page-reconcile .results .preview-pos tbody tr.pos-fix-ref{cursor:pointer}
+body.phf-page-reconcile .results .preview-pos tbody tr.pos-fix-ref:hover>td{background-image:linear-gradient(rgba(255,206,84,.18),rgba(255,206,84,.18))}
+body.phf-page-reconcile .results .preview-pos .pos-ref-tick{color:#2E7D32;font-weight:900}
+body.phf-page-reconcile .results .preview-pos .pos-ref-found{font-weight:800;font-variant-numeric:tabular-nums}
+/* the footer's totals: Current · Adjusted · Not invoiced · Combined */
+body.phf-page-reconcile .results .preview-pos tfoot td.pos-total-block{padding:3px 4px!important;overflow:visible!important;text-overflow:clip!important;background:#fff}
+body.phf-page-reconcile .results .preview-pos .pos-totals{display:flex;justify-content:flex-end;align-items:stretch;gap:4px;white-space:nowrap}
+body.phf-page-reconcile .results .preview-pos .pos-totals-label{align-self:center;margin-right:4px;color:#0b3e78;font-size:11px;font-weight:900}
+body.phf-page-reconcile .results .preview-pos .pos-tot{display:flex;flex-direction:column;align-items:flex-end;justify-content:center;min-width:92px;padding:3px 8px;border-radius:4px;color:#fff;line-height:1.12}
+body.phf-page-reconcile .results .preview-pos .pos-tot small{font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;opacity:.85}
+body.phf-page-reconcile .results .preview-pos .pos-tot b{font-size:13px;font-weight:900;font-variant-numeric:tabular-nums}
+body.phf-page-reconcile .results .preview-pos .pos-tot i{font-style:normal;font-size:9.5px;font-weight:700;opacity:.92}
+body.phf-page-reconcile .results .preview-pos .pos-tot.cur{background:#075394}
+body.phf-page-reconcile .results .preview-pos .pos-tot.adj{background:#ef1982}
+body.phf-page-reconcile .results .preview-pos .pos-tot.ni{background:#5F6368}
+body.phf-page-reconcile .results .preview-pos .pos-tot.comb{background:#1E3A5F;color:#E6CD74}
+body.phf-page-reconcile .results table.pos-preview-table.pos-overflow tfoot td.pos-total-block{position:sticky;right:0;z-index:7;box-shadow:-2px 0 4px rgba(15,35,60,.12)}

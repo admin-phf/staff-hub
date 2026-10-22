@@ -1464,3 +1464,19 @@ All implemented stages keep source business files local to the browser and gener
     orange corner (::after) instead of an orange cell. A row with a change gets `.pos-row-edited` and its POS Index an orange
     `.pos-edited-pill` (refreshQtyRow keeps both current). The toolbar's `[data-adj-count]` is a button: filter `edited`.
 - Versions: hub v21.38.0; Reconcile CH2 Order v2.20.0 (app.js / workspace.css ?v=2.20.0).
+
+## Staff Hub v21.39.0 (22 Oct 2026 23:20 AEDT) — Fix copies in the table's columns, footer totals, stronger green
+- Reconcile CH2 Order v2.21.0 (app.js, css/workspace.css, index.html). Display only — matching and exports unchanged.
+  - Lines to fix go back into the normal flow (`posPreviewSections` no longer holds them). The "Fix in POSActive" bar at the top of
+    the body is followed by a copy of each line in `state.fixMap` (INV lines included): `renderPosRow(…, ref=true)` → `tr.pos-fix-ref`
+    with `data-ref-src` (no `data-pos-src` / `data-check` / `data-fix`, so selection, filters and receiving ignore it), a static tick
+    and Found, no Add Qty; red fix cells as on the line. Clicking a copy → `showChecklistLine(src)`. `applyTableSearch` hides the
+    copies and their bar while a search, chip or column filter is on.
+  - Footer: the Current / Adjusted cells are replaced by `posTotalsBlock(totals, span)` — one cell from MU% to Total inc GST with
+    four blocks: Current (`totals.current`), Adjusted (`totals.adjusted`; note = nothing ticked → the invoice, matches invoice ✓ or
+    ± vs `supplierInvoiceTotal`), Not invoiced (`notInvoicedTotal`, `notInvoicedCount`), Combined (adjusted + not invoiced; note
+    ± vs current; hover lists ticked / unticked billed-not-on-order totals). In `.pos-overflow` the cell is pinned right (sticky).
+    The footer is already sticky at the window's bottom, so the totals stay in view.
+  - Summary card: the TXT figure is removed (the footer's Adjusted). Details: `#rsMoney` is no longer filled (hidden).
+  - CSS: `.unpack-qty-total.found-over` and `td.qty-over` a deeper green (#B7E1C1, 2 px #1E8E3E, #0D652D).
+- Versions: hub v21.39.0; Reconcile CH2 Order v2.21.0 (app.js / workspace.css ?v=2.21.0).
