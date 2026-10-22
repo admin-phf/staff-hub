@@ -1329,3 +1329,19 @@ All implemented stages keep source business files local to the browser and gener
     while blocked.
 - merge.css: `.sup-copy-block`, `.sup-copy-actions`.
 - Versions: hub v21.35.1; POS New Product Check Clean v1.23.1 (app.js / merge.css ?v=1.23.1).
+
+## Staff Hub v21.35.2 (22 Oct 2026 11:40 AEDT) — POS clean-up run allowed on purpose
+- POS New Product Check Clean v1.23.2 (app.js):
+  - The `POS_OWN_RE` refusals in `acceptFile` / `bulkAccept` (v1.22.0) and `posOwnPrune()` on open (v1.23.1) are removed;
+    `POS_OWN_MSG` removed. `POS_OWN_RE` now only recognises the file.
+  - `posOwnState()` → {pc, named, copy}: named = non-added supplier entries matching POS_OWN_RE; copy = posCopyShare n ≥ 50
+    and same/n ≥ 0.9. `posCopyBlocked()` = posOwnState while `state.posCopyOkKey !== posCopyKey()`; `posCleanup()` = chosen.
+  - `railState('sup')`: CHOOSE ('loaded incompatible') while blocked, CLEAN-UP ('loaded updated') when chosen;
+    `readinessText()` gives either reason; the input card badge is 'warn' for incompatible states.
+  - `showInput('sup')`: blocked → `#supCopyUse` (Run as a POS clean-up: posCopyOkKey = posCopyKey(), flushSession) and
+    `#supCopyRemove`; chosen → `.sup-copy-block.is-cleanup` with `#supCopyUndo` (posCopyOkKey = null) and `#supCopyRemove`
+    (removes named / ≥ 90 % entries).
+  - Session: `__session_inputs.posCleanup` = state.posCopyOkKey, restored in `restoreInputs` (valid only while the key matches).
+  - The duplicate guard (`supSig` in addToInput) is unchanged.
+- merge.css: `.sup-copy-block.is-cleanup` (blue).
+- Versions: hub v21.35.2; POS New Product Check Clean v1.23.2 (app.js / merge.css ?v=1.23.2).
