@@ -1,4 +1,6 @@
-/* PHF Staff Hub — Library panel v2.3.0 (23 Oct 2026: the Google Drive line has Sign in (one click; the tab then stays signed in
+/* PHF Staff Hub — Library panel v2.4.0 (23 Oct 2026: signed out, the Google Drive line shows only "Sign in to Google Drive" — the
+ * same button as under each tool's drop box; Save / Get / Sign out appear once signed in)
+ * v2.3.0 (23 Oct 2026: the Google Drive line has Sign in (one click; the tab then stays signed in
  * for up to an hour and keeps the saved files and Drive in step by itself — phf-drive.js v1.1.0) and shows what came in or went
  * out; Save and Get skip unchanged files)
  * v2.2.0 (23 Oct 2026: when Google Drive is set up (assets/js/phf-drive.js), a Google Drive line —
@@ -90,7 +92,7 @@
     var D = window.PHFDrive, self = this; if (!D || !D.configured() || !this.bodyEl || this.driveEl) return;
     var bar = document.createElement('div'); bar.className = 'phf-lib-drive';
     bar.innerHTML = '<span class="phf-lib-drive-what"><b>Google Drive</b> <span data-drive-state></span></span>' +
-      '<button type="button" class="phf-lib-btn phf-lib-btn-primary" data-drive-in hidden title="One click signs in to Google Drive for this browser tab (up to an hour). The saved files then stay in step with Google Drive by themselves">Sign in</button>' +
+      '<button type="button" class="phf-lib-btn phf-lib-btn-primary" data-drive-in hidden title="One click signs in to Google Drive for this browser tab (up to an hour). The saved files then stay in step with Google Drive by themselves">Sign in to Google Drive</button>' +
       '<button type="button" class="phf-lib-btn" data-drive-save title="Save ' + (this.scope ? 'this tool\'s' : 'all the') + ' saved files to the ' + esc(D.FOLDER) + ' folder in your Google Drive — one copy per file, replaced each time">Save to Google Drive</button>' +
       '<button type="button" class="phf-lib-btn" data-drive-get title="Copy the newer files from the ' + esc(D.FOLDER) + ' folder in Google Drive into this browser">Get from Google Drive</button>' +
       '<button type="button" class="phf-lib-btn" data-drive-out hidden title="Sign out of Google Drive on this page">Sign out</button>' +
@@ -99,7 +101,8 @@
     var state = bar.querySelector('[data-drive-state]'), out = bar.querySelector('[data-drive-out]'), msg = bar.querySelector('.phf-lib-drive-msg');
     var say = function (t, bad) { msg.textContent = t; msg.className = 'phf-lib-drive-msg' + (bad ? ' is-error' : ''); };
     var inBtn = bar.querySelector('[data-drive-in]');
-    var paint = function () { var on = D.signedIn(); inBtn.hidden = on; state.textContent = on ? '· signed in — keeps these files in step' : '· not signed in'; out.hidden = !on; };
+    var saveBtn = bar.querySelector('[data-drive-save]'), getBtn = bar.querySelector('[data-drive-get]');
+    var paint = function () { var on = D.signedIn(); inBtn.hidden = on; saveBtn.hidden = !on; getBtn.hidden = !on; state.textContent = on ? '· signed in — keeps these files in step' : '· not signed in'; out.hidden = !on; };   // v2.4.0
     D.onChange(paint); paint();
     if (D.onReport) D.onReport(function (r) { if (!r.text) return; say(r.type === 'error' ? r.text : 'Google Drive: ' + r.text, r.type === 'error'); if (r.result && r.result.got && r.result.got.length) self.render(); });
     inBtn.onclick = function () { busy(true); say('Signing in to Google…'); D.signIn().then(function () { say('Signed in — checking Google Drive…'); }).catch(function (e) { say(e.message || String(e), true); }).then(function () { busy(false); }); };

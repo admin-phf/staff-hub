@@ -1,5 +1,7 @@
 (function(){'use strict';
-const VERSION='v21.24.0', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+const VERSION='v21.25.0', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+// v21.25.0 (Staff Hub v21.42.0) — version only: one file or several can be dropped anywhere on the page (phf-drop.js); the Google
+// Drive block under the drop box is centred and shows just Sign in to Google Drive until signed in (phf-drive.js v1.2.0).
 // v21.24.0 (Staff Hub v21.41.0) — version only: with Google Drive signed in, the Drive folder chosen under Drop all ("Loads every
 // time") loads by itself when the page opens, through this page's own drop handler (phf-drive.js v1.1.0). No build change.
 // v21.23.1 (Staff Hub v21.40.1) — version only: Google Drive is now set up (assets/js/phf-drive-config.js filled in), so the

@@ -1556,3 +1556,21 @@ All implemented stages keep source business files local to the browser and gener
 - Versions: hub v21.41.0; Reconcile CH2 Order v2.23.0; Build POS Master Databases v21.24.0 and POS New Product Check Clean v1.26.0
   (version only); phf-drive.js ?v=1.1.0; hub-library.js ?v=2.3.0; library.css ?v=2.2.0. docs/GOOGLE-DRIVE-SETUP.md rewritten
   for v21.41.0 (Step 3.5 adds drive.readonly; Step 8 "Use it").
+
+## Staff Hub v21.42.0 (23 Oct 2026 23:00 AEDT) — drop files anywhere; one Sign in button, centred and the same on every tool
+- `assets/js/phf-drop.js` v1.0.0 (new; loaded after phf-drive.js on the three tools): document `dragover` with Files → allow the
+  drop (when nothing else did), `body.phf-file-drag` + `#bulkDrop.drag` while dragging (cleared 250 ms after the last dragover);
+  document `drop` not already handled (`defaultPrevented` — every row, card and rail handler prevents default) → the files go to
+  `#bulkInput` (DataTransfer + change), i.e. the tool's own Drop all path; skipped until the tool has set `#bulkInput.onchange`
+  (the merge tool's password). Before this a drop outside the boxes and the rail made the browser open / download the file.
+- Drop box wording on the three tools: helper "Drop one file or several, anywhere on this page — each goes to its own row.",
+  box "Drop files here" / "one or several · or click to choose · <types>", aria-label "Drop or choose one or more input files".
+- `assets/js/phf-drive.js` v1.2.0: the drop-rail Drive row — signed out: only "Sign in to Google Drive" (`[data-drive-in]`) and
+  `.phf-drive-hint` (what then loads by itself: the folder name / "choose the Drive folder" / Reconcile's master and discounts);
+  signed in: From Google Drive (`[data-drive-pick]`) and the folder line. `paint()` toggles them on every sign-in change.
+- `assets/js/hub-library.js` v2.4.0: the panel's Drive line — signed out: only "Sign in to Google Drive"; Save / Get / Sign out once
+  signed in. `assets/css/library.css` v2.3.0: the row centred (`align-items:center`, centred buttons and folder line), the hint,
+  `[hidden]` for the hint and folder line, and the `body.phf-file-drag::after` note ("Let go anywhere — …", pointer-events none).
+- Versions: hub v21.42.0; Reconcile CH2 Order v2.24.0, Build POS Master Databases v21.25.0 (pipeline.js ?v=21.25.0 — it had been
+  left at 21.22.0), POS New Product Check Clean v1.27.0 (version and wording only); phf-drive.js ?v=1.2.0; phf-drop.js ?v=1.0.0;
+  hub-library.js ?v=2.4.0; library.css ?v=2.3.0.

@@ -1,3 +1,5 @@
+// v2.24.0 (23 Oct 2026, Staff Hub v21.42.0): version only — files can be dropped anywhere on the page (phf-drop.js) and the drop box
+// reads "Drop files here · one or several"; the Google Drive block under it is centred, one Sign in button until signed in.
 // v2.23.0 (23 Oct 2026, Staff Hub v21.41.0): the POSActive balancing check is always open, just above the RUN row and the
 // checklist (it was inside Details; Details keeps the review notes, order link, import keys and the how-to). With Google Drive
 // signed in, the newest POS master and Ongoing Discounts come in from Drive by themselves (phf-drive.js v1.1.0). Exports unchanged.

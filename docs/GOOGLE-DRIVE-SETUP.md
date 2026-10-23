@@ -1,4 +1,4 @@
-# Google Drive for the Staff Hub — setup (Staff Hub v21.41.0, 23 Oct 2026)
+# Google Drive for the Staff Hub — setup (Staff Hub v21.42.0, 23 Oct 2026)
 
 Once this is set up and you **sign in once** (one click; that browser tab stays signed in for up to an hour), the files load by themselves:
 - **Build POS Master Databases** and **POS New Product Check Clean** each remember one Drive folder (**Loads every time**, picked once per browser). Every file in it loads when the page opens, exactly as if dropped. A file dropped on top replaces the loaded one.
@@ -92,7 +92,7 @@ Commit and push with GitHub Desktop as usual. GitHub Pages updates in a minute o
 
 ## Step 8 — Use it
 1. **Allow pop-ups** for `admin-phf.github.io` in Chrome. Sign-in opens a small Google window, and if it is blocked, Chrome shows a blocked-pop-up icon in the address bar.
-2. **Sign in once.** Use the hub's **Saved files → Sign in**, or **Sign in** under Drop all in any tool, with the shop account. Allow both Drive permissions.
+2. **Sign in once.** Signed out, the only Drive button is **Sign in to Google Drive**: under the drop box in each tool, and in the hub's Saved files. Use it with the shop account and allow both Drive permissions. **From Google Drive** and the folder link appear once you're signed in.
    - The tab stays signed in for up to an hour, so each tool you open in it loads by itself.
    - A PHF Staff Hub folder appears in Drive the first time.
 3. **Build POS Master Databases:** under Drop all, click **Choose a Drive folder to load every time** and pick, for example, "GitHub Input Excel Data and Sheets 23.10.26 › 1, database-build". All its files load now and every time the page opens. After **Build All**, the outputs go to Drive by themselves.

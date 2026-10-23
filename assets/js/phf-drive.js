@@ -1,4 +1,7 @@
-/* PHF Staff Hub — Google Drive v1.1.0 (23 Oct 2026, Staff Hub v21.41.0)
+/* PHF Staff Hub — Google Drive v1.2.0 (23 Oct 2026, Staff Hub v21.42.0)
+ * v1.2.0: under the drop box, signed out shows one button — Sign in to Google Drive — and what then loads by itself; From Google
+ *   Drive and the folder line appear once signed in. Centred, the same on every tool.
+ * v1.1.0 (Staff Hub v21.41.0)
  * v1.1.0: loads by itself. Sign in once (one click — Google opens its own window) and, for up to an hour in that browser tab:
  *   - every page keeps this browser's saved files (Library) and Google Drive › "PHF Staff Hub" in step: a newer copy in Drive
  *     comes in (Reconcile CH2 Order: the POS master and Ongoing Discounts; POS New Product Check Clean: the POS Database and
@@ -303,12 +306,15 @@
     if (!zone || !input || zone.parentNode.querySelector('.phf-drive-row')) return;
     var hasFolder = !!FOLDER_PAGES[PAGE];
     var row = document.createElement('div'); row.className = 'phf-drive-row';
-    row.innerHTML = '<div class="phf-drive-btns"><button type="button" class="phf-drive-btn" data-drive-pick title="Choose files in Google Drive (Google\'s own window) — they are checked exactly as if dropped here">' + ICON + 'From Google Drive</button>' +
-      '<button type="button" class="phf-drive-btn phf-drive-in" data-drive-in hidden title="One click signs in to Google Drive for this browser tab (up to an hour): the saved files' + (hasFolder ? ' and this tool\'s Drive folder' : '') + ' then load by themselves">Sign in</button></div>' +
-      (hasFolder ? '<div class="phf-drive-folder" data-drive-folder></div>' : '') +
+    // v1.2.0: signed out there is one thing to press (Sign in to Google Drive) and a line saying what then loads by itself;
+    // signed in, From Google Drive and the folder line show. Centred under the drop box on every page.
+    row.innerHTML = '<div class="phf-drive-btns"><button type="button" class="phf-drive-btn phf-drive-in" data-drive-in hidden title="One click signs in to Google Drive for this browser tab (up to an hour)">' + ICON + 'Sign in to Google Drive</button>' +
+      '<button type="button" class="phf-drive-btn" data-drive-pick hidden title="Choose particular files in Google Drive (Google\'s own window) — they are checked exactly as if dropped here">' + ICON + 'From Google Drive</button></div>' +
+      '<span class="phf-drive-hint" data-drive-hint hidden></span>' +
+      (hasFolder ? '<div class="phf-drive-folder" data-drive-folder hidden></div>' : '') +
       '<span class="phf-drive-note" aria-live="polite"></span><span class="phf-drive-sync" aria-live="polite"></span>';
     zone.insertAdjacentElement('afterend', row);
-    var pickBtn = row.querySelector('[data-drive-pick]'), inBtn = row.querySelector('[data-drive-in]'), fold = row.querySelector('[data-drive-folder]');
+    var pickBtn = row.querySelector('[data-drive-pick]'), inBtn = row.querySelector('[data-drive-in]'), fold = row.querySelector('[data-drive-folder]'), hint = row.querySelector('[data-drive-hint]');
     var note = row.querySelector('.phf-drive-note'), syncNote = row.querySelector('.phf-drive-sync'), loading = false;
     var say = function (t, bad) { note.className = 'phf-drive-note' + (bad ? ' is-error' : ''); note.textContent = t || ''; };
     var paintFolder = function () {
@@ -328,7 +334,14 @@
       }).catch(function (e) { say(/not found|File not found|404/i.test(e.message || '') ? 'The Drive folder "' + f.name + '" could not be opened — choose it again.' : (e.message || String(e)), true); })
         .then(function () { loading = false; });
     };
-    var paint = function () { inBtn.hidden = signedIn(); paintFolder(); };
+    var hintText = function () {
+      if (hasFolder) { var f = folderPref(); return f ? 'Then "' + f.name + '" loads by itself, every time this page opens.' : 'Then choose the Drive folder to load every time.'; }
+      return PAGE === 'reconcile-ch2' ? 'Then the newest POS master and Ongoing Discounts load by themselves.' : 'Then the saved files load by themselves.';
+    };
+    var paint = function () {
+      var on = signedIn(); inBtn.hidden = on; pickBtn.hidden = !on; hint.hidden = on; hint.textContent = on ? '' : hintText();
+      if (fold) fold.hidden = !on; paintFolder();
+    };
     onChange(paint); paint();
     onReport(function (r) { if (r.text) { syncNote.className = 'phf-drive-sync' + (r.type === 'error' ? ' is-error' : ''); syncNote.textContent = r.type === 'error' ? 'Google Drive: ' + r.text : 'Google Drive: ' + r.text; } });
     pickBtn.onclick = function () {
@@ -353,7 +366,6 @@
       }
     };
     if (hasFolder && signedIn() && folderPref()) loadFolder();   // the page opened while this tab is signed in
-    else if (hasFolder && folderPref()) say('Sign in to load "' + folderPref().name + '" from Google Drive.');
   }
 
   restore();
@@ -361,7 +373,7 @@
   function boot() { if (!configured()) return; loadGis().catch(function () {}); wireDropButtons(); if (signedIn()) { wasIn = true; autoSync(); } }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
-  g.PHFDrive = { VERSION: 'v1.1.0', configured: configured, signedIn: signedIn, signIn: signIn, signOut: signOut, pick: pick, pickFolder: pickFolder,
+  g.PHFDrive = { VERSION: 'v1.2.0', configured: configured, signedIn: signedIn, signIn: signIn, signOut: signOut, pick: pick, pickFolder: pickFolder,
     download: download, saveRecord: saveRecord, saveAll: saveAll, listSaved: listSaved, getLatest: getLatest, sync: sync, onChange: onChange, onReport: onReport,
     esc: esc, FOLDER: FOLDER, FROM_DRIVE: FROM_DRIVE };
 })(window);
