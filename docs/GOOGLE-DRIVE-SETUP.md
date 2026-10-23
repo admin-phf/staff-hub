@@ -1,122 +1,74 @@
-# Google Drive for the Staff Hub — setup (Staff Hub v21.42.0, 23 Oct 2026)
+# Google Drive for the Staff Hub — setup (Staff Hub v21.43.0, 24 Oct 2026)
 
-Once this is set up and you **sign in once** (one click; that browser tab stays signed in for up to an hour), the files load by themselves:
-- **Build POS Master Databases** and **POS New Product Check Clean** each remember one Drive folder (**Loads every time**, picked once per browser). Every file in it loads when the page opens, exactly as if dropped. A file dropped on top replaces the loaded one.
-- **Saved files stay in step with Drive.** The tools' saved files (POS master, Ongoing Discounts, the POS Database and supplier sets and so on) are kept in a Drive folder called **PHF Staff Hub**:
-  - When a tool saves a file (after a build, say), it goes to Drive straight away.
-  - When a page opens, newer copies from Drive come in. **Reconcile CH2 Order** takes the POS master and Ongoing Discounts, and **POS New Product Check Clean** takes the POS Database and supplier sets. The **hub** takes everything.
-  - Unchanged files are never copied again.
-- **From Google Drive** under "Drop all input files here" picks any files by hand (for example the order and invoice in Reconcile).
-- The **Saved files** panel has **Sign in**, **Save to Google Drive** and **Get from Google Drive** (by hand, when wanted), and **Sign out**.
+## How it works
+**One shop folder in Google Drive, shared with the shop's accounts.** For example "GitHub Input Excel Data and Sheets 23.10.26", owned by admin@ and shared with each @prahranhealthfoods.com.au account as **Editor**, or kept in a Shared drive. Inside it:
 
-Until the three settings below are filled in, none of this shows, and the tools work exactly as before.
+| Folder | What happens |
+|---|---|
+| `1, database-build` | Every file in it loads by itself when **Build POS Master Databases** opens. |
+| `2, pos-supplier-merge` | Every file in it loads by itself when **POS New Product Check Clean** opens. |
+| `3, Orders` | For you to drag (or pick) the order and invoice into Reconcile. Nothing loads from it by itself. |
+| `Staff Hub saved files` | Made by the Staff Hub when first needed. The tools' saved files go here: the POS master, Ongoing Discounts, the POS Database and supplier sets, and so on. Every PC keeps in step with it: **Reconcile** takes the newest POS master and Ongoing Discounts, **POS New Product Check Clean** the POS Database and sets, and the **hub** everything. Each file is named `[kind] original name`, so don't rename them. |
 
-**Status:** set up on 23 Oct 2026 (Staff Hub v21.40.1). Loading by itself since v21.41.0.
-- Google Cloud project `phf-staff-hub` (number 876421157517), with the audience set to **Internal**. Only the shop's Google Workspace accounts can sign in.
-- The settings are in `assets/js/phf-drive-config.js`. The client secret is not used and must never go in the repo.
-- **v21.41.0 needs one more permission in Google Cloud:** Step 3.5, `drive.readonly`.
+The tools find `1, …` and `2, …` by their names: a name starting with "1," or containing "database-build", and starting with "2," or containing "supplier-merge". A file dropped on top still replaces a loaded one.
+
+**Each PC connects once,** on the home page's **Google Drive · shop folder** card, in one of two ways. The linked folder is used whenever it is there:
+
+1. **Linked folder (best on the shop PCs). No sign-in, and it never runs out.**
+   - Install **Google Drive for desktop** and sign in with a shop account. The shop folder then appears as a normal folder, for example `G:\My Drive\…` or `G:\Shared drives\…`.
+   - On the home page, click **Link the shop folder on this PC** and pick that folder. When Chrome asks, choose **Allow on every visit**.
+   - From then on, the tools read and save straight to that folder, and Drive for desktop syncs it with everyone.
+   - If Chrome ever asks again, it's one click on **Reconnect**, with no Google window.
+2. **Browser sign-in (any PC, nothing to install).**
+   - On the home page, click **Sign in to Google Drive**, then **Choose the shop folder** (once on that PC).
+   - The sign-in is kept in that browser until Google's hour is up, and **renews by itself** five minutes before.
+   - If Chrome blocks Google's little window, it renews on **your next click anywhere** instead.
+   - **Sign out** on the card ends it.
 
 ## Is it safe?
-- **Sign-in is Google's own window.** The Staff Hub never sees a Google password.
-- **Two Drive permissions:**
-  - **`drive.readonly`** (read only) lists and reads the folder you choose for a tool. It cannot change, move or delete anything in Drive.
-  - **`drive.file`** lets it write only the files it made itself, in the PHF Staff Hub folder.
-  - Because the audience is Internal, only the shop's accounts can sign in, and Google needs no review.
-- **The sign-in lasts about an hour.** It is kept in that browser tab only (session storage) so each tool can load by itself, and it is gone when the tab closes, the hour is up or you press **Sign out**.
-- **Files travel straight between Google Drive and your browser.** No other server is involved, and nothing goes into the GitHub repo.
-- **The three settings are not passwords.** They are meant to sit in a public web page, because Google locks them to `https://admin-phf.github.io` and to the APIs below. Your data stays private, because every file still needs a staff member's own Google sign-in.
+- **Linked folder:**
+  - Chrome lets the Staff Hub reach only the one folder you picked, and only on admin-phf.github.io.
+  - Google Drive for desktop does the syncing under your Google account's own sharing.
+  - No Google password or sign-in is involved in the Staff Hub.
+- **Browser sign-in:**
+  - It is Google's own window, and the Staff Hub never sees a password.
+  - **`drive.readonly`** reads the shop folder, and cannot change or delete anything. **`drive.file`** writes only the files the Staff Hub makes itself, in "Staff Hub saved files".
+  - The sign-in (an access token) lasts at most an hour, and **Sign out** revokes it.
+  - Because the audience is Internal, only @prahranhealthfoods.com.au accounts can sign in.
+- **Data:**
+  - Files travel only between the shop folder and the browser. No other server is involved, and nothing goes into the GitHub repo.
+  - The three settings in `assets/js/phf-drive-config.js` are not passwords. Google accepts them only from https://admin-phf.github.io. The client secret is never used and must never go in the repo.
 
-## What you need
-- A Google account that will own the setup (the shop's account is best).
-- About 15 minutes.
-- To find each item: use the ☰ menu (top left) on https://console.cloud.google.com, or type the item's name in the search bar at the top.
+## One-time Google Cloud setup (done 23 Oct 2026)
+Project `phf-staff-hub` (number 876421157517), audience **Internal**. The steps, if they ever need redoing:
+1. **Create the project:** https://console.cloud.google.com → project picker → **New project**.
+2. **Turn on the APIs:** **APIs & Services → Library**, then enable **Google Drive API** and **Google Picker API**.
+3. **Set up sign-in:**
+   - **Google Auth Platform → Branding → Get started**: app name, support email, audience **Internal**, contact email, then **Create**.
+   - **Data Access → Add or remove scopes**: tick `.../auth/drive.file` and `.../auth/drive.readonly`, then **Update → Save**.
+4. **Create the sign-in ID:** **Google Auth Platform → Clients → Create client** → **Web application**. Under **Authorised JavaScript origins**, enter `https://admin-phf.github.io`, then copy the Client ID.
+5. **Create the picker key:** **APIs & Services → Credentials → Create credentials → API key**. Restrict it:
+   - **Websites:** `https://admin-phf.github.io/*` and `https://docs.google.com/*`.
+   - **API:** **Google Picker API** only.
+6. **Copy the project number:** **Cloud overview → Dashboard → Project info**.
+7. **Fill in the settings:** put the three values in `assets/js/phf-drive-config.js`, then commit.
 
-## Step 1 — Create a project
-1. Open https://console.cloud.google.com and sign in.
-2. Click the project picker at the top, then **New project**.
-3. Name it `PHF Staff Hub`, then click **Create**.
-4. Make sure the new project is selected in the project picker before going on.
+## Setting up the shop folder
+1. In Drive, as admin@, rename "GitHub Input Excel Data and Sheets 23.10.26" if you like. The name doesn't matter.
+2. **Share** it with each staff account as **Editor**, or move it into a **Shared drive** that the staff are members of. A Shared drive belongs to the shop rather than to one person.
+3. Keep **only the current files** in `1, database-build` and `2, pos-supplier-merge`, because everything in them loads. Subfolders, Google Docs and Slides files are skipped, and Google Sheets come in as .xlsx.
+4. The folder **"PHF Staff Hub"** in admin@'s My Drive (made by v21.40–v21.42) is no longer used, so you can delete it.
 
-## Step 2 — Turn on the two Google APIs
-1. Go to **APIs & Services → Library**.
-2. Search **Google Drive API**, open it, and click **Enable**.
-3. Go back to the Library, search **Google Picker API**, open it, and click **Enable**.
-
-## Step 3 — Set up the sign-in screen (Google Auth Platform)
-1. Go to **Google Auth Platform → Branding**. If it says "Google Auth platform not configured yet", click **Get started**.
-2. **App name:** `PHF Staff Hub`. **User support email:** your email. Click **Next**.
-3. **Audience:**
-   - If the shop uses Google Workspace (staff have @yourshop addresses), choose **Internal**. Only your shop's accounts can sign in, and Google needs no review.
-   - Otherwise (Gmail accounts), choose **External**.
-4. **Contact information:** your email. Click **Next**, tick the **Google API Services: User Data Policy** box, click **Continue**, then **Create**.
-5. Go to **Data Access → Add or remove scopes**. Tick both of these, then **Update → Save**:
-   - `.../auth/drive.file`: "See, edit, create and delete only the specific Google Drive files you use with this app".
-   - `.../auth/drive.readonly`: "See and download all your Google Drive files".
-   
-   If one isn't listed, paste its full address into **Manually add scopes**: `https://www.googleapis.com/auth/drive.readonly`.
-6. **External only:** go to **Audience → Test users → Add users**. Add each Google account that will use the Staff Hub, including yours, then **Save**. While the app stays in "Testing", only these accounts can sign in.
-
-## Step 4 — Create the sign-in ID (OAuth client ID)
-1. Go to **Google Auth Platform → Clients → Create client**.
-2. **Application type:** **Web application**. **Name:** `Staff Hub (GitHub Pages)`.
-3. Under **Authorised JavaScript origins**, click **Add URI** and enter exactly `https://admin-phf.github.io`. Use no path and no slash at the end.
-4. Leave **Authorised redirect URIs** empty, then click **Create**.
-5. Copy the **Client ID**. It ends in `.apps.googleusercontent.com`. A web client has no secret to keep.
-
-## Step 5 — Create the picker key (API key)
-1. Go to **APIs & Services → Credentials → Create credentials → API key**, then copy the key.
-2. Click the key's name (or **Edit API key**) to restrict it:
-   - **Application restrictions:** **Websites**. Add both of these lines:
-     - `https://admin-phf.github.io/*`
-     - `https://docs.google.com/*`. Google's picker runs from there, and without it the picker says "The API developer key is invalid".
-   - **API restrictions:** **Restrict key**, then tick only **Google Picker API**.
-3. Click **Save**. It can take a few minutes to take effect.
-
-## Step 6 — Copy the project number
-- Go to the ☰ menu, then **Cloud overview → Dashboard**. The **Project info** card shows **Project number** (digits only).
-- You can also find it under **IAM & Admin → Settings**.
-- The project **number** is not the project ID (the ID is a name such as `phf-staff-hub-123456`).
-
-## Step 7 — Put the three values in the Staff Hub
-Open `assets/js/phf-drive-config.js` in the repo and fill in the quotes:
-
-```js
-window.PHF_DRIVE_CONFIG = {
-  clientId: '1234567890-abc123.apps.googleusercontent.com',  // Step 4
-  apiKey: 'AIza…',                                           // Step 5
-  appId: '1234567890'                                        // Step 6 (project number)
-};
-```
-
-Commit and push with GitHub Desktop as usual. GitHub Pages updates in a minute or two. Then reload the tools with **Ctrl + Shift + R** so the browser gets the new file.
-
-## Step 8 — Use it
-1. **Allow pop-ups** for `admin-phf.github.io` in Chrome. Sign-in opens a small Google window, and if it is blocked, Chrome shows a blocked-pop-up icon in the address bar.
-2. **Sign in once.** Signed out, the only Drive button is **Sign in to Google Drive**: under the drop box in each tool, and in the hub's Saved files. Use it with the shop account and allow both Drive permissions. **From Google Drive** and the folder link appear once you're signed in.
-   - The tab stays signed in for up to an hour, so each tool you open in it loads by itself.
-   - A PHF Staff Hub folder appears in Drive the first time.
-3. **Build POS Master Databases:** under Drop all, click **Choose a Drive folder to load every time** and pick, for example, "GitHub Input Excel Data and Sheets 23.10.26 › 1, database-build". All its files load now and every time the page opens. After **Build All**, the outputs go to Drive by themselves.
-4. **POS New Product Check Clean:** the same, with its folder ("2, pos-supplier-merge"). The newest POS Database and supplier sets come in from Drive by themselves.
-5. **Reconcile CH2 Order:** the newest POS master and Ongoing Discounts come in from Drive by themselves. Drag in (or use **From Google Drive** for) the order XLS and invoice PDF as usual.
-
-## Good to know
-- **Use the same Google account on every PC.** The PHF Staff Hub folder belongs to the account you sign in with, and a different account gets its own.
-- **The chosen tool folder is remembered per browser.** On another PC, choose it once there too. **Change** picks another folder, **Load again** reloads it, and **✕** stops loading a folder.
-- **The folder is loaded as it is.** Keep only the current files in a tool's folder, because older copies alongside them would be loaded too. Subfolders, Google Docs and Slides files are skipped, and Google Sheets come in as .xlsx.
-- **Drive keeps earlier versions** of each saved file for about 30 days: right-click the file, then **File information → Manage versions**.
-- **Deleting a saved file in a browser keeps it out of that browser.** Drive keeps its copy, which comes back only when a newer one is saved, or when you press **Get from Google Drive**. To remove it everywhere, delete it in Drive's PHF Staff Hub folder too.
-- **The hub takes every newer saved file** (all the masters and sets), so the first open after a build can take a minute on a slow connection.
-- **To switch it off,** empty the three values again and commit. The buttons disappear, and the files in Drive stay where they are.
+## Setting up each PC
+- **Shop PCs:** install Google Drive for desktop (https://www.google.com/drive/download/) and sign in with the shop account. Then open the Staff Hub home page and click **Link the shop folder on this PC**, pick the folder, and choose **Allow on every visit**.
+- **Any other PC:** open the home page, click **Sign in to Google Drive**, then **Choose the shop folder**. Allow pop-ups for admin-phf.github.io so the hourly renewal can happen without a click.
 
 ## If something goes wrong
-| Message | Fix |
+| What you see | Fix |
 |---|---|
-| "The API developer key is invalid" (in the picker) | Step 5: add `https://docs.google.com/*` to the key's websites, and make sure the Google Picker API is ticked. Then wait a few minutes. |
-| "Error 400: origin_mismatch" / "redirect_uri_mismatch" | Step 4: the origin must be exactly `https://admin-phf.github.io`. |
-| "Access blocked: … has not completed the Google verification process" | Step 3.6: add that Google account as a test user (External), or use a shop account (Internal). |
-| "Error 403: access_denied" | Same as above, or the permission was declined. Click the button again and allow it. |
-| "Google Drive read access was not allowed…" | The read permission was unticked at sign-in. Sign out (Saved files), sign in again, and allow both. |
-| "The Drive folder … could not be opened — choose it again" | The folder was deleted or moved out of reach. Use **Change** to pick it again. |
-| Nothing happens when you click | A pop-up was blocked. Allow pop-ups for the site (Step 8.1) and click again. |
-| "Google Drive API has not been used in project … or it is disabled" | Step 2: enable the Google Drive API in this project. |
-| A file is refused | It is checked like a dropped file. Use the right type (order .XLS, invoice .PDF, master .xlsx…). |
+| "Reconnect the shop folder" under the drop box | Click it. When Chrome asks, choose **Allow on every visit**. |
+| "No "1, database-build" folder inside …" | The linked or chosen folder is the wrong one. Link (or choose) the folder that holds `1, …` and `2, …`. |
+| "Google Drive reconnects on your next click" | The hour ran out while Chrome blocked the renewal. Click anywhere, or allow pop-ups for the site. |
+| "This browser can read the shop folder but not save into "Staff Hub saved files"" | That account has view-only access, or it is a browser sign-in on a folder another account made. Give the account Editor access, or save from a PC with the linked folder. |
+| "The API developer key is invalid" (in the picker) | Step 5: the key's websites must include `https://docs.google.com/*`. |
+| "Access blocked" / "Error 403: access_denied" | Sign in with an @prahranhealthfoods.com.au account and allow both Drive permissions. |

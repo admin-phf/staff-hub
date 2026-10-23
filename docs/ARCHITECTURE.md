@@ -1574,3 +1574,41 @@ All implemented stages keep source business files local to the browser and gener
 - Versions: hub v21.42.0; Reconcile CH2 Order v2.24.0, Build POS Master Databases v21.25.0 (pipeline.js ?v=21.25.0 — it had been
   left at 21.22.0), POS New Product Check Clean v1.27.0 (version and wording only); phf-drive.js ?v=1.2.0; phf-drop.js ?v=1.0.0;
   hub-library.js ?v=2.4.0; library.css ?v=2.3.0.
+
+## Staff Hub v21.43.0 (24 Oct 2026 00:10 AEDT) — one shared shop folder, two ways in (linked folder / browser sign-in), Google Drive card on the home page
+- `assets/js/phf-drive.js` v2.0.0 (rewritten; same public calls the panel uses: available, status, saveAll, getLatest, onChange,
+  onReport; plus linkFolder, reconnect, unlink, chooseShop, signIn, signOut):
+  - **Shop folder** layout: subfolders found by name (`SUB`: database-build `/database[\s-]*build|^\s*1\s*[,.\-\s]/i`, pos-supplier-merge
+    `/supplier[\s-]*merge|^\s*2\s*[,.\-\s]/i`; override `localStorage['phf.drive.sub.<page>']`) and `Staff Hub saved files` (made when
+    first written) holding one file per Library kind named `[slug] name` (slug = kind with ':' → '-'; parse tolerates " (1)").
+  - Two stores with one interface (ready, where, folders, listFiles, readFile, savedDir, listSaved, read, write):
+    `localStore` — a FileSystemDirectoryHandle from `showDirectoryPicker({ id:'phf-shop-folder', mode:'readwrite' })`, kept in
+    IndexedDB `PHFStaffHubLink/handles['shop']`; `queryPermission` on load ('granted' when Chrome's "Allow on every visit" was
+    chosen, else 'prompt' → one-click `requestPermission`); savedAt = file lastModified; write = createWritable, then removeEntry of
+    the kind's other files. `driveStore` — Drive v3 with drive.file + drive.readonly; shop folder chosen once in the Picker
+    (`localStorage['phf.drive.shop']`, FOLDERS view, SUPPORT_DRIVES / setEnableDrives); children queries with supportsAllDrives /
+    includeItemsFromAllDrives; savedAt = `appProperties.phfSavedAt` || modifiedTime; write = PATCH its own file (appProperties
+    present) else POST into the saved folder; 403/404 → "can read but not save" message.
+  - `store()` = local when linked and granted, else drive when signed in with a shop folder. `status()` → { mode, ok, need: reconnect
+    | shop | click | connect, text }. `changed()` starts `autoSync()` + `loadToolFolder()` whenever a mode becomes ready.
+  - `sync()` as v1.1 (pull newer per kind for the page's `PULL` kinds, tombstones, push this browser's newer non-Drive records) with:
+    a seen mark per store and kind (`phf.drive.seen.<type>.<kind>` = savedAt|size) so a copy already matched is not read again; and
+    before writing, the copy there is compared (phfHash, or read and hashed when the sizes match) so unchanged files are not rewritten.
+  - Browser sign-in: token kept in `localStorage['phf.drive.session']` (all tabs; never past its expiry); `scheduleRenew()` asks for
+    a fresh token 5 min before expiry (`requestAccessToken({ prompt:'', hint: email })`, email from `drive/v3/about`, kept in
+    `phf.drive.user`); on failure (pop-up blocked) or a 401 → `armClick()`: the next pointerdown anywhere (not on inputs or Drive
+    buttons) signs in. `storage` events keep tabs in step. Sign out revokes and clears the token and the remembered account.
+  - `loadToolFolder()` waits for `#bulkInput.onchange` and, in POS New Product Check Clean, for `PHFMergeSession.pending()` to be
+    false (its last session restoring / saving — files were refused while it was busy).
+  - Drop-rail block: one centred button only when something needs doing (Reconnect the shop folder / Choose the shop folder / Sign in
+    to Google Drive / Link the shop folder) or From Google Drive when signed in; the lines (`.phf-drive-lines`: connection + what
+    loads + "change" link to the home card, note, saved-files line) left-aligned. Linked: no button.
+  - Home page card `#driveCard` (index.html; hidden when neither way is possible): chip (LINKED FOLDER / SIGNED IN / NOT
+    CONNECTED / ONE CLICK TO RECONNECT), "1 · Linked folder" and "2 · Browser sign-in" boxes with their buttons, "What loads by itself".
+- `assets/js/hub-library.js` v2.5.0: the panel's Drive line shows `status().text`, Save / Get when connected (to / from "Staff Hub
+  saved files"), "Connect Google Drive" (link to the home card) on tools when not.
+- `assets/css/library.css` v2.4.0: left-aligned lines, centred button row (hidden when it has no visible button), the card.
+- The v21.40–v21.42 app folder "PHF Staff Hub" (appProperties phfFolder) and the per-tool Drive folder (`phf.drive.folder.*`) are
+  no longer used.
+- Versions: hub v21.43.0; Reconcile CH2 Order v2.25.0, Build POS Master Databases v21.26.0, POS New Product Check Clean v1.28.0
+  (version only); phf-drive.js ?v=2.0.0; hub-library.js ?v=2.5.0; library.css ?v=2.4.0. docs/GOOGLE-DRIVE-SETUP.md rewritten.

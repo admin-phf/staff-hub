@@ -1,4 +1,6 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.27.0 (23 Oct 2026, Staff Hub v21.42.0): version only — files can be dropped
+/* PHF Staff Hub — POS New Product Check Clean v1.28.0 (23 Oct 2026, Staff Hub v21.43.0): version only — the shop folder's
+ * "2, pos-supplier-merge" loads by itself once the last session is back (phf-drive.js v2.0.0 waits for PHFMergeSession).
+ * v1.27.0 (23 Oct 2026, Staff Hub v21.42.0): version only — files can be dropped
  * anywhere on the page (phf-drop.js; after the password); the drop box and the centred Google Drive block match the other tools.
  * v1.26.0 (23 Oct 2026, Staff Hub v21.41.0): version only — with Google Drive signed
  * in, the Drive folder chosen under Drop all ("Loads every time") loads by itself when the page opens (after the password), and a
@@ -256,7 +258,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.27.0';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.28.0';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a

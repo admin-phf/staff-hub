@@ -1,3 +1,5 @@
+// v2.25.0 (23 Oct 2026, Staff Hub v21.43.0): version only — the POS master and Ongoing Discounts come from the shop folder's "Staff
+// Hub saved files" (linked folder or browser sign-in, phf-drive.js v2.0.0); only the Drive button is centred under the drop box.
 // v2.24.0 (23 Oct 2026, Staff Hub v21.42.0): version only — files can be dropped anywhere on the page (phf-drop.js) and the drop box
 // reads "Drop files here · one or several"; the Google Drive block under it is centred, one Sign in button until signed in.
 // v2.23.0 (23 Oct 2026, Staff Hub v21.41.0): the POSActive balancing check is always open, just above the RUN row and the

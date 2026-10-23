@@ -1,3 +1,4 @@
+/* v2.4.0 (23 Oct 2026): only the Drive button is centred under the drop box (the lines are left-aligned); the home page Google Drive card (end of file). */
 /* v2.3.0 (23 Oct 2026): the Google Drive block under the drop box is centred, the same on every tool; files dragged over a tool page show where they go (end of file). */
 /* v2.2.0 (23 Oct 2026): Sign in, the "Loads every time" Drive folder line and the Google Drive sync line (end of file). */
 /* v2.1.0 (23 Oct 2026): the Google Drive line in the Library panel and the From Google Drive button (end of file). */
@@ -86,3 +87,31 @@
 .phf-drive-hint{font-size:11.5px;font-weight:600;color:var(--phf-muted,#5F6B76);line-height:1.35}
 .phf-drive-hint[hidden],.phf-drive-folder[hidden]{display:none}
 body.phf-file-drag::after{content:'Let go anywhere — one file or several; each goes to its own row';position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:9999;padding:9px 16px;border-radius:999px;background:var(--phf-navy,#1E3A5F);color:#fff;font:700 13px var(--phf-font,inherit);box-shadow:0 6px 20px rgba(15,30,50,.28);pointer-events:none;white-space:nowrap}
+/* v2.4.0 (23 Oct 2026) — phf-drive.js v2.0.0: only the button is centred under the drop box; its lines (connection, what loads,
+   messages) are left-aligned like the rest of the panel. The home page "Google Drive · shop folder" card (#driveCard). */
+.phf-drive-row{align-items:stretch;text-align:left}
+.phf-drive-btns{justify-content:center}
+.phf-drive-btns:not(:has(button:not([hidden]))){display:none}
+.phf-drive-lines{display:flex;flex-direction:column;gap:3px;text-align:left}
+.phf-drive-state{font-size:11.5px;font-weight:600;line-height:1.4;color:var(--phf-navy,#1E3A5F);overflow-wrap:anywhere}
+.phf-drive-state b{font-weight:800}
+.phf-drive-state a{color:var(--phf-blue,#1A73E8);font-weight:700}
+.phf-drive-state:empty{display:none}
+a.phf-lib-btn{display:inline-flex;align-items:center;text-decoration:none}
+.phf-drive-card .phf-band .phf-drive-chip{margin-left:auto}
+.phf-drive-chip{display:inline-block;padding:3px 10px;border-radius:999px;background:#fff;color:var(--phf-red,#C5221F);font:800 10.5px/1.2 var(--phf-font,inherit);letter-spacing:.06em}
+.phf-drive-chip.ok{color:var(--phf-green,#2E7D32)}
+.phf-drive-chip:empty{display:none}
+.phf-drive-card-body{display:grid;gap:12px;padding:12px 16px 14px;font-size:12.5px;line-height:1.45;color:var(--phf-ink,#1F2A37)}
+.phf-drive-ways{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.phf-drive-way,.phf-drive-map{border:1px solid var(--phf-line,#DDE3EA);border-radius:10px;padding:10px 12px;background:#F8FAFC}
+.phf-drive-card h3{margin:0 0 6px;font:800 12.5px/1.3 var(--phf-font,inherit);color:var(--phf-navy,#1E3A5F)}
+.phf-drive-card h3 small{margin-left:6px;font-weight:600;color:var(--phf-muted,#5F6B76)}
+.phf-drive-card p{margin:0 0 7px}
+.phf-drive-acts{display:flex;flex-wrap:wrap;gap:6px}
+.phf-drive-map ul{margin:0 0 7px;padding-left:18px}
+.phf-drive-now{font-weight:700;color:var(--phf-navy,#1E3A5F)}
+.phf-drive-msg{margin:0;font-weight:600;color:var(--phf-muted,#5F6B76)}
+.phf-drive-msg.is-error{color:var(--phf-red,#C5221F)}
+.phf-drive-msg:empty{display:none}
+.phf-drive-lines>span{flex:0 0 auto}

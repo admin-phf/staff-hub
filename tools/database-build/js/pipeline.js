@@ -1,5 +1,7 @@
 (function(){'use strict';
-const VERSION='v21.25.0', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+const VERSION='v21.26.0', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+// v21.26.0 (Staff Hub v21.43.0) — version only: the shop folder's "1, database-build" loads by itself through a linked Google Drive
+// for desktop folder or the browser sign-in (phf-drive.js v2.0.0); saved files go to the shop folder's "Staff Hub saved files".
 // v21.25.0 (Staff Hub v21.42.0) — version only: one file or several can be dropped anywhere on the page (phf-drop.js); the Google
 // Drive block under the drop box is centred and shows just Sign in to Google Drive until signed in (phf-drive.js v1.2.0).
 // v21.24.0 (Staff Hub v21.41.0) — version only: with Google Drive signed in, the Drive folder chosen under Drop all ("Loads every
