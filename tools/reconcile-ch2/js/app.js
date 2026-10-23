@@ -1,3 +1,6 @@
+// v2.23.0 (23 Oct 2026, Staff Hub v21.41.0): the POSActive balancing check is always open, just above the RUN row and the
+// checklist (it was inside Details; Details keeps the review notes, order link, import keys and the how-to). With Google Drive
+// signed in, the newest POS master and Ongoing Discounts come in from Drive by themselves (phf-drive.js v1.1.0). Exports unchanged.
 // v2.22.1 (23 Oct 2026, Staff Hub v21.40.1): version only — Google Drive is now set up, so From Google Drive and the Saved files
 // panel's Google Drive line show. No change to the checklist, matching or exports.
 // v2.22.0 (23 Oct 2026, Staff Hub v21.40.0): a line to fix in POSActive stays in its place in the list, tinted orange, with an orange
@@ -1830,7 +1833,7 @@
     const linkText=mism.length?`<span class="rs-check ok">${tick}<b>Order link</b> CH2 Customer PO ${escapeHtml([...new Set(mism.map(m=>m.customerPo))].join(', '))} → POSActive order ${escapeHtml(orderNo)} · linked automatically</span>`:`<span class="rs-check ok">${tick}<b>Order link</b> POSActive order ${escapeHtml(orderNo||'(uploaded)')}</span>`;
     const keyText=`<span class="rs-check ${keyN?'warn':'ok'}">${keyN?'':tick}<b>Import keys</b> ${keyN?`${keyN} to review`:'none to review'}</span>`;
     checks.innerHTML=`${integText}${linkText}${keyText}`;checks.classList.remove('hidden');   // v2.20.0: inside Details
-    if(more){if(!integ||!integ.ok)more.open=true;const sm=more.querySelector('summary');if(sm)sm.textContent=`Details — POSActive balance, review notes${noteN?` (${noteN})`:''}, order link, import keys, how the checklist works`;}
+    if(more){if(!integ||!integ.ok)more.open=true;const sm=more.querySelector('summary');if(sm)sm.textContent=`Details — review notes${noteN?` (${noteN})`:''}, order link, import keys, how the checklist works`;}
     wireSummary();
   }
   let summaryWired=false;

@@ -1524,3 +1524,35 @@ All implemented stages keep source business files local to the browser and gener
 - docs/GOOGLE-DRIVE-SETUP.md: status line.
 - Versions: hub v21.40.1; Reconcile CH2 Order v2.22.1, Build POS Master Databases v21.23.1, POS New Product Check Clean v1.25.1
   (version only).
+
+## Staff Hub v21.41.0 (23 Oct 2026 12:20 AEDT) — Google Drive loads by itself; Reconcile's balancing check always open
+- `assets/js/phf-drive.js` v1.1.0:
+  - Scopes `drive.file` + `drive.readonly` (Data Access must list both). The token is kept in `sessionStorage['phf.drive.session']`
+    ({ t, exp, scope, read }) until it expires, so every page in the tab is signed in; Sign out / 401 removes it. `read` is false
+    when the read scope was not granted (GIS `r.scope`).
+  - `sync(Library, kinds, { pull, push, pushKinds, force })`: newest Drive copy per kind (listSaved, `appProperties.phfSavedAt`) vs
+    the Library record's `savedAt`. Pull = download + `Library.put(kind, file, { meta: 'from Google Drive' })`, skipped when the
+    fingerprints match (`appProperties.phfHash` = first 16 bytes of SHA-256, hex) or when the kind was deleted in this browser
+    after that copy was saved (`localStorage['phf.drive.gone.<kind>']` / `.gone.*`, set by a Library remove / clear, cleared by a
+    put; `force` — the panel's Get — ignores it). Push = this browser's records newer than Drive and not from Drive, via
+    `saveRecord` (skipped when the hash matches). All Drive work runs one at a time (`queue`).
+  - Per page (from the path): `PULL` kinds — reconcile-ch2: posMaster, lib:ref-discounts, supplierMerge; pos-supplier-merge:
+    lib:pos-db, the four supplier sets, lib:ref-discounts; database-build: the three refs; hub: all. `autoSync()` runs on open when
+    the tab is signed in and on every sign-in (`emit` edge), and reports `{ type, result, text }` to `onReport` listeners.
+  - `Library.put` is wrapped: a put not from Drive queues its kind and pushes 1.5 s later (when signed in). Reconcile and the merge
+    tool already reload reference / POS Database kinds on a Library put; Build POS Master Databases takes its refs from its folder.
+  - Folder pages (database-build, pos-supplier-merge): `localStorage['phf.drive.folder.<page>']` = { id, name }, chosen with
+    `pickFolder()` (Picker FOLDERS view, folder mime). On open (signed in), on Sign in, Load again and Change: `listFolder` (files
+    in the folder; no subfolders, no Docs/Slides; Sheets exported to .xlsx) → `downloadAll` → `feed(#bulkInput)` once the tool has
+    wired its drop handler (`whenReady` waits for `#bulkInput.onchange`, i.e. after the merge tool's password).
+  - The drop-rail row: From Google Drive · Sign in (signed out only) · "Loads every time: <folder> · Load again · Change · ✕" ·
+    note · sync line (`.phf-drive-sync`).
+- `assets/js/hub-library.js` v2.3.0: Sign in on the Google Drive line (signed out only); the line shows the automatic sync / save
+  reports; Save uses `PHFDrive.saveAll` (queued, unchanged files skipped). `assets/css/library.css` v2.2.0: the column layout of
+  the Drive row, Sign in, folder line, sync line, `[hidden]` for the Drive buttons.
+- Reconcile CH2 Order v2.23.0: `#posBalancePanel` moved out of `#rsMore` to straight after it, before `#resultSteps` — always
+  visible once there is a result; `renderPosBalance` is unchanged (still live via `refreshLiveTotals`). The Details summary no
+  longer names the balance (index.html and `renderSummary`).
+- Versions: hub v21.41.0; Reconcile CH2 Order v2.23.0; Build POS Master Databases v21.24.0 and POS New Product Check Clean v1.26.0
+  (version only); phf-drive.js ?v=1.1.0; hub-library.js ?v=2.3.0; library.css ?v=2.2.0. docs/GOOGLE-DRIVE-SETUP.md rewritten
+  for v21.41.0 (Step 3.5 adds drive.readonly; Step 8 "Use it").

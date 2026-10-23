@@ -22,13 +22,13 @@
 <link rel="stylesheet" href="../../assets/css/theme.css?v=20.4.2">
 <link rel="stylesheet" href="../../assets/css/phf-ui.css?v=1.5.0">
 <link rel="stylesheet" href="../../assets/css/compact-layout.css?v=1.1.0">
-<link rel="stylesheet" href="../../assets/css/library.css?v=2.1.0">
+<link rel="stylesheet" href="../../assets/css/library.css?v=2.2.0">
 </head>
 <body class="phf-page-reconcile phf-page-db">
   <header class="phf-shell-header header-container">
   <a class="phf-shell-logo logo-section" href="../../index.html" aria-label="Return to Staff Hub"><img src="./assets/phf-logo.png?v=16.0.0-20261005-1802" alt="Prahran Health Foods"></a>
-  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="Reconcile CH2 Order — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg></span><div class="phf-shell-copy title-row"><h1>Reconcile CH2 Order</h1><p class="phf-shell-version version-text">v2.22.1</p></div></a>
-  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Reconcile CH2 Order</span></nav><p class="phf-shell-updated build-details">Updated 23 Oct 2026 11:00 AEDT</p></div>
+  <a class="phf-shell-title center-section phf-shell-home" href="../../index.html" title="Back to Staff Hub" aria-label="Reconcile CH2 Order — back to Staff Hub"><span class="phf-shell-icon icon-box" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M3 21v-5h5"/></svg></span><div class="phf-shell-copy title-row"><h1>Reconcile CH2 Order</h1><p class="phf-shell-version version-text">v2.23.0</p></div></a>
+  <div class="phf-shell-meta right-section"><nav class="phf-shell-nav breadcrumbs" aria-label="Breadcrumb"><a href="../../index.html">Staff Hub</a><span aria-hidden="true">›</span><span aria-current="page">Reconcile CH2 Order</span></nav><p class="phf-shell-updated build-details">Updated 23 Oct 2026 12:20 AEDT</p></div>
 </header>
   <main class="wrap phf-full workflow-wrap">
 
@@ -152,12 +152,11 @@
       <div class="kpis rs-legacy-kpis" id="kpis" aria-hidden="true"></div>
       <div class="rs-glance hidden" id="rsGlance"></div>
       <div class="rs-needs hidden" id="rsNeeds"></div>
-      <!-- v2.19.0: Details holds everything that is not needed at a glance — money, the POSActive balance (moved in here), the
+      <!-- v2.19.0: Details holds everything that is not needed at a glance — money, the POSActive balance (v2.23.0: moved out again, below), the
            review notes, order link, import keys and the checklist how-to. It opens by itself when a check needs you. -->
-      <details class="rs-more" id="rsMore"><summary>Details — POSActive balance, review notes, order link, import keys, how the checklist works</summary>
+      <details class="rs-more" id="rsMore"><summary>Details — review notes, order link, import keys, how the checklist works</summary>
       <div class="rs-checks hidden" id="rsChecks"></div>
       <div class="rs-money" id="rsMoney" hidden></div>
-      <div class="pos-balance-panel hidden" id="posBalancePanel" aria-live="polite"></div>
       <div class="notice hidden" id="warningBox"></div>
       <div class="result-pair">
         <div class="order-override-panel hidden" id="orderOverrideBox" aria-live="polite"></div>
@@ -167,6 +166,8 @@
         <span class="pos-tools-note">Receiving checklist · Add Qty accumulates in Found · Enter moves to the next Add Qty row · exact Found = invoiced/supplied qty completes automatically · short counts stay in Remaining until resolved or manually ticked; exact or over counts complete automatically · if a count is later corrected short it returns to Remaining; only a left-checkbox manual acceptance stays completed · unticking a row clears Found so a miscount can be restarted · unticked rows are treated as not supplied in the POSActive download · the POSActive download imports each row's Found quantity (overs and unders) with the CH2 invoice prices, unless you change a price in the checklist · a ticked not-invoiced row with Found &gt; 0 is added to the POSActive download as a manual receiving line · Tick all covers POS-order rows; INV rows (billed but not on the POS order) are held in their own section at the top and stay excluded from the TXT until ticked individually · POS-order lines CH2 did not invoice are held in the Not invoiced section under it, laid out like every other row (CH2 ITEM CODE from the POS master, Disc % the Ongoing Discounts rule); ticking one means it arrived — the ordered quantity goes into the TXT as a manual line — and Add Qty 0 marks it not supplied; ALL leaves them for you · Not on POS order explains why each INV row was not matched · enter 0 to clear Found and account for none supplied · Clear qty is above Add Qty · click a heading to sort Remaining and Completed (again to reverse); its ≡ button sorts and filters by value, like the merge sheets · click, Shift + click or drag cells and Ctrl + C copies them · Adj WSPrc, Adj CatPrc / Adj DPrc and Adj Qty can be changed: type, Enter or double-click, Ctrl + V (a block from Excel), Ctrl + D or drag the corner square to fill down — a changed price shows lower blue ↓ / higher red ↑ and a changed Adj Qty more green / less red against the billed quantity, each with an orange corner, and the line's POS Index turns orange — Delete puts the value back, Ctrl + Z undoes, and N rows changed in the toolbar shows only those lines · lines to fix in POSActive (Sub ID it can't import, blank or shared Sub ID, LOW match, GST different from POSActive) stay in their place in the list, tinted orange with an orange warning row above saying what to change, and the cell to fix in red · the footer totals (inc GST): Current = the POS order at current prices, Adjusted = the POSActive TXT (against the invoice), Not invoiced = ordered but not billed, Combined = Adjusted + Not invoiced (against Current) · Check follows your counts and changes: SHORT / OVER against the billed quantity, and a changed Adj CatPrc against the expected price · POSActive gets a changed Adj WSPrc as Normal WS and a changed Adj CatPrc / DPrc (one price) as Unit Price ex GST, with Disc % worked out from them; a changed Adj Qty is the Found quantity · Adj RRPrc is not in the POSActive import, so it cannot be changed here · Total inc GST = receiving qty × AdjCatPrc + GST · POS Index preserves the original POS-order sequence · CH2 Line identifies supplier invoice lines · Found: red = under, grey = correct, green = over</span>
       </div>
       </details>
+      <!-- v2.23.0: the POSActive balancing check is always open, straight above the RUN row and the checklist (it was in Details) -->
+      <div class="pos-balance-panel hidden" id="posBalancePanel" aria-live="polite"></div>
       <!-- v2.17.0: the same RUN row as the top strip — same buttons, order, states and status line (Run all and CLEAR FILES run
            the strip's buttons; the four downloads are the real ones, the strip's copies run these) -->
       <div class="db-runstrip db-runstrip-inline" id="resultSteps" role="group" aria-label="Run the steps">
@@ -223,7 +224,7 @@
 
   <script src="../../assets/js/phf-library.js?v=1.2.0"></script>
   <script src="../../assets/js/phf-drive-config.js?v=1.0.1"></script>
-  <script src="../../assets/js/phf-drive.js?v=1.0.0"></script>
+  <script src="../../assets/js/phf-drive.js?v=1.1.0"></script>
   <script src="./js/reference/reference-config.js?v=2638"></script>
   <script src="./js/reference/reference-data.js?v=2.12.1"></script>
   <script src="./js/core/schema.js?v=2638"></script>
@@ -234,9 +235,9 @@
   <script src="./js/core/linked-pos.js?v=2.8.0"></script>
   <script src="./js/export/pos-import.js?v=2.18.0"></script>
   <script src="./js/export/report.js?v=2.8.0"></script>
-  <script src="./js/app.js?v=2.22.1"></script>
+  <script src="./js/app.js?v=2.23.0"></script>
   <script src="./js/ui/workspace.js?v=2.17.0"></script>
-  <script src="../../assets/js/hub-library.js?v=2.2.0"></script>
+  <script src="../../assets/js/hub-library.js?v=2.3.0"></script>
   <script src="../../assets/js/phf-accordion.js?v=1.2.2"></script>
   <script>if(window.PHFLibraryPanel)window.PHFLibraryPanel.mount({root:'#toolLibrary',scope:'Reconcile CH2 Order',heading:'Saved files'});if(window.PHFAccordion)window.PHFAccordion.refresh();(function(){var s=document.getElementById('dbRunStrip');if(!s)return;var set=function(){document.documentElement.style.setProperty('--db-strip-h',s.getBoundingClientRect().height+'px')};set();if(window.ResizeObserver)new ResizeObserver(set).observe(s);window.addEventListener('resize',set)})();</script>
 </body>

@@ -1,4 +1,7 @@
-/* PHF Staff Hub — Library panel v2.2.0 (23 Oct 2026: when Google Drive is set up (assets/js/phf-drive.js), a Google Drive line —
+/* PHF Staff Hub — Library panel v2.3.0 (23 Oct 2026: the Google Drive line has Sign in (one click; the tab then stays signed in
+ * for up to an hour and keeps the saved files and Drive in step by itself — phf-drive.js v1.1.0) and shows what came in or went
+ * out; Save and Get skip unchanged files)
+ * v2.2.0 (23 Oct 2026: when Google Drive is set up (assets/js/phf-drive.js), a Google Drive line —
  * Save to Google Drive (this panel's files into the "PHF Staff Hub" folder, one copy per file, replaced each time), Get from Google
  * Drive (newer copies from that folder into this browser's Library, so another PC gets the same files) and Sign out)
  * v2.1.0 (21 Oct 2026: Delete all asks first; ✕ on a file several tools use — Ongoing
@@ -87,6 +90,7 @@
     var D = window.PHFDrive, self = this; if (!D || !D.configured() || !this.bodyEl || this.driveEl) return;
     var bar = document.createElement('div'); bar.className = 'phf-lib-drive';
     bar.innerHTML = '<span class="phf-lib-drive-what"><b>Google Drive</b> <span data-drive-state></span></span>' +
+      '<button type="button" class="phf-lib-btn phf-lib-btn-primary" data-drive-in hidden title="One click signs in to Google Drive for this browser tab (up to an hour). The saved files then stay in step with Google Drive by themselves">Sign in</button>' +
       '<button type="button" class="phf-lib-btn" data-drive-save title="Save ' + (this.scope ? 'this tool\'s' : 'all the') + ' saved files to the ' + esc(D.FOLDER) + ' folder in your Google Drive — one copy per file, replaced each time">Save to Google Drive</button>' +
       '<button type="button" class="phf-lib-btn" data-drive-get title="Copy the newer files from the ' + esc(D.FOLDER) + ' folder in Google Drive into this browser">Get from Google Drive</button>' +
       '<button type="button" class="phf-lib-btn" data-drive-out hidden title="Sign out of Google Drive on this page">Sign out</button>' +
@@ -94,17 +98,19 @@
     this.bodyEl.insertBefore(bar, this.bodyEl.firstChild); this.driveEl = bar;
     var state = bar.querySelector('[data-drive-state]'), out = bar.querySelector('[data-drive-out]'), msg = bar.querySelector('.phf-lib-drive-msg');
     var say = function (t, bad) { msg.textContent = t; msg.className = 'phf-lib-drive-msg' + (bad ? ' is-error' : ''); };
-    var paint = function () { var on = D.signedIn(); state.textContent = on ? '· signed in' : '· not signed in'; out.hidden = !on; };
+    var inBtn = bar.querySelector('[data-drive-in]');
+    var paint = function () { var on = D.signedIn(); inBtn.hidden = on; state.textContent = on ? '· signed in — keeps these files in step' : '· not signed in'; out.hidden = !on; };
     D.onChange(paint); paint();
+    if (D.onReport) D.onReport(function (r) { if (!r.text) return; say(r.type === 'error' ? r.text : 'Google Drive: ' + r.text, r.type === 'error'); if (r.result && r.result.got && r.result.got.length) self.render(); });
+    inBtn.onclick = function () { busy(true); say('Signing in to Google…'); D.signIn().then(function () { say('Signed in — checking Google Drive…'); }).catch(function (e) { say(e.message || String(e), true); }).then(function () { busy(false); }); };
     var busy = function (on) { bar.querySelectorAll('button').forEach(function (b) { b.disabled = on; }); };
     bar.querySelector('[data-drive-save]').onclick = function () {
       busy(true); say(D.signedIn() ? 'Saving…' : 'Signing in to Google…');
       D.signIn().then(function () { return L.list(); }).then(function (recs) {
         var list = (self.scope && !self.showAll) ? recs.filter(function (r) { return relevant(r, self.scope); }) : recs;
         if (!list.length) { say('No saved files here to save yet.'); return; }
-        var n = 0;
-        return list.reduce(function (p, r) { return p.then(function () { say('Saving ' + (++n) + ' of ' + list.length + ' to Google Drive…'); return D.saveRecord(r); }); }, Promise.resolve())
-          .then(function () { say('Saved ' + list.length + ' file' + (list.length === 1 ? '' : 's') + ' to Google Drive › ' + D.FOLDER + '.'); });
+        return D.saveAll(list, function (n, t) { say('Saving ' + n + ' of ' + t + ' to Google Drive…'); })   // v2.3.0: unchanged files are skipped
+          .then(function (r) { say(r.saved.length ? 'Saved ' + r.saved.length + ' file' + (r.saved.length === 1 ? '' : 's') + ' to Google Drive › ' + D.FOLDER + (r.same ? ' · ' + r.same + ' already up to date' : '') + '.' : 'Already up to date in Google Drive › ' + D.FOLDER + '.'); });
       }).catch(function (e) { say(e.message || String(e), true); }).then(function () { busy(false); });
     };
     bar.querySelector('[data-drive-get]').onclick = function () {

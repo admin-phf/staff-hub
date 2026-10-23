@@ -1,3 +1,4 @@
+/* v2.2.0 (23 Oct 2026): Sign in, the "Loads every time" Drive folder line and the Google Drive sync line (end of file). */
 /* v2.1.0 (23 Oct 2026): the Google Drive line in the Library panel and the From Google Drive button (end of file). */
 /* PHF Staff Hub — Library panel on the home page v1.1.0 (14 Oct 2026). Navy / gold band from theme.css. v1.1.0: compact table rows; the explanation sits behind "What is this?". */
 .phf-lib{margin-top:16px}
@@ -61,3 +62,18 @@
 .phf-drive-btn:disabled{opacity:.55;cursor:default}
 .phf-drive-note{flex:1 1 160px;min-width:0;font-size:11.5px;font-weight:600;color:var(--phf-muted,#5F6B76);overflow-wrap:anywhere}
 .phf-drive-note.is-error{color:var(--phf-red,#C5221F)}
+/* v2.2.0 (23 Oct 2026) — Google Drive loads by itself (phf-drive.js v1.1.0): Sign in, the tool's "Loads every time" folder line
+   and the line saying what came in from / went out to Google Drive. */
+.phf-drive-row{flex-direction:column;align-items:stretch;gap:5px}
+.phf-drive-btns{display:flex;flex-wrap:wrap;gap:6px}
+.phf-drive-btn[hidden],.phf-lib-btn[hidden]{display:none}
+.phf-drive-btn.phf-drive-in,.phf-lib-btn.phf-lib-btn-primary{background:var(--phf-navy,#1E3A5F);border-color:var(--phf-navy,#1E3A5F);color:#fff}
+.phf-drive-btn.phf-drive-in:hover:not(:disabled){background:#2A4D78}
+.phf-drive-folder{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 9px;font-size:11.5px;font-weight:600;color:var(--phf-navy,#1E3A5F)}
+.phf-drive-folder b{font-weight:800;overflow-wrap:anywhere}
+.phf-drive-link{border:0;background:none;padding:0;font:700 11.5px var(--phf-font,inherit);color:var(--phf-blue,#1A73E8);text-decoration:underline;cursor:pointer}
+.phf-drive-link:hover{color:var(--phf-navy,#1E3A5F)}
+.phf-drive-sync{font-size:11px;font-weight:600;color:var(--phf-green,#2E7D32);overflow-wrap:anywhere}
+.phf-drive-sync.is-error{color:var(--phf-red,#C5221F)}
+.phf-drive-note:empty,.phf-drive-sync:empty{display:none}
+.phf-drive-row>.phf-drive-note,.phf-drive-row>.phf-drive-sync{flex:0 0 auto}
