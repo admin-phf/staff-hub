@@ -9,6 +9,10 @@ Once this is set up, every tool gets:
 
 Until the three settings below are filled in, none of this shows, and the tools work exactly as before.
 
+**Status:** set up on 23 Oct 2026 (Staff Hub v21.40.1).
+- Google Cloud project `phf-staff-hub` (number 876421157517), with the audience set to **Internal**. Only the shop's Google Workspace accounts can sign in.
+- The settings are in `assets/js/phf-drive-config.js`. The client secret is not used and must never go in the repo.
+
 ## Is it safe?
 - **Sign-in is Google's own window.** The Staff Hub never sees a Google password.
 - **It asks for the smallest Drive permission (`drive.file`).** The page can only open the files you pick in Google's picker and the files it saved itself, in the PHF Staff Hub folder. It cannot list or read anything else in your Drive.

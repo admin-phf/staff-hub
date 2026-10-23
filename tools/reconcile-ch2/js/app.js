@@ -1,3 +1,5 @@
+// v2.22.1 (23 Oct 2026, Staff Hub v21.40.1): version only — Google Drive is now set up, so From Google Drive and the Saved files
+// panel's Google Drive line show. No change to the checklist, matching or exports.
 // v2.22.0 (23 Oct 2026, Staff Hub v21.40.0): a line to fix in POSActive stays in its place in the list, tinted orange, with an orange
 // warning row straight above it (what is wrong and what to change; the cell to fix stays red) — no copies at the top. Ticking a
 // not-invoiced line receives the ordered quantity (Found, a manual line in the TXT and the totals); ALL leaves those lines for a

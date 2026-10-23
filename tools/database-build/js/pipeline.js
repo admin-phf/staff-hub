@@ -1,5 +1,7 @@
 (function(){'use strict';
-const VERSION='v21.23.0', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+const VERSION='v21.23.1', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+// v21.23.1 (Staff Hub v21.40.1) — version only: Google Drive is now set up (assets/js/phf-drive-config.js filled in), so the
+// From Google Drive button and the Saved files panel's Google Drive line show. No change to building the databases.
 // v21.23.0 (Staff Hub v21.40.0) — version only: the page loads the shared Google Drive helper (a From Google Drive button under
 // Drop all input files here, and Save to / Get from Google Drive in Saved files, once Google Drive is set up). No build change.
 // v21.22.0 (Staff Hub v21.35.0) — a clear is a delete from this browser: CLEAR SESSION deletes the files this tool saved

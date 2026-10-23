@@ -1515,3 +1515,12 @@ All implemented stages keep source business files local to the browser and gener
   - Loaded after `phf-library.js` on the hub and the three tools (`phf-drive-config.js`, `phf-drive.js`, ?v=1.0.0).
 - Versions: hub v21.40.0; Reconcile CH2 Order v2.22.0; Build POS Master Databases v21.23.0 and POS New Product Check Clean v1.25.0
   (version and script tags only); hub-library.js ?v=2.2.0; library.css ?v=2.1.0.
+
+## Staff Hub v21.40.1 (23 Oct 2026 11:00 AEDT) — Google Drive set up
+- `assets/js/phf-drive-config.js` v1.0.1: clientId, apiKey and appId (project number 876421157517) for Google Cloud project
+  `phf-staff-hub` (audience Internal). The client secret is not used and is not in the repo. `?v=1.0.1` on the hub and the three
+  tools so browsers fetch the filled-in file. With it set, `PHFDrive.configured()` is true: From Google Drive (`.phf-drive-row`)
+  under each `#bulkDrop` and `.phf-lib-drive` in the Saved files panels show, and the GIS script loads on page load.
+- docs/GOOGLE-DRIVE-SETUP.md: status line.
+- Versions: hub v21.40.1; Reconcile CH2 Order v2.22.1, Build POS Master Databases v21.23.1, POS New Product Check Clean v1.25.1
+  (version only).
