@@ -1,3 +1,4 @@
+/* v2.4.1 (24 Oct 2026): .phf-drive-warn — the home card's "wrong folder linked" line (end of file). */
 /* v2.4.0 (23 Oct 2026): only the Drive button is centred under the drop box (the lines are left-aligned); the home page Google Drive card (end of file). */
 /* v2.3.0 (23 Oct 2026): the Google Drive block under the drop box is centred, the same on every tool; files dragged over a tool page show where they go (end of file). */
 /* v2.2.0 (23 Oct 2026): Sign in, the "Loads every time" Drive folder line and the Google Drive sync line (end of file). */
@@ -115,3 +116,4 @@ a.phf-lib-btn{display:inline-flex;align-items:center;text-decoration:none}
 .phf-drive-msg.is-error{color:var(--phf-red,#C5221F)}
 .phf-drive-msg:empty{display:none}
 .phf-drive-lines>span{flex:0 0 auto}
+.phf-drive-warn{color:var(--phf-red,#C5221F);font-weight:600}

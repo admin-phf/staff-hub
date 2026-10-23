@@ -1,5 +1,7 @@
 (function(){'use strict';
-const VERSION='v21.26.0', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+const VERSION='v21.26.1', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+// v21.26.1 (Staff Hub v21.43.1) — version only: a linked folder that is inside the shop folder (e.g. "2, pos-supplier-merge") is
+// refused / flagged with "Link the shop folder" instead of loading nothing (phf-drive.js v2.0.1).
 // v21.26.0 (Staff Hub v21.43.0) — version only: the shop folder's "1, database-build" loads by itself through a linked Google Drive
 // for desktop folder or the browser sign-in (phf-drive.js v2.0.0); saved files go to the shop folder's "Staff Hub saved files".
 // v21.25.0 (Staff Hub v21.42.0) — version only: one file or several can be dropped anywhere on the page (phf-drop.js); the Google

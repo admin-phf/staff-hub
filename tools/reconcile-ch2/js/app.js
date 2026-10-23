@@ -1,3 +1,4 @@
+// v2.25.1 (24 Oct 2026, Staff Hub v21.43.1): version only — the shop folder is checked when linked or chosen (phf-drive.js v2.0.1).
 // v2.25.0 (23 Oct 2026, Staff Hub v21.43.0): version only — the POS master and Ongoing Discounts come from the shop folder's "Staff
 // Hub saved files" (linked folder or browser sign-in, phf-drive.js v2.0.0); only the Drive button is centred under the drop box.
 // v2.24.0 (23 Oct 2026, Staff Hub v21.42.0): version only — files can be dropped anywhere on the page (phf-drop.js) and the drop box

@@ -1612,3 +1612,14 @@ All implemented stages keep source business files local to the browser and gener
   no longer used.
 - Versions: hub v21.43.0; Reconcile CH2 Order v2.25.0, Build POS Master Databases v21.26.0, POS New Product Check Clean v1.28.0
   (version only); phf-drive.js ?v=2.0.0; hub-library.js ?v=2.5.0; library.css ?v=2.4.0. docs/GOOGLE-DRIVE-SETUP.md rewritten.
+
+## Staff Hub v21.43.1 (24 Oct 2026 00:15 AEDT) — the shop folder is checked when linked or chosen
+- `assets/js/phf-drive.js` v2.0.1: `shopCheck(name, subfolderNames)` → { ok: has "1, …" or "2, …" (SUB patterns), has1, has2, inside: the
+  folder's own name matches a SUB pattern, "3, …", "Orders" or "Staff Hub saved files" }. `linkFolder()` lists the picked folder's
+  subfolders and refuses (`shopProblem()` message, nothing stored) when it is not the shop folder; `chooseShop()` does the same with the
+  Drive children. `checkLink()` (on load and after Reconnect) sets `linkCheck`; `localStore.ready()` is false while the linked folder is
+  not the shop folder, and `status()` → need 'relink' ("WRONG FOLDER LINKED" on the home card; the tools show "Link the shop folder",
+  which runs `linkFolder()`). A missing subfolder message now says what its name should start with.
+- `assets/css/library.css` v2.4.1: `.phf-drive-warn`.
+- Versions: hub v21.43.1; Reconcile CH2 Order v2.25.1, Build POS Master Databases v21.26.1, POS New Product Check Clean v1.28.1
+  (version only); phf-drive.js ?v=2.0.1; library.css ?v=2.4.1.

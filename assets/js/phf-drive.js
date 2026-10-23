@@ -1,4 +1,8 @@
-/* PHF Staff Hub — Google Drive v2.0.0 (23 Oct 2026, Staff Hub v21.43.0)
+/* PHF Staff Hub — Google Drive v2.0.1 (24 Oct 2026, Staff Hub v21.43.1)
+ * v2.0.1: the shop folder is checked when it is linked or chosen — a folder inside it (e.g. "2, pos-supplier-merge") or one without
+ *   "1, …" / "2, …" is refused with what to pick instead; a PC already linked to the wrong folder says so and offers "Link the shop
+ *   folder" (no files are loaded from it until then).
+ * v2.0.0 (23 Oct 2026, Staff Hub v21.43.0)
  * One shared SHOP FOLDER for everyone (e.g. "GitHub Input Excel Data and Sheets 23.10.26", shared with the shop's accounts):
  *   "1, database-build"      → loads by itself in Build POS Master Databases
  *   "2, pos-supplier-merge"  → loads by itself in POS New Product Check Clean
@@ -36,6 +40,20 @@
   // Each tool's own subfolder in the shop folder, found by its name.
   var SUB = { 'database-build': { re: /database[\s-]*build|^\s*1\s*[,.\-\s]/i, label: '1, database-build' },
               'pos-supplier-merge': { re: /supplier[\s-]*merge|^\s*2\s*[,.\-\s]/i, label: '2, pos-supplier-merge' } };
+  // v2.0.1 — is this the shop folder (the one holding "1, …" and "2, …")? A folder inside it is the usual slip in the picker.
+  var INSIDE = /^\s*3\s*[,.\-\s]|orders|staff hub saved files/i;
+  function shopCheck(name, subNames) {
+    var has1 = subNames.some(function (n) { return SUB['database-build'].re.test(n); }), has2 = subNames.some(function (n) { return SUB['pos-supplier-merge'].re.test(n); });
+    var inside = !has1 && !has2 && (SUB['database-build'].re.test(name) || SUB['pos-supplier-merge'].re.test(name) || INSIDE.test(name));
+    return { ok: has1 || has2, has1: has1, has2: has2, inside: inside, name: name };
+  }
+  function shopProblem(c, how) {
+    var pick = how === 'drive' ? 'In Google\'s window, pick the folder that holds "1, database-build", "2, pos-supplier-merge" and "3, Orders".'
+      : 'In the window, open the folder that holds "1, database-build", "2, pos-supplier-merge" and "3, Orders" so you can see them, click an empty space (nothing highlighted), then Select Folder.';
+    return c.inside ? '"' + c.name + '" is one of the folders inside the shop folder. Pick the folder one level up. ' + pick
+      : '"' + c.name + '" has no "1, database-build" or "2, pos-supplier-merge" folder inside. ' + pick;
+  }
+  var linkCheck = null;   // shopCheck of the linked folder (null until looked at)
   var token = null, tokenExp = 0, canRead = true, tokenClient = null, gisReady = null, pickerReady = null, renewTimer = null, clickArmed = false;
   var link = null, linkState = 'none';   // the linked folder (FileSystemDirectoryHandle) and 'none' | 'granted' | 'prompt'
   var listeners = [], reporters = [], chain = Promise.resolve(), pending = {}, pushTimer = null, lastMode = null, started = false;
@@ -77,26 +95,34 @@
     if (!linkSupported) return Promise.resolve();
     return idb('readonly', function (s) { return s.get('shop'); }).then(function (h) {
       link = h || null; if (!link) { linkState = 'none'; return; }
-      return (link.queryPermission ? link.queryPermission({ mode: 'readwrite' }) : Promise.resolve('granted')).then(function (p) { linkState = p === 'granted' ? 'granted' : 'prompt'; });
+      return (link.queryPermission ? link.queryPermission({ mode: 'readwrite' }) : Promise.resolve('granted')).then(function (p) { linkState = p === 'granted' ? 'granted' : 'prompt'; return checkLink(); });
     }).catch(function () { link = null; linkState = 'none'; });
   }
-  function linkFolder() {   // from a click
+  function checkLink() {
+    if (!link || linkState !== 'granted') { linkCheck = null; return Promise.resolve(); }
+    return iterate(link, 'directory').then(function (ds) { linkCheck = shopCheck(link.name, ds.map(function (d) { return d.name; })); }).catch(function () { linkCheck = null; });
+  }
+  function linkFolder() {   // from a click — only the shop folder itself is kept
     return g.showDirectoryPicker({ id: 'phf-shop-folder', mode: 'readwrite' }).then(function (h) {
-      return idb('readwrite', function (s) { return s.put(h, 'shop'); }).then(function () { link = h; linkState = 'granted'; changed(); return h; });
+      return iterate(h, 'directory').then(function (ds) {
+        var c = shopCheck(h.name, ds.map(function (d) { return d.name; }));
+        if (!c.ok) throw new Error(shopProblem(c, 'local'));
+        return idb('readwrite', function (s) { return s.put(h, 'shop'); }).then(function () { link = h; linkState = 'granted'; linkCheck = c; changed(); return c; });
+      });
     });
   }
   function reconnect() {    // from a click — Chrome asks; "Allow on every visit" stops it asking again
     if (!link) return Promise.reject(new Error('No folder is linked on this PC.'));
-    return link.requestPermission({ mode: 'readwrite' }).then(function (p) { linkState = p === 'granted' ? 'granted' : 'prompt'; changed(); if (p !== 'granted') throw new Error('The folder was not allowed — click Reconnect again and choose Allow.'); });
+    return link.requestPermission({ mode: 'readwrite' }).then(function (p) { linkState = p === 'granted' ? 'granted' : 'prompt'; return checkLink().then(function () { changed(); if (p !== 'granted') throw new Error('The folder was not allowed — click Reconnect again and choose Allow.'); }); });
   }
-  function unlink() { return idb('readwrite', function (s) { return s.delete('shop'); }).then(function () { link = null; linkState = 'none'; changed(); }); }
+  function unlink() { return idb('readwrite', function (s) { return s.delete('shop'); }).then(function () { link = null; linkState = 'none'; linkCheck = null; changed(); }); }
   function iterate(dir, kind) {
     var out = [], it = dir.values();
     return (function next() { return it.next().then(function (r) { if (r.done) return out; if (r.value.kind === kind) out.push(r.value); return next(); }); })();
   }
   var localStore = {
     type: 'local',
-    ready: function () { return !!link && linkState === 'granted'; },
+    ready: function () { return !!link && linkState === 'granted' && !(linkCheck && !linkCheck.ok); },
     where: function () { return link ? link.name : ''; },
     folders: function () { return iterate(link, 'directory').then(function (a) { return a.map(function (h) { return { ref: h, name: h.name }; }); }); },
     listFiles: function (dir) { return iterate(dir.ref, 'file').then(function (a) { return a.filter(function (h) { return !skipName(h.name); }).map(function (h) { return { ref: h, name: h.name }; }); }); },
@@ -225,7 +251,14 @@
   function chooseShop() {
     return picker({ title: 'Choose the shop folder (the one holding "1, database-build" and "2, pos-supplier-merge")', multi: false },
       function (P) { return new P.DocsView(P.ViewId.FOLDERS || P.ViewId.DOCS).setIncludeFolders(true).setSelectFolderEnabled(true).setMimeTypes(FOLDER_MIME); })
-      .then(function (d) { if (d[0]) { savedFolderReq = null; ls(K.shop, JSON.stringify({ id: d[0].id, name: d[0].name })); changed(); } return d[0] || null; });
+      .then(function (d) {
+        if (!d[0]) return null;
+        return children(d[0].id, true).then(function (a) {
+          var c = shopCheck(d[0].name, a.map(function (f) { return f.name; }));
+          if (!c.ok) throw new Error(shopProblem(c, 'drive'));
+          savedFolderReq = null; ls(K.shop, JSON.stringify({ id: d[0].id, name: d[0].name })); changed(); return d[0];
+        });
+      });
   }
   function download(doc) {
     var sheet = doc.mimeType === SHEET;
@@ -290,6 +323,7 @@
     if (s === localStore) return { mode: 'local', ok: true, text: 'linked folder "' + link.name + '" on this PC — no sign-in needed' };
     if (s === driveStore) return { mode: 'drive', ok: true, text: 'signed in' + (u && u.email ? ' as ' + u.email : '') + ' · shop folder "' + shop().name + '"' };
     if (link && linkState === 'prompt') return { mode: 'local', ok: false, need: 'reconnect', text: 'linked folder "' + link.name + '" — one click to reconnect' };
+    if (link && linkCheck && !linkCheck.ok) return { mode: 'local', ok: false, need: 'relink', text: 'linked folder "' + link.name + '" is not the shop folder — link the one that holds 1, 2 and 3' };
     if (signedIn()) return { mode: 'drive', ok: false, need: 'shop', text: 'signed in' + (u && u.email ? ' as ' + u.email : '') + ' — choose the shop folder' };
     if (configured() && u && clickArmed) return { mode: 'drive', ok: false, need: 'click', text: 'reconnects on your next click' };
     if (configured() || linkSupported) return { mode: null, ok: false, need: 'connect', text: 'not connected on this PC' };
@@ -409,7 +443,7 @@
     if (s === driveStore && !canRead) { if (toolUi) toolUi.say('Google Drive read access was not allowed — sign out and sign in again, allowing both.', true); return Promise.resolve(); }
     loading = true; if (toolUi) toolUi.say('Loading from the shop folder…');
     return whenReady(input).then(function () { return subFor(s); }).then(function (dir) {
-      if (!dir) { if (toolUi) toolUi.say('No "' + SUB[PAGE].label + '" folder inside "' + s.where() + '" — add it there.', true); return; }
+      if (!dir) { if (toolUi) toolUi.say('No "' + SUB[PAGE].label + '" folder inside "' + s.where() + '". Add it there (the name should start with "' + SUB[PAGE].label.split(',')[0] + ',").', true); return; }
       return s.listFiles(dir).then(function (fs) {
         if (!fs.length) { if (toolUi) toolUi.say('"' + dir.name + '" has no files to load.'); return; }
         if (toolUi) toolUi.say('Getting ' + fs.length + ' file' + (fs.length === 1 ? '' : 's') + ' from "' + dir.name + '"…');
@@ -438,6 +472,7 @@
       var where = sub ? ' · loads "' + (ls(K.sub + PAGE) || sub.label) + '" each time' : '';
       if (st.ok && st.mode === 'local') { setBtn(null); stateEl.innerHTML = 'Google Drive: <b>' + esc(link.name) + '</b> (linked on this PC)' + esc(where) + ' · <a href="' + HOME + '">change</a>'; }
       else if (st.ok) { setBtn('From Google Drive', pickFiles, false); stateEl.innerHTML = 'Google Drive: <b>' + esc(shop().name) + '</b>' + esc(where) + ' · <a href="' + HOME + '">change</a>'; }
+      else if (st.need === 'relink') { setBtn('Link the shop folder', linkFolder, true); stateEl.textContent = '"' + link.name + '" is linked, but it is a folder inside the shop folder. Link the folder that holds "1, database-build", "2, pos-supplier-merge" and "3, Orders" — open it, click an empty space, then Select Folder.'; }
       else if (st.need === 'reconnect') { setBtn('Reconnect the shop folder', reconnect, true); stateEl.textContent = 'One click, no Google window. Choose "Allow on every visit" and it will not ask again.'; }
       else if (st.need === 'shop') { setBtn('Choose the shop folder', chooseShop, true); stateEl.textContent = 'Pick the folder that holds "1, database-build" and "2, pos-supplier-merge" (once on this PC).'; }
       else if (st.need === 'click') { setBtn('Sign in to Google Drive', signIn, true); stateEl.textContent = 'Google Drive reconnects on your next click.'; }
@@ -466,11 +501,12 @@
     var body = card.querySelector('[data-drive-body]'), chip = card.querySelector('[data-drive-chip]'), lastMsg = ['', false];
     var paint = function () {
       var st = status(), u = user(), s = shop(), h = '';
-      chip.textContent = st.ok ? (st.mode === 'local' ? 'LINKED FOLDER' : 'SIGNED IN') : st.need === 'reconnect' ? 'ONE CLICK TO RECONNECT' : 'NOT CONNECTED';
+      chip.textContent = st.ok ? (st.mode === 'local' ? 'LINKED FOLDER' : 'SIGNED IN') : st.need === 'reconnect' ? 'ONE CLICK TO RECONNECT' : st.need === 'relink' ? 'WRONG FOLDER LINKED' : 'NOT CONNECTED';
       chip.className = 'phf-drive-chip' + (st.ok ? ' ok' : '');
       h += '<div class="phf-drive-ways"><div class="phf-drive-way"><h3>1 · Linked folder <small>Google Drive for desktop · no sign-in · never runs out</small></h3>';
       if (!linkSupported) h += '<p>This browser cannot link a folder — use Chrome or Edge on the PC.</p>';
-      else if (link && linkState === 'granted') h += '<p>This PC: <b>' + esc(link.name) + '</b> ✓</p><div class="phf-drive-acts"><button type="button" class="phf-lib-btn" data-link="change">Link another folder</button><button type="button" class="phf-lib-btn" data-link="off">Unlink</button></div>';
+      else if (link && linkState === 'granted' && linkCheck && !linkCheck.ok) h += '<p class="phf-drive-warn">This PC: <b>' + esc(link.name) + '</b> — ' + esc(shopProblem(linkCheck, 'local')) + '</p><div class="phf-drive-acts"><button type="button" class="phf-lib-btn phf-lib-btn-primary" data-link="change">Link the shop folder</button><button type="button" class="phf-lib-btn" data-link="off">Unlink</button></div>';
+      else if (link && linkState === 'granted') h += '<p>This PC: <b>' + esc(link.name) + '</b> ✓' + (linkCheck && !(linkCheck.has1 && linkCheck.has2) ? ' — no "' + (linkCheck.has1 ? '2, pos-supplier-merge' : '1, database-build') + '" folder inside yet' : '') + '</p><div class="phf-drive-acts"><button type="button" class="phf-lib-btn" data-link="change">Link another folder</button><button type="button" class="phf-lib-btn" data-link="off">Unlink</button></div>';
       else if (link) h += '<p>This PC: <b>' + esc(link.name) + '</b> — Chrome needs one click to reconnect it. Choose <b>Allow on every visit</b>.</p><div class="phf-drive-acts"><button type="button" class="phf-lib-btn phf-lib-btn-primary" data-link="again">Reconnect</button><button type="button" class="phf-lib-btn" data-link="off">Unlink</button></div>';
       else h += '<p>Pick the shop folder where Google Drive for desktop shows it on this PC (for example G:\\My Drive\\… or G:\\Shared drives\\…). When Chrome asks, choose <b>Allow on every visit</b>.</p><div class="phf-drive-acts"><button type="button" class="phf-lib-btn phf-lib-btn-primary" data-link="pick">Link the shop folder on this PC</button></div>';
       h += '</div>';
@@ -494,7 +530,7 @@
     card.addEventListener('click', function (e) {
       var b = e.target.closest('button'); if (!b) return;
       var run = function (p, ok) { p.then(function () { if (ok) say(ok); }).catch(function (err) { if (err && err.name === 'AbortError') return; say(err.message || String(err), true); }); };
-      if (b.dataset.link === 'pick' || b.dataset.link === 'change') run(linkFolder(), 'Linked. The tools load and save through this folder now.');
+      if (b.dataset.link === 'pick' || b.dataset.link === 'change') run(linkFolder(), 'Linked. The tools load and save through this folder now.');   // linkFolder refuses a folder inside the shop folder
       else if (b.dataset.link === 'again') run(reconnect(), 'Reconnected.');
       else if (b.dataset.link === 'off') run(unlink(), 'Unlinked on this PC.');
       else if (b.hasAttribute('data-drive-in')) run(signIn());
@@ -523,7 +559,7 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
-  g.PHFDrive = { VERSION: 'v2.0.0', configured: configured, available: available, status: status, signedIn: signedIn, signIn: signIn, signOut: signOut,
+  g.PHFDrive = { VERSION: 'v2.0.1', configured: configured, available: available, status: status, signedIn: signedIn, signIn: signIn, signOut: signOut,
     linkFolder: linkFolder, reconnect: reconnect, unlink: unlink, chooseShop: chooseShop, pick: pick, download: download,
     sync: sync, getLatest: getLatest, saveAll: saveAll, onChange: onChange, onReport: onReport, esc: esc, FOLDER: SAVED, FROM_DRIVE: FROM_DRIVE, HOME: HOME };
 })(window);
