@@ -1646,3 +1646,21 @@ All implemented stages keep source business files local to the browser and gener
   - `renderPosBalance`: the GST differences box is no longer drawn (its lines are in the list); the Not on POS order box goes into
     `#rsNotOnOrder` at the top of Details, whose summary reads "Details — Not on POS order (N), review notes …".
 - Versions: hub v21.44.0; Reconcile CH2 Order v2.26.0 (app.js / workspace.css / pos-import.js ?v=2.26.0).
+
+## Staff Hub v21.44.1 (24 Oct 2026 12:05 AEDT) — Reconcile: a new run never carries the last one; each invoice is checked against the order
+- Reconcile CH2 Order v2.26.1 (app.js, ui/workspace.js, css/workspace.css, index.html). Exports unchanged for a single order.
+  - Invoice ↔ order binding: `invoiceOrder` (WeakMap File → `orderKey(state.pos)` = name|size|lastModified) set in `addInvoices`.
+    `addPos(newOrder)` releases every invoice bound to a different order key (invoices with no order yet are bound to the new one)
+    and leaves `pendingNote`; `takeNote()` (on `PHFReconcileApp`) puts it in front of the drop box's message (workspace.js
+    `bulkAccept`) — "New POS order …: the supplier invoice of the previous order was released (…)". Before this, a new order kept the
+    previous order's invoices, so both were reconciled against the new order (the old one's lines showed as Not on POS order and
+    any that matched a product on the new order were counted on its lines).
+  - `invoiceFitCheck()` after each run: per invoice document (not credit notes), lines vs `result.unmatchedInvoice` by invoice
+    number (or source file); matched / lines < 0.5 → listed. `fitAlerts()` puts a red "CHECK THE INVOICE" line at the top of the
+    Fix list (file, invoice number, Customer PO, n of m lines matched, what happens to them) with "Remove it and run again"
+    (`[data-drop-invoice]` → removes that file and calls `run()`); the summary shows "Check the invoice — see below" instead of
+    "Checks passed"; the RUN status starts with "Check the invoice: …".
+  - Per-run state: `run()` clears `posRowLookup`, `fixMap` and `fixRows` first; `computeFixMap()` takes each GST line's product from this
+    run's rows (it read `posRowLookup`, which still held the previous run's rows — wrong PLU in the Fix list's text).
+  - The summary names the invoice(s): "Invoice 74147128 $6,804.48" / "2 invoices (74154567, 74147128) $8,100.69".
+- Versions: hub v21.44.1; Reconcile CH2 Order v2.26.1 (app.js / workspace.js / workspace.css ?v=2.26.1).

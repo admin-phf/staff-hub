@@ -1,3 +1,8 @@
+// v2.26.1 (24 Oct 2026, Staff Hub v21.44.1): a new run never carries the last one. A supplier invoice remembers the POS order it
+// was loaded with, and loading a different order releases it (a note says which); after each run every invoice is checked
+// against the order — one whose lines are mostly not on it gets a red "Check the invoice" line at the top of the Fix list with
+// "Remove it and run again". The Fix list's PLU and text come from this run only (it read the last run's lines). The summary
+// names the invoice(s) used.
 // v2.26.0 (24 Oct 2026, Staff Hub v21.44.0): the lines to fix in POSActive are listed on their own, straight under the summary
 // ("Fix in POSActive before uploading"): each line in full — every column, so it can be found by PLU, barcode or Sub ID — with
 // the cell to fix in red and a line under it saying what was found, what to change and the $ effect (Show in checklist jumps to
@@ -1153,8 +1158,17 @@
     else if(filesReady)setStatus(`Ready: 1 POS order and ${state.invoices.length} supplier invoice${state.invoices.length===1?'':'s'} selected.`,'ok');
     else setStatus('Add one POS order and at least one supplier invoice to continue.','info');
   }
-  function addPos(files){resetReceivingState({clearStorage:true});const f=[...files].find(x=>validExt(x,['.xls','.xlsx','.csv']));if(f)state.pos=f;state.result=null;state.posParsed=null;state.runIntegrity=null;state.orderOverrides=new Map();state.unpackChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;hideResults();renderFiles();}
-  function addInvoices(files){resetReceivingState({clearStorage:true});for(const f of files){if(validExt(f,['.pdf','.xls','.xlsx','.csv'])&&!state.invoices.some(x=>x.name===f.name&&x.size===f.size))state.invoices.push(f);}state.result=null;state.docs=[];state.runIntegrity=null;state.orderOverrides=new Map();hideResults();renderFiles();}
+  // v2.26.1 — which POS order each supplier invoice was loaded with (File → order key)
+  const invoiceOrder=new WeakMap();let pendingNote='';
+  function orderKey(f){return f?`${f.name}|${f.size}|${f.lastModified||0}`:'';}
+  function takeNote(){const n=pendingNote;pendingNote='';return n;}
+  function addPos(files){resetReceivingState({clearStorage:true});const f=[...files].find(x=>validExt(x,['.xls','.xlsx','.csv']));
+    if(f){const nk=orderKey(f),released=state.invoices.filter(x=>{const k=invoiceOrder.get(x);return k&&k!==nk;});   // invoices of another order are released
+      if(released.length){state.invoices=state.invoices.filter(x=>!released.includes(x));pendingNote=`New POS order ${f.name}: the supplier invoice${released.length===1?'':'s'} of the previous order ${released.length===1?'was':'were'} released (${released.map(x=>x.name).join(', ')}).`;}
+      state.invoices.forEach(x=>{if(!invoiceOrder.get(x))invoiceOrder.set(x,nk);});
+      state.pos=f;}
+    state.fixRows=null;state.fixMap=null;state.result=null;state.posParsed=null;state.runIntegrity=null;state.orderOverrides=new Map();state.unpackChecked=new Set();state.unpackKey=null;state.unpackCounts=new Map();state.unpackCountsKey=null;hideResults();renderFiles();if(pendingNote)setStatus(pendingNote,'info');}
+  function addInvoices(files){resetReceivingState({clearStorage:true});for(const f of files){if(validExt(f,['.pdf','.xls','.xlsx','.csv'])&&!state.invoices.some(x=>x.name===f.name&&x.size===f.size)){state.invoices.push(f);invoiceOrder.set(f,orderKey(state.pos));}}state.fixRows=null;state.fixMap=null;state.result=null;state.docs=[];state.runIntegrity=null;state.orderOverrides=new Map();hideResults();renderFiles();}
   function wireDrop(zone,input,handler){zone.onclick=()=>input.click();zone.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();input.click();}};input.onchange=()=>handler(input.files);['dragenter','dragover'].forEach(evt=>zone.addEventListener(evt,e=>{e.preventDefault();zone.classList.add('drag');}));['dragleave','drop'].forEach(evt=>zone.addEventListener(evt,e=>{e.preventDefault();zone.classList.remove('drag');}));zone.addEventListener('drop',e=>handler(e.dataTransfer.files));}
 
   function pill(status){let cls='bad';if(status==='OK')cls='ok';else if(status==='BETTER PRICE')cls='better';else if(/REVIEW|LOW/.test(status))cls='review';return `<span class="status-pill ${cls}">${escapeHtml(status)}</span>`;}
@@ -1214,7 +1228,7 @@
     for(const [src,list] of importIssues(items))for(const i of list)add(src,'sub',i);
     for(const x of items)if(!x.inv&&String(x.detail&&x.detail.matchConfidence||'')==='LOW'){const m=x.detail&&x.detail.matchMethods;add(posSrcKey(x.pos),'ch2',{chip:'MATCH LOW',note:`Matched with LOW confidence${m?` (${m})`:''} — check this is the product CH2 billed before importing.`,
       found:`matched to the CH2 line with <em>LOW confidence</em>${m?` (${escapeHtml(m)})`:''}`,change:'check this is the product CH2 billed (barcode, brand and size) before uploading',effect:''});}
-    for(const [src,g] of gstReview().map){const pos=(state.posRowLookup&&state.posRowLookup.get(src)||{}).pos||rows.find(p=>posSrcKey(p)===src),plu=pos?pluOf(pos):'',on=plu?`PLU ${escapeHtml(plu)}`:'this product',up=g.invRate>g.posRate;
+    for(const [src,g] of gstReview().map){const pos=rows.find(p=>posSrcKey(p)===src)||(invoiceOnlyEntries().find(e=>posSrcKey(e.pos)===src)||{}).pos,plu=pos?pluOf(pos):''   /* v2.26.1: this run's rows (posRowLookup still held the last run's) */,on=plu?`PLU ${escapeHtml(plu)}`:'this product',up=g.invRate>g.posRate;
       add(src,'gst',{chip:'GST DIFFERS',note:gstReviewText(g),
         found:`CH2 charged ${g.invRate>0?`<em>${escapeHtml(g.invRate)}% GST</em> (${escapeHtml(money(g.gst))})`:`<em>no GST</em> on ${escapeHtml(money(g.ext))}`}; POSActive has this product at <em>${escapeHtml(g.posRate)}%</em>`,
         change:up?`if it should carry GST: set <b>GST ${escapeHtml(g.invRate)}%</b> on ${on} in POSActive — if it is GST-free, ask CH2 for a ${escapeHtml(money(g.gst))} credit`:`if it is GST-free: set <b>GST ${escapeHtml(g.invRate)}%</b> on ${on} in POSActive — if it should carry GST, ask CH2 for a corrected invoice`,
@@ -1838,11 +1852,11 @@
       T.notInvoicedCount?mrow('Not invoiced',`${lines(T.notInvoicedCount)} · at the ordered value`,money(T.notInvoicedTotal),'is-muted'):'',invItems.length?mrow('Billed, not on the POS order',`${lines(invItems.length)} · tick to import`,money(invTotal),'is-inv'):''].join('');
     const moneyBox=document.querySelector('#rsMoney');if(moneyBox){moneyBox.innerHTML='';moneyBox.hidden=true;}   // v2.21.0: the chips and the footer totals carry these figures
     const orderNo=cleanText(state.posParsed&&state.posParsed.orderNumber)||cleanText(r.orderNumber),mism=orderLinkMismatches(),keyN=Number(state.importKeyReviewCount||0),noteN=(notes||[]).length;   // the order link is automatic: every invoice is reconciled against the one uploaded POS order
-    const rt=r.totals||{},checksOk=!!(integ&&integ.ok&&!integ.review)&&!keyN;
+    const rt=r.totals||{},fitN=invoiceFitCheck().length,checksOk=!!(integ&&integ.ok&&!integ.review)&&!keyN&&!fitN;   // v2.26.1: an invoice that looks like another order's
     const tick='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
-    const checkState=checksOk?`<span class="rs-sum-ok">${tick}Checks passed</span>`:`<button type="button" class="rs-sum-warn" data-open-more>${escapeHtml(!integ||!integ.ok?'Integrity failed — see Details':integ.review?'Integrity review — see Details':`${keyN} import key${keyN===1?'':'s'} to review — see Details`)}</button>`;
+    const checkState=checksOk?`<span class="rs-sum-ok">${tick}Checks passed</span>`:fitN?`<span class="rs-sum-warn rs-sum-fit">Check the invoice${fitN===1?'':'s'} — see below</span>`:`<button type="button" class="rs-sum-warn" data-open-more>${escapeHtml(!integ||!integ.ok?'Integrity failed — see Details':integ.review?'Integrity review — see Details':`${keyN} import key${keyN===1?'':'s'} to review — see Details`)}</button>`;
     const sep='<span class="rs-sum-sep" aria-hidden="true">·</span>';
-    glance.innerHTML=`<div class="rs-sum"><div class="rs-sum-row"><strong class="rs-sum-order" title="${escapeHtml(els.resultSub?els.resultSub.textContent:'')}">${escapeHtml(orderNo?`Order ${orderNo}`:'POS order')}</strong>${sep}<span>${escapeHtml(`${rt.matchedInvoiceLines??'?'} of ${rt.invoiceLines??'?'} invoice lines matched`)}</span>${sep}<span>Invoice <b>${escapeHtml(money(T.supplierInvoiceTotal))}</b></span><span class="rs-sum-right">${checkState}<button type="button" class="rs-sum-more" data-open-more>Details ▸</button></span></div><div class="rs-sum-row rs-chips">${chips}</div></div>`;
+    glance.innerHTML=`<div class="rs-sum"><div class="rs-sum-row"><strong class="rs-sum-order" title="${escapeHtml(els.resultSub?els.resultSub.textContent:'')}">${escapeHtml(orderNo?`Order ${orderNo}`:'POS order')}</strong>${sep}<span>${escapeHtml(`${rt.matchedInvoiceLines??'?'} of ${rt.invoiceLines??'?'} invoice lines matched`)}</span>${sep}<span>${(()=>{const ns=[...new Set((state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE').map(d=>invoiceDocMeta(d).number).filter(Boolean))];return ns.length>1?`${ns.length} invoices (${escapeHtml(ns.join(', '))})`:ns.length?`Invoice ${escapeHtml(ns[0])}`:'Invoice';})()} <b>${escapeHtml(money(T.supplierInvoiceTotal))}</b></span><span class="rs-sum-right">${checkState}<button type="button" class="rs-sum-more" data-open-more>Details ▸</button></span></div><div class="rs-sum-row rs-chips">${chips}</div></div>`;
     glance.classList.remove('hidden');
     // v2.26.0 — "Fix in POSActive before uploading": every line to fix in full (the checklist's columns, read-only, the cell to
     // fix in red) with what was found, what to change and the $ effect under it; one green line when there is nothing to fix.
@@ -1855,10 +1869,22 @@
     if(more){if(!integ||!integ.ok)more.open=true;const sm=more.querySelector('summary');if(sm)sm.textContent=`Details — ${invItems.length?`Not on POS order (${invItems.length}), `:''}review notes${noteN?` (${noteN})`:''}, order link, import keys, how the checklist works`;}
     wireSummary();
   }
+  // v2.26.1 — an invoice whose lines are mostly not on the POS order almost certainly belongs to another order.
+  function invoiceFitCheck(){
+    const r=state.result,docs=(state.docs||[]).filter(d=>d&&d.type!=='CREDIT_NOTE');if(!r||!docs.length)return [];
+    const un=new Map();for(const x of r.unmatchedInvoice||[]){const k=cleanText(x.invoiceNumber)||cleanText(x.sourceFile);un.set(k,(un.get(k)||0)+1);}
+    const out=[];for(const d of docs){const m=invoiceDocMeta(d),lines=(d.rows||[]).length;if(!lines)continue;const miss=un.get(m.number)||un.get(m.sourceFile)||0,matched=Math.max(0,lines-miss);
+      if(matched/lines<0.5)out.push({file:m.sourceFile,number:m.number,customerPo:m.customerPo,lines,matched});}
+    return out;
+  }
+  function fitAlerts(){
+    const order=cleanText(state.posParsed&&state.posParsed.orderNumber)||'this POS order';
+    return invoiceFitCheck().map(f=>`<div class="rs-fix-alert"><span class="rs-fix-tag">CHECK THE INVOICE</span><span class="rs-fix-alert-text"><b>${escapeHtml(f.file||`Invoice ${f.number}`)}</b>${f.number?` (invoice ${escapeHtml(f.number)}${f.customerPo?`, Customer PO ${escapeHtml(f.customerPo)}`:''})`:''} matched only <b>${f.matched} of its ${f.lines} line${f.lines===1?'':'s'}</b> to POS order ${escapeHtml(order)} — it looks like it belongs to another order.${f.matched?` ${f.matched===1?'That line is':`Those ${f.matched} lines are`} counted on this order's lines (and go into the TXT when ticked);`:''} ${f.lines-f.matched===1?'its other line shows':`its other ${f.lines-f.matched} lines show`} as “Not on POS order”. Remove it unless it really is for this order.</span>${f.file?`<button type="button" class="rs-fix-show rs-fix-drop" data-drop-invoice="${escapeHtml(f.file)}">Remove it and run again</button>`:''}</div>`).join('');
+  }
   function renderFixList(box,counts,kindSum,invItems,sgn){
-    const list=state.fixRows,fx=state.fixMap||new Map();
+    const list=state.fixRows,fx=state.fixMap||new Map(),alerts=fitAlerts();
     if(!list){box.innerHTML='';box.className='rs-needs hidden';return;}
-    if(!list.length){box.className='rs-fix-ok';box.innerHTML='<span class="rs-fix-ok-tick" aria-hidden="true">✓</span><b>Nothing to fix in POSActive before uploading</b><small>— GST, Sub IDs and product matches line up with POSActive.</small>';return;}
+    if(!list.length){box.className=alerts?'rs-fix':'rs-fix-ok';box.innerHTML=alerts?alerts+'<div class="rs-fix-ok rs-fix-ok-in"><span class="rs-fix-ok-tick" aria-hidden="true">✓</span><b>Nothing else to fix in POSActive before uploading</b></div>':'<span class="rs-fix-ok-tick" aria-hidden="true">✓</span><b>Nothing to fix in POSActive before uploading</b><small>— GST, Sub IDs and product matches line up with POSActive.</small>';return;}
     const NC=POS_VIEW_COLUMNS.length,all=list.flatMap(r=>fx.get(r.src)||[]);
     const gst=all.reduce((a,f)=>a+(f.gstEffect||0),0),lost=all.reduce((a,f)=>a+(f.amount||0),0);
     const sum=[all.some(f=>f.gstEffect!=null)?`${signedMoney(gst)} GST`:'',lost>0?`${money(lost)} not applied`:''].filter(Boolean).join(' · ');
@@ -1867,7 +1893,7 @@
     const rows=list.map(r=>{const fs=fx.get(r.src)||[];return r.html+fs.map((f,j)=>`<tr class="rs-fix-why"><td colspan="${NC}"><div class="rs-fix-why-in"><span class="rs-fix-tag">${escapeHtml(f.chip)}</span><span class="rs-fix-found">Found: ${f.found||escapeHtml(f.note)}</span>${f.change?`<span class="rs-fix-arrow" aria-hidden="true">→</span><span class="rs-fix-do">Change: ${f.change}</span>`:''}${f.effect?`<span class="rs-fix-eff ${f.effectCls||''}">${escapeHtml(f.effect)}</span>`:'<span class="rs-fix-eff"></span>'}${j===fs.length-1?`<button type="button" class="rs-fix-show" data-fix-show="${escapeHtml(r.src)}">Show in checklist ↓</button>`:''}</div></td></tr>`).join('');}).join('');
     const also=[counts.high?`Price high · ${counts.high}${Math.abs(kindSum('high'))>0.004?` · ${sgn(kindSum('high'))}`:''}`:'',counts.disc?`Discount low · ${counts.disc}`:'',counts.notinv?`Not invoiced · ${counts.notinv}`:'',invItems.length?`Not on POS order · ${invItems.length}`:''].filter(Boolean);
     box.className='rs-fix';
-    box.innerHTML=`<div class="rs-fix-head"><h3>Fix in POSActive before uploading</h3><span class="rs-fix-n">${list.length}</span><small>Every column, to find each product in POSActive by PLU, barcode or Sub ID — the cell to fix is red</small>${sum?`<span class="rs-fix-sum">${escapeHtml(sum)}</span>`:''}</div>`+
+    box.innerHTML=alerts+`<div class="rs-fix-head"><h3>Fix in POSActive before uploading</h3><span class="rs-fix-n">${list.length}</span><small>Every column, to find each product in POSActive by PLU, barcode or Sub ID — the cell to fix is red</small>${sum?`<span class="rs-fix-sum">${escapeHtml(sum)}</span>`:''}</div>`+
       `<div class="table-wrap preview-pos rs-fix-wrap"><table class="pos-preview-table rs-fix-table"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`+
       (also.length?`<div class="rs-fix-foot">Also to check with CH2 (not a POSActive fix): <b>${also.map(escapeHtml).join('</b> · <b>')}</b> — the chips above filter the checklist</div>`:'');
     syncFixWidths();
@@ -1889,6 +1915,7 @@
       if(f){e.preventDefault();const k=f.dataset.checkFilter||'';state.checkFilter=!k||state.checkFilter===k?null:k;if(state.previewView!=='pos')setPreviewView('pos');else applyTableSearch();if(state.lastSummaryArgs)renderSummary(...state.lastSummaryArgs);if(state.checkFilter&&els.tableWrap)els.tableWrap.scrollIntoView({behavior:'smooth',block:'start'});return;}
       const sh=e.target.closest('[data-show-src]');if(sh){e.preventDefault();showChecklistLine(sh.dataset.showSrc);return;}
       const fs=e.target.closest('[data-fix-show]');if(fs){e.preventDefault();showChecklistLine(fs.dataset.fixShow);return;}   // v2.26.0
+      const di=e.target.closest('[data-drop-invoice]');if(di){e.preventDefault();const name=di.dataset.dropInvoice,i=state.invoices.findIndex(f=>f.name===name);if(i>=0){state.invoices.splice(i,1);state.result=null;state.docs=[];renderFiles();setStatus(`Removed ${name} — running again with ${state.invoices.length} invoice${state.invoices.length===1?'':'s'}…`,'info');run();}return;}   // v2.26.1
       const rr=e.target.closest('#rsNeeds tr[data-ref-src]');if(rr){e.preventDefault();showChecklistLine(rr.dataset.refSrc);return;}
       const m=e.target.closest('[data-open-more]');if(m){e.preventDefault();const more=document.querySelector('#rsMore');if(more){more.open=true;const strip=document.querySelector('#dbRunStrip');window.scrollTo({top:more.getBoundingClientRect().top+window.scrollY-((strip&&strip.offsetHeight)||0)-12,behavior:'smooth'});}}   // v2.19.0: lands under the RUN strip
     });
@@ -1928,6 +1955,7 @@
     els.runBtn.disabled=true;els.clearBtn.disabled=true;hideResults();setProgress(4);setStatus('Loading POS/master and discount reference data…','info');
     try{
       state.refs=await PHF.referenceStore.parseStored();setProgress(18);setStatus(`Reference data ready: ${state.refs.master.info.records.toLocaleString()} CH2 codes and ${state.refs.supplier.info.discountRules.toLocaleString()} discount rules. Reading POS order…`,'info');
+      state.posRowLookup=new Map();state.fixMap=null;state.fixRows=null;   // v2.26.1: nothing from the last run
       const pos=await PHF.parsePosOrder(state.pos,state.refs);state.posParsed=pos;
       // Every Run starts as a genuinely new receiving session. Previous ticks, Found
       // totals, explicit zeros and Remove-not-supplied actions are deliberately cleared,
@@ -1947,6 +1975,7 @@
       state.result=PHF.reconcile(pos,docs,state.refs);state.runIntegrity=PHF.integrity.validateRun(pos,docs,state.result);state.result.integrity=state.runIntegrity;setProgress(100);
       const t=state.result.totals,ioRun=invoiceOnlyEntries(),ioNote=ioRun.length?` ${ioRun.length} billed product${ioRun.length===1?' is':'s are'} not on the POS order (${ioRun.slice(0,3).map(e=>cleanText(e.pos&&e.pos.description)).join(', ')}${ioRun.length>3?', …':''}) — excluded from the POSActive TXT unless ticked. See Not on POS order.`:'';if(state.runIntegrity.ok&&state.runIntegrity.review)setStatus(`Complete: ${t.matchedInvoiceLines}/${t.invoiceLines} invoice lines matched. Integrity REVIEW — the invoice total or line arithmetic did not check out (see the notes below). All downloads remain available.${ioNote}`,'warn');else if(state.runIntegrity.ok)setStatus(`Complete: ${t.matchedInvoiceLines}/${t.invoiceLines} invoice lines matched. ${t.exceptionLines} POS line exception${t.exceptionLines===1?'':'s'}${t.unmatchedInvoiceLines?`, ${t.unmatchedInvoiceLines} unmatched invoice line${t.unmatchedInvoiceLines===1?'':'s'}`:''}. Integrity PASS.${ioNote}`,ioRun.length?'warn':'ok');else setStatus(`Reconciliation completed with ${state.runIntegrity.errors.length} integrity check${state.runIntegrity.errors.length===1?'':'s'} to review (see the notes below). All downloads remain available.${ioNote}`,'warn');
       state.previewView='pos';state.checkFilter=null;renderResults();setTimeout(hideProgress,500);
+      {const fit=invoiceFitCheck(),st=document.querySelector('#status');if(fit.length&&st)setStatus(`Check the invoice${fit.length===1?'':'s'}: ${fit.map(f=>`${f.file||f.number} matched only ${f.matched} of ${f.lines} lines to this POS order`).join('; ')} — see the top of the results. ${st.textContent}`,'warn');}   // v2.26.1
     }catch(err){console.error(err);hideProgress();setStatus(err&&err.message?err.message:String(err),'warn');}
     finally{els.runBtn.disabled=!(state.pos&&state.invoices.length&&state.referenceReady);els.clearBtn.disabled=false;}
   }
@@ -2055,6 +2084,6 @@
   }
   // v2.7.0 — lets the input rail (js/ui/workspace.js) re-check reference data after saving it from the rail.
   // v2.13.0: run() exposed for the step pills; Run all = run() then the POSActive import download (workspace.js). The engine is unchanged.
-  global.PHFReconcileApp=Object.assign(global.PHFReconcileApp||{},{refreshReferenceStatus,setStatus,run});
+  global.PHFReconcileApp=Object.assign(global.PHFReconcileApp||{},{refreshReferenceStatus,setStatus,run,takeNote});
   refreshReferenceStatus();
 })(window);

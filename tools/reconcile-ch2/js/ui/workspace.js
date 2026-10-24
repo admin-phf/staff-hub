@@ -1,3 +1,5 @@
+// Reconcile CH2 v2.26.1 — 24 Oct 2026: the drop box's message starts with the app's note when a new POS order released the previous
+// order's supplier invoices (PHFReconcileApp.takeNote()).
 /* /* Reconcile CH2 v2.17.0 (21 Oct 2026, Staff Hub v21.34.0) — the RUN row above the checklist is the same row as the top strip:
    [data-mirror] buttons run (and follow the state and label of) the button they name, so both rows carry Run all, the four
    downloads and CLEAR FILES; the row's status line and done note copy the strip's (#status / #dbDoneNote are now observed for
@@ -356,7 +358,7 @@
     // v2.13.0 — assigned files and files rejected for a known input show on that input's rail row; only files that need a choice stay here
     for(let i=bulk.length-1;i>=0;i--)if(bulk[i].status==='assigned'||(bulk[i].status==='invalid'&&bulk[i].id))bulk.splice(i,1);
     renderBulk();schedule();
-    const review=found.filter(r=>r.status!=='assigned'&&!(r.status==='invalid'&&r.id)).length,app=global.PHFReconcileApp,text=`${found.length-review} of ${found.length} dropped file${found.length===1?'':'s'} assigned automatically${review?` · ${review} need${review===1?'s':''} review in Drop All Input Files`:''}. Nothing has been run — press Run reconciliation when ready.`;
+    const review=found.filter(r=>r.status!=='assigned'&&!(r.status==='invalid'&&r.id)).length,app=global.PHFReconcileApp,note=app&&app.takeNote?app.takeNote():'',text=`${note?note+' ':''}${found.length-review} of ${found.length} dropped file${found.length===1?'':'s'} assigned automatically${review?` · ${review} need${review===1?'s':''} review in Drop All Input Files`:''}. Nothing has been run — press Run reconciliation when ready.`;
     if(app&&app.setStatus)app.setStatus(text,review?'warn':'info');else{const st=$('#status');if(st){st.className='status '+(review?'warn':'info');st.textContent=text;}}
   }
   async function bulkAssignRow(i){

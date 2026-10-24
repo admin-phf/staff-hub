@@ -1,3 +1,4 @@
+/* Reconcile CH2 v2.26.1 — the "Check the invoice" line at the top of the Fix list (end of file). */
 /* Reconcile CH2 v2.26.0 — the "Fix in POSActive before uploading" list under the summary; lines to fix are no longer orange (end of file). */
 /* Reconcile CH2 v2.22.0 — a line to fix: orange tint and the orange warning row above it (end of file).
    Reconcile CH2 v2.21.0 — a stronger green for over counts, the Fix in POSActive copies, the footer's four totals (end of file).
@@ -397,3 +398,8 @@ body.phf-page-reconcile .rs-fix-ok small{font-weight:600;color:#3E6B4B}
 body.phf-page-reconcile .rs-fix-ok-tick{font-weight:800}
 body.phf-page-reconcile .rs-more .rs-notonorder:empty{display:none}
 body.phf-page-reconcile .rs-more .rs-notonorder{margin:4px 0 10px}
+/* v2.26.1 — "Check the invoice": an invoice whose lines are mostly not on the POS order (top of the Fix list) */
+body.phf-page-reconcile .rs-fix-alert{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:9px 14px;background:#FCE8E6;border-bottom:1px solid #F1B4AE;font-size:12.3px;line-height:1.4;color:#5F1A17}
+body.phf-page-reconcile .rs-fix-alert-text{flex:1 1 480px;min-width:0}
+body.phf-page-reconcile .rs-fix-alert-text b{color:#8C1D18}
+body.phf-page-reconcile .rs-fix .rs-fix-ok-in{margin:0;border:0;border-radius:0}
