@@ -1,3 +1,8 @@
+// v2.26.0 (24 Oct 2026, Staff Hub v21.44.0): the lines to fix in POSActive are listed on their own, straight under the summary
+// ("Fix in POSActive before uploading"): each line in full — every column, so it can be found by PLU, barcode or Sub ID — with
+// the cell to fix in red and a line under it saying what was found, what to change and the $ effect (Show in checklist jumps to
+// it). In the checklist the line is no longer orange: only the cell to fix is red. A Sub ID with % $ " is no longer flagged —
+// it is the order's own Sub ID and imports as it is. The GST differences box is in the list now; Not on POS order is in Details.
 // v2.25.1 (24 Oct 2026, Staff Hub v21.43.1): version only — the shop folder is checked when linked or chosen (phf-drive.js v2.0.1).
 // v2.25.0 (23 Oct 2026, Staff Hub v21.43.0): version only — the POS master and Ongoing Discounts come from the shop folder's "Staff
 // Hub saved files" (linked folder or browser sign-in, phf-drive.js v2.0.0); only the Drive button is centred under the drop box.
@@ -377,13 +382,9 @@
       const pos=rows[i],detail=details.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))||posDetailAt(i);
       if(!detail||Number(detail.suppliedQty||0)<=0)continue;
       const sub=cleanText(pos&&pos.subId);if(!sub)continue;
-      const special=[...new Set((sub.match(/["$%]/g)||[]))];
-      const promoLike=/[A-Za-z]/.test(sub)&&/\s/.test(sub)&&/\b(?:ORDER|PER|SKU|PROMO|SPECIAL|FREE|OFF|DEAL|BUY|SAVE)\b/i.test(sub);
-      // v2.9.0 — confirmed on a real import (105-0008845): POSActive's invoice import drops % $ " from the Sub ID it reads,
-      // so a Sub ID such as “3 PER SKU 25%” can never match the order. Promotion-like text without those characters is fine.
-      if(!special.length)continue;
-      const line=invoiceLineDisplay(detail)||'?',ch2=ch2ItemCodeDisplay(detail)||'not resolved',product=cleanText(pos&&pos.description)||cleanText(pos&&pos.barcode)||'product';
-      notes.push(`POSACTIVE CANNOT MATCH — CH2 line ${line} · POS row ${i+1} (${product}): POS Sub ID “${sub}” contains ${special.map(x=>`“${x}”`).join(', ')}. POSActive's invoice import drops ${special.length===1?'this character':'these characters'}, reads it as “${sub.replace(/["$%]/g,'').trim()}” and reports “Invoice items do not match suppliers order items”, leaving this line unapplied. Change the Sub ID in POSActive to one without ${special.join(' ')} (e.g. CH2 code ${ch2}), re-export the order and run again — or apply this line by hand.`);
+      // v2.26.0 — a Sub ID with % $ " (e.g. "3 PER SKU 25%") is the order's own Sub ID, pulled from POSActive, and imports as it
+      // is — it is no longer a review note (the v2.9.0 "POSACTIVE CANNOT MATCH" note was wrong for these lines).
+      continue;
     }
     // v2.9.1 — invoiced rows that share one Sub ID (e.g. "SPECIAL ORDER") or have none: POSActive matches lines by Sub ID only.
     const byKey=new Map(),blank=[];
@@ -664,7 +665,8 @@
     // v2.9.0 — what POSActive will show in the order's Current / Adjusted Total after the import, and why it differs from
     // the invoice (lines POSActive cannot match, GST settings, cost rounding to cents).
     const pa=totals.posActive,paBlock=pa&&pa.txtTotal?`<div class="pos-posactive-predict"><div class="pos-predict-head"><strong>POSActive after import (predicted)</strong><span>The order's Current / Adjusted Total once this TXT is applied</span></div><div class="pos-predict-grid"><div class="pos-predict-card current"><span>Current Total</span><strong>${money(pa.current)}</strong><small>Old costs × order qty, matched rows</small></div><div class="pos-predict-card adjusted"><span>Adjusted Total</span><strong>${money(pa.adjusted)}</strong><small>New costs × imported qty</small></div><div class="pos-predict-eq"><b>${money(pa.txtTotal)} TXT</b>${pa.unmatchedLines?` − ${money(pa.unmatchedTotal)} not applied (${pa.unmatchedLines} line${pa.unmatchedLines===1?'':'s'} POSActive cannot match — see the match check)`:''}${Math.abs(pa.gstEffect)>0.004?` ${pa.gstEffect>=0?'+':'−'} ${money(Math.abs(pa.gstEffect))} GST settings (see GST differences)`:''}${Math.abs(pa.sharedEffect||0)>0.004?` ${pa.sharedEffect>=0?'+':'−'} ${money(Math.abs(pa.sharedEffect))} shared Sub ID${(pa.sharedKeys||[]).length===1?'':'s'} (${(pa.sharedKeys||[]).map(k=>`“${escapeHtml(k.subId)}” × ${k.lines.length}`).join(', ')})`:''}${Math.abs(pa.rounding)>0.004?` ${pa.rounding>=0?'+':'−'} ${money(Math.abs(pa.rounding))} cost rounding to cents`:''} = <b>${money(pa.adjusted)}</b><small>POSActive applies only Sub IDs it can match, sets each cost to Extended ÷ Qty rounded to the cent and totals with the product's own GST %.</small></div></div>${(pa.sharedKeys||[]).map(k=>`<div class="pos-predict-shared"><b>Shared Sub ID “${escapeHtml(k.subId)}” — ${k.lines.length} invoice lines, one POSActive row</b><span>POSActive matches by Sub ID only, so every line below lands on the first order row with “${escapeHtml(k.subId)}” (POS ${escapeHtml(k.appliedTo.posIndex)} ${escapeHtml(k.appliedTo.description)}). The last one — line ${escapeHtml(k.kept.line)} ${escapeHtml(k.kept.description)}, qty ${escapeHtml(k.kept.qty)} — is what that row keeps; the other rows stay unreceived (${signedMoney(k.effect)}). Give each product its own Sub ID in POSActive (e.g. its CH2 code), re-export the order and run again, or fix these rows by hand after importing.</span><small>${k.lines.map(x=>`line ${escapeHtml(x.line)} · POS ${escapeHtml(x.posIndex)} ${escapeHtml(x.description)} · qty ${escapeHtml(x.qty)} · ${money(x.total)}`).join(' &nbsp;|&nbsp; ')}</small></div>`).join('')}</div>`:'';
-    box.innerHTML=`${orderFileBlock&&gstBlock?`<div class="pos-check-pair">${orderFileBlock}${gstBlock}</div>`:orderFileBlock+gstBlock}<div class="pos-balance-heading"><div><strong>POSActive balancing check</strong><span>${idle?'Fills in from the POSActive TXT as you tick lines.':'These figures come from the exact TXT payload currently ready to download.'}</span></div><span class="pos-balance-status ${idle?'idle':exportBalances?'pass':'review'}">${idle?'NOTHING TICKED':exportBalances?'FILE BALANCES':'REVIEW'}</span></div><div class="pos-balance-grid">${[
+    {const noo=document.querySelector('#rsNotOnOrder');if(noo)noo.innerHTML=orderFileBlock;}void gstBlock;   // v2.26.0: Not on POS order is in Details; the GST differences are in the Fix in POSActive list
+    box.innerHTML=`<div class="pos-balance-heading"><div><strong>POSActive balancing check</strong><span>${idle?'Fills in from the POSActive TXT as you tick lines.':'These figures come from the exact TXT payload currently ready to download.'}</span></div><span class="pos-balance-status ${idle?'idle':exportBalances?'pass':'review'}">${idle?'NOTHING TICKED':exportBalances?'FILE BALANCES':'REVIEW'}</span></div><div class="pos-balance-grid">${[
       card('POSActive import total (TXT)',money(totals.adjusted),'Invoice Total shown on POSActive’s Apply Invoice screen','primary'),
       card('CP Inc GST off',money(totals.adjustedEx),'Expected ex-GST footer'),
       card('GST in import',money(totals.adjustedGst),'Included in expected total'),
@@ -1128,6 +1130,7 @@
     els.table.style.setProperty('--pos-right-total','0px');els.table.style.setProperty('--pos-right-current',`${rAdj}px`);els.table.style.setProperty('--pos-right-label',`${rCur}px`);
     // v2.22.0 — a warning row's text stays inside the visible table (left of the pinned Total column on a narrow window)
     els.table.style.setProperty('--pos-note-w',`${Math.max(320,Math.round(available-w('__unpack')-w('__pos_order_index')-w('__invoice_line')-(total>available+1?rTot:0)-28))}px`);
+    syncFixWidths();   // v2.26.0
   }
   function schedulePosColumnSizing(){
     clearTimeout(posResizeTimer);posResizeTimer=setTimeout(()=>requestAnimationFrame(measurePosColumns),35);
@@ -1206,11 +1209,16 @@
   }
   // v2.20.0 — what to fix in POSActive, per row: the cell to fix (gst · sub · ch2) and the note for its hover.
   function computeFixMap(){
-    const map=new Map(),rows=sortedPosRows(),details=posDetailMap(),add=(src,cell,chip,note)=>{if(!map.has(src))map.set(src,[]);map.get(src).push({cell,chip,note});};
+    const map=new Map(),rows=sortedPosRows(),details=posDetailMap(),add=(src,cell,e)=>{if(!map.has(src))map.set(src,[]);map.get(src).push(Object.assign({cell},e));};
     const items=rows.map((pos,i)=>({pos,detail:details.get(posSrcKey(pos))||posDetailAt(i),inv:!!(pos&&pos.invoiceOnly)}));
-    for(const [src,list] of importIssues(items))for(const i of list)add(src,'sub',i.chip,i.note);
-    for(const x of items)if(!x.inv&&String(x.detail&&x.detail.matchConfidence||'')==='LOW')add(posSrcKey(x.pos),'ch2','MATCH LOW',`Matched with LOW confidence${x.detail&&x.detail.matchMethods?` (${x.detail.matchMethods})`:''} — check this is the product CH2 billed before importing.`);
-    for(const [src,g] of gstReview().map)add(src,'gst','GST DIFFERS',gstReviewText(g));
+    for(const [src,list] of importIssues(items))for(const i of list)add(src,'sub',i);
+    for(const x of items)if(!x.inv&&String(x.detail&&x.detail.matchConfidence||'')==='LOW'){const m=x.detail&&x.detail.matchMethods;add(posSrcKey(x.pos),'ch2',{chip:'MATCH LOW',note:`Matched with LOW confidence${m?` (${m})`:''} — check this is the product CH2 billed before importing.`,
+      found:`matched to the CH2 line with <em>LOW confidence</em>${m?` (${escapeHtml(m)})`:''}`,change:'check this is the product CH2 billed (barcode, brand and size) before uploading',effect:''});}
+    for(const [src,g] of gstReview().map){const pos=(state.posRowLookup&&state.posRowLookup.get(src)||{}).pos||rows.find(p=>posSrcKey(p)===src),plu=pos?pluOf(pos):'',on=plu?`PLU ${escapeHtml(plu)}`:'this product',up=g.invRate>g.posRate;
+      add(src,'gst',{chip:'GST DIFFERS',note:gstReviewText(g),
+        found:`CH2 charged ${g.invRate>0?`<em>${escapeHtml(g.invRate)}% GST</em> (${escapeHtml(money(g.gst))})`:`<em>no GST</em> on ${escapeHtml(money(g.ext))}`}; POSActive has this product at <em>${escapeHtml(g.posRate)}%</em>`,
+        change:up?`if it should carry GST: set <b>GST ${escapeHtml(g.invRate)}%</b> on ${on} in POSActive — if it is GST-free, ask CH2 for a ${escapeHtml(money(g.gst))} credit`:`if it is GST-free: set <b>GST ${escapeHtml(g.invRate)}%</b> on ${on} in POSActive — if it should carry GST, ask CH2 for a corrected invoice`,
+        effect:signedMoney(g.effect),effectCls:g.effect<0?'blue':'bad',gstEffect:g.effect});}
     return map;
   }
   function renderPosTable(){
@@ -1325,7 +1333,6 @@
             const invoiced=!!(detail&&Array.isArray(detail.invoiceRows)&&detail.invoiceRows.length);
             if(pos.invoiceOnly&&v){const id=importIdentityFor(pos,detail),row=pos.orderDiagnosis&&pos.orderDiagnosis.orderRow;title=row?`Exported exactly as on the order file row POS index ${row.posIndex}: "${v}"`:`Not on the POS order · Sub ID "${v}" exported exactly from ${id&&id.source?id.source:'POS master'} if ticked. If this product should be on the order, add it in POSActive, re-export the order and run again to use its exact order Sub ID.`;}
             else if(typeof pos.subIdRaw==='string'&&!String(v).trim()&&invoiced){extraCls=' pos-subid-blank';html='<span class="pos-subid-blank-mark">(blank)</span>';title='Sub ID is blank on the POS order and is exported blank, exactly as stored in POSActive. Set a Sub ID on the product in POSActive and re-export the order if the import cannot match it.';}
-            else if(v&&/["$%]/.test(String(v))&&invoiced){extraCls=' pos-subid-unreadable';title=`POSActive cannot match this Sub ID: its invoice import drops ${[...new Set(String(v).match(/["$%]/g))].join(' ')} and reads "${String(v).replace(/["$%]/g,'').trim()}". Change the Sub ID in POSActive (e.g. to the CH2 code), re-export the order and run again.`;}
             else if(v)title=`Exported exactly as on the POS order: "${v}"`;
           }
         }
@@ -1334,10 +1341,9 @@
       }).join('');
       const rowTitle=manualReceived?' title="Manually received — not on the CH2 invoice. Added to the POSActive TXT and totals using POS master CH2_WHOLESALE_EX_GST / POS pricing and the matched discount rule."':pos&&pos.invoiceOnly?` title="${escapeHtml(`Invoice only — billed by CH2 but not on the POS order. ${pos.orderDiagnosis?pos.orderDiagnosis.detail:''} Ticked rows (or Found) are included in the POSActive TXT and totals; POSActive can only apply them if the product is on the open order.`)}"`:'';
       const ckRow=lineCheck(pos,detail),fx=state.fixMap&&state.fixMap.get(String(pos&&pos.sourceRow!=null?pos.sourceRow:''));
-      if(ref)return `<tr class="${rowClasses} pos-fix-ref" data-ref-src="${escapeHtml(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))}" title="Also in the list below — click to go to that line">${cells}</tr>`;
-      // v2.22.0 — the orange warning row straight above a line to fix (not in the Completed dock, which only holds rows)
-      const fixNote=fx&&completeIndex==null?`<tr class="pos-fix-note" data-note-for="${escapeHtml(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))}"><td colspan="3" class="pos-fix-note-pad"></td><td colspan="${POS_VIEW_COLUMNS.length-3}" class="pos-fix-note-cell"><div class="pos-fix-note-in">${fx.map(f=>`<span class="pos-fix-tag">${escapeHtml(f.chip)}</span><span class="pos-fix-text">${escapeHtml(f.note)}</span>`).join('')}</div></td></tr>`:'';
-      return `${fixNote}<tr${rowClasses?` class="${rowClasses}${fx?' pos-fix-row':''}"`:fx?' class="pos-fix-row"':''} data-check="${ckRow.kind}" data-pos-src="${escapeHtml(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))}"${notSupplied?' data-not-supplied="1"':''}${ni?' data-ni="1"':''}${fx?' data-fix="1"':''}${manualReceived?' data-manual-received="1"':''}${completeIndex!=null?` data-complete-index="${completeIndex}"`:''}${rowTitle}>${cells}</tr>`;
+      if(ref)return `<tr class="${rowClasses} pos-fix-ref" data-ref-src="${escapeHtml(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))}" title="In the checklist below — click to go to this line">${cells}</tr>`;
+      // v2.26.0 — a line to fix looks like any other line; only the cell to fix is red (the list under the summary explains it).
+      return `<tr${rowClasses?` class="${rowClasses}"`:''} data-check="${ckRow.kind}" data-pos-src="${escapeHtml(String(pos&&pos.sourceRow!=null?pos.sourceRow:''))}"${notSupplied?' data-not-supplied="1"':''}${ni?' data-ni="1"':''}${fx?' data-fix="1"':''}${manualReceived?' data-manual-received="1"':''}${completeIndex!=null?` data-complete-index="${completeIndex}"`:''}${rowTitle}>${cells}</tr>`;
     };
     const sectionHtml=[];let zebraIndex=0;
     // v2.22.0 — no copies at the top: a line to fix carries an orange warning row straight above it (renderPosRow).
@@ -1431,6 +1437,8 @@
       }
       else{els.tableFoot.innerHTML='';renderPosBalance(null);}
     }
+    // v2.26.0 — the lines to fix, as read-only copies in the checklist's columns, for the list under the summary (renderSummary)
+    state.fixRows=baseRows.map((pos,i)=>({pos,i})).filter(x=>state.fixMap&&state.fixMap.has(posSrcKey(x.pos))).map((x,n)=>({src:posSrcKey(x.pos),html:renderPosRow(x.pos,n,false,null,true)}));
     ensurePosResizeObserver();schedulePosColumnSizing();updateStickyOffsets();ensureStickyTracking();applyTableSearch();wireGrid();paintSel();
     if(state.lastSummaryArgs&&state.lastSummaryArgs[0]===state.result)renderSummary(...state.lastSummaryArgs);   // v2.20.0: the chips follow counts and changes
   }
@@ -1792,16 +1800,21 @@
     const gst=Math.max(0,numberValue(raw.gst_tax_pc)??numberValue(pos&&pos.gstPct)??0);return price==null?null:Math.round(price*qty*(1+gst/100)*100)/100;
   }
   // The POSActive Sub ID problems of an invoiced order line (the same rules as the review notes: % $ " dropped, blank, shared).
+  // v2.26.0 — per line: chip, note (hover), found, change and effect for the "Fix in POSActive before uploading" list.
+  function pluOf(pos){return cleanText(rawValue(pos,'plu'))||cleanText(pos&&pos.plu)||'';}
+  function billedIncGst(detail){return ((detail&&detail.invoiceRows)||[]).reduce((a,r)=>a+(numberValue(r.totalIncGst)??((numberValue(r.extendedExGst)||0)+(numberValue(r.gstAmount)||0))),0);}
   function importIssues(items){
-    const out=new Map(),add=(k,chip,note)=>{if(!out.has(k))out.set(k,[]);out.get(k).push({chip,note});},byKey=new Map();
+    const out=new Map(),add=(k,e)=>{if(!out.has(k))out.set(k,[]);out.get(k).push(e);},byKey=new Map();
     for(const x of items){
       if(x.inv||!x.detail||Number(x.detail.suppliedQty||0)<=0)continue;
-      const k=String(x.pos.sourceRow),raw=typeof x.pos.subIdRaw==='string'?x.pos.subIdRaw:cleanText(x.pos.subId),sub=cleanText(x.pos.subId),special=[...new Set(String(sub).match(/["$%]/g)||[])];
-      if(sub&&special.length)add(k,"POSACTIVE CAN'T IMPORT",`Its POS Sub ID "${sub}" contains ${special.join(' ')}, which POSActive drops on import. Change the Sub ID in POSActive (e.g. to CH2 code ${ch2ItemCodeDisplay(x.detail)||'the CH2 code'}), re-export the order and reconcile again — or apply this line by hand.`);
-      if(!String(raw).trim())add(k,'BLANK SUB ID','No Sub ID on the POS order, so POSActive cannot match this line. Set a Sub ID in POSActive (e.g. the CH2 code) and re-export the order.');
-      else{if(!byKey.has(raw))byKey.set(raw,[]);byKey.get(raw).push(k);}
+      const k=String(x.pos.sourceRow),raw=typeof x.pos.subIdRaw==='string'?x.pos.subIdRaw:cleanText(x.pos.subId),plu=pluOf(x.pos),code=ch2ItemCodeDisplay(x.detail)||'';
+      // v2.26.0: a Sub ID with % $ " is the order's own Sub ID and imports as it is — no longer flagged.
+      if(!String(raw).trim()){const amt=billedIncGst(x.detail);add(k,{chip:'NO SUB ID',note:'No Sub ID on the POS order, so POSActive cannot match this line. Set a Sub ID in POSActive (e.g. the CH2 code) and re-export the order.',
+        found:'the POS order has <em>no Sub ID</em>, so POSActive cannot match this line',change:`give ${plu?`PLU ${escapeHtml(plu)}`:'the product'} ${code?`Sub ID <b>${escapeHtml(code)}</b> (its CH2 code)`:'a Sub ID (e.g. its CH2 code)'} in POSActive and re-export the order — or receive it by hand`,effect:amt>0?`${money(amt)} not applied`:'',effectCls:'bad',amount:amt});}
+      else{if(!byKey.has(raw))byKey.set(raw,[]);byKey.get(raw).push(x);}
     }
-    for(const [key,ks] of byKey)if(ks.length>1)ks.forEach(k=>add(k,'SHARED SUB ID',`Sub ID "${key}" is shared by ${ks.length} invoiced products; POSActive puts them all on the first of these rows. Give each its own Sub ID.`));
+    for(const [key,xs] of byKey)if(xs.length>1)xs.forEach(x=>{const plu=pluOf(x.pos),code=ch2ItemCodeDisplay(x.detail)||'';add(String(x.pos.sourceRow),{chip:'SHARED SUB ID',note:`Sub ID "${key}" is shared by ${xs.length} invoiced products; POSActive puts them all on the first of these rows. Give each its own Sub ID.`,
+      found:`Sub ID <em>"${escapeHtml(key)}"</em> is on ${xs.length} invoiced products — POSActive puts them all on the first one`,change:`give ${plu?`PLU ${escapeHtml(plu)}`:'this product'} its own Sub ID${code?` (e.g. CH2 code <b>${escapeHtml(code)}</b>)`:''} in POSActive and re-export the order`,effect:''});});
     return out;
   }
   function renderSummary(r,integ,notes){
@@ -1831,15 +1844,42 @@
     const sep='<span class="rs-sum-sep" aria-hidden="true">·</span>';
     glance.innerHTML=`<div class="rs-sum"><div class="rs-sum-row"><strong class="rs-sum-order" title="${escapeHtml(els.resultSub?els.resultSub.textContent:'')}">${escapeHtml(orderNo?`Order ${orderNo}`:'POS order')}</strong>${sep}<span>${escapeHtml(`${rt.matchedInvoiceLines??'?'} of ${rt.invoiceLines??'?'} invoice lines matched`)}</span>${sep}<span>Invoice <b>${escapeHtml(money(T.supplierInvoiceTotal))}</b></span><span class="rs-sum-right">${checkState}<button type="button" class="rs-sum-more" data-open-more>Details ▸</button></span></div><div class="rs-sum-row rs-chips">${chips}</div></div>`;
     glance.classList.remove('hidden');
-    // v2.20.0 — no Action needed card: lines to fix are the "Fix in POSActive" section of the checklist (red cells).
-    const tag=(k,t)=>`<span class="rs-tag ck-${k}">${escapeHtml(t)}</span>`;needs.innerHTML='';needs.classList.add('hidden');
+    // v2.26.0 — "Fix in POSActive before uploading": every line to fix in full (the checklist's columns, read-only, the cell to
+    // fix in red) with what was found, what to change and the $ effect under it; one green line when there is nothing to fix.
+    renderFixList(needs,counts,kindSum,invItems,sgn);
     // The checks line shows only when a check needs you; otherwise the summary says "Checks passed".
     const integText=integ&&integ.ok&&!integ.review?`<span class="rs-check ok">${tick}<b>Integrity</b> POS order locked · every invoice row counted once · arithmetic valid</span>`:integ&&integ.ok?'<span class="rs-check warn"><b>Integrity review</b> the invoice total or line arithmetic did not check out — compare the invoice with the TXT</span>':'<span class="rs-check bad"><b>Integrity failed</b> see the review notes in Details</span>';
     const linkText=mism.length?`<span class="rs-check ok">${tick}<b>Order link</b> CH2 Customer PO ${escapeHtml([...new Set(mism.map(m=>m.customerPo))].join(', '))} → POSActive order ${escapeHtml(orderNo)} · linked automatically</span>`:`<span class="rs-check ok">${tick}<b>Order link</b> POSActive order ${escapeHtml(orderNo||'(uploaded)')}</span>`;
     const keyText=`<span class="rs-check ${keyN?'warn':'ok'}">${keyN?'':tick}<b>Import keys</b> ${keyN?`${keyN} to review`:'none to review'}</span>`;
     checks.innerHTML=`${integText}${linkText}${keyText}`;checks.classList.remove('hidden');   // v2.20.0: inside Details
-    if(more){if(!integ||!integ.ok)more.open=true;const sm=more.querySelector('summary');if(sm)sm.textContent=`Details — review notes${noteN?` (${noteN})`:''}, order link, import keys, how the checklist works`;}
+    if(more){if(!integ||!integ.ok)more.open=true;const sm=more.querySelector('summary');if(sm)sm.textContent=`Details — ${invItems.length?`Not on POS order (${invItems.length}), `:''}review notes${noteN?` (${noteN})`:''}, order link, import keys, how the checklist works`;}
     wireSummary();
+  }
+  function renderFixList(box,counts,kindSum,invItems,sgn){
+    const list=state.fixRows,fx=state.fixMap||new Map();
+    if(!list){box.innerHTML='';box.className='rs-needs hidden';return;}
+    if(!list.length){box.className='rs-fix-ok';box.innerHTML='<span class="rs-fix-ok-tick" aria-hidden="true">✓</span><b>Nothing to fix in POSActive before uploading</b><small>— GST, Sub IDs and product matches line up with POSActive.</small>';return;}
+    const NC=POS_VIEW_COLUMNS.length,all=list.flatMap(r=>fx.get(r.src)||[]);
+    const gst=all.reduce((a,f)=>a+(f.gstEffect||0),0),lost=all.reduce((a,f)=>a+(f.amount||0),0);
+    const sum=[all.some(f=>f.gstEffect!=null)?`${signedMoney(gst)} GST`:'',lost>0?`${money(lost)} not applied`:''].filter(Boolean).join(' · ');
+    const head=POS_VIEW_COLUMNS.map(c=>{const cls=[(['number','qtyinput','qtytotal'].includes(c.kind))?'num':'',(c.kind==='bool'||c.kind==='check'||c.align==='center')?'center':'',...String(c.cls||'').split(/\s+/).filter(x=>x==='pos-narrow'||x==='pos-row-total')].filter(Boolean).join(' ');
+      return `<th${cls?` class="${cls}"`:''} scope="col">${c.kind==='check'?'✓':escapeHtml(String(c.label))}</th>`;}).join('');
+    const rows=list.map(r=>{const fs=fx.get(r.src)||[];return r.html+fs.map((f,j)=>`<tr class="rs-fix-why"><td colspan="${NC}"><div class="rs-fix-why-in"><span class="rs-fix-tag">${escapeHtml(f.chip)}</span><span class="rs-fix-found">Found: ${f.found||escapeHtml(f.note)}</span>${f.change?`<span class="rs-fix-arrow" aria-hidden="true">→</span><span class="rs-fix-do">Change: ${f.change}</span>`:''}${f.effect?`<span class="rs-fix-eff ${f.effectCls||''}">${escapeHtml(f.effect)}</span>`:'<span class="rs-fix-eff"></span>'}${j===fs.length-1?`<button type="button" class="rs-fix-show" data-fix-show="${escapeHtml(r.src)}">Show in checklist ↓</button>`:''}</div></td></tr>`).join('');}).join('');
+    const also=[counts.high?`Price high · ${counts.high}${Math.abs(kindSum('high'))>0.004?` · ${sgn(kindSum('high'))}`:''}`:'',counts.disc?`Discount low · ${counts.disc}`:'',counts.notinv?`Not invoiced · ${counts.notinv}`:'',invItems.length?`Not on POS order · ${invItems.length}`:''].filter(Boolean);
+    box.className='rs-fix';
+    box.innerHTML=`<div class="rs-fix-head"><h3>Fix in POSActive before uploading</h3><span class="rs-fix-n">${list.length}</span><small>Every column, to find each product in POSActive by PLU, barcode or Sub ID — the cell to fix is red</small>${sum?`<span class="rs-fix-sum">${escapeHtml(sum)}</span>`:''}</div>`+
+      `<div class="table-wrap preview-pos rs-fix-wrap"><table class="pos-preview-table rs-fix-table"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table></div>`+
+      (also.length?`<div class="rs-fix-foot">Also to check with CH2 (not a POSActive fix): <b>${also.map(escapeHtml).join('</b> · <b>')}</b> — the chips above filter the checklist</div>`:'');
+    syncFixWidths();
+  }
+  // v2.26.0 — the list's columns are the checklist's (same colgroup, width and pinned Total), kept in step when it is resized.
+  function syncFixWidths(){
+    const t=document.querySelector('#rsNeeds table.rs-fix-table');if(!t||!els.table)return;
+    const g=els.table.querySelector('colgroup'),mine=t.querySelector('colgroup');if(mine)mine.remove();if(g)t.insertBefore(g.cloneNode(true),t.firstChild);
+    t.style.width=els.table.style.width;t.style.minWidth=els.table.style.minWidth;
+    for(const v of ['--pos-right-total','--pos-right-current','--pos-right-label'])t.style.setProperty(v,els.table.style.getPropertyValue(v));
+    t.classList.toggle('pos-overflow',els.table.classList.contains('pos-overflow'));
+    const w=t.parentElement&&t.parentElement.clientWidth;if(w)t.style.setProperty('--rs-fix-w',`${Math.max(320,w-20)}px`);
   }
   let summaryWired=false;
   function wireSummary(){
@@ -1848,6 +1888,8 @@
       const f=e.target.closest('[data-check-filter]');
       if(f){e.preventDefault();const k=f.dataset.checkFilter||'';state.checkFilter=!k||state.checkFilter===k?null:k;if(state.previewView!=='pos')setPreviewView('pos');else applyTableSearch();if(state.lastSummaryArgs)renderSummary(...state.lastSummaryArgs);if(state.checkFilter&&els.tableWrap)els.tableWrap.scrollIntoView({behavior:'smooth',block:'start'});return;}
       const sh=e.target.closest('[data-show-src]');if(sh){e.preventDefault();showChecklistLine(sh.dataset.showSrc);return;}
+      const fs=e.target.closest('[data-fix-show]');if(fs){e.preventDefault();showChecklistLine(fs.dataset.fixShow);return;}   // v2.26.0
+      const rr=e.target.closest('#rsNeeds tr[data-ref-src]');if(rr){e.preventDefault();showChecklistLine(rr.dataset.refSrc);return;}
       const m=e.target.closest('[data-open-more]');if(m){e.preventDefault();const more=document.querySelector('#rsMore');if(more){more.open=true;const strip=document.querySelector('#dbRunStrip');window.scrollTo({top:more.getBoundingClientRect().top+window.scrollY-((strip&&strip.offsetHeight)||0)-12,behavior:'smooth'});}}   // v2.19.0: lands under the RUN strip
     });
   }

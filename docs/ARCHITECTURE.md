@@ -1623,3 +1623,26 @@ All implemented stages keep source business files local to the browser and gener
 - `assets/css/library.css` v2.4.1: `.phf-drive-warn`.
 - Versions: hub v21.43.1; Reconcile CH2 Order v2.25.1, Build POS Master Databases v21.26.1, POS New Product Check Clean v1.28.1
   (version only); phf-drive.js ?v=2.0.1; library.css ?v=2.4.1.
+
+## Staff Hub v21.44.0 (24 Oct 2026 11:40 AEDT) — Reconcile: "Fix in POSActive before uploading" list; lines to fix no longer orange; % Sub IDs no longer flagged
+- Reconcile CH2 Order v2.26.0 (app.js, export/pos-import.js, css/workspace.css, index.html). Display and review notes only — the
+  TXT, CSVs and workbooks are unchanged (byte-identical on 74154567 and 74147128).
+  - `importIssues()` / `computeFixMap()` entries now carry `found`, `change` (HTML, escaped values), `effect`, `effectCls` and
+    `gstEffect` / `amount` besides `chip` / `note`. Kinds: NO SUB ID (blank Sub ID on an invoiced order row; effect = billed inc GST
+    not applied), SHARED SUB ID, MATCH LOW, GST DIFFERS (from `gstReview()`; change worded by direction). Helpers `pluOf`, `billedIncGst`.
+  - `renderPosTable()` keeps `state.fixRows` = [{ src, html }] — read-only copies of the lines in `state.fixMap` (`renderPosRow(…, ref=true)`,
+    baseRows order). `renderSummary()` → `renderFixList(#rsNeeds, …)`: class `rs-fix` with a head (count, "−$x GST · $y not applied"), a
+    `.table-wrap.preview-pos.rs-fix-wrap` holding `table.pos-preview-table.rs-fix-table` (plain header labels, the copies, and a
+    `tr.rs-fix-why` per issue: tag · Found · → Change · effect · Show in checklist on the last), and a foot listing Price high / Discount
+    low / Not invoiced / Not on POS order counts; none → `rs-fix-ok` ("Nothing to fix in POSActive before uploading").
+    `syncFixWidths()` (after the list renders and at the end of `measurePosColumns`) copies the checklist's colgroup, width, pinned-
+    column variables and `pos-overflow`, and sets `--rs-fix-w` for the sticky why line. Clicks (`wireSummary`): `[data-fix-show]` and
+    a copy row (`#rsNeeds tr[data-ref-src]`) → `showChecklistLine(src)`.
+  - In the checklist a line to fix has no `pos-fix-row` tint and no `tr.pos-fix-note` (still `data-fix="1"` for the chip filter);
+    its cell keeps `.pos-fix-cell` (red) with the note as hover.
+  - % $ " in a Sub ID: removed from `importIssues` (no "POSACTIVE CAN'T IMPORT"), from `posSubIdReviewNotes` (no "POSACTIVE CANNOT
+    MATCH" review note), from the Sub ID cell (`.pos-subid-unreadable`) and from `posActiveMatchCheck` in pos-import.js (such a key on
+    the order matches like any other). The v2.9.0 rule is withdrawn.
+  - `renderPosBalance`: the GST differences box is no longer drawn (its lines are in the list); the Not on POS order box goes into
+    `#rsNotOnOrder` at the top of Details, whose summary reads "Details — Not on POS order (N), review notes …".
+- Versions: hub v21.44.0; Reconcile CH2 Order v2.26.0 (app.js / workspace.css / pos-import.js ?v=2.26.0).

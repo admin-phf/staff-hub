@@ -1,3 +1,5 @@
+// Reconcile CH2 v2.26.0 — 24 Oct 2026: a Sub ID with % $ " is the order's own Sub ID and matches like any other in the POSActive
+// match check (no more "SUB ID HAS % — POSACTIVE CANNOT MATCH IT"). Nothing else changes; the TXT is unchanged.
 // Reconcile CH2 v2.18.0 — 22 Oct 2026: prices edited in POS Layout go into the TXT. options.priceBySourceRow (POS row →
 // {ws, unit}) sets Normal WS (Adj WSPrc) and Unit Price ex GST (Adj CatPrc / Adj DPrc) for that row's lines; Disc % is
 // recalculated from them, and Extended / GST / Total are recalculated at the edited unit price. Each edited line is
@@ -640,17 +642,9 @@
     const orderNo=clean(posOrder&&posOrder.orderNumber),orderKeys=new Set(((posOrder&&posOrder.rows)||[]).map(exactKey).filter(k=>String(k).trim())),mismatches=[];
     for(const r of records||[]){
       const key=r&&r.subId!=null?String(r.subId):'',pos=(r&&r.pos)||{},name=clean(pos.description)||clean(r&&r.description);
-      // v2.9.0 — POSActive's invoice import drops % $ and " from the Sub ID it reads (an order Sub ID "3 PER SKU 25%" is read
-      // as "3 PER SKU 25"), so that line can never match the order even though the TXT carries the exact key.
-      const dropped=(key.match(/[%$"]/g)||[]);
-      if(key.trim()&&orderKeys.has(key)&&!dropped.length)continue;
-      if(dropped.length&&key.trim()){
-        const seen=key.replace(/[%$"]/g,'').replace(/\s+$/,'');
-        mismatches.push({invoiceNo:r.invoiceNo,line:r.line,subId:key,description:clean(r.description),posDescription:name,reason:`SUB ID HAS ${[...new Set(dropped)].join(' ')} — POSACTIVE CANNOT MATCH IT`,
-          advice:`POSActive's invoice import drops ${[...new Set(dropped)].map(c=>c==='"'?'quote marks':c).join(' and ')} from Sub IDs, so it reads "${key}" as "${seen}", cannot find it on order ${orderNo} and leaves this line unapplied ($${fixed(r.total,2)} inc GST is missing from POSActive's adjusted total). Change the product's Sub ID in POSActive to one without ${[...new Set(dropped)].join(' ')} (for example the CH2 code ${clean(r.ch2Code)||'shown on the invoice'}), re-export the order and run again — or apply this line by hand in POSActive.`,
-          total:n(r.total)||0,invoiceOnly:!!pos.invoiceOnly,manual:!!r.manualReceiving,sourceRow:pos.sourceRow,unreadable:true});
-        continue;
-      }
+      // v2.26.0 — a Sub ID with % $ " (e.g. "3 PER SKU 25%") is the order's own Sub ID and imports as it is; it matches like any other
+      // (the v2.9.0 rule that POSActive drops those characters is withdrawn).
+      if(key.trim()&&orderKeys.has(key))continue;
       let reason,advice;
       if(pos.invoiceOnly&&pos.orderDiagnosis){reason=pos.orderDiagnosis.chip;advice=pos.orderDiagnosis.detail;}
       else if(pos.invoiceOnly&&pos.supplierMismatch){reason=`NOT ON POS ORDER — POSACTIVE SUPPLIER ${pos.posSupplier}`;advice=`CH2 invoiced ${name}, but POSActive assigns it to ${pos.posSupplierLabel}, not ${pos.orderSupplierLabel||'this order’s supplier'}, so it never appears on CH2 orders. To receive it through this import: change its POSActive supplier to ${pos.orderSupplier} with Sub ID ${pos.ch2Code||key} (or add it to order ${orderNo} with Sub ID ${key||'blank'}), re-export the order and run again. Otherwise untick it and receive it against ${pos.posSupplierLabel}.`;}
