@@ -1,4 +1,9 @@
-/* PHF Staff Hub — Google Drive v2.0.1 (24 Oct 2026, Staff Hub v21.43.1)
+/* PHF Staff Hub — Google Drive v2.0.2 (25 Oct 2026, Staff Hub v21.45.1)
+ * v2.0.2: the picker (Choose the shop folder, From Google Drive) lists everything the account can open first, then tabs for Shared
+ *   with me and Shared drives — it showed only shared drives ("No folders"). A saved file over 4 MB goes up as a resumable upload (Google takes
+ *   at most 5 MB in one request; the POS master is about 24 MB). A saved file that fails to go up or come in no longer stops the
+ *   files after it: each is tried, and the line under the drop box says which did not make it (tried again next time).
+ * v2.0.1 (24 Oct 2026, Staff Hub v21.43.1)
  * v2.0.1: the shop folder is checked when it is linked or chosen — a folder inside it (e.g. "2, pos-supplier-merge") or one without
  *   "1, …" / "2, …" is refused with what to pick instead; a PC already linked to the wrong folder says so and offers "Link the shop
  *   folder" (no files are loaded from it until then).
@@ -28,6 +33,7 @@
   var FOLDER_MIME = 'application/vnd.google-apps.folder', SHEET = 'application/vnd.google-apps.spreadsheet';
   var XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   var API = 'https://www.googleapis.com/drive/v3/files', UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files', ALL = 'supportsAllDrives=true';
+  var BIG = 4 * 1024 * 1024;   // v2.0.2: bigger saved files go to Google Drive as a resumable upload
   var SAVED = 'Staff Hub saved files', FROM_DRIVE = 'from Google Drive';
   var K = { session: 'phf.drive.session', user: 'phf.drive.user', shop: 'phf.drive.shop', gone: 'phf.drive.gone.', seen: 'phf.drive.seen.', sub: 'phf.drive.sub.' };
   var PAGE = (function () { var m = String(g.location && g.location.pathname || '').match(/\/tools\/([^\/]+)\//); return m ? m[1] : 'hub'; })();
@@ -233,14 +239,19 @@
   function picker(o, view) {
     return signIn().then(loadPicker).then(function () {
       return new Promise(function (res) {
-        var P = g.google.picker, v = view(P);
-        if (P.DocsViewMode && v.setMode) v.setMode(P.DocsViewMode.LIST);
-        if (v.setEnableDrives) try { v.setEnableDrives(true); } catch (e) {}
+        // v2.0.2: setEnableDrives(true) makes a view show ONLY shared drives — on the first view it left My Drive users with
+        // "No folders". The first view is everything the account can open; then Shared with me, then Shared drives.
+        var P = g.google.picker, v = view(P), sw = view(P), sd = view(P);
+        [v, sw, sd].forEach(function (x) { if (P.DocsViewMode && x.setMode) x.setMode(P.DocsViewMode.LIST); });
+        try { if (sw.setOwnedByMe) sw.setOwnedByMe(false); else sw = null; } catch (e) { sw = null; }
+        try { if (sd.setEnableDrives) sd.setEnableDrives(true); else sd = null; } catch (e) { sd = null; }
         var b = new P.PickerBuilder().setAppId(CFG.appId).setOAuthToken(token).setDeveloperKey(CFG.apiKey).addView(v).setTitle(o.title)
           .setCallback(function (d) {
             if (d.action === P.Action.PICKED) res((d.docs || []).map(function (x) { return { id: x.id, name: x.name, mimeType: x.mimeType }; }));
             else if (d.action === P.Action.CANCEL) res([]);
           });
+        if (sw) b.addView(sw);
+        if (sd) b.addView(sd);
         if (P.Feature && P.Feature.SUPPORT_DRIVES) try { b.enableFeature(P.Feature.SUPPORT_DRIVES); } catch (e) {}
         if (o.multi) b.enableFeature(P.Feature.MULTISELECT_ENABLED);
         b.build().setVisible(true);
@@ -306,11 +317,20 @@
         var own = same.filter(function (e) { return e.mine; })[0];
         var meta = { name: savedName(rec), appProperties: { phfKind: String(rec.kind), phfSavedAt: rec.savedAt || new Date().toISOString(), phfHash: hash || '' } };
         if (!own) meta.parents = [d.id];
-        var fd = new FormData();
-        fd.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
-        fd.append('file', rec.blob, meta.name);
-        var url = (own ? UPLOAD + '/' + encodeURIComponent(own.ref.id) : UPLOAD) + '?uploadType=multipart&fields=id,modifiedTime&' + ALL;
-        return api(url, { method: own ? 'PATCH' : 'POST', body: fd }).then(function () { return { savedAt: meta.appProperties.phfSavedAt, size: rec.blob.size || 0 }; })
+        var target = (own ? UPLOAD + '/' + encodeURIComponent(own.ref.id) : UPLOAD), method = own ? 'PATCH' : 'POST', up;
+        if ((rec.blob.size || 0) > BIG) {
+          // v2.0.2: Google takes a file of up to 5 MB in one request; a bigger one (the POS master is about 24 MB) goes up as a
+          // resumable upload — the first request sends the details and gets an upload address, the second sends the file to it.
+          var type = rec.blob.type || 'application/octet-stream';
+          up = api(target + '?uploadType=resumable&fields=id,modifiedTime&' + ALL, { method: method, headers: { 'Content-Type': 'application/json; charset=UTF-8', 'X-Upload-Content-Type': type, 'X-Upload-Content-Length': String(rec.blob.size || 0) }, body: JSON.stringify(meta) })
+            .then(function (r) { var at = r.headers.get('Location'); if (!at) throw new Error('Google Drive did not start the upload of ' + meta.name + ' — it will be tried again next time.'); return api(at, { method: 'PUT', headers: { 'Content-Type': type }, body: rec.blob }); });
+        } else {
+          var fd = new FormData();
+          fd.append('metadata', new Blob([JSON.stringify(meta)], { type: 'application/json' }));
+          fd.append('file', rec.blob, meta.name);
+          up = api(target + '?uploadType=multipart&fields=id,modifiedTime&' + ALL, { method: method, body: fd });
+        }
+        return up.then(function () { return { savedAt: meta.appProperties.phfSavedAt, size: rec.blob.size || 0 }; })
           .catch(function (e) { if (e.status === 403 || e.status === 404) e.message = 'This browser can read the shop folder but not save into "' + SAVED + '" — save from a PC with the linked folder, or ask the folder\'s owner for edit access.'; throw e; });
       });
     }
@@ -339,6 +359,7 @@
   }
 
   // ---------------------------------------------------------------- saved files ↔ "Staff Hub saved files"
+  var stuck = {};   // v2.0.2: kind → why its last upload failed (cleared when it goes up)
   function goneAt(kind) { var a = ls(K.gone + kind) || '', b = ls(K.gone + '*') || ''; return a > b ? a : b; }
   function seenKey(s, kind) { return K.seen + s.type + '.' + kind; }
   function seen(s, e) { return ls(seenKey(s, e.kind)) === e.savedAt + '|' + e.size; }
@@ -346,7 +367,7 @@
   function sync(L, kinds, o) {
     o = o || {}; var s = store(); if (!s) return Promise.reject(new Error('Google Drive is not connected on this PC.'));
     return Promise.all([s.listSaved(), L.list()]).then(function (a) {
-      var files = a[0], local = a[1], newest = {}, byKind = {}, here = {}, got = [], saved = [], same = 0, steps = [];
+      var files = a[0], local = a[1], newest = {}, byKind = {}, here = {}, got = [], saved = [], same = 0, steps = [], failed = [];
       files.forEach(function (f) { (byKind[f.kind] = byKind[f.kind] || []).push(f); if (!newest[f.kind] || f.savedAt > newest[f.kind].savedAt) newest[f.kind] = f; });
       local.forEach(function (r) { here[r.kind] = r; });
       if (o.pull !== false) Object.keys(newest).forEach(function (kind) {
@@ -376,28 +397,34 @@
             var h = hh[0];
             if (hh[1] && hh[1] === h) { same++; markSeen(s, r.kind, f.savedAt, f.size); return; }
             return s.write(r, byKind[r.kind] || [], h).then(function (w) { markSeen(s, r.kind, w.savedAt, w.size); saved.push(r); });
-          });
+          }).then(function () { delete stuck[r.kind]; }, function (e) { stuck[r.kind] = (e && e.message) || String(e); throw e; });
         });
       });
-      return steps.reduce(function (p, st) { return p.then(st); }, Promise.resolve()).then(function () { return { got: got, saved: saved, same: same, total: Object.keys(newest).length, where: s.where(), mode: s.type }; });
+      // v2.0.2: a file that fails no longer stops the files after it — each is tried; the ones that failed are reported
+      var run = function (st) { return function () { return st().catch(function (e) { var m = (e && e.message) || String(e); if (failed.indexOf(m) < 0) failed.push(m); }); }; };
+      return steps.reduce(function (p, st) { return p.then(run(st)); }, Promise.resolve()).then(function () { return { got: got, saved: saved, same: same, failed: failed, total: Object.keys(newest).length, where: s.where(), mode: s.type }; });
     });
   }
   function syncText(r) {
     var bits = [];
     if (r.got.length) bits.push('newer ' + r.got.map(function (f) { return label(f.kind); }).join(', ') + ' came in');
     if (r.saved.length) bits.push(r.saved.map(function (x) { return label(x.kind); }).join(', ') + ' saved');
+    var k = Object.keys(stuck);   // v2.0.2: a file that did not go up stays on the line until it does
+    if (k.length) bits.push('not saved yet: ' + k.map(label).join(', ') + ' — ' + stuck[k[0]] + ' (tried again next time)');
+    else if (r.failed && r.failed.length) bits.push('not all came in — ' + r.failed[0] + ' (tried again next time)');
     return (bits.length ? bits.join(' · ') : r.total ? 'up to date' : 'none in the shop folder yet') + ' (' + hhmm() + ')';
   }
   function autoSync() {
     var L = g.PHFLibrary; if (!L || !store()) return;
     queue(function () { return sync(L, PULL[PAGE] === undefined ? null : PULL[PAGE]); })
-      .then(function (r) { report({ type: 'sync', result: r, text: syncText(r) }); })
+      .then(function (r) { report({ type: failing(r) ? 'error' : 'sync', result: r, text: (failing(r) ? 'Saved files: ' : '') + syncText(r) }); })
       .catch(function (e) { report({ type: 'error', text: e.message || String(e) }); });
   }
-  function getLatest(L) { return queue(function () { return sync(L, null, { push: false, force: true }); }); }
+  function failing(r) { return r.failed.length > 0 || Object.keys(stuck).length > 0; }
+  function getLatest(L) { return queue(function () { return sync(L, null, { push: false, force: true }); }).then(function (r) { if (r.failed.length && !r.got.length) throw new Error(r.failed[0]); return r; }); }
   function saveAll(records) {
     var kinds = records.map(function (r) { return r.kind; }), L = g.PHFLibrary;
-    return queue(function () { return sync(L, null, { pull: false, only: kinds }); }).then(function (r) { return { saved: r.saved, same: r.same }; });
+    return queue(function () { return sync(L, null, { pull: false, only: kinds }); }).then(function (r) { if (r.failed.length) throw new Error((r.saved.length ? r.saved.length + ' saved; ' : '') + 'not saved: ' + r.failed[0]); return { saved: r.saved, same: r.same }; });
   }
   function wrapLibrary() {
     var L = g.PHFLibrary; if (!L || L.__phfDrive) return; L.__phfDrive = true;
@@ -417,7 +444,7 @@
     var L = g.PHFLibrary, kinds = Object.keys(pending); pending = {};
     if (!L || !kinds.length || !store()) return;
     queue(function () { return sync(L, null, { pull: false, pushKinds: kinds }); })
-      .then(function (r) { if (r.saved.length) report({ type: 'saved', result: r, text: syncText(r) }); })
+      .then(function (r) { if (r.saved.length || failing(r)) report({ type: failing(r) ? 'error' : 'saved', result: r, text: (failing(r) ? 'Saved files: ' : '') + syncText(r) }); })
       .catch(function (e) { report({ type: 'error', text: e.message || String(e) }); });
   }
 

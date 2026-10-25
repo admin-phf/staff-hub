@@ -1692,3 +1692,18 @@ All implemented stages keep source business files local to the browser and gener
     stores the counted message in `state.validation[id]` (refreshes the open input card).
   - Measured: the shop folder's 9 files 36–40 s → about 11 s; 16 mixed files 25 s → 8 s.
 - Versions: hub v21.45.0; Build POS Master Databases v21.27.0 (pipeline.js ?v=21.27.0).
+
+## Staff Hub v21.45.1 (25 Oct 2026 15:10 AEDT) — Drive picker views, resumable uploads, sync keeps going past a failure
+- phf-drive.js 2.0.2:
+  - `picker(o, view)` builds three views from `view(P)`: the plain view (everything the account can open), one with
+    `setOwnedByMe(false)` (Shared with me) and one with `setEnableDrives(true)` (Shared drives), all `DocsViewMode.LIST`. v2.0.0–
+    2.0.1 called `setEnableDrives(true)` on the only view, which limits it to shared drives ("No folders" for My Drive).
+  - `driveStore.write`: blob > `BIG` (4 MB) → resumable upload (`POST|PATCH …/upload/drive/v3/files[/id]?uploadType=resumable`
+    with the metadata JSON and `X-Upload-Content-Type` / `-Length`; then `PUT` the blob to the `Location` it returns). Otherwise the
+    multipart FormData request as before.
+  - `sync()`: each step runs on its own (`run(st)` catches); failures are collected in `r.failed`. A push that fails records
+    `stuck[kind]` (cleared when that kind goes up or is found the same); `syncText` adds "not saved yet: <labels> — <reason> (tried
+    again next time)" while any are stuck, else "not all came in — …". `autoSync` / `flushPush` report type `error` then (red line);
+    `saveAll` and `getLatest` reject with the reason when a file failed.
+- Versions: hub v21.45.1; Reconcile CH2 Order v2.26.3, Build POS Master Databases v21.27.1, POS New Product Check Clean v1.28.3
+  (version only; phf-drive.js ?v=2.0.2 on the hub and the three tools).

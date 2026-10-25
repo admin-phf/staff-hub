@@ -1,5 +1,6 @@
 (function(){'use strict';
-const VERSION='v21.27.0', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+const VERSION='v21.27.1', CH2V='v1.3.0', UHPV='v1.3.0', MASTERV='v2.6.0', POSV='v5.3.0';
+// v21.27.1 (Staff Hub v21.45.1) — version only: Google Drive's picker lists your folders, and big saved files go up (phf-drive.js v2.0.2).
 // v21.27.0 (Staff Hub v21.45.0) — files are recognised and checked from their first 200 rows (readSheets {head:true}): the shop
 // folder's 9 files are recognised in about 10 s instead of 35–40 s. Each file is read in full once, at build; the CH2 / SOH / Unique
 // row counts then appear in the file's Status ("… recognised from its headings (rows counted at build)." until then). Outputs unchanged.

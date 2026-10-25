@@ -1,4 +1,4 @@
-# Google Drive for the Staff Hub — setup (Staff Hub v21.43.0, 24 Oct 2026)
+# Google Drive for the Staff Hub — setup (Staff Hub v21.45.1, 25 Oct 2026)
 
 ## How it works
 **One shop folder in Google Drive, shared with the shop's accounts.** For example "GitHub Input Excel Data and Sheets 23.10.26", owned by admin@ and shared with each @prahranhealthfoods.com.au account as **Editor**, or kept in a Shared drive. Inside it:
@@ -21,6 +21,7 @@ The tools find `1, …` and `2, …` by their names: a name starting with "1," o
    - If Chrome ever asks again, it's one click on **Reconnect**, with no Google window.
 2. **Browser sign-in (any PC, nothing to install).**
    - On the home page, click **Sign in to Google Drive**, then **Choose the shop folder** (once on that PC).
+   - In Google's window, the first tab lists every folder the account can open (type part of the name to find it quickly). **Shared with me** and **Shared drives** are the other tabs.
    - The sign-in is kept in that browser until Google's hour is up, and **renews by itself** five minutes before.
    - If Chrome blocks Google's little window, it renews on **your next click anywhere** instead.
    - **Sign out** on the card ends it.
@@ -70,5 +71,6 @@ Project `phf-staff-hub` (number 876421157517), audience **Internal**. The steps,
 | "No "1, database-build" folder inside …" | The linked or chosen folder is the wrong one. Link (or choose) the folder that holds `1, …` and `2, …`. |
 | "Google Drive reconnects on your next click" | The hour ran out while Chrome blocked the renewal. Click anywhere, or allow pop-ups for the site. |
 | "This browser can read the shop folder but not save into "Staff Hub saved files"" | That account has view-only access, or it is a browser sign-in on a folder another account made. Give the account Editor access, or save from a PC with the linked folder. |
+| Big saved files (POS master, selected master) do not appear in "Staff Hub saved files" | From v21.45.1 they go up as Google's resumable upload. The line under the drop box names any file that did not go up; it is tried again the next time a page opens. |
 | "The API developer key is invalid" (in the picker) | Step 5: the key's websites must include `https://docs.google.com/*`. |
 | "Access blocked" / "Error 403: access_denied" | Sign in with an @prahranhealthfoods.com.au account and allow both Drive permissions. |

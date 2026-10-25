@@ -1,4 +1,6 @@
-/* PHF Staff Hub — POS New Product Check Clean v1.28.2 (25 Oct 2026, Staff Hub v21.44.2): version only — the Library keeps a file
+/* PHF Staff Hub — POS New Product Check Clean v1.28.3 (25 Oct 2026, Staff Hub v21.45.1): version only — Google Drive's picker lists
+ *         your folders, and big saved files go up (phf-drive.js v2.0.2).
+ * v1.28.2 (25 Oct 2026, Staff Hub v21.44.2): version only — the Library keeps a file
  *         saved again unchanged as it is (phf-library.js v1.2.1).
  * v1.28.1 (24 Oct 2026, Staff Hub v21.43.1): version only — the shop folder is checked
  * when linked or chosen (phf-drive.js v2.0.1).
@@ -262,7 +264,7 @@
 (function () {
   'use strict';
 
-  var TOOL_VERSION = 'v1.28.2';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
+  var TOOL_VERSION = 'v1.28.3';    // the review workbook's stamp (it was left at v1.7.2 in v1.8.0 / v1.9.0)
   // v1.3.0 Staff Hub Library: input id + Library kind loaded on open. ✕ / Remove on a Library file stops it loading
   // here until a newer copy is saved; Ongoing Discounts is one shared file, so removing it deletes the saved copy.
   // v1.3.1: the supplier imports are NOT loaded on open (a merge covers only the brands in Supplier Updates, so a
