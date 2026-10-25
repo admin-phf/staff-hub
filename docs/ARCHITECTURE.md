@@ -1664,3 +1664,31 @@ All implemented stages keep source business files local to the browser and gener
     run's rows (it read `posRowLookup`, which still held the previous run's rows — wrong PLU in the Fix list's text).
   - The summary names the invoice(s): "Invoice 74147128 $6,804.48" / "2 invoices (74154567, 74147128) $8,100.69".
 - Versions: hub v21.44.1; Reconcile CH2 Order v2.26.1 (app.js / workspace.js / workspace.css ?v=2.26.1).
+
+## Staff Hub v21.44.2 (25 Oct 2026 02:05 AEDT) — Reconcile redraw loop removed; an unchanged file saved again keeps its saved copy
+- Reconcile CH2 Order v2.26.2 (ui/workspace.js, index.html): `renderStage()` wrote `#runBtn.textContent` and `#dbDoneNote.textContent`
+  on every render. `observe()` watches both (childList / characterData), so every render queued the next one (`schedule()` →
+  `requestAnimationFrame`): the rail (`renderNav`, innerHTML), the step rows, the step 3 file rows and both RUN rows were rebuilt
+  about 60 times a second while the page was open, and a click whose target was replaced between mousedown and mouseup was lost
+  (the ✕ on INPUT FILES rows, Download in the step 3 rows). Both are now written only when the text changes; idle redraws are 0.
+- phf-library.js 1.2.1: `put()` first checks `unchanged()` — same kind, same name, same size and the same bytes as the saved
+  record → resolves with the saved record (no write, no `put` event, `savedAt` kept, `parsedReferenceCache` kept); otherwise
+  `write()` (the old `put`). Before, Build POS Master Databases (and any tool loading the shop folder) re-saved Ongoing Discounts
+  on every open; it is a PARSED kind, so Reconcile's parsed POS / master was deleted and its next run re-read the 24 MB master.
+- Build POS Master Databases v21.26.2 (pipeline.js, index.html): `acceptInputFile` treats a file whose bytes match the file
+  already loaded (`sameBytes`, same name and size) as not an update — no `state.updated` (blue UPDATED row). `invalidate(id)` still runs.
+- POS New Product Check Clean v1.28.2: version only (phf-library.js ?v=1.2.1). Hub index.html loads phf-library.js ?v=1.2.1.
+- Versions: hub v21.44.2; Reconcile CH2 Order v2.26.2 (workspace.js ?v=2.26.2); Build POS Master Databases v21.26.2 (pipeline.js
+  ?v=21.26.2); POS New Product Check Clean v1.28.2 (app.js ?v=1.28.2); phf-library.js 1.2.1.
+
+## Staff Hub v21.45.0 (25 Oct 2026 11:15 AEDT) — Build POS Master Databases recognises files from their headings
+- Build POS Master Databases v21.27.0 (pipeline.js, index.html): `readSheets(file,{head:true})` passes `sheetRows: HEAD_ROWS` (200)
+  to `XLSX.read` and marks the result `.head`. `identifyFile` (Drop all, the shop folder) and `validateInputFile` (a drop on a row,
+  a saved reference file from the Library) use it; every header search (`flatHeads` 80 rows, `selectBestSheet` / `parseSoh` /
+  `parseBoxSheets` 120, `parseUhpRows` 50, `posRead` 80) is inside it, so recognition and validation decide the same as a full read.
+  The stages still read the whole file (`readSheets(f)`), so outputs are unchanged.
+  - `validateSheets` on head sheets: CH2 / SOH / Unique messages have no row count ("… recognised from its headings (rows counted at
+    build)."). `noteRows(id, sheets)` in `buildCh2` (ch2, soh) and `buildUhp` (uhp) re-runs `validateSheets` on the full read and
+    stores the counted message in `state.validation[id]` (refreshes the open input card).
+  - Measured: the shop folder's 9 files 36–40 s → about 11 s; 16 mixed files 25 s → 8 s.
+- Versions: hub v21.45.0; Build POS Master Databases v21.27.0 (pipeline.js ?v=21.27.0).

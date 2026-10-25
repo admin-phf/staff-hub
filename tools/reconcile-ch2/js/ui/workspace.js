@@ -1,3 +1,6 @@
+// Reconcile CH2 v2.26.2 — 25 Oct 2026: the rail, the step rows and the RUN rows are drawn only when something changes. renderStage()
+// rewrote the Run all label and the done note on every draw; both are watched (observe()), so the page redrew itself about 60 times
+// a second all the time — a ✕ on an INPUT FILES row could miss the click (the button was replaced between press and release).
 // Reconcile CH2 v2.26.1 — 24 Oct 2026: the drop box's message starts with the app's note when a new POS order released the previous
 // order's supplier invoices (PHFReconcileApp.takeNote()).
 /* /* Reconcile CH2 v2.17.0 (21 Oct 2026, Staff Hub v21.34.0) — the RUN row above the checklist is the same row as the top strip:
@@ -189,8 +192,10 @@
   }
   function renderStage(){
     const st=stepState();for(const k of Object.keys(st))setRunPill(k,st[k]);
-    const run=$('#runBtn');if(run){run.textContent=st.reconcile==='run'?'Running…':'Run all';}
-    const note=$('#dbDoneNote');if(note)note.textContent=st.reconcile==='run'?'reconciling…':st.export==='done'?'3 of 3 run':st.reconcile==='done'?'2 of 3 run':st.check==='done'?'1 of 3 run':'';
+    // v2.26.2: write the label / note only when it changes — both are watched (observe()), so writing them on every
+    // render re-ran render every frame (the rail was redrawn ~60 times a second and its ✕ missed clicks)
+    const run=$('#runBtn');if(run){const t=st.reconcile==='run'?'Running…':'Run all';if(run.textContent!==t)run.textContent=t;}
+    const note=$('#dbDoneNote');if(note){const t=st.reconcile==='run'?'reconciling…':st.export==='done'?'3 of 3 run':st.reconcile==='done'?'2 of 3 run':st.check==='done'?'1 of 3 run':'';if(note.textContent!==t)note.textContent=t;}
     const results=$('#results'),on=results&&!results.classList.contains('hidden');
     syncMirrors(on);const nt=$('#dlPosImportNote');if(nt)nt.textContent='';
     for(const p of document.querySelectorAll('.builder-workspace .panel,.dbgroup'))p.style.scrollMarginTop=($('#dbRunStrip')?.offsetHeight||56)+8+'px';

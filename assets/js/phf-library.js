@@ -1,4 +1,6 @@
-/* PHF Staff Hub — Library v1.2.0 (21 Oct 2026: a delete is a delete everywhere — removing Ongoing Discounts also removes the
+/* PHF Staff Hub — Library v1.2.1 (25 Oct 2026, Staff Hub v21.44.2: a file saved again unchanged — same name, same bytes — keeps the
+ *         saved copy as it is, its date and Reconcile CH2 Order's parsed copy of it.)
+ * v1.2.0 (21 Oct 2026: a delete is a delete everywhere — removing Ongoing Discounts also removes the
  *         POS DB & Supplier Merge workbook it is rebuilt from (Reconcile CH2 Order made it again from that copy); a remove or
  *         Delete all also drops any "hidden on this page" marker for that file, so nothing old is kept as hidden.)
  * v1.1.3 (20 Oct 2026: the A–P supplier-layout kinds lib:ch2-posdb / lib:uhp-posdb) · v1.1.2 (15 Oct 2026: persisted() — is the site's storage protected from automatic clearing)
@@ -91,9 +93,28 @@
     try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {}); } catch (e) {}
   }
 
-  /* Save a file (Blob / File) under a kind. info: { name, source, meta }. Resolves with the saved record (no blob). */
+  /* Save a file (Blob / File) under a kind. info: { name, source, meta }. Resolves with the saved record (no blob).
+     v1.2.1: the same file saved again (same name, same bytes) keeps the saved copy as it is — its date, and Reconcile CH2
+     Order's parsed copy of it. Before, every tool that loaded the shop folder saved Ongoing Discounts again, which threw
+     away Reconcile's parsed POS / master, so its next run read the whole master again (half a minute or more). */
   function put(kind, blob, info) {
     info = info || {};
+    return unchanged(kind, blob, info).then(function (old) { return old ? strip(old) : write(kind, blob, info); });
+  }
+  function unchanged(kind, blob, info) {
+    if (!blob || typeof blob.arrayBuffer !== 'function') return Promise.resolve(null);
+    return get(kind).then(function (old) {
+      if (!old || !old.blob || typeof old.blob.arrayBuffer !== 'function' || (old.blob.size || 0) !== (blob.size || 0)) return null;
+      if (String(old.name || '') !== String(info.name || blob.name || kind)) return null;
+      return Promise.all([old.blob.arrayBuffer(), blob.arrayBuffer()]).then(function (ab) {
+        var a = new Uint8Array(ab[0]), b = new Uint8Array(ab[1]);
+        if (a.length !== b.length) return null;
+        for (var i = 0; i < a.length; i++) if (a[i] !== b[i]) return null;
+        return old;
+      });
+    }).catch(function () { return null; });
+  }
+  function write(kind, blob, info) {
     var rec = {
       kind: kind, name: info.name || blob.name || kind, size: blob.size || 0, type: blob.type || '',
       lastModified: blob.lastModified || Date.now(), savedAt: new Date().toISOString(), blob: blob,
